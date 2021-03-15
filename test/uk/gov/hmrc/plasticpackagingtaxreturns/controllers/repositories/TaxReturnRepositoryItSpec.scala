@@ -66,8 +66,10 @@ class TaxReturnRepositoryItSpec
 
   "Update" should {
     "update the tax return" in {
-      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(2)))
-      gienTaxReturnExists(taxReturn)
+      gienTaxReturnExists(aTaxReturn())
+      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(4)),
+                                 withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2))
+      )
 
       repository.update(taxReturn).futureValue mustBe Some(taxReturn)
 

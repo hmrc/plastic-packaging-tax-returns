@@ -16,7 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturnRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  ImportedPlasticWeight,
+  ManufacturedPlasticWeight,
+  TaxReturnRequest
+}
 
 //noinspection ScalaStyle
 trait TaxReturnRequestBuilder {
@@ -27,9 +31,14 @@ trait TaxReturnRequestBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturnRequest =
-    TaxReturnRequest(manufacturedPlasticWeight = ManufacturedPlasticWeight(Some(5), Some(5)))
+    TaxReturnRequest(manufacturedPlasticWeight = ManufacturedPlasticWeight(Some(5), Some(5)),
+                     importedPlasticWeight = ImportedPlasticWeight(Some(6), Some(6))
+    )
 
   def withManufacturedPlasticWeight(manufacturedPlasticWeight: ManufacturedPlasticWeight): TaxReturnRequestModifier =
     _.copy(manufacturedPlasticWeight = manufacturedPlasticWeight)
+
+  def withImportedPlasticWeight(importedPlasticWeight: ImportedPlasticWeight): TaxReturnRequestModifier =
+    _.copy(importedPlasticWeight = importedPlasticWeight)
 
 }
