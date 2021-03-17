@@ -1,3 +1,5 @@
 # microservice specific routes
 
-GET         /returns            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get
+POST        /returns                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create()
+PUT         /returns/:id             uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(id)
+GET         /returns/:id             uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(id)
