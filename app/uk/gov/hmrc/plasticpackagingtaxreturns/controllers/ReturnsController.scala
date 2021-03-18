@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, _}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxReturn, TaxReturnRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -29,6 +30,7 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
+  authenticator: Authenticator,
   taxReturnRepository: TaxReturnRepository,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
@@ -36,20 +38,8 @@ class ReturnsController @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] =
-    parse.json.validate { json =>
-      json.validate[T] match {
-        case JsSuccess(value, _) => Right(value)
-        case JsError(error) =>
-          val errorResponse = Json.toJson(ErrorResponse(BAD_REQUEST, "Bad Request"))
-          logger.warn(s"Bad Request [$errorResponse]")
-          logger.warn(s"Errors: [$error]")
-          Left(BadRequest(errorResponse))
-      }
-    }
-
   def get(id: String): Action[AnyContent] =
-    Action.async { implicit request =>
+    authenticator.authorisedAction(parse.default) { implicit request =>
       taxReturnRepository.findById(id).map {
         case Some(taxReturn) => Ok(taxReturn)
         case None            => NotFound
@@ -57,16 +47,16 @@ class ReturnsController @Inject() (
     }
 
   def create(): Action[TaxReturnRequest] =
-    Action.async(parsingJson[TaxReturnRequest]) { implicit request =>
+    authenticator.authorisedAction(parsingJson[TaxReturnRequest]) { implicit request =>
       logPayload("Create Tax Return Request Received", request.body)
       taxReturnRepository
-        .create(request.body.toTaxReturn("123"))
+        .create(request.body.toTaxReturn(request.pptId))
         .map(logPayload("Create Tax Return Response", _))
         .map(taxReturn => Created(taxReturn))
     }
 
   def update(id: String): Action[TaxReturnRequest] =
-    Action.async(parsingJson[TaxReturnRequest]) { implicit request =>
+    authenticator.authorisedAction(parsingJson[TaxReturnRequest]) { implicit request =>
       logPayload("Update Tax Return Request Received", request.body)
       taxReturnRepository.findById(id).flatMap {
         case Some(_) =>
@@ -87,5 +77,17 @@ class ReturnsController @Inject() (
     logger.debug(s"$prefix, Payload: ${Json.toJson(payload)}")
     payload
   }
+
+  private def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] =
+    parse.json.validate { json =>
+      json.validate[T] match {
+        case JsSuccess(value, _) => Right(value)
+        case JsError(error) =>
+          val errorResponse = Json.toJson(ErrorResponse(BAD_REQUEST, "Bad Request"))
+          logger.warn(s"Bad Request [$errorResponse]")
+          logger.warn(s"Errors: [$error]")
+          Left(BadRequest(errorResponse))
+      }
+    }
 
 }

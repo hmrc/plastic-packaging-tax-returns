@@ -35,6 +35,8 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{route, status, _}
+import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, InsufficientEnrolments}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -43,18 +45,19 @@ import scala.concurrent.Future
 
 class ReturnsControllerSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with TaxReturnBuilder with TaxReturnRequestBuilder {
+    with TaxReturnBuilder with TaxReturnRequestBuilder with AuthTestSupport {
 
   SharedMetricRegistries.clear()
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[TaxReturnRepository].to(taxReturnRepository))
+    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].to(taxReturnRepository))
     .build()
 
   private val taxReturnRepository: TaxReturnRepository = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
+    reset(mockAuthConnector)
     reset(taxReturnRepository)
   }
 
@@ -63,6 +66,7 @@ class ReturnsControllerSpec
 
     "return 201" when {
       "request is valid" in {
+        withAuthorizedUser()
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn()
         given(taxReturnRepository.create(any[TaxReturn])).willReturn(Future.successful(taxReturn))
@@ -78,11 +82,23 @@ class ReturnsControllerSpec
 
     "return 400" when {
       "invalid json" in {
+        withAuthorizedUser()
         val payload                = Json.toJson(Map("id" -> false)).as[JsObject]
         val result: Future[Result] = route(app, post.withJsonBody(payload)).get
 
         status(result) must be(BAD_REQUEST)
         contentAsJson(result) mustBe Json.obj("statusCode" -> 400, "message" -> "Bad Request")
+        verifyNoInteractions(taxReturnRepository)
+      }
+    }
+
+    "return 401" when {
+      "unauthorized" in {
+        withUnauthorizedUser(new RuntimeException())
+
+        val result: Future[Result] = route(app, post.withJsonBody(toJson(aTaxReturnRequest()))).get
+
+        status(result) must be(UNAUTHORIZED)
         verifyNoInteractions(taxReturnRepository)
       }
     }
@@ -93,6 +109,7 @@ class ReturnsControllerSpec
 
     "return 200" when {
       "request is valid" in {
+        withAuthorizedUser()
         val taxReturn = aTaxReturn(withId("test02"))
         given(taxReturnRepository.findById("test02")).willReturn(Future.successful(Some(taxReturn)))
 
@@ -106,6 +123,7 @@ class ReturnsControllerSpec
 
     "return 404" when {
       "id is not found" in {
+        withAuthorizedUser()
         given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
@@ -115,13 +133,24 @@ class ReturnsControllerSpec
         verify(taxReturnRepository).findById(refEq("test02"))
       }
     }
+
+    "return 401" when {
+      "unauthorized" in {
+        withUnauthorizedUser(InsufficientEnrolments())
+
+        val result: Future[Result] = route(app, get).get
+
+        status(result) must be(UNAUTHORIZED)
+        verifyNoInteractions(taxReturnRepository)
+      }
+    }
   }
 
   "PUT /:id" should {
     val put = FakeRequest("PUT", "/returns/id01")
     "return 200" when {
       "request is valid" in {
-
+        withAuthorizedUser()
         val request = aTaxReturnRequest(
           withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(10)))
         )
@@ -145,6 +174,7 @@ class ReturnsControllerSpec
 
     "return 404" when {
       "tax return is not found - on find" in {
+        withAuthorizedUser()
         val request = aTaxReturnRequest()
         given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(None))
         given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
@@ -156,6 +186,7 @@ class ReturnsControllerSpec
       }
 
       "tax return is not found - on update" in {
+        withAuthorizedUser()
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn(withId("id"))
         given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
@@ -165,6 +196,17 @@ class ReturnsControllerSpec
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
+      }
+    }
+
+    "return 401" when {
+      "unauthorized" in {
+        withUnauthorizedUser(InsufficientEnrolments())
+
+        val result: Future[Result] = route(app, put.withJsonBody(toJson(aTaxReturnRequest()))).get
+
+        status(result) must be(UNAUTHORIZED)
+        verifyNoInteractions(taxReturnRepository)
       }
     }
   }
