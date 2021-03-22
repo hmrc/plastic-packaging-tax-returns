@@ -68,7 +68,8 @@ class TaxReturnRepositoryItSpec
     "update the tax return" in {
       gienTaxReturnExists(aTaxReturn())
       val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(4)),
-                                 withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2))
+                                 withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2)),
+                                 withHumanMedicinesPlasticWeight(totalKg = Some(1))
       )
 
       repository.update(taxReturn).futureValue mustBe Some(taxReturn)
@@ -93,7 +94,10 @@ class TaxReturnRepositoryItSpec
   "Find by ID" should {
     "return the persisted tax return" when {
       "one exists with ID" in {
-        val taxReturn = aTaxReturn()
+        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(4)),
+                                   withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2)),
+                                   withHumanMedicinesPlasticWeight(totalKg = Some(1))
+        )
         gienTaxReturnExists(taxReturn)
 
         repository.findById(taxReturn.id).futureValue mustBe Some(taxReturn)

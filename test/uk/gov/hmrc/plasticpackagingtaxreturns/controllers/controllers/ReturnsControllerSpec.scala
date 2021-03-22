@@ -25,7 +25,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -38,7 +37,12 @@ import play.api.test.Helpers.{route, status, _}
 import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, InsufficientEnrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  HumanMedicinesPlasticWeight,
+  ImportedPlasticWeight,
+  ManufacturedPlasticWeight,
+  TaxReturn
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 
 import scala.concurrent.Future
@@ -152,7 +156,9 @@ class ReturnsControllerSpec
       "request is valid" in {
         withAuthorizedUser()
         val request = aTaxReturnRequest(
-          withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(10)))
+          withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(10))),
+          withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = Some(4))),
+          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = Some(2), totalKgBelowThreshold = Some(3)))
         )
 
         val taxReturn =
@@ -169,6 +175,9 @@ class ReturnsControllerSpec
         updatedTaxReturn.id mustBe "id01"
         updatedTaxReturn.manufacturedPlasticWeight.totalKg mustBe Some(5)
         updatedTaxReturn.manufacturedPlasticWeight.totalKgBelowThreshold mustBe Some(10)
+        updatedTaxReturn.importedPlasticWeight.totalKg mustBe Some(2)
+        updatedTaxReturn.importedPlasticWeight.totalKgBelowThreshold mustBe Some(3)
+        updatedTaxReturn.humanMedicinesPlasticWeight.totalKg mustBe Some(4)
       }
     }
 
