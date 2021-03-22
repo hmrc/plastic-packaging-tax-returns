@@ -39,7 +39,7 @@ class ReturnsController @Inject() (
   private val logger = Logger(this.getClass)
 
   def get(id: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
+    authenticator.authorisedAction(parse.default) { _ =>
       taxReturnRepository.findById(id).map {
         case Some(taxReturn) => Ok(taxReturn)
         case None            => NotFound

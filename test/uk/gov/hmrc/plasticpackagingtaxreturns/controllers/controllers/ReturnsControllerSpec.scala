@@ -34,7 +34,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{route, status, _}
-import uk.gov.hmrc.auth.core.{AuthConnector, BearerTokenExpired, InsufficientEnrolments}
+import uk.gov.hmrc.auth.core.{AuthConnector, InsufficientEnrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
