@@ -19,14 +19,16 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 case class TaxReturnRequest(
   manufacturedPlasticWeight: ManufacturedPlasticWeight,
   importedPlasticWeight: ImportedPlasticWeight,
-  humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight
+  humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight,
+  exportedPlasticWeight: Option[ExportedPlasticWeight] = None
 ) {
 
   def toTaxReturn(providerId: String): TaxReturn =
     TaxReturn(id = providerId,
               manufacturedPlasticWeight = this.manufacturedPlasticWeight,
               importedPlasticWeight = this.importedPlasticWeight,
-              humanMedicinesPlasticWeight = this.humanMedicinesPlasticWeight
+              humanMedicinesPlasticWeight = this.humanMedicinesPlasticWeight,
+              exportedPlasticWeight = this.exportedPlasticWeight
     )
 
 }
