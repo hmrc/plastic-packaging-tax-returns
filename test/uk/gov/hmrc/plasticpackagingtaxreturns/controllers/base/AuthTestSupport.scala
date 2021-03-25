@@ -36,7 +36,7 @@ trait AuthTestSupport extends MockitoSugar {
   lazy val mockLogger: Logger               = mock[Logger]
 
   val enrolment: Predicate = Enrolment(pptEnrolment)
-  val utr                  = "222222222"
+  val utr                  = "7777777"
 
   def withAuthorizedUser(user: SignedInUser = newUser(utr, "external1")): Unit =
     when(

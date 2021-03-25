@@ -16,6 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  ConvertedPackagingCredit,
+  ImportedPlasticWeight,
+  ManufacturedPlasticWeight,
+  TaxReturnRequest
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
@@ -27,22 +33,28 @@ trait TaxReturnRequestBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturnRequest =
-    TaxReturnRequest(manufacturedPlasticWeight = ManufacturedPlasticWeight(Some(5), Some(5)),
-                     importedPlasticWeight = ImportedPlasticWeight(Some(6), Some(6)),
-                     humanMedicinesPlasticWeight = HumanMedicinesPlasticWeight(Some(1)),
-                     exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089))
+    TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5, 5)),
+                     importedPlasticWeight = Some(ImportedPlasticWeight(6, 6)),
+                     humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
+                     exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
+                     convertedPackagingCredit = Some(ConvertedPackagingCredit(1010))
     )
 
   def withManufacturedPlasticWeight(manufacturedPlasticWeight: ManufacturedPlasticWeight): TaxReturnRequestModifier =
-    _.copy(manufacturedPlasticWeight = manufacturedPlasticWeight)
+    _.copy(manufacturedPlasticWeight = Some(manufacturedPlasticWeight))
 
   def withImportedPlasticWeight(importedPlasticWeight: ImportedPlasticWeight): TaxReturnRequestModifier =
-    _.copy(importedPlasticWeight = importedPlasticWeight)
+    _.copy(importedPlasticWeight = Some(importedPlasticWeight))
+
+  def withConvertedPlasticPackagingCredit(
+    convertedPlasticPackagingCredit: ConvertedPackagingCredit
+  ): TaxReturnRequestModifier =
+    _.copy(convertedPackagingCredit = Some(convertedPlasticPackagingCredit))
 
   def withHumanMedicinesPlasticWeight(
     humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight
   ): TaxReturnRequestModifier =
-    _.copy(humanMedicinesPlasticWeight = humanMedicinesPlasticWeight)
+    _.copy(humanMedicinesPlasticWeight = Some(humanMedicinesPlasticWeight))
 
   def withDirectExportDetails(directExportDetails: ExportedPlasticWeight): TaxReturnRequestModifier =
     _.copy(exportedPlasticWeight = Some(directExportDetails))

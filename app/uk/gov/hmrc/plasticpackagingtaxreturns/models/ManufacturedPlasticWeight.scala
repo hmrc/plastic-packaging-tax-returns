@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ManufacturedPlasticWeight(totalKg: Option[Long] = None, totalKgBelowThreshold: Option[Long] = None)
+case class ManufacturedPlasticWeight(totalKg: Long, totalKgBelowThreshold: Long)
 
 object ManufacturedPlasticWeight {
   implicit val format: OFormat[ManufacturedPlasticWeight] = Json.format[ManufacturedPlasticWeight]

@@ -52,7 +52,7 @@ class TaxReturnRepositoryItSpec
       .futureValue
       .toInt
 
-  private def gienTaxReturnExists(taxReturns: TaxReturn*): Unit =
+  private def givenTaxReturnExists(taxReturns: TaxReturn*): Unit =
     repository.collection.insert(ordered = true).many(taxReturns).futureValue
 
   "Create" should {
@@ -66,10 +66,11 @@ class TaxReturnRepositoryItSpec
 
   "Update" should {
     "update the tax return" in {
-      gienTaxReturnExists(aTaxReturn())
-      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(4)),
-                                 withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2)),
-                                 withHumanMedicinesPlasticWeight(totalKg = Some(1))
+      givenTaxReturnExists(aTaxReturn())
+      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
+                                 withImportedPlasticWeight(totalKg = 3, totalKgBelowThreshold = 2),
+                                 withHumanMedicinesPlasticWeight(totalKg = 1),
+                                 withConvertedPlasticPackagingCredit(totalPence = 1010)
       )
 
       repository.update(taxReturn).futureValue mustBe Some(taxReturn)
@@ -94,11 +95,13 @@ class TaxReturnRepositoryItSpec
   "Find by ID" should {
     "return the persisted tax return" when {
       "one exists with ID" in {
-        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(4)),
-                                   withImportedPlasticWeight(totalKg = Some(3), totalKgBelowThreshold = Some(2)),
-                                   withHumanMedicinesPlasticWeight(totalKg = Some(1))
+        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
+                                   withImportedPlasticWeight(totalKg = 3, totalKgBelowThreshold = 2),
+                                   withHumanMedicinesPlasticWeight(totalKg = 1),
+                                   withConvertedPlasticPackagingCredit(totalPence = 1010)
         )
-        gienTaxReturnExists(taxReturn)
+
+        givenTaxReturnExists(taxReturn)
 
         repository.findById(taxReturn.id).futureValue mustBe Some(taxReturn)
 
@@ -111,7 +114,7 @@ class TaxReturnRepositoryItSpec
       "none exist with id" in {
         val taxReturn1 = aTaxReturn(withId("some-other-id"))
         val taxReturn2 = aTaxReturn()
-        gienTaxReturnExists(taxReturn1, taxReturn2)
+        givenTaxReturnExists(taxReturn1, taxReturn2)
 
         repository.findById("non-existing-id").futureValue mustBe None
 
@@ -123,7 +126,7 @@ class TaxReturnRepositoryItSpec
   "Delete" should {
     "remove the tax return" in {
       val taxReturn = aTaxReturn()
-      gienTaxReturnExists(taxReturn)
+      givenTaxReturnExists(taxReturn)
 
       repository.delete(taxReturn).futureValue
 
@@ -135,7 +138,7 @@ class TaxReturnRepositoryItSpec
         val taxReturn1 = aTaxReturn()
         val taxReturn2 = aTaxReturn(withId("id1"))
         val taxReturn3 = aTaxReturn(withId("id2"))
-        gienTaxReturnExists(taxReturn2, taxReturn3)
+        givenTaxReturnExists(taxReturn2, taxReturn3)
 
         repository.delete(taxReturn1).futureValue
 
