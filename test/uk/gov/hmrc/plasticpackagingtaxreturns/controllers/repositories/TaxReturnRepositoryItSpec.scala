@@ -98,7 +98,9 @@ class TaxReturnRepositoryItSpec
         val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
                                    withImportedPlasticWeight(totalKg = 3, totalKgBelowThreshold = 2),
                                    withHumanMedicinesPlasticWeight(totalKg = 1),
-                                   withConvertedPlasticPackagingCredit(totalPence = 1010)
+                                   withConvertedPlasticPackagingCredit(totalPence = 1010),
+                                   withDirectExportDetails(totalKg = 8, totalValueForCreditInPence = 99),
+                                   withMetadata(returnCompleted = true)
         )
 
         givenTaxReturnExists(taxReturn)
