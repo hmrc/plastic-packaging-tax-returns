@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, anyString, refEq}
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.BDDMockito.`given`
 import org.mockito.Mockito.{reset, verify, verifyNoInteractions}
 import org.scalatest.BeforeAndAfterEach
@@ -38,6 +38,7 @@ import uk.gov.hmrc.auth.core.{AuthConnector, InsufficientEnrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  ConvertedPackagingCredit,
   HumanMedicinesPlasticWeight,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
@@ -78,7 +79,6 @@ class ReturnsControllerSpec
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 
         status(result) must be(CREATED)
-        println(contentAsJson(result))
         contentAsJson(result) mustBe toJson(taxReturn)
         theCreatedTaxReturn.id mustNot be(null)
       }
@@ -87,7 +87,7 @@ class ReturnsControllerSpec
     "return 400" when {
       "invalid json" in {
         withAuthorizedUser()
-        val payload                = Json.toJson(Map("id" -> false)).as[JsObject]
+        val payload                = Json.toJson(Map("exportedPlasticWeight" -> "{wrongKey:wrong value}")).as[JsObject]
         val result: Future[Result] = route(app, post.withJsonBody(payload)).get
 
         status(result) must be(BAD_REQUEST)
@@ -109,12 +109,12 @@ class ReturnsControllerSpec
   }
 
   "GET /:id" should {
-    val get = FakeRequest("GET", "/returns/" + "test02")
+    val get = FakeRequest("GET", "/returns/test02")
 
     "return 200" when {
       "request is valid" in {
         withAuthorizedUser()
-        val taxReturn = aTaxReturn(withId("test02"))
+        val taxReturn = aTaxReturn(withId("test02"), withConvertedPlasticPackagingCredit(1122))
         given(taxReturnRepository.findById("test02")).willReturn(Future.successful(Some(taxReturn)))
 
         val result: Future[Result] = route(app, get).get
@@ -134,7 +134,7 @@ class ReturnsControllerSpec
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
-        verify(taxReturnRepository).findById(refEq("test02"))
+        verify(taxReturnRepository).findById("test02")
       }
     }
 
@@ -156,13 +156,14 @@ class ReturnsControllerSpec
       "request is valid" in {
         withAuthorizedUser()
         val request = aTaxReturnRequest(
-          withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = Some(5), totalKgBelowThreshold = Some(10))),
-          withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = Some(4))),
-          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = Some(2), totalKgBelowThreshold = Some(3)))
+          withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 10)),
+          withConvertedPlasticPackagingCredit(ConvertedPackagingCredit(totalInPence = 1433)),
+          withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
+          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2, totalKgBelowThreshold = 3))
         )
 
         val taxReturn =
-          aTaxReturn(withId("id01"), withManufacturedPlasticWeight(totalKg = Some(1), totalKgBelowThreshold = None))
+          aTaxReturn(withId("id01"), withManufacturedPlasticWeight(totalKg = 1, totalKgBelowThreshold = 0))
 
         given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
         given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(Some(taxReturn)))
@@ -173,11 +174,11 @@ class ReturnsControllerSpec
         contentAsJson(result) mustBe toJson(taxReturn)
         val updatedTaxReturn = theUpdatedTaxReturn
         updatedTaxReturn.id mustBe "id01"
-        updatedTaxReturn.manufacturedPlasticWeight.totalKg mustBe Some(5)
-        updatedTaxReturn.manufacturedPlasticWeight.totalKgBelowThreshold mustBe Some(10)
-        updatedTaxReturn.importedPlasticWeight.totalKg mustBe Some(2)
-        updatedTaxReturn.importedPlasticWeight.totalKgBelowThreshold mustBe Some(3)
-        updatedTaxReturn.humanMedicinesPlasticWeight.totalKg mustBe Some(4)
+        updatedTaxReturn.manufacturedPlasticWeight.get.totalKg mustBe 5
+        updatedTaxReturn.manufacturedPlasticWeight.get.totalKgBelowThreshold mustBe 10
+        updatedTaxReturn.importedPlasticWeight.get.totalKg mustBe 2
+        updatedTaxReturn.importedPlasticWeight.get.totalKgBelowThreshold mustBe 3
+        updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
       }
     }
 

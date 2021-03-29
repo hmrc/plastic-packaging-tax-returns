@@ -20,10 +20,11 @@ import play.api.libs.json.{Json, OFormat}
 
 case class TaxReturn(
   id: String,
-  manufacturedPlasticWeight: ManufacturedPlasticWeight = ManufacturedPlasticWeight(),
-  importedPlasticWeight: ImportedPlasticWeight = ImportedPlasticWeight(),
-  humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight = HumanMedicinesPlasticWeight(),
-  exportedPlasticWeight: Option[ExportedPlasticWeight] = None
+  manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
+  importedPlasticWeight: Option[ImportedPlasticWeight] = None,
+  humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
+  exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
+  convertedPackagingCredit: Option[ConvertedPackagingCredit] = None
 )
 
 object TaxReturn {

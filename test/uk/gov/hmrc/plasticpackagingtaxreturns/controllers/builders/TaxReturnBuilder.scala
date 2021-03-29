@@ -23,6 +23,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   ManufacturedPlasticWeight,
   TaxReturn
 }
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  ConvertedPackagingCredit,
+  ImportedPlasticWeight,
+  ManufacturedPlasticWeight,
+  TaxReturn
+}
 
 //noinspection ScalaStyle
 trait TaxReturnBuilder {
@@ -37,24 +43,29 @@ trait TaxReturnBuilder {
 
   def withId(id: String): TaxReturnModifier = _.copy(id = id)
 
-  def withManufacturedPlasticWeight(totalKg: Option[Long], totalKgBelowThreshold: Option[Long]): TaxReturnModifier =
+  def withManufacturedPlasticWeight(totalKg: Long, totalKgBelowThreshold: Long): TaxReturnModifier =
     _.copy(manufacturedPlasticWeight =
-      ManufacturedPlasticWeight(totalKg = totalKg, totalKgBelowThreshold = totalKgBelowThreshold)
+      Some(ManufacturedPlasticWeight(totalKg = totalKg, totalKgBelowThreshold = totalKgBelowThreshold))
     )
 
-  def withImportedPlasticWeight(totalKg: Option[Long], totalKgBelowThreshold: Option[Long]): TaxReturnModifier =
+  def withImportedPlasticWeight(totalKg: Long, totalKgBelowThreshold: Long): TaxReturnModifier =
     _.copy(importedPlasticWeight =
-      ImportedPlasticWeight(totalKg = totalKg, totalKgBelowThreshold = totalKgBelowThreshold)
+      Some(ImportedPlasticWeight(totalKg = totalKg, totalKgBelowThreshold = totalKgBelowThreshold))
     )
 
-  def withHumanMedicinesPlasticWeight(totalKg: Option[Long]): TaxReturnModifier =
+  def withHumanMedicinesPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(humanMedicinesPlasticWeight =
-      HumanMedicinesPlasticWeight(totalKg = totalKg)
+      Some(HumanMedicinesPlasticWeight(totalKg = totalKg))
     )
 
   def withDirectExportDetails(totalKg: Long, totalValueForCreditInPence: Long): TaxReturnModifier =
     _.copy(exportedPlasticWeight =
       Some(ExportedPlasticWeight(totalKg = totalKg, totalValueForCreditInPence = totalValueForCreditInPence))
+    )
+
+  def withConvertedPlasticPackagingCredit(totalPence: Long): TaxReturnModifier =
+    _.copy(convertedPackagingCredit =
+      Some(ConvertedPackagingCredit(totalPence))
     )
 
 }
