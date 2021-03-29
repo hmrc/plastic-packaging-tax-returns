@@ -37,7 +37,8 @@ trait TaxReturnRequestBuilder {
                      importedPlasticWeight = Some(ImportedPlasticWeight(6, 6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
-                     convertedPackagingCredit = Some(ConvertedPackagingCredit(1010))
+                     convertedPackagingCredit = Some(ConvertedPackagingCredit(1010)),
+                     metaData = MetaData()
     )
 
   def withManufacturedPlasticWeight(manufacturedPlasticWeight: ManufacturedPlasticWeight): TaxReturnRequestModifier =
@@ -59,4 +60,5 @@ trait TaxReturnRequestBuilder {
   def withDirectExportDetails(directExportDetails: ExportedPlasticWeight): TaxReturnRequestModifier =
     _.copy(exportedPlasticWeight = Some(directExportDetails))
 
+  def withMetadata(metaData: MetaData): TaxReturnRequestModifier = _.copy(metaData = metaData)
 }

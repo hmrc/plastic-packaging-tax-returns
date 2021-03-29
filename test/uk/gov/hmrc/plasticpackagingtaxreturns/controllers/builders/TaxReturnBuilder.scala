@@ -21,6 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   HumanMedicinesPlasticWeight,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
+  MetaData,
   TaxReturn
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
@@ -67,5 +68,8 @@ trait TaxReturnBuilder {
     _.copy(convertedPackagingCredit =
       Some(ConvertedPackagingCredit(totalPence))
     )
+
+  def withMetadata(returnCompleted: Boolean): TaxReturnModifier =
+    _.copy(metaData = MetaData(returnCompleted = returnCompleted))
 
 }
