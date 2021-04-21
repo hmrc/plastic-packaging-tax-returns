@@ -76,7 +76,7 @@ class TaxReturnRepositoryItSpec
       repository.update(taxReturn).futureValue mustBe Some(taxReturn)
 
       // this indicates that a timer has started and has been stopped
-      getTimer("mongo.taxReturn.update").getCount mustBe 1
+      getTimer("ppt.returns.mongo.update").getCount mustBe 1
 
       collectionSize mustBe 1
     }
@@ -88,7 +88,7 @@ class TaxReturnRepositoryItSpec
 
       collectionSize mustBe 0
 
-      getTimer("mongo.taxReturn.update").getCount mustBe 1
+      getTimer("ppt.returns.mongo.update").getCount mustBe 1
     }
   }
 
@@ -108,7 +108,7 @@ class TaxReturnRepositoryItSpec
         repository.findById(taxReturn.id).futureValue mustBe Some(taxReturn)
 
         // this indicates that a timer has started and has been stopped
-        getTimer("mongo.taxReturn.find").getCount mustBe 1
+        getTimer("ppt.returns.mongo.find").getCount mustBe 1
       }
     }
 
@@ -120,7 +120,7 @@ class TaxReturnRepositoryItSpec
 
         repository.findById("non-existing-id").futureValue mustBe None
 
-        getTimer("mongo.taxReturn.find").getCount mustBe 1
+        getTimer("ppt.returns.mongo.find").getCount mustBe 1
       }
     }
   }

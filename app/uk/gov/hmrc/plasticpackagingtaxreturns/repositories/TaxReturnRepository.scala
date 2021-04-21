@@ -43,7 +43,7 @@ class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, metrics: Metric
   override def indexes: Seq[Index] = Seq(Index(Seq("id" -> IndexType.Ascending), Some("idIdx"), unique = true))
 
   def findById(id: String): Future[Option[TaxReturn]] = {
-    val findStopwatch = newMongoDBTimer("mongo.taxReturn.find").time()
+    val findStopwatch = newMongoDBTimer("ppt.returns.mongo.find").time()
     super.find("id" -> id).map(_.headOption).andThen {
       case _ => findStopwatch.stop()
     }
@@ -53,7 +53,7 @@ class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, metrics: Metric
     super.insert(taxReturn).map(_ => taxReturn)
 
   def update(taxReturn: TaxReturn): Future[Option[TaxReturn]] = {
-    val updateStopwatch = newMongoDBTimer("mongo.taxReturn.update").time()
+    val updateStopwatch = newMongoDBTimer("ppt.returns.mongo.update").time()
     super
       .findAndUpdate(Json.obj("id" -> taxReturn.id),
                      Json.toJson(taxReturn).as[JsObject],
