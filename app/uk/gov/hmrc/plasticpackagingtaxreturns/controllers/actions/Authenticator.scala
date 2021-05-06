@@ -22,6 +22,10 @@ import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
+  pptEnrolmentIdentifierName,
+  pptEnrolmentKey
+}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
@@ -32,8 +36,7 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
   ec: ExecutionContext
 ) extends BackendController(cc) with AuthorisedFunctions {
 
-  private val logger            = Logger(this.getClass)
-  private val validEnrolmentKey = "HMRC-PPT-ORG"
+  private val logger = Logger(this.getClass)
 
   def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
     Action.async(bodyParser) { implicit request =>
@@ -51,9 +54,9 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
     hc: HeaderCarrier,
     request: Request[A]
   ): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
-    authorised(Enrolment(validEnrolmentKey)).retrieve(allEnrolments) { enrolments =>
-      hasEnrolment(enrolments) match {
-        case Some(utr) => Future.successful(Right(AuthorizedRequest(utr.value, request)))
+    authorised(Enrolment(pptEnrolmentKey)).retrieve(allEnrolments) { enrolments =>
+      hasEnrolment(enrolments, pptEnrolmentIdentifierName) match {
+        case Some(pptReference) => Future.successful(Right(AuthorizedRequest(pptReference.value, request)))
         case _ =>
           val msg = "Unauthorised access. User without PPT Id."
           logger.error(msg)
@@ -69,11 +72,17 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
         Left(ErrorResponse(INTERNAL_SERVER_ERROR, msg))
     }
 
-  private def hasEnrolment(allEnrolments: Enrolments): Option[EnrolmentIdentifier] =
-    allEnrolments
-      .getEnrolment(validEnrolmentKey)
-      .flatMap(_.getIdentifier("UTR"))
+  private def hasEnrolment(enrolmentsList: Enrolments, identifier: String): Option[EnrolmentIdentifier] =
+    enrolmentsList.enrolments
+      .filter(_.key == pptEnrolmentKey)
+      .flatMap(_.identifiers)
+      .find(_.key == identifier)
 
+}
+
+object AuthAction {
+  val pptEnrolmentKey            = "HMRC-PPT-ORG"
+  val pptEnrolmentIdentifierName = "PPTReference"
 }
 
 case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends WrappedRequest[A](request)
