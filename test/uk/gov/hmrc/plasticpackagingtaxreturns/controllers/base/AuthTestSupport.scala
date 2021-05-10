@@ -25,20 +25,20 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
 
 import scala.concurrent.Future
 
 trait AuthTestSupport extends MockitoSugar {
 
-  lazy val pptEnrolment: String             = "HMRC-PPT-ORG"
   lazy val mockAuthConnector: AuthConnector = mock[AuthConnector]
   lazy val mockLogger: Logger               = mock[Logger]
 
-  val enrolment: Predicate = Enrolment(pptEnrolment)
-  val utr                  = "7777777"
+  val enrolment: Predicate = Enrolment(pptEnrolmentKey)
+  val pptReference         = "7777777"
 
-  def withAuthorizedUser(user: SignedInUser = newUser(utr, "external1")): Unit =
+  def withAuthorizedUser(user: SignedInUser = newUser(pptReference, "external1")): Unit =
     when(
       mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcher(user)),
                                   ArgumentMatchers.eq(allEnrolments)
@@ -47,7 +47,7 @@ trait AuthTestSupport extends MockitoSugar {
       .thenReturn(Future.successful(user.enrolments))
 
   def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
-    (p: Predicate) => p == enrolment && user.enrolments.getEnrolment(pptEnrolment).isDefined
+    (p: Predicate) => p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
 
   def withUnauthorizedUser(error: Throwable): Unit =
     when(mockAuthConnector.authorise(any(), any())(any(), any())).thenReturn(Future.failed(error))
@@ -60,7 +60,7 @@ trait AuthTestSupport extends MockitoSugar {
     )
       .thenReturn(Future.successful(Enrolments(Set())))
 
-  def newUser(utr: String, externalId: String): SignedInUser =
+  def newUser(pptReference: String, externalId: String): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),
                  Name(Some("Aldo"), Some("Rain")),
                  Some("amina@hmrc.co.uk"),
@@ -68,9 +68,17 @@ trait AuthTestSupport extends MockitoSugar {
                  Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
                  Some(AffinityGroup.Organisation),
                  Enrolments(
-                   Set(Enrolment("IR-SA", List(EnrolmentIdentifier("UTR", "111111111")), "Activated", None),
-                       Enrolment("IR-CT", List(EnrolmentIdentifier("UTR", "222222222")), "Activated", None),
-                       Enrolment(pptEnrolment, List(EnrolmentIdentifier("UTR", utr)), "Activated", None)
+                   Set(Enrolment("IR-SA", List(EnrolmentIdentifier("PP", "111111111")), "Activated", None),
+                       Enrolment("IR-CT",
+                                 List(EnrolmentIdentifier(pptEnrolmentIdentifierName, "222222222")),
+                                 "Activated",
+                                 None
+                       ),
+                       Enrolment(pptEnrolmentKey,
+                                 List(EnrolmentIdentifier(pptEnrolmentIdentifierName, pptReference)),
+                                 "Activated",
+                                 None
+                       )
                    )
                  )
     )
