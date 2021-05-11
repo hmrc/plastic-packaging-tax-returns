@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
-import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
@@ -29,6 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -50,7 +50,7 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
       }
     }
 
-  private def authorisedWithPptId[A](implicit
+  def authorisedWithPptId[A](implicit
     hc: HeaderCarrier,
     request: Request[A]
   ): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
