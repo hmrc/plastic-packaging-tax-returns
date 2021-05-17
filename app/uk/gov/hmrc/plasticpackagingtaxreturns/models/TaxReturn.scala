@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import play.api.libs.json.{Json, OFormat}
+import org.joda.time.{DateTime, DateTimeZone}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.Timestamped
 
 case class TaxReturn(
   id: String,
@@ -25,9 +26,22 @@ case class TaxReturn(
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
   exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
   convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
-  metaData: MetaData = MetaData()
-)
+  metaData: MetaData = MetaData(),
+  override val lastModifiedDateTime: Option[DateTime] = None
+) extends Timestamped {
+  def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
+}
 
 object TaxReturn {
+  import play.api.libs.json._
+
+  implicit val dateFormatDefault: Format[DateTime] = new Format[DateTime] {
+
+    override def reads(json: JsValue): JsResult[DateTime] =
+      JodaReads.DefaultJodaDateTimeReads.reads(json)
+
+    override def writes(o: DateTime): JsValue = JodaWrites.JodaDateTimeNumberWrites.writes(o)
+  }
+
   implicit val format: OFormat[TaxReturn] = Json.format[TaxReturn]
 }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
+import org.joda.time.DateTime
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   ExportedPlasticWeight,
   HumanMedicinesPlasticWeight,
@@ -72,4 +73,5 @@ trait TaxReturnBuilder {
   def withMetadata(returnCompleted: Boolean): TaxReturnModifier =
     _.copy(metaData = MetaData(returnCompleted = returnCompleted))
 
+  def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = Some(dateTime))
 }

@@ -18,27 +18,32 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.repositories
 
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import play.api.libs.json.{JsObject, Json}
+import org.joda.time.DateTime
+import play.api.libs.json.{Format, JsObject, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.objectIdFormats
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, metrics: Metrics)(implicit ec: ExecutionContext)
-    extends ReactiveRepository[TaxReturn, BSONObjectID](collectionName = "taxReturns",
+class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, appConfig: AppConfig, metrics: Metrics)(implicit
+  ec: ExecutionContext
+) extends ReactiveRepository[TaxReturn, BSONObjectID](collectionName = "taxReturns",
                                                         mongo = mc.mongoConnector.db,
-                                                        domainFormat = TaxReturn.format,
+                                                        domainFormat = MongoSerialisers.format,
                                                         idFormat = objectIdFormats
-    ) {
+    ) with TTLIndexing[TaxReturn, BSONObjectID] {
 
   override lazy val collection: JSONCollection =
     mongo().collection[JSONCollection](collectionName, failoverStrategy = RepositorySettings.failoverStrategy)
+
+  override lazy val expireAfterSeconds: Long = appConfig.dbTimeToLiveInSeconds
 
   override def indexes: Seq[Index] = Seq(Index(Seq("id" -> IndexType.Ascending), Some("idIdx"), unique = true))
 
@@ -50,13 +55,13 @@ class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, metrics: Metric
   }
 
   def create(taxReturn: TaxReturn): Future[TaxReturn] =
-    super.insert(taxReturn).map(_ => taxReturn)
+    super.insert(taxReturn.updateLastModified()).map(_ => taxReturn)
 
   def update(taxReturn: TaxReturn): Future[Option[TaxReturn]] = {
     val updateStopwatch = newMongoDBTimer("ppt.returns.mongo.update").time()
     super
       .findAndUpdate(Json.obj("id" -> taxReturn.id),
-                     Json.toJson(taxReturn).as[JsObject],
+                     Json.toJson(taxReturn.updateLastModified()).as[JsObject],
                      fetchNewObject = true,
                      upsert = false
       )
@@ -72,4 +77,9 @@ class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, metrics: Metric
       .map(_ => Unit)
 
   private def newMongoDBTimer(name: String): Timer = metrics.defaultRegistry.timer(name)
+}
+
+object MongoSerialisers {
+  implicit val mongoDateTimeFormat: Format[DateTime] = uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeFormats
+  implicit val format: Format[TaxReturn]             = Json.format[TaxReturn]
 }

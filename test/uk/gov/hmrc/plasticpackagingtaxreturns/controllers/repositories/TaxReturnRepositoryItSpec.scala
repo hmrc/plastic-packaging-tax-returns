@@ -18,11 +18,18 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.repositories
 
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries, Timer}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import reactivemongo.api.ReadConcern
+import reactivemongo.api.indexes.Index
+import reactivemongo.bson.BSONLong
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -31,7 +38,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class TaxReturnRepositoryItSpec
     extends AnyWordSpec with Matchers with ScalaFutures with BeforeAndAfterEach with IntegrationPatience
-    with TaxReturnBuilder {
+    with TaxReturnBuilder with DefaultAwaitTimeout {
 
   private val injector = {
     SharedMetricRegistries.clear()
@@ -55,12 +62,57 @@ class TaxReturnRepositoryItSpec
   private def givenTaxReturnExists(taxReturns: TaxReturn*): Unit =
     repository.collection.insert(ordered = true).many(taxReturns).futureValue
 
+  "MongoRepository" should {
+    "update existing index on first use" in {
+      ensureExpiryTtlOnIndex(injector.instanceOf[AppConfig].dbTimeToLiveInSeconds)
+
+      val repository = new GuiceApplicationBuilder().configure(
+        Map("mongodb.timeToLiveInSeconds" -> 33)
+      ).build().injector.instanceOf[TaxReturnRepository]
+      await(repository.create(aTaxReturn()))
+
+      ensureExpiryTtlOnIndex(33)
+    }
+
+    "create new ttl index when none exist" in {
+      await(this.repository.collection.indexesManager.dropAll())
+
+      val repository = new GuiceApplicationBuilder().configure(
+        Map("mongodb.timeToLiveInSeconds" -> 99)
+      ).build().injector.instanceOf[TaxReturnRepository]
+      await(repository.create(aTaxReturn()))
+
+      ensureExpiryTtlOnIndex(99)
+    }
+
+    def ensureExpiryTtlOnIndex(ttlSeconds: Int): Unit =
+      eventually(timeout(Span(5, Seconds))) {
+        {
+          val indexes = await(repository.collection.indexesManager.list())
+          val expiryTtl =
+            indexes.find(index => index.eventualName == "ttlIndexReturns").map(getExpireAfterSecondsOptionOf)
+          expiryTtl.get mustBe ttlSeconds
+        }
+      }
+
+    def getExpireAfterSecondsOptionOf(idx: Index): Long =
+      idx.options.getAs[BSONLong]("expireAfterSeconds").getOrElse(BSONLong(0)).as[Long]
+  }
+
   "Create" should {
     "persist the tax return" in {
       val taxReturn = aTaxReturn()
       repository.create(taxReturn).futureValue mustBe taxReturn
 
       collectionSize mustBe 1
+    }
+    "update lastModifiedDateTime field" in {
+      val taxReturn = aTaxReturn()
+
+      await(repository.create(taxReturn))
+      val newRegistration = await(repository.findById(taxReturn.id))
+
+      newRegistration.get.lastModifiedDateTime must not be None
     }
   }
 
@@ -73,7 +125,15 @@ class TaxReturnRepositoryItSpec
                                  withConvertedPlasticPackagingCredit(totalPence = 1010)
       )
 
-      repository.update(taxReturn).futureValue mustBe Some(taxReturn)
+      val updatedTaxReturn = await(repository.update(taxReturn)).get
+
+      updatedTaxReturn.id mustBe taxReturn.id
+      updatedTaxReturn.manufacturedPlasticWeight mustBe taxReturn.manufacturedPlasticWeight
+      updatedTaxReturn.importedPlasticWeight mustBe taxReturn.importedPlasticWeight
+      updatedTaxReturn.humanMedicinesPlasticWeight mustBe taxReturn.humanMedicinesPlasticWeight
+      updatedTaxReturn.exportedPlasticWeight mustBe taxReturn.exportedPlasticWeight
+      updatedTaxReturn.convertedPackagingCredit mustBe taxReturn.convertedPackagingCredit
+      updatedTaxReturn.metaData mustBe taxReturn.metaData
 
       // this indicates that a timer has started and has been stopped
       getTimer("ppt.returns.mongo.update").getCount mustBe 1
@@ -90,6 +150,18 @@ class TaxReturnRepositoryItSpec
 
       getTimer("ppt.returns.mongo.update").getCount mustBe 1
     }
+
+    "update lastModifiedDateTime on each registration update" in {
+      val taxReturn = aTaxReturn()
+      await(repository.create(taxReturn))
+      val initialLastModifiedDateTime =
+        await(repository.findById(taxReturn.id)).get.lastModifiedDateTime.get
+
+      val updatedRegistration = repository.update(taxReturn).futureValue.get
+
+      updatedRegistration.lastModifiedDateTime.get.isAfter(initialLastModifiedDateTime) mustBe true
+    }
+
   }
 
   "Find by ID" should {
