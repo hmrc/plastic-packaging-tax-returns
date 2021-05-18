@@ -29,6 +29,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
   private val validAppConfig: Config =
     ConfigFactory.parseString("""
         |mongodb.uri="mongodb://localhost:27017/plastic-packaging-tax-returns"
+        |mongodb.timeToLiveInSeconds=100
         |microservice.services.auth.host=localhostauth
         |microservice.services.auth.port=9988
         |microservice.metrics.graphite.host=graphite
@@ -48,6 +49,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       configService.authBaseUrl mustBe "http://localhostauth:9988"
       configService.auditingEnabled mustBe true
       configService.graphiteHost mustBe "graphite"
+      configService.dbTimeToLiveInSeconds mustBe 100
     }
   }
 }
