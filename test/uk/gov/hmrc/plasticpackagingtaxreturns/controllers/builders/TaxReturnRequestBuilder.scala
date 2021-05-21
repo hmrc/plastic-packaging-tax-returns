@@ -34,7 +34,7 @@ trait TaxReturnRequestBuilder {
 
   private def modelWithDefaults: TaxReturnRequest =
     TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
-                     importedPlasticWeight = Some(ImportedPlasticWeight(6, 6)),
+                     importedPlasticWeight = Some(ImportedPlasticWeight(6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
                      convertedPackagingCredit = Some(ConvertedPackagingCredit(1010)),

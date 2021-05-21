@@ -50,9 +50,9 @@ trait TaxReturnBuilder {
       Some(ManufacturedPlasticWeight(totalKg = totalKg))
     )
 
-  def withImportedPlasticWeight(totalKg: Long, totalKgBelowThreshold: Long): TaxReturnModifier =
+  def withImportedPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(importedPlasticWeight =
-      Some(ImportedPlasticWeight(totalKg = totalKg, totalKgBelowThreshold = totalKgBelowThreshold))
+      Some(ImportedPlasticWeight(totalKg = totalKg))
     )
 
   def withHumanMedicinesPlasticWeight(totalKg: Long): TaxReturnModifier =
