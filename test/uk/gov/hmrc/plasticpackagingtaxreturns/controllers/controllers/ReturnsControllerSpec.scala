@@ -161,7 +161,7 @@ class ReturnsControllerSpec
           withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 10)),
           withConvertedPlasticPackagingCredit(ConvertedPackagingCredit(totalInPence = 1433)),
           withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
-          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2, totalKgBelowThreshold = 3)),
+          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
           withDirectExportDetails(ExportedPlasticWeight(totalKg = 5, totalValueForCreditInPence = 22)),
           withMetadata(MetaData(returnCompleted = true))
         )
@@ -181,7 +181,6 @@ class ReturnsControllerSpec
         updatedTaxReturn.manufacturedPlasticWeight.get.totalKg mustBe 5
         updatedTaxReturn.manufacturedPlasticWeight.get.totalKgBelowThreshold mustBe 10
         updatedTaxReturn.importedPlasticWeight.get.totalKg mustBe 2
-        updatedTaxReturn.importedPlasticWeight.get.totalKgBelowThreshold mustBe 3
         updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
         updatedTaxReturn.exportedPlasticWeight.get.totalKg mustBe 5
         updatedTaxReturn.exportedPlasticWeight.get.totalValueForCreditInPence mustBe 22
