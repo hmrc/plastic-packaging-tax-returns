@@ -157,13 +157,16 @@ class ReturnsControllerSpec
     "return 200" when {
       "request is valid" in {
         withAuthorizedUser()
-        val request = aTaxReturnRequest(
-          withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 10)),
-          withConvertedPlasticPackagingCredit(ConvertedPackagingCredit(totalInPence = 1433)),
-          withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
-          withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
-          withDirectExportDetails(ExportedPlasticWeight(totalKg = 5, totalValueForCreditInPence = 22)),
-          withMetadata(MetaData(returnCompleted = true))
+        val request = aTaxReturnRequest(withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5)),
+                                        withConvertedPlasticPackagingCredit(
+                                          ConvertedPackagingCredit(totalInPence = 1433)
+                                        ),
+                                        withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
+                                        withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
+                                        withDirectExportDetails(
+                                          ExportedPlasticWeight(totalKg = 5, totalValueForCreditInPence = 22)
+                                        ),
+                                        withMetadata(MetaData(returnCompleted = true))
         )
 
         val taxReturn =
@@ -179,7 +182,6 @@ class ReturnsControllerSpec
         val updatedTaxReturn = theUpdatedTaxReturn
         updatedTaxReturn.id mustBe "id01"
         updatedTaxReturn.manufacturedPlasticWeight.get.totalKg mustBe 5
-        updatedTaxReturn.manufacturedPlasticWeight.get.totalKgBelowThreshold mustBe 10
         updatedTaxReturn.importedPlasticWeight.get.totalKg mustBe 2
         updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
         updatedTaxReturn.exportedPlasticWeight.get.totalKg mustBe 5

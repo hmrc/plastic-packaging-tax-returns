@@ -33,7 +33,7 @@ trait TaxReturnRequestBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturnRequest =
-    TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5, 5)),
+    TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
                      importedPlasticWeight = Some(ImportedPlasticWeight(6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
