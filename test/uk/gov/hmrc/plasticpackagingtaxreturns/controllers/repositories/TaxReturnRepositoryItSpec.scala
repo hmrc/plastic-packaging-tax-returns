@@ -122,7 +122,8 @@ class TaxReturnRepositoryItSpec
       val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
                                  withImportedPlasticWeight(totalKg = 3),
                                  withHumanMedicinesPlasticWeight(totalKg = 1),
-                                 withConvertedPlasticPackagingCredit(totalPence = 1010)
+                                 withConvertedPlasticPackagingCredit(totalPence = 1010),
+                                 withRecycledPlasticWeight(totalKg = 13)
       )
 
       val updatedTaxReturn = await(repository.update(taxReturn)).get
@@ -133,6 +134,7 @@ class TaxReturnRepositoryItSpec
       updatedTaxReturn.humanMedicinesPlasticWeight mustBe taxReturn.humanMedicinesPlasticWeight
       updatedTaxReturn.exportedPlasticWeight mustBe taxReturn.exportedPlasticWeight
       updatedTaxReturn.convertedPackagingCredit mustBe taxReturn.convertedPackagingCredit
+      updatedTaxReturn.recycledPlasticWeight mustBe taxReturn.recycledPlasticWeight
       updatedTaxReturn.metaData mustBe taxReturn.metaData
 
       // this indicates that a timer has started and has been stopped
@@ -172,6 +174,7 @@ class TaxReturnRepositoryItSpec
                                    withHumanMedicinesPlasticWeight(totalKg = 1),
                                    withConvertedPlasticPackagingCredit(totalPence = 1010),
                                    withDirectExportDetails(totalKg = 8, totalValueForCreditInPence = 99),
+                                   withRecycledPlasticWeight(totalKg = 13),
                                    withMetadata(returnCompleted = true)
         )
 

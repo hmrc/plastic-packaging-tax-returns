@@ -44,6 +44,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
   MetaData,
+  RecycledPlasticWeight,
   TaxReturn
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -166,6 +167,7 @@ class ReturnsControllerSpec
                                         withDirectExportDetails(
                                           ExportedPlasticWeight(totalKg = 5, totalValueForCreditInPence = 22)
                                         ),
+                                        withRecycledPlasticWeight(RecycledPlasticWeight(3)),
                                         withMetadata(MetaData(returnCompleted = true))
         )
 
@@ -186,6 +188,7 @@ class ReturnsControllerSpec
         updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
         updatedTaxReturn.exportedPlasticWeight.get.totalKg mustBe 5
         updatedTaxReturn.exportedPlasticWeight.get.totalValueForCreditInPence mustBe 22
+        updatedTaxReturn.recycledPlasticWeight.get.totalKg mustBe 3
         updatedTaxReturn.metaData.returnCompleted mustBe true
       }
     }

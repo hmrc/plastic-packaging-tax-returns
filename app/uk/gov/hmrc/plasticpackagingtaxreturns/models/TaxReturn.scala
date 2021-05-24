@@ -26,6 +26,7 @@ case class TaxReturn(
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
   exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
   convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
+  recycledPlasticWeight: Option[RecycledPlasticWeight] = None,
   metaData: MetaData = MetaData(),
   override val lastModifiedDateTime: Option[DateTime] = None
 ) extends Timestamped {
