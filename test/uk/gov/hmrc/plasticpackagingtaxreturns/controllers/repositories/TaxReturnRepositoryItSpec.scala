@@ -119,7 +119,7 @@ class TaxReturnRepositoryItSpec
   "Update" should {
     "update the tax return" in {
       givenTaxReturnExists(aTaxReturn())
-      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
+      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5),
                                  withImportedPlasticWeight(totalKg = 3),
                                  withHumanMedicinesPlasticWeight(totalKg = 1),
                                  withConvertedPlasticPackagingCredit(totalPence = 1010),
@@ -169,11 +169,11 @@ class TaxReturnRepositoryItSpec
   "Find by ID" should {
     "return the persisted tax return" when {
       "one exists with ID" in {
-        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5, totalKgBelowThreshold = 4),
+        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(totalKg = 5),
                                    withImportedPlasticWeight(totalKg = 3),
                                    withHumanMedicinesPlasticWeight(totalKg = 1),
                                    withConvertedPlasticPackagingCredit(totalPence = 1010),
-                                   withDirectExportDetails(totalKg = 8, totalValueForCreditInPence = 99),
+                                   withDirectExportDetails(totalKg = 8),
                                    withRecycledPlasticWeight(totalKg = 13),
                                    withMetadata(returnCompleted = true)
         )
