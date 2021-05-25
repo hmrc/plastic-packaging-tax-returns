@@ -20,9 +20,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   ConvertedPackagingCredit,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
-  TaxReturnRequest
+  TaxReturnRequest,
+  _
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
 trait TaxReturnRequestBuilder {
@@ -38,6 +38,7 @@ trait TaxReturnRequestBuilder {
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
                      convertedPackagingCredit = Some(ConvertedPackagingCredit(1010)),
+                     recycledPlasticWeight = Some(RecycledPlasticWeight(1000)),
                      metaData = MetaData()
     )
 
@@ -59,6 +60,9 @@ trait TaxReturnRequestBuilder {
 
   def withDirectExportDetails(directExportDetails: ExportedPlasticWeight): TaxReturnRequestModifier =
     _.copy(exportedPlasticWeight = Some(directExportDetails))
+
+  def withRecycledPlasticWeight(recycledPlasticWeight: RecycledPlasticWeight): TaxReturnRequestModifier =
+    _.copy(recycledPlasticWeight = Some(recycledPlasticWeight))
 
   def withMetadata(metaData: MetaData): TaxReturnRequestModifier = _.copy(metaData = metaData)
 }

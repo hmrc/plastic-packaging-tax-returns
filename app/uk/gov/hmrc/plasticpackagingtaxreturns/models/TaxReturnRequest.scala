@@ -22,6 +22,7 @@ case class TaxReturnRequest(
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight],
   exportedPlasticWeight: Option[ExportedPlasticWeight],
   convertedPackagingCredit: Option[ConvertedPackagingCredit],
+  recycledPlasticWeight: Option[RecycledPlasticWeight],
   metaData: MetaData
 ) {
 
@@ -32,6 +33,7 @@ case class TaxReturnRequest(
               humanMedicinesPlasticWeight = this.humanMedicinesPlasticWeight,
               exportedPlasticWeight = this.exportedPlasticWeight,
               convertedPackagingCredit = this.convertedPackagingCredit,
+              recycledPlasticWeight = this.recycledPlasticWeight,
               metaData = this.metaData
     )
 

@@ -18,17 +18,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import org.joda.time.DateTime
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
+  ConvertedPackagingCredit,
   ExportedPlasticWeight,
   HumanMedicinesPlasticWeight,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
   MetaData,
-  TaxReturn
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
-  ConvertedPackagingCredit,
-  ImportedPlasticWeight,
-  ManufacturedPlasticWeight,
+  RecycledPlasticWeight,
   TaxReturn
 }
 
@@ -69,6 +65,9 @@ trait TaxReturnBuilder {
     _.copy(convertedPackagingCredit =
       Some(ConvertedPackagingCredit(totalPence))
     )
+
+  def withRecycledPlasticWeight(totalKg: Long): TaxReturnModifier =
+    _.copy(recycledPlasticWeight = Some(RecycledPlasticWeight(totalKg = totalKg)))
 
   def withMetadata(returnCompleted: Boolean): TaxReturnModifier =
     _.copy(metaData = MetaData(returnCompleted = returnCompleted))
