@@ -36,7 +36,7 @@ trait TaxReturnRequestBuilder {
     TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
                      importedPlasticWeight = Some(ImportedPlasticWeight(6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
-                     exportedPlasticWeight = Some(ExportedPlasticWeight(2000, 460089)),
+                     exportedPlasticWeight = Some(ExportedPlasticWeight(2000)),
                      convertedPackagingCredit = Some(ConvertedPackagingCredit(1010)),
                      recycledPlasticWeight = Some(RecycledPlasticWeight(1000)),
                      metaData = MetaData()

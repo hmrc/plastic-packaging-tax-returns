@@ -164,15 +164,13 @@ class ReturnsControllerSpec
                                         ),
                                         withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
                                         withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
-                                        withDirectExportDetails(
-                                          ExportedPlasticWeight(totalKg = 5, totalValueForCreditInPence = 22)
-                                        ),
+                                        withDirectExportDetails(ExportedPlasticWeight(totalKg = 5)),
                                         withRecycledPlasticWeight(RecycledPlasticWeight(3)),
                                         withMetadata(MetaData(returnCompleted = true))
         )
 
         val taxReturn =
-          aTaxReturn(withId("id01"), withManufacturedPlasticWeight(totalKg = 1, totalKgBelowThreshold = 0))
+          aTaxReturn(withId("id01"), withManufacturedPlasticWeight(totalKg = 1))
 
         given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
         given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(Some(taxReturn)))
@@ -187,7 +185,6 @@ class ReturnsControllerSpec
         updatedTaxReturn.importedPlasticWeight.get.totalKg mustBe 2
         updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
         updatedTaxReturn.exportedPlasticWeight.get.totalKg mustBe 5
-        updatedTaxReturn.exportedPlasticWeight.get.totalValueForCreditInPence mustBe 22
         updatedTaxReturn.recycledPlasticWeight.get.totalKg mustBe 3
         updatedTaxReturn.metaData.returnCompleted mustBe true
       }
