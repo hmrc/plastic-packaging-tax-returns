@@ -1,0 +1,135 @@
+/*
+ * Copyright 2021 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
+
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import org.scalatest.Inspectors.forAll
+import org.scalatest.concurrent.ScalaFutures
+import play.api.http.Status
+import play.api.libs.json.{Json, OFormat}
+import play.api.test.Helpers.await
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
+  SubscriptionDisplayResponse,
+  SubscriptionMapperValidator
+}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+
+import java.util.UUID
+
+class SubscriptionsConnectorSpec
+    extends ConnectorISpec with Injector with SubscriptionTestData with SubscriptionMapperValidator with ScalaFutures {
+
+  lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
+
+  val displaySubscriptionTimer = "ppt.subscription.display.timer"
+
+  "Subscription connector" when {
+    "requesting a subscription status" should {
+      "handle a 200 for uk company subscription" in {
+
+        val pptReference = UUID.randomUUID().toString
+        stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(ukLimitedCompanySubscription))
+
+        val res = await(connector.getSubscription(pptReference))
+
+        validatePptSubscriptionMapping(pptReference, res.right.get, ukLimitedCompanySubscription)
+        getTimer(displaySubscriptionTimer).getCount mustBe 1
+      }
+
+      "handle 200 for sole trader subscription" in {
+
+        val pptReference = UUID.randomUUID().toString
+        stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(soleTraderSubscription))
+
+        val res = await(connector.getSubscription(pptReference))
+
+        validateSoleTaderPptSubscriptionMapping(pptReference, res.right.get, soleTraderSubscription)
+        getTimer(displaySubscriptionTimer).getCount mustBe 1
+      }
+
+      "handle unexpected exceptions thrown" in {
+        val pptReference = UUID.randomUUID().toString
+
+        stubFor(
+          get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
+            .willReturn(
+              aResponse()
+                .withStatus(Status.OK)
+                .withBody(Json.obj("rubbish" -> "errors").toString)
+            )
+        )
+
+        val res = await(connector.getSubscription(pptReference))
+
+        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        getTimer(displaySubscriptionTimer).getCount mustBe 1
+      }
+    }
+  }
+  "Subscription connector" should {
+    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+      "return " + statusCode when {
+        statusCode + " is returned from downstream service" in {
+          val pptReference = UUID.randomUUID().toString
+          val errors =
+            createErrorResponse(code = "INVALID_VALUE",
+                                reason =
+                                  "Some errors occurred"
+            )
+
+          stubSubscriptionDisplayFailure(httpStatus = statusCode, errors = errors, pptReference = pptReference)
+
+          val res = await(connector.getSubscription(pptReference))
+
+          res.left.get mustBe statusCode
+          getTimer(displaySubscriptionTimer).getCount mustBe 1
+        }
+      }
+    }
+  }
+
+  private def createErrorResponse(code: String, reason: String): Seq[EISError] =
+    Seq(EISError(code, reason))
+
+  private def stubSubscriptionDisplayFailure(pptReference: String, httpStatus: Int, errors: Seq[EISError]): Any =
+    stubFor(
+      get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
+        .willReturn(
+          aResponse()
+            .withStatus(httpStatus)
+            .withBody(Json.obj("failures" -> errors).toString)
+        )
+    )
+
+  private def stubSubscriptionDisplay(pptReference: String, response: SubscriptionDisplayResponse): Unit =
+    stubFor(
+      get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(SubscriptionDisplayResponse.format.writes(response).toString())
+        )
+    )
+
+}
+
+case class EISError(code: String, reason: String)
+
+object EISError {
+  implicit val format: OFormat[EISError] = Json.format[EISError]
+}

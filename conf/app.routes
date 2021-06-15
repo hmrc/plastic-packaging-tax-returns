@@ -3,3 +3,6 @@
 POST        /returns                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create()
 PUT         /returns/:id             uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(id)
 GET         /returns/:id             uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(id)
+
+# EIS subscription
+GET         /subscriptions/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)
