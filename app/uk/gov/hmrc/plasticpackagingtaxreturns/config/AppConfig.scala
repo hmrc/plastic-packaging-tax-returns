@@ -23,10 +23,17 @@ import javax.inject.{Inject, Singleton}
 
 @Singleton
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
+  lazy val eisHost: String = servicesConfig.baseUrl("eis")
+
+  def subscriptionDisplayUrl(pptReference: String): String =
+    s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
 
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
   val auditingEnabled: Boolean   = config.get[Boolean]("auditing.enabled")
   val graphiteHost: String       = config.get[String]("microservice.metrics.graphite.host")
   val dbTimeToLiveInSeconds: Int = config.get[Int]("mongodb.timeToLiveInSeconds")
+
+  val eisEnvironment: String = config.get[String]("eis.environment")
+
 }

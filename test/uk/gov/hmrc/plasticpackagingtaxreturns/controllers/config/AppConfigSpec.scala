@@ -34,6 +34,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
         |microservice.services.auth.port=9988
         |microservice.metrics.graphite.host=graphite
         |auditing.enabled=true
+        |eis.environment=ist0
     """.stripMargin)
 
   private val validServicesConfiguration = Configuration(validAppConfig)
