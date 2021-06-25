@@ -28,6 +28,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   def subscriptionDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
 
+  def subscriptionUpdateUrl(pptReference: String): String =
+    s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
+
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
   val auditingEnabled: Boolean   = config.get[Boolean]("auditing.enabled")

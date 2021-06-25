@@ -16,19 +16,18 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.await
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
-  SubscriptionDisplayResponse,
-  SubscriptionMapperValidator
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse, SubscriptionMapperValidator}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 
+import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
 
 class SubscriptionsConnectorSpec
@@ -37,9 +36,10 @@ class SubscriptionsConnectorSpec
   lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
 
   val displaySubscriptionTimer = "ppt.subscription.display.timer"
+  val updateSubscriptionTimer  = "ppt.subscription.update.timer"
 
   "Subscription connector" when {
-    "requesting a subscription status" should {
+    "requesting a subscription" should {
       "handle a 200 for uk company subscription" in {
 
         val pptReference = UUID.randomUUID().toString
@@ -80,8 +80,71 @@ class SubscriptionsConnectorSpec
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
     }
+
+    "requesting update subscription" should {
+      "handle a 200 for updating uk company subscription" in {
+
+        val pptReference               = UUID.randomUUID().toString
+        val subscriptionProcessingDate = ZonedDateTime.now(ZoneOffset.UTC).toString
+        val formBundleNumber           = "1234567890"
+
+        stubSubscriptionUpdate(pptReference, subscriptionProcessingDate, formBundleNumber)
+
+        val updateDetails =
+          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+        val res: Either[Int, SubscriptionUpdateResponse] =
+          await(connector.updateSubscription(pptReference, updateDetails))
+
+        res.right.get.pptReference mustBe Some(pptReference)
+        res.right.get.formBundleNumber mustBe Some(formBundleNumber)
+        res.right.get.processingDate mustBe Some(ZonedDateTime.parse(subscriptionProcessingDate))
+        getTimer(updateSubscriptionTimer).getCount mustBe 1
+      }
+
+      "handle 200 for sole trader subscription" in {
+
+        val pptReference               = UUID.randomUUID().toString
+        val subscriptionProcessingDate = ZonedDateTime.now(ZoneOffset.UTC).toString
+        val formBundleNumber           = "1234567890"
+
+        stubSubscriptionUpdate(pptReference, subscriptionProcessingDate, formBundleNumber)
+
+        val updateDetails =
+          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+
+        val res: Either[Int, SubscriptionUpdateResponse] =
+          await(connector.updateSubscription(pptReference, updateDetails))
+
+        res.right.get.pptReference mustBe Some(pptReference)
+        res.right.get.formBundleNumber mustBe Some(formBundleNumber)
+        res.right.get.processingDate mustBe Some(ZonedDateTime.parse(subscriptionProcessingDate))
+        getTimer(updateSubscriptionTimer).getCount mustBe 1
+      }
+
+      "handle unexpected exceptions thrown" in {
+        val pptReference = UUID.randomUUID().toString
+
+        stubFor(
+          put(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update")
+            .willReturn(
+              aResponse()
+                .withStatus(Status.OK)
+            )
+        )
+
+        val res = await(
+          connector.updateSubscription(
+            pptReference,
+            createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+          )
+        )
+
+        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+      }
+    }
   }
-  "Subscription connector" should {
+
+  "Subscription connector for display" should {
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
       "return " + statusCode when {
         statusCode + " is returned from downstream service" in {
@@ -98,6 +161,27 @@ class SubscriptionsConnectorSpec
 
           res.left.get mustBe statusCode
           getTimer(displaySubscriptionTimer).getCount mustBe 1
+        }
+      }
+    }
+  }
+
+  "Subscription connector for update" should {
+    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+      "return " + statusCode when {
+        statusCode + " is returned from downstream service" in {
+          val pptReference = UUID.randomUUID().toString
+
+          stubSubscriptionUpdateFailure(httpStatus = statusCode, pptReference = pptReference)
+
+          val res = await(
+            connector.updateSubscription(
+              pptReference,
+              createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+            )
+          )
+
+          res.left.get mustBe statusCode
         }
       }
     }
@@ -123,6 +207,34 @@ class SubscriptionsConnectorSpec
           aResponse()
             .withStatus(Status.OK)
             .withBody(SubscriptionDisplayResponse.format.writes(response).toString())
+        )
+    )
+
+  private def stubSubscriptionUpdate(
+    pptReference: String,
+    subscriptionProcessingDate: String,
+    formBundleNumber: String
+  ): Unit =
+    stubFor(
+      put(s"/plastic-packaging-tax/subscriptions/PPT/${pptReference}/update")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(
+              Json.obj("pptReference"     -> pptReference,
+                       "processingDate"   -> subscriptionProcessingDate,
+                       "formBundleNumber" -> formBundleNumber
+              ).toString
+            )
+        )
+    )
+
+  private def stubSubscriptionUpdateFailure(pptReference: String, httpStatus: Int): Any =
+    stubFor(
+      put(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update")
+        .willReturn(
+          aResponse()
+            .withStatus(httpStatus)
         )
     )
 
