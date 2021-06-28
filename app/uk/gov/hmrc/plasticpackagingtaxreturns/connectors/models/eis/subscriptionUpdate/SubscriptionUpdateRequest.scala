@@ -21,7 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 
-case class SubscriptionUpdateDetails(
+case class SubscriptionUpdateRequest(
   changeOfCircumstanceDetails: ChangeOfCircumstanceDetails,
   legalEntityDetails: LegalEntityDetails,
   principalPlaceOfBusinessDetails: PrincipalPlaceOfBusinessDetails,
@@ -33,7 +33,7 @@ case class SubscriptionUpdateDetails(
   groupSubscription: Option[GroupSubscription]
 )
 
-object SubscriptionUpdateDetails {
-  implicit val format: OFormat[SubscriptionUpdateDetails] = Json.format[SubscriptionUpdateDetails]
+object SubscriptionUpdateRequest {
+  implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]
 
 }

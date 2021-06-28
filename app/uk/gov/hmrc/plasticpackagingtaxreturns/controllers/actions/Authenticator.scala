@@ -17,14 +17,12 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
 import play.api.Logger
+import play.api.libs.json.{JsError, JsSuccess, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
-  pptEnrolmentIdentifierName,
-  pptEnrolmentKey
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{pptEnrolmentIdentifierName, pptEnrolmentKey}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
@@ -37,6 +35,17 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
 ) extends BackendController(cc) with AuthorisedFunctions {
 
   private val logger = Logger(this.getClass)
+  def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] =
+    parse.json.validate { json =>
+      json.validate[T] match {
+        case JsSuccess(value, _) => Right(value)
+        case JsError(error) =>
+          val errorResponse = Json.toJson(ErrorResponse(BAD_REQUEST, "Bad Request"))
+          logger.warn(s"Bad Request [$errorResponse]")
+          logger.warn(s"Errors: [$error]")
+          Left(BadRequest(errorResponse))
+      }
+    }
 
   def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
     Action.async(bodyParser) { implicit request =>

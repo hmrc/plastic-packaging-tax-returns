@@ -25,7 +25,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateDetails,
+  SubscriptionUpdateRequest,
   SubscriptionUpdateResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.PptSubscription
@@ -41,12 +41,12 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
 
   private val logger = Logger(this.getClass)
 
-  def updateSubscription(pptReference: String, subscriptionUpdateDetails: SubscriptionUpdateDetails)(implicit
-    hc: HeaderCarrier
+  def updateSubscription(pptReference: String, subscriptionUpdateDetails: SubscriptionUpdateRequest)(implicit
+                                                                                                     hc: HeaderCarrier
   ): Future[Either[Int, SubscriptionUpdateResponse]] = {
     val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.subscription.update.timer").time()
     val correlationIdHeader: (String, String) = correlationId -> UUID.randomUUID().toString
-    httpClient.PUT[SubscriptionUpdateDetails, SubscriptionUpdateResponse](
+    httpClient.PUT[SubscriptionUpdateRequest, SubscriptionUpdateResponse](
       url = appConfig.subscriptionUpdateUrl(pptReference),
       body = subscriptionUpdateDetails,
       headers = headers :+ correlationIdHeader
