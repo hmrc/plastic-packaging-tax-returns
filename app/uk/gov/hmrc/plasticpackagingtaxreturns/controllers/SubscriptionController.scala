@@ -45,7 +45,7 @@ class SubscriptionController @Inject() (
   def update(pptReference: String): Action[SubscriptionUpdateRequest] =
     authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest]) { implicit request =>
       subscriptionsConnector.updateSubscription(pptReference, request.body).map {
-        case Right(response) => Ok(response)
+        case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
