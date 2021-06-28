@@ -24,7 +24,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxReturn, TaxReturnRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -47,7 +46,7 @@ class ReturnsController @Inject() (
     }
 
   def create(): Action[TaxReturnRequest] =
-    authenticator.authorisedAction(parsingJson[TaxReturnRequest]) { implicit request =>
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest]) { implicit request =>
       logPayload("Create Tax Return Request Received", request.body)
       taxReturnRepository
         .create(request.body.toTaxReturn(request.pptId))
@@ -56,7 +55,7 @@ class ReturnsController @Inject() (
     }
 
   def update(id: String): Action[TaxReturnRequest] =
-    authenticator.authorisedAction(parsingJson[TaxReturnRequest]) { implicit request =>
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest]) { implicit request =>
       logPayload("Update Tax Return Request Received", request.body)
       taxReturnRepository.findById(id).flatMap {
         case Some(_) =>
@@ -77,17 +76,5 @@ class ReturnsController @Inject() (
     logger.debug(s"$prefix, Payload: ${Json.toJson(payload)}")
     payload
   }
-
-  private def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] =
-    parse.json.validate { json =>
-      json.validate[T] match {
-        case JsSuccess(value, _) => Right(value)
-        case JsError(error) =>
-          val errorResponse = Json.toJson(ErrorResponse(BAD_REQUEST, "Bad Request"))
-          logger.warn(s"Bad Request [$errorResponse]")
-          logger.warn(s"Errors: [$error]")
-          Left(BadRequest(errorResponse))
-      }
-    }
 
 }
