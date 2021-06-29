@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -36,6 +37,14 @@ class SubscriptionController @Inject() (
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) { implicit request =>
       subscriptionsConnector.getSubscription(pptReference).map {
+        case Right(response)       => Ok(response)
+        case Left(errorStatusCode) => new Status(errorStatusCode)
+      }
+    }
+
+  def update(pptReference: String): Action[SubscriptionUpdateRequest] =
+    authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest]) { implicit request =>
+      subscriptionsConnector.updateSubscription(pptReference, request.body).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

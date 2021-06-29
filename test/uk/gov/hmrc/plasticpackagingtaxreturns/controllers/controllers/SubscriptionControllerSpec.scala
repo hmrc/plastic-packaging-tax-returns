@@ -22,6 +22,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.`given`
 import org.mockito.Mockito.{reset, verifyNoInteractions}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -36,9 +37,16 @@ import play.api.test.Helpers.{route, status, _}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.PptSubscription
 
+import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec
@@ -81,7 +89,7 @@ class SubscriptionControllerSpec
     "return 200" when {
       "request for sole trader subscription is valid" in {
         withAuthorizedUser()
-        val soleTraderSubscription = soleTraderPptSubscription(pptReference)
+        val soleTraderSubscription: PptSubscription = soleTraderPptSubscription(pptReference)
         given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
           Future.successful(Right(soleTraderSubscription))
         )
@@ -117,4 +125,86 @@ class SubscriptionControllerSpec
       }
     }
   }
+
+  "PUT subscription" should {
+    val put = FakeRequest("PUT", "/subscriptions/" + pptReference)
+    "return 200" when {
+      "request for uk limited company subscription is valid" in {
+        withAuthorizedUser()
+        val updateResponse: SubscriptionUpdateResponse =
+          SubscriptionUpdateResponse(pptReference = Some(pptReference),
+                                     processingDate = Some(ZonedDateTime.now(ZoneOffset.UTC)),
+                                     formBundleNumber = Some("12345678901")
+          )
+        val request: SubscriptionUpdateRequest =
+          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+
+        given(
+          subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
+            any[HeaderCarrier]
+          )
+        ).willReturn(Future.successful(Right(updateResponse)))
+        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+        status(result) must be(OK)
+        contentAsJson(result) mustBe toJson(updateResponse)
+      }
+    }
+
+    "return 200" when {
+      "request for sole trader subscription is valid" in {
+        withAuthorizedUser()
+        val updateResponse: SubscriptionUpdateResponse =
+          SubscriptionUpdateResponse(pptReference = Some(pptReference),
+                                     processingDate = Some(ZonedDateTime.now(ZoneOffset.UTC)),
+                                     formBundleNumber = Some("12345678901")
+          )
+        val request: SubscriptionUpdateRequest =
+          createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+
+        given(
+          subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
+            any[HeaderCarrier]
+          )
+        ).willReturn(Future.successful(Right(updateResponse)))
+        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+        status(result) must be(OK)
+        contentAsJson(result) mustBe toJson(updateResponse)
+      }
+    }
+
+    "return 401" when {
+      "unauthorized" in {
+        withUnauthorizedUser(new RuntimeException())
+        val request: SubscriptionUpdateRequest =
+          createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+
+        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+        status(result) must be(UNAUTHORIZED)
+        verifyNoInteractions(subscriptionsConnector)
+      }
+    }
+
+    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+      "return " + statusCode when {
+        statusCode + " is returned from connector " in {
+          withAuthorizedUser()
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+          given(
+            subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
+              any[HeaderCarrier]
+            )
+          ).willReturn(Future.successful(Left(statusCode)))
+
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(statusCode)
+        }
+      }
+    }
+  }
+
 }

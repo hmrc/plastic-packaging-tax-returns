@@ -22,6 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   ChangeOfCircumstanceDetails,
   SubscriptionDisplayResponse
 }
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration._
 
 import java.time.ZoneOffset.UTC
@@ -191,6 +192,29 @@ trait SubscriptionTestData {
                                   subscription.declaration,
                                 groupSubscription =
                                   subscription.groupSubscription
+    )
+
+  protected def createSubscriptionUpdateResponse(
+    subscription: Subscription,
+    changeOfCircumstanceDetails: ChangeOfCircumstanceDetails
+  ) =
+    SubscriptionUpdateRequest(changeOfCircumstanceDetails = changeOfCircumstanceDetails,
+                              legalEntityDetails =
+                                subscription.legalEntityDetails,
+                              principalPlaceOfBusinessDetails =
+                                subscription.principalPlaceOfBusinessDetails,
+                              primaryContactDetails =
+                                subscription.primaryContactDetails,
+                              businessCorrespondenceDetails =
+                                subscription.businessCorrespondenceDetails,
+                              taxObligationStartDate =
+                                subscription.taxObligationStartDate,
+                              last12MonthTotalTonnageAmt =
+                                subscription.last12MonthTotalTonnageAmt.map(_.toLong),
+                              declaration =
+                                subscription.declaration,
+                              groupSubscription =
+                                subscription.groupSubscription
     )
 
 }

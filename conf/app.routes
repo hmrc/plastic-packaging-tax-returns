@@ -6,3 +6,5 @@ GET         /returns/:id             uk.gov.hmrc.plasticpackagingtaxreturns.cont
 
 # EIS subscription
 GET         /subscriptions/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)
+PUT         /subscriptions/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.update(pptReference: String)
+
