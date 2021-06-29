@@ -22,6 +22,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.`given`
 import org.mockito.Mockito.{reset, verifyNoInteractions}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -173,24 +174,6 @@ class SubscriptionControllerSpec
       }
     }
 
-    "return 404" when {
-      "registration not found" in {
-        withAuthorizedUser()
-        val request: SubscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
-
-        given(
-          subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
-            any[HeaderCarrier]
-          )
-        ).willReturn(Future.successful(Left(404)))
-
-        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
-
-        status(result) mustBe NOT_FOUND
-      }
-    }
-
     "return 401" when {
       "unauthorized" in {
         withUnauthorizedUser(new RuntimeException())
@@ -203,5 +186,25 @@ class SubscriptionControllerSpec
         verifyNoInteractions(subscriptionsConnector)
       }
     }
+
+    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+      "return " + statusCode when {
+        statusCode + " is returned from connector " in {
+          withAuthorizedUser()
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+          given(
+            subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
+              any[HeaderCarrier]
+            )
+          ).willReturn(Future.successful(Left(statusCode)))
+
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(statusCode)
+        }
+      }
+    }
   }
+
 }
