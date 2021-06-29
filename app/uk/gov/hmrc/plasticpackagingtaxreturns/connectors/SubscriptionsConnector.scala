@@ -28,7 +28,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateRequest,
   SubscriptionUpdateResponse
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.PptSubscription
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -68,14 +67,16 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
-  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[Int, PptSubscription]] = {
+  def getSubscription(
+    pptReference: String
+  )(implicit hc: HeaderCarrier): Future[Either[Int, SubscriptionDisplayResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.subscription.display.timer").time()
     val correlationIdHeader = correlationId -> UUID.randomUUID().toString
     httpClient.GET[SubscriptionDisplayResponse](appConfig.subscriptionDisplayUrl(pptReference),
                                                 headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
-      .map(response => Right(response.toPptSubscription(pptReference = pptReference)))
+      .map(response => Right(response))
       .recover {
         case httpEx: UpstreamErrorResponse =>
           logger.error(

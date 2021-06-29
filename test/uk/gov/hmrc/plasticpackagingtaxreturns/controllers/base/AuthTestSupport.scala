@@ -25,8 +25,8 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{AuthAction, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
 
 import scala.concurrent.Future
@@ -56,9 +56,6 @@ trait AuthTestSupport extends MockitoSugar {
     )
       .thenReturn(Future.successful(user.enrolments))
 
-  def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
-    (p: Predicate) => p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
-
   def withUnauthorizedUser(error: Throwable): Unit =
     when(mockAuthConnector.authorise(any(), any())(any(), any())).thenReturn(Future.failed(error))
 
@@ -69,6 +66,9 @@ trait AuthTestSupport extends MockitoSugar {
       )(any(), any())
     )
       .thenReturn(Future.successful(Enrolments(Set())))
+
+  def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
+    (p: Predicate) => p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),
