@@ -23,7 +23,8 @@ case class LegalEntityDetails(
   customerIdentification1: String,
   customerIdentification2: Option[String] = None,
   customerDetails: CustomerDetails,
-  groupSubscriptionFlag: Boolean = false
+  groupSubscriptionFlag: Boolean = false,
+  regWithoutIDFlag: Option[Boolean] = None
 )
 
 object LegalEntityDetails {
