@@ -39,5 +39,5 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val eisEnvironment: String = config.get[String]("eis.environment")
 
-  val bearerToken: String = config.get[String]("microservice.services.eis.bearerToken")
+  val bearerToken: String = s"Bearer ${config.get[String]("microservice.services.eis.bearerToken")}"
 }
