@@ -23,7 +23,8 @@ trait EISConnector {
   val appConfig: AppConfig
 
   val headers: Seq[(String, String)] =
-    Seq("Environment" -> appConfig.eisEnvironment, HeaderNames.ACCEPT -> MimeTypes.JSON)
+    Seq("Environment" -> appConfig.eisEnvironment, HeaderNames.ACCEPT -> MimeTypes.JSON, HeaderNames.AUTHORIZATION
+    -> appConfig.bearerToken)
 
   val correlationId = "CorrelationId"
 }
