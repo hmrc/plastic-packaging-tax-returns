@@ -18,14 +18,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 
-import scala.language.implicitConversions
-
 case class LegalEntityDetails(
   dateOfApplication: String,
   customerIdentification1: String,
   customerIdentification2: Option[String] = None,
   customerDetails: CustomerDetails,
-  groupSubscriptionFlag: Boolean = false
+  groupSubscriptionFlag: Boolean = false,
+  regWithoutIDFlag: Option[Boolean] = None
 )
 
 object LegalEntityDetails {

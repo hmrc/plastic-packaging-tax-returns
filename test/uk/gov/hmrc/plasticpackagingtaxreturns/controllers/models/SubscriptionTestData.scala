@@ -23,92 +23,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionDisplayResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration._
 
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime.now
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 trait SubscriptionTestData {
-
-  protected def ukLimitedCompanyPptSubscription(pptReference: String = UUID.randomUUID().toString): PptSubscription =
-    PptSubscription(pptReference = pptReference,
-                    primaryContactDetails =
-                      uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.PrimaryContactDetails(
-                        Some("FirstName LastName"),
-                        jobTitle = Some("CEO"),
-                        email =
-                          Some("test@test.com"),
-                        phoneNumber =
-                          Some("1234567890"),
-                        address = Some(
-                          Address(addressLine1 =
-                                    "addressLine1",
-                                  addressLine2 =
-                                    "line2",
-                                  addressLine3 =
-                                    Some("Town"),
-                                  postCode =
-                                    Some("PostCode")
-                          )
-                        )
-                      ),
-                    organisationDetails =
-                      uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.OrganisationDetails(isBasedInUk =
-                                                                                                       Some(true),
-                                                                                                     organisationType =
-                                                                                                       Some(
-                                                                                                         "UK_COMPANY"
-                                                                                                       ),
-                                                                                                     businessRegisteredAddress =
-                                                                                                       Some(
-                                                                                                         Address(
-                                                                                                           addressLine1 =
-                                                                                                             "addressLine1",
-                                                                                                           addressLine3 =
-                                                                                                             Some(
-                                                                                                               "Town"
-                                                                                                             ),
-                                                                                                           addressLine2 =
-                                                                                                             "line2",
-                                                                                                           postCode =
-                                                                                                             Some(
-                                                                                                               "PostCode"
-                                                                                                             )
-                                                                                                         )
-                                                                                                       ),
-                                                                                                     safeNumber =
-                                                                                                       Some("123"),
-                                                                                                     incorporationDetails =
-                                                                                                       Some(
-                                                                                                         IncorporationDetails(
-                                                                                                           companyName =
-                                                                                                             Some(
-                                                                                                               "Plastics Limited"
-                                                                                                             ),
-                                                                                                           phoneNumber =
-                                                                                                             Some(
-                                                                                                               "077665544"
-                                                                                                             ),
-                                                                                                           email = Some(
-                                                                                                             "email@gmail.com"
-                                                                                                           )
-                                                                                                         )
-                                                                                                       )
-                      )
-    )
-
-  def soleTraderPptSubscription(pptReference: String = UUID.randomUUID().toString): PptSubscription = {
-    val regDetails = ukLimitedCompanyPptSubscription(pptReference)
-    regDetails.copy(organisationDetails =
-      regDetails.organisationDetails.copy(
-        soleTraderDetails =
-          Some(SoleTraderIncorporationDetails(firstName = Some("James"), lastName = Some("Bond"))),
-        incorporationDetails = None
-      )
-    )
-  }
 
   protected val ukLimitedCompanySubscription: Subscription = Subscription(
     legalEntityDetails =

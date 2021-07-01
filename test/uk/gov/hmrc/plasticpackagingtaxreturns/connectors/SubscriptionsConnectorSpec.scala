@@ -24,8 +24,7 @@ import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
   ChangeOfCircumstanceDetails,
-  SubscriptionDisplayResponse,
-  SubscriptionMapperValidator
+  SubscriptionDisplayResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
@@ -34,8 +33,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTes
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
 
-class SubscriptionsConnectorSpec
-    extends ConnectorISpec with Injector with SubscriptionTestData with SubscriptionMapperValidator with ScalaFutures {
+class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
 
   lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
 
@@ -49,9 +47,8 @@ class SubscriptionsConnectorSpec
         val pptReference = UUID.randomUUID().toString
         stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(ukLimitedCompanySubscription))
 
-        val res = await(connector.getSubscription(pptReference))
+        await(connector.getSubscription(pptReference))
 
-        validatePptSubscriptionMapping(pptReference, res.right.get, ukLimitedCompanySubscription)
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 
@@ -60,9 +57,8 @@ class SubscriptionsConnectorSpec
         val pptReference = UUID.randomUUID().toString
         stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(soleTraderSubscription))
 
-        val res = await(connector.getSubscription(pptReference))
+        await(connector.getSubscription(pptReference))
 
-        validateSoleTaderPptSubscriptionMapping(pptReference, res.right.get, soleTraderSubscription)
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 

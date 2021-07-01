@@ -44,7 +44,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.registration.PptSubscription
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
@@ -61,43 +60,43 @@ class SubscriptionControllerSpec
 
   private val subscriptionsConnector: SubscriptionsConnector = mock[SubscriptionsConnector]
 
-  private def getRequest(pptReference: String) = FakeRequest("GET", s"/subscriptions/$pptReference")
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
     reset(subscriptionsConnector)
   }
 
+  private def getRequest(pptReference: String) = FakeRequest("GET", s"/subscriptions/$pptReference")
+
   "GET subscription" should {
 
     "return 200" when {
       "request for uk limited company subscription is valid" in {
         withAuthorizedUser()
-        val ltdSubscription = ukLimitedCompanyPptSubscription(pptReference)
+        val subscriptionDisplayResponse = createSubscriptionDisplayResponse(ukLimitedCompanySubscription)
         given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
-          Future.successful(Right(ltdSubscription))
+          Future.successful(Right(subscriptionDisplayResponse))
         )
 
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
         status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(ltdSubscription)
+        contentAsJson(result) mustBe toJson(subscriptionDisplayResponse)
       }
     }
 
     "return 200" when {
       "request for sole trader subscription is valid" in {
         withAuthorizedUser()
-        val soleTraderSubscription: PptSubscription = soleTraderPptSubscription(pptReference)
+        val subscriptionDisplayResponse = createSubscriptionDisplayResponse(soleTraderSubscription)
         given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
-          Future.successful(Right(soleTraderSubscription))
+          Future.successful(Right(subscriptionDisplayResponse))
         )
 
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
         status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(soleTraderSubscription)
+        contentAsJson(result) mustBe toJson(subscriptionDisplayResponse)
       }
     }
 
