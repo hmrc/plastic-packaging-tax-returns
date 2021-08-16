@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.mvc._
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
@@ -30,6 +31,7 @@ import scala.concurrent.ExecutionContext
 class SubscriptionController @Inject() (
   subscriptionsConnector: SubscriptionsConnector,
   authenticator: Authenticator,
+  auditor: Auditor,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
@@ -45,8 +47,11 @@ class SubscriptionController @Inject() (
   def update(pptReference: String): Action[SubscriptionUpdateRequest] =
     authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest]) { implicit request =>
       subscriptionsConnector.updateSubscription(pptReference, request.body).map {
-        case Right(response)       => Ok(response)
-        case Left(errorStatusCode) => new Status(errorStatusCode)
+        case Right(response) =>
+          auditor.subscriptionUpdated(subscriptionUpdateRequest = request.body, pptReference = Some(pptReference))
+          Ok(response)
+        case Left(errorStatusCode) =>
+          new Status(errorStatusCode)
       }
     }
 
