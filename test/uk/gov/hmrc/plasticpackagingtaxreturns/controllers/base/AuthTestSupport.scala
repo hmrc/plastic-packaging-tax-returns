@@ -18,18 +18,21 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import org.mockito.{ArgumentMatcher, ArgumentMatchers}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NonRepudiationIdentityRetrievals
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AuthTestSupport extends MockitoSugar {
 
@@ -88,5 +91,16 @@ trait AuthTestSupport extends MockitoSugar {
 
   def newEnrolment(key: String, identifierName: String, identifierValue: String): Enrolment =
     Enrolment(key).withIdentifier(identifierName, identifierValue)
+
+  def mockAuthorization(
+    nrsIdentityRetrievals: Retrieval[NonRepudiationIdentityRetrievals],
+    authRetrievalsResponse: NonRepudiationIdentityRetrievals
+  )(implicit hc: HeaderCarrier, ec: ExecutionContext): OngoingStubbing[Future[NonRepudiationIdentityRetrievals]] =
+    when(
+      mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(
+        ArgumentMatchers.eq(hc),
+        ArgumentMatchers.eq(ec)
+      )
+    ).thenReturn(Future.successful(authRetrievalsResponse))
 
 }

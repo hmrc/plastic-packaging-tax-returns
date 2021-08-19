@@ -16,22 +16,33 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
+import play.api.libs.json.Json.toJson
 import play.api.mvc._
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse,
+  SubscriptionUpdateWithNrsFailureResponse,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubscriptionController @Inject() (
   subscriptionsConnector: SubscriptionsConnector,
   authenticator: Authenticator,
   auditor: Auditor,
+  nonRepudiationService: NonRepudiationService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
@@ -46,13 +57,65 @@ class SubscriptionController @Inject() (
 
   def update(pptReference: String): Action[SubscriptionUpdateRequest] =
     authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest]) { implicit request =>
-      subscriptionsConnector.updateSubscription(pptReference, request.body).map {
-        case Right(response) =>
-          auditor.subscriptionUpdated(subscriptionUpdateRequest = request.body, pptReference = Some(pptReference))
-          Ok(response)
-        case Left(errorStatusCode) =>
-          new Status(errorStatusCode)
+      val updatedSubscription = request.body.toSubscription
+      subscriptionsConnector.updateSubscription(pptReference, request.body).flatMap {
+        case response @ SubscriptionUpdateSuccessfulResponse(_, _, _) =>
+          handleNrsRequest(request, updatedSubscription, response)
       }
     }
+
+  private def handleNrsRequest(
+    request: AuthorizedRequest[SubscriptionUpdateRequest],
+    pptSubscription: Subscription,
+    eisResponse: SubscriptionUpdateSuccessfulResponse
+  )(implicit hc: HeaderCarrier): Future[Result] =
+    submitToNrs(request, pptSubscription, eisResponse).map {
+      case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
+        pptSubscription.copy(nrsDetails = Some(NrsDetails(nrsSubmissionId = Some(nrSubmissionId))))
+        auditor.subscriptionUpdated(subscription = pptSubscription,
+                                    pptReference = Some(eisResponse.pptReference),
+                                    processingDateTime = Some(eisResponse.processingDate)
+        )
+        handleNrsSuccess(eisResponse, nrSubmissionId)
+    }.recoverWith {
+      case exception: Exception =>
+        pptSubscription.copy(nrsDetails = Some(NrsDetails(failureReason = Some(exception.getMessage))))
+        auditor.subscriptionUpdated(subscription = pptSubscription, pptReference = Some(eisResponse.pptReference))
+        handleNrsFailure(eisResponse, exception)
+    }
+
+  private def submitToNrs(
+    request: AuthorizedRequest[SubscriptionUpdateRequest],
+    pptSubscription: Subscription,
+    eisResponse: SubscriptionUpdateSuccessfulResponse
+  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
+    nonRepudiationService.submitNonRepudiation(toJson(pptSubscription).toString,
+                                               eisResponse.processingDate,
+                                               eisResponse.pptReference,
+                                               request.body.userHeaders.getOrElse(Map.empty)
+    )
+
+  private def handleNrsFailure(
+    eisResponse: SubscriptionUpdateSuccessfulResponse,
+    exception: Exception
+  ): Future[Result] =
+    Future.successful(
+      Ok(
+        SubscriptionUpdateWithNrsFailureResponse(eisResponse.pptReference,
+                                                 eisResponse.processingDate,
+                                                 eisResponse.formBundleNumber,
+                                                 exception.getMessage
+        )
+      )
+    )
+
+  private def handleNrsSuccess(eisResponse: SubscriptionUpdateSuccessfulResponse, nrSubmissionId: String): Result =
+    Ok(
+      SubscriptionUpdateWithNrsSuccessfulResponse(eisResponse.pptReference,
+                                                  eisResponse.processingDate,
+                                                  eisResponse.formBundleNumber,
+                                                  nrSubmissionId
+      )
+    )
 
 }

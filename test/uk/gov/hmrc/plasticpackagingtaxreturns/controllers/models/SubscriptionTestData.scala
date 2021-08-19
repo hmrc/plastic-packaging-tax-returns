@@ -30,6 +30,8 @@ import java.time.format.DateTimeFormatter
 
 trait SubscriptionTestData {
 
+  protected val pptUserHeaders: Map[String, String] = Map("testHeaderKey" -> "testHeaderValue")
+
   protected val ukLimitedCompanySubscription: Subscription = Subscription(
     legalEntityDetails =
       LegalEntityDetails(dateOfApplication =
@@ -114,27 +116,27 @@ trait SubscriptionTestData {
                                   subscription.groupSubscription
     )
 
-  protected def createSubscriptionUpdateResponse(
-    subscription: Subscription,
-    changeOfCircumstanceDetails: ChangeOfCircumstanceDetails
-  ) =
-    SubscriptionUpdateRequest(changeOfCircumstanceDetails = changeOfCircumstanceDetails,
-                              legalEntityDetails =
-                                subscription.legalEntityDetails,
-                              principalPlaceOfBusinessDetails =
-                                subscription.principalPlaceOfBusinessDetails,
-                              primaryContactDetails =
-                                subscription.primaryContactDetails,
-                              businessCorrespondenceDetails =
-                                subscription.businessCorrespondenceDetails,
-                              taxObligationStartDate =
-                                subscription.taxObligationStartDate,
-                              last12MonthTotalTonnageAmt =
-                                subscription.last12MonthTotalTonnageAmt.map(_.toLong),
-                              declaration =
-                                subscription.declaration,
-                              groupSubscription =
-                                subscription.groupSubscription
+  protected def createSubscriptionUpdateRequest(subscription: Subscription): SubscriptionUpdateRequest =
+    SubscriptionUpdateRequest(
+      changeOfCircumstanceDetails =
+        subscription.changeOfCircumstanceDetails.getOrElse(ChangeOfCircumstanceDetails("02")),
+      legalEntityDetails =
+        subscription.legalEntityDetails,
+      principalPlaceOfBusinessDetails =
+        subscription.principalPlaceOfBusinessDetails,
+      primaryContactDetails =
+        subscription.primaryContactDetails,
+      businessCorrespondenceDetails =
+        subscription.businessCorrespondenceDetails,
+      taxObligationStartDate =
+        subscription.taxObligationStartDate,
+      last12MonthTotalTonnageAmt =
+        subscription.last12MonthTotalTonnageAmt.map(_.toLong),
+      declaration =
+        subscription.declaration,
+      groupSubscription =
+        subscription.groupSubscription,
+      userHeaders = Some(pptUserHeaders)
     )
 
 }

@@ -16,4 +16,21 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
 
-trait SubscriptionUpdateResponse
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.NrsSuccessfulResponse
+
+import java.time.ZonedDateTime
+
+case class SubscriptionUpdateWithNrsSuccessfulResponse(
+  override val pptReference: String,
+  override val processingDate: ZonedDateTime,
+  override val formBundleNumber: String,
+  override val nrSubmissionId: String
+) extends EISSubscriptionUpdateSuccessfulResponse with NrsSuccessfulResponse
+
+object SubscriptionUpdateWithNrsSuccessfulResponse {
+
+  implicit val format: OFormat[SubscriptionUpdateWithNrsSuccessfulResponse] =
+    Json.format[SubscriptionUpdateWithNrsSuccessfulResponse]
+
+}

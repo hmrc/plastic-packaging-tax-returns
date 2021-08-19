@@ -19,10 +19,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
-import org.mockito.BDDMockito.`given`
-import org.mockito.Mockito.{reset, verifyNoInteractions}
+import org.mockito.Mockito.{reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,41 +28,55 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{route, status, _}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
-  SubscriptionUpdateResponse
+  SubscriptionUpdateSuccessfulResponse,
+  SubscriptionUpdateWithNrsFailureResponse,
+  SubscriptionUpdateWithNrsSuccessfulResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with SubscriptionTestData {
+    with AuthTestSupport with SubscriptionTestData with MockConnectors {
 
   SharedMetricRegistries.clear()
+  protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SubscriptionsConnector].to(subscriptionsConnector))
+    .overrides(bind[AuthConnector].to(mockAuthConnector),
+               bind[SubscriptionsConnector].to(mockSubscriptionsConnector),
+               bind[NonRepudiationService].to(mockNonRepudiationService)
+    )
     .build()
-
-  private val subscriptionsConnector: SubscriptionsConnector = mock[SubscriptionsConnector]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    reset(subscriptionsConnector)
+    reset(mockSubscriptionsConnector)
+    reset(mockNonRepudiationService)
   }
+
+  val subscriptionUpdateResponse: SubscriptionUpdateSuccessfulResponse = SubscriptionUpdateSuccessfulResponse(
+    pptReference = pptReference,
+    processingDate = ZonedDateTime.now(ZoneOffset.UTC),
+    formBundleNumber = "12345678901"
+  )
 
   private def getRequest(pptReference: String) = FakeRequest("GET", s"/subscriptions/$pptReference")
 
@@ -74,9 +86,7 @@ class SubscriptionControllerSpec
       "request for uk limited company subscription is valid" in {
         withAuthorizedUser()
         val subscriptionDisplayResponse = createSubscriptionDisplayResponse(ukLimitedCompanySubscription)
-        given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
-          Future.successful(Right(subscriptionDisplayResponse))
-        )
+        mockGetSubscription(pptReference, subscriptionDisplayResponse)
 
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
@@ -89,9 +99,7 @@ class SubscriptionControllerSpec
       "request for sole trader subscription is valid" in {
         withAuthorizedUser()
         val subscriptionDisplayResponse = createSubscriptionDisplayResponse(soleTraderSubscription)
-        given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
-          Future.successful(Right(subscriptionDisplayResponse))
-        )
+        mockGetSubscription(pptReference, subscriptionDisplayResponse)
 
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
@@ -103,9 +111,7 @@ class SubscriptionControllerSpec
     "return 404" when {
       "registration not found" in {
         withAuthorizedUser()
-        given(subscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).willReturn(
-          Future.successful(Left(404))
-        )
+        mockGetSubscriptionFailure(pptReference, 404)
 
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
@@ -120,56 +126,126 @@ class SubscriptionControllerSpec
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(subscriptionsConnector)
+        verifyNoInteractions(mockSubscriptionsConnector)
       }
     }
   }
 
   "PUT subscription" should {
     val put = FakeRequest("PUT", "/subscriptions/" + pptReference)
-    "return 200" when {
-      "request for uk limited company subscription is valid" in {
-        withAuthorizedUser()
-        val updateResponse: SubscriptionUpdateResponse =
-          SubscriptionUpdateResponse(pptReference = Some(pptReference),
-                                     processingDate = Some(ZonedDateTime.now(ZoneOffset.UTC)),
-                                     formBundleNumber = Some("12345678901")
+    "return 200 for UK Limited Company " when {
+      "EIS update subscription is successful " when {
+        "and NRS submission is successful " in {
+          val nrSubmissionId = "nrSubmissionId"
+          withAuthorizedUser()
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+          mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+            Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
           )
-        val request: SubscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
 
-        given(
-          subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
-            any[HeaderCarrier]
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(OK)
+          val response = contentAsJson(result).as[SubscriptionUpdateWithNrsSuccessfulResponse]
+          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
+          response.processingDate mustBe subscriptionUpdateResponse.processingDate
+          response.nrSubmissionId mustBe nrSubmissionId
+          verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
+            any[ZonedDateTime],
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(pptUserHeaders)
+          )(any[HeaderCarrier])
+        }
+
+        "and NRS submission is not successful " in {
+          val nrsErrorMessage = "Service unavailable"
+          withAuthorizedUser(user = newUser())
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+          mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+            Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
           )
-        ).willReturn(Future.successful(Right(updateResponse)))
-        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
-        status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(updateResponse)
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(OK)
+          val response = contentAsJson(result).as[SubscriptionUpdateWithNrsFailureResponse]
+          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
+          response.processingDate mustBe subscriptionUpdateResponse.processingDate
+          response.nrsFailureReason mustBe nrsErrorMessage
+
+          verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
+            any[ZonedDateTime],
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(pptUserHeaders)
+          )(any[HeaderCarrier])
+        }
       }
     }
 
-    "return 200" when {
-      "request for sole trader subscription is valid" in {
-        withAuthorizedUser()
-        val updateResponse: SubscriptionUpdateResponse =
-          SubscriptionUpdateResponse(pptReference = Some(pptReference),
-                                     processingDate = Some(ZonedDateTime.now(ZoneOffset.UTC)),
-                                     formBundleNumber = Some("12345678901")
-          )
-        val request: SubscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+    "return 200 for Sole Trader " when {
+      "EIS update subscription is successful" when {
+        "and NRS submission is successful " in {
 
-        given(
-          subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
-            any[HeaderCarrier]
-          )
-        ).willReturn(Future.successful(Right(updateResponse)))
-        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+          val nrSubmissionId = "nrSubmissionId"
+          withAuthorizedUser()
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateRequest(soleTraderSubscription)
 
-        status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(updateResponse)
+          mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+            Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
+          )
+
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(OK)
+          val response = contentAsJson(result).as[SubscriptionUpdateWithNrsSuccessfulResponse]
+          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
+          response.processingDate mustBe subscriptionUpdateResponse.processingDate
+          response.nrSubmissionId mustBe nrSubmissionId
+          verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString()),
+            any[ZonedDateTime],
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(pptUserHeaders)
+          )(any[HeaderCarrier])
+        }
+
+        "and NRS submission is not successful " in {
+          val nrsErrorMessage = "Service unavailable"
+          withAuthorizedUser(user = newUser())
+          val request: SubscriptionUpdateRequest =
+            createSubscriptionUpdateRequest(soleTraderSubscription)
+          mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+            Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
+          )
+
+          val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+          status(result) must be(OK)
+          val response = contentAsJson(result).as[SubscriptionUpdateWithNrsFailureResponse]
+          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
+          response.processingDate mustBe subscriptionUpdateResponse.processingDate
+          response.nrsFailureReason mustBe nrsErrorMessage
+
+          verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
+            any[ZonedDateTime],
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(pptUserHeaders)
+          )(any[HeaderCarrier])
+        }
       }
     }
 
@@ -177,30 +253,24 @@ class SubscriptionControllerSpec
       "unauthorized" in {
         withUnauthorizedUser(new RuntimeException())
         val request: SubscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
+          createSubscriptionUpdateRequest(soleTraderSubscription)
 
         val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(subscriptionsConnector)
+        verifyNoInteractions(mockSubscriptionsConnector)
       }
     }
 
-    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-      "return " + statusCode when {
-        statusCode + " is returned from connector " in {
-          withAuthorizedUser()
-          val request: SubscriptionUpdateRequest =
-            createSubscriptionUpdateResponse(soleTraderSubscription, ChangeOfCircumstanceDetails("02"))
-          given(
-            subscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
-              any[HeaderCarrier]
-            )
-          ).willReturn(Future.successful(Left(statusCode)))
-
+    "return 500" when {
+      "EIS/IF subscription call returns an exception" in {
+        withAuthorizedUser()
+        val request: SubscriptionUpdateRequest =
+          createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+        mockSubscriptionSubmitFailure(new RuntimeException("error"))
+        intercept[Exception] {
           val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
-
-          status(result) must be(statusCode)
+          status(result)
         }
       }
     }

@@ -16,4 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
 
-trait SubscriptionUpdateResponse
+import java.time.ZonedDateTime
+
+trait EISSubscriptionUpdateSuccessfulResponse extends EISResponse {
+
+  val pptReference: String
+  val processingDate: ZonedDateTime
+  val formBundleNumber: String
+}

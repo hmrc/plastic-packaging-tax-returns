@@ -17,9 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.time.ZonedDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -27,11 +28,12 @@ import scala.concurrent.ExecutionContext
 class Auditor @Inject() (auditConnector: AuditConnector) {
 
   def subscriptionUpdated(
-    subscriptionUpdateRequest: SubscriptionUpdateRequest,
-    pptReference: Option[String] = None
-  )(implicit hc: HeaderCarrier, ex: ExecutionContext) =
+    subscription: Subscription,
+    pptReference: Option[String] = None,
+    processingDateTime: Option[ZonedDateTime] = None
+  )(implicit hc: HeaderCarrier, ex: ExecutionContext): Unit =
     auditConnector.sendExplicitAudit(ChangeSubscriptionEvent.eventType,
-                                     ChangeSubscriptionEvent(subscriptionUpdateRequest, pptReference)
+                                     ChangeSubscriptionEvent(subscription, pptReference, processingDateTime)
     )
 
 }

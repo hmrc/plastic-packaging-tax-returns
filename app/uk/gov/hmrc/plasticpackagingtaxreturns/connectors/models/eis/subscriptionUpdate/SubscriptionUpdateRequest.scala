@@ -30,8 +30,23 @@ case class SubscriptionUpdateRequest(
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: Option[BigDecimal],
   declaration: Declaration,
-  groupSubscription: Option[GroupSubscription]
-)
+  groupSubscription: Option[GroupSubscription],
+  userHeaders: Option[Map[String, String]] = None
+) {
+
+  def toSubscription: Subscription =
+    Subscription(changeOfCircumstanceDetails = Some(this.changeOfCircumstanceDetails),
+                 legalEntityDetails = this.legalEntityDetails,
+                 principalPlaceOfBusinessDetails = this.principalPlaceOfBusinessDetails,
+                 primaryContactDetails = this.primaryContactDetails,
+                 businessCorrespondenceDetails = this.businessCorrespondenceDetails,
+                 declaration = this.declaration,
+                 taxObligationStartDate = this.taxObligationStartDate,
+                 last12MonthTotalTonnageAmt = Some(this.last12MonthTotalTonnageAmt.getOrElse(BigDecimal(0)).toLong),
+                 groupSubscription = this.groupSubscription
+    )
+
+}
 
 object SubscriptionUpdateRequest {
   implicit val format: OFormat[SubscriptionUpdateRequest] = Json.format[SubscriptionUpdateRequest]

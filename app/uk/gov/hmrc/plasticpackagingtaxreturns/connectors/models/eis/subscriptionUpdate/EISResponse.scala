@@ -16,4 +16,4 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
 
-trait SubscriptionUpdateResponse
+trait EISResponse

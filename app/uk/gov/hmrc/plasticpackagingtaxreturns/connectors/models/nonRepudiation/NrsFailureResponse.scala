@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation
 
-trait SubscriptionUpdateResponse
+trait NrsFailureResponse extends NrsResponse {
+  val nrsFailureReason: String
+}
