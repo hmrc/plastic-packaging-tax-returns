@@ -18,8 +18,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
 case class Subscription(
+  changeOfCircumstanceDetails: Option[ChangeOfCircumstanceDetails] = None,
   legalEntityDetails: LegalEntityDetails,
   principalPlaceOfBusinessDetails: PrincipalPlaceOfBusinessDetails,
   primaryContactDetails: PrimaryContactDetails,
@@ -27,7 +30,8 @@ case class Subscription(
   declaration: Declaration,
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: Option[Long] = None,
-  groupSubscription: Option[GroupSubscription] = None
+  groupSubscription: Option[GroupSubscription] = None,
+  nrsDetails: Option[NrsDetails] = None
 )
 
 object Subscription {

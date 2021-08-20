@@ -26,12 +26,14 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
-  SubscriptionUpdateResponse
+  SubscriptionUpdateResponse,
+  SubscriptionUpdateSuccessfulResponse
 }
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
@@ -42,28 +44,23 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
 
   def updateSubscription(pptReference: String, subscriptionUpdateDetails: SubscriptionUpdateRequest)(implicit
     hc: HeaderCarrier
-  ): Future[Either[Int, SubscriptionUpdateResponse]] = {
+  ): Future[SubscriptionUpdateResponse] = {
     val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.subscription.update.timer").time()
     val correlationIdHeader: (String, String) = correlationId -> UUID.randomUUID().toString
-    httpClient.PUT[SubscriptionUpdateRequest, SubscriptionUpdateResponse](
+    httpClient.PUT[SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse](
       url = appConfig.subscriptionUpdateUrl(pptReference),
       body = subscriptionUpdateDetails,
       headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
-      .map(response => Right(response))
-      .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.error(
-            s"Upstream error returned on updating subscription, status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
+      .andThen {
+        case Success(response) => response
+        case Failure(exception) =>
+          throw new Exception(
+            s"Subscription update with Correlation ID [${correlationIdHeader._2}] and " +
+              s"PptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
+            exception
           )
-          Left(httpEx.statusCode)
-        case ex: Exception =>
-          logger.error(s"Subscription update with Correlation ID [${correlationIdHeader._2}] and " +
-                         s"PptReference [$pptReference] is currently unavailable due to [${ex.getMessage}]",
-                       ex
-          )
-          Left(INTERNAL_SERVER_ERROR)
       }
   }
 

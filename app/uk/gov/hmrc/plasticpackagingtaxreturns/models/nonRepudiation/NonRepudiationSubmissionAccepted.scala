@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation
 
-trait SubscriptionUpdateResponse
+import play.api.libs.json.{Json, OFormat}
+
+case class NonRepudiationSubmissionAccepted(submissionId: String)
+
+object NonRepudiationSubmissionAccepted {
+  implicit val format: OFormat[NonRepudiationMetadata] = Json.format[NonRepudiationMetadata]
+}

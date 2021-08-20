@@ -20,10 +20,13 @@ import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.FiniteDuration
 
 @Singleton
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
+
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
+  lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
 
   def subscriptionDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
@@ -40,4 +43,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val eisEnvironment: String = config.get[String]("eis.environment")
 
   val bearerToken: String = s"Bearer ${config.get[String]("microservice.services.eis.bearerToken")}"
+
+  lazy val nonRepudiationSubmissionUrl: String = s"${nrsHost}/submission"
+
+  lazy val nonRepudiationApiKey: String =
+    servicesConfig.getString("microservice.services.nrs.api-key")
+
+  val nrsRetries: Seq[FiniteDuration] = config.get[Seq[FiniteDuration]]("nrs.retries")
 }

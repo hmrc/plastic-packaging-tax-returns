@@ -18,18 +18,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupSubscription
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.{
-  BusinessCorrespondenceDetails,
-  Declaration,
-  LegalEntityDetails,
-  PrimaryContactDetails,
-  PrincipalPlaceOfBusinessDetails
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
+
+import java.time.ZonedDateTime
 
 case class ChangeSubscriptionEvent(
-  changeOfCircumstanceDetails: ChangeOfCircumstanceDetails,
+  changeOfCircumstanceDetails: Option[ChangeOfCircumstanceDetails],
   legalEntityDetails: LegalEntityDetails,
   principalPlaceOfBusinessDetails: PrincipalPlaceOfBusinessDetails,
   primaryContactDetails: PrimaryContactDetails,
@@ -38,7 +33,8 @@ case class ChangeSubscriptionEvent(
   last12MonthTotalTonnageAmt: Option[BigDecimal],
   declaration: Declaration,
   groupSubscription: Option[GroupSubscription],
-  pptReference: Option[String]
+  pptReference: Option[String],
+  processingDateTime: Option[ZonedDateTime]
 )
 
 object ChangeSubscriptionEvent {
@@ -47,19 +43,22 @@ object ChangeSubscriptionEvent {
   val eventType: String                                 = "CHANGE_PPT_REGISTRATION"
 
   def apply(
-    subscriptionUpdateRequest: SubscriptionUpdateRequest,
-    pptReference: Option[String]
+    subscription: Subscription,
+    pptReference: Option[String],
+    processingDateTime: Option[ZonedDateTime]
   ): ChangeSubscriptionEvent =
-    ChangeSubscriptionEvent(changeOfCircumstanceDetails = subscriptionUpdateRequest.changeOfCircumstanceDetails,
-                            legalEntityDetails = subscriptionUpdateRequest.legalEntityDetails,
-                            principalPlaceOfBusinessDetails = subscriptionUpdateRequest.principalPlaceOfBusinessDetails,
-                            primaryContactDetails = subscriptionUpdateRequest.primaryContactDetails,
-                            businessCorrespondenceDetails = subscriptionUpdateRequest.businessCorrespondenceDetails,
-                            taxObligationStartDate = subscriptionUpdateRequest.taxObligationStartDate,
-                            last12MonthTotalTonnageAmt = subscriptionUpdateRequest.last12MonthTotalTonnageAmt,
-                            declaration = subscriptionUpdateRequest.declaration,
-                            groupSubscription = subscriptionUpdateRequest.groupSubscription,
-                            pptReference = pptReference
+    ChangeSubscriptionEvent(changeOfCircumstanceDetails = subscription.changeOfCircumstanceDetails,
+                            legalEntityDetails = subscription.legalEntityDetails,
+                            principalPlaceOfBusinessDetails = subscription.principalPlaceOfBusinessDetails,
+                            primaryContactDetails = subscription.primaryContactDetails,
+                            businessCorrespondenceDetails = subscription.businessCorrespondenceDetails,
+                            taxObligationStartDate = subscription.taxObligationStartDate,
+                            last12MonthTotalTonnageAmt =
+                              Some(BigDecimal(subscription.last12MonthTotalTonnageAmt.getOrElse(0).toString)),
+                            declaration = subscription.declaration,
+                            groupSubscription = subscription.groupSubscription,
+                            pptReference = pptReference,
+                            processingDateTime = processingDateTime
     )
 
 }

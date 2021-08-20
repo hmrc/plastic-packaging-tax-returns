@@ -22,11 +22,8 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.await
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
-  ChangeOfCircumstanceDetails,
-  SubscriptionDisplayResponse
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 
@@ -91,13 +88,15 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         stubSubscriptionUpdate(pptReference, subscriptionProcessingDate, formBundleNumber)
 
         val updateDetails =
-          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
-        val res: Either[Int, SubscriptionUpdateResponse] =
-          await(connector.updateSubscription(pptReference, updateDetails))
+          createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+        val res: SubscriptionUpdateSuccessfulResponse =
+          await(connector.updateSubscription(pptReference, updateDetails)).asInstanceOf[
+            SubscriptionUpdateSuccessfulResponse
+          ]
 
-        res.right.get.pptReference mustBe Some(pptReference)
-        res.right.get.formBundleNumber mustBe Some(formBundleNumber)
-        res.right.get.processingDate mustBe Some(ZonedDateTime.parse(subscriptionProcessingDate))
+        res.pptReference mustBe pptReference
+        res.formBundleNumber mustBe formBundleNumber
+        res.processingDate mustBe ZonedDateTime.parse(subscriptionProcessingDate)
         getTimer(updateSubscriptionTimer).getCount mustBe 1
       }
 
@@ -110,14 +109,16 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         stubSubscriptionUpdate(pptReference, subscriptionProcessingDate, formBundleNumber)
 
         val updateDetails =
-          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+          createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
 
-        val res: Either[Int, SubscriptionUpdateResponse] =
-          await(connector.updateSubscription(pptReference, updateDetails))
+        val res: SubscriptionUpdateSuccessfulResponse =
+          await(connector.updateSubscription(pptReference, updateDetails)).asInstanceOf[
+            SubscriptionUpdateSuccessfulResponse
+          ]
 
-        res.right.get.pptReference mustBe Some(pptReference)
-        res.right.get.formBundleNumber mustBe Some(formBundleNumber)
-        res.right.get.processingDate mustBe Some(ZonedDateTime.parse(subscriptionProcessingDate))
+        res.pptReference mustBe pptReference
+        res.formBundleNumber mustBe formBundleNumber
+        res.processingDate mustBe ZonedDateTime.parse(subscriptionProcessingDate)
         getTimer(updateSubscriptionTimer).getCount mustBe 1
       }
 
@@ -132,14 +133,11 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             )
         )
 
-        val res = await(
-          connector.updateSubscription(
-            pptReference,
-            createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+        intercept[Exception] {
+          await(
+            connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription))
           )
-        )
-
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        }
       }
     }
   }
@@ -174,14 +172,11 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
           stubSubscriptionUpdateFailure(httpStatus = statusCode, pptReference = pptReference)
 
-          val res = await(
-            connector.updateSubscription(
-              pptReference,
-              createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("02"))
+          intercept[Exception] {
+            await(
+              connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription))
             )
-          )
-
-          res.left.get mustBe statusCode
+          }
         }
       }
     }

@@ -16,22 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.auditor
 
+import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.client.{VerificationException, WireMock}
-import com.github.tomakehurst.wiremock.client.WireMock.{
-  aResponse,
-  equalToJson,
-  post,
-  postRequestedFor,
-  urlEqualTo,
-  verify
-}
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.{Auditor, ChangeSubscriptionEvent}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 
@@ -58,13 +50,13 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
     "post registration change event" when {
       "subscriptionUpdate invoked" in {
         givenAuditReturns(Status.NO_CONTENT)
-        val subscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("Update details"))
+        val subscriptionUpdate: Subscription =
+          createSubscriptionUpdateRequest(ukLimitedCompanySubscription).toSubscription
 
-        auditor.subscriptionUpdated(subscriptionUpdateRequest, pptReference = Some("pptReference"))
+        auditor.subscriptionUpdated(subscriptionUpdate, pptReference = Some("pptReference"))
 
         eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, subscriptionUpdateRequest) mustBe true
+          eventSendToAudit(auditUrl, subscriptionUpdate) mustBe true
         }
       }
     }
@@ -72,13 +64,13 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
     "not throw exception" when {
       "submit registration audit event fails" in {
         givenAuditReturns(Status.BAD_REQUEST)
-        val subscriptionUpdateRequest =
-          createSubscriptionUpdateResponse(ukLimitedCompanySubscription, ChangeOfCircumstanceDetails("Update details"))
+        val subscriptionUpdate: Subscription =
+          createSubscriptionUpdateRequest(ukLimitedCompanySubscription).toSubscription
 
-        auditor.subscriptionUpdated(subscriptionUpdateRequest)
+        auditor.subscriptionUpdated(subscriptionUpdate)
 
         eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, subscriptionUpdateRequest) mustBe true
+          eventSendToAudit(auditUrl, subscriptionUpdate) mustBe true
         }
       }
     }
@@ -94,11 +86,8 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
         )
     )
 
-  private def eventSendToAudit(url: String, subscriptionUpdateRequest: SubscriptionUpdateRequest): Boolean =
-    eventSendToAudit(url,
-                     ChangeSubscriptionEvent.eventType,
-                     SubscriptionUpdateRequest.format.writes(subscriptionUpdateRequest).toString()
-    )
+  private def eventSendToAudit(url: String, subscriptionUpdate: Subscription): Boolean =
+    eventSendToAudit(url, ChangeSubscriptionEvent.eventType, Subscription.format.writes(subscriptionUpdate).toString())
 
   private def eventSendToAudit(url: String, eventType: String, body: String): Boolean =
     try {
