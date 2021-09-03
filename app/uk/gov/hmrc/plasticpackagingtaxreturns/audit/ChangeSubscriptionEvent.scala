@@ -20,6 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupSubscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
 import java.time.ZonedDateTime
 
@@ -34,7 +35,8 @@ case class ChangeSubscriptionEvent(
   declaration: Declaration,
   groupSubscription: Option[GroupSubscription],
   pptReference: Option[String],
-  processingDateTime: Option[ZonedDateTime]
+  processingDateTime: Option[ZonedDateTime],
+  nrsDetails: Option[NrsDetails]
 )
 
 object ChangeSubscriptionEvent {
@@ -58,7 +60,8 @@ object ChangeSubscriptionEvent {
                             declaration = subscription.declaration,
                             groupSubscription = subscription.groupSubscription,
                             pptReference = pptReference,
-                            processingDateTime = processingDateTime
+                            processingDateTime = processingDateTime,
+                            nrsDetails = subscription.nrsDetails
     )
 
 }
