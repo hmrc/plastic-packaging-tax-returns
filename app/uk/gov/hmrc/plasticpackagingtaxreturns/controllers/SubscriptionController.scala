@@ -71,16 +71,24 @@ class SubscriptionController @Inject() (
   )(implicit hc: HeaderCarrier): Future[Result] =
     submitToNrs(request, pptSubscription, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        pptSubscription.copy(nrsDetails = Some(NrsDetails(nrsSubmissionId = Some(nrSubmissionId))))
-        auditor.subscriptionUpdated(subscription = pptSubscription,
-                                    pptReference = Some(eisResponse.pptReference),
-                                    processingDateTime = Some(eisResponse.processingDate)
+        auditor.subscriptionUpdated(
+          subscription = updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
+                                          pptSubscription = pptSubscription,
+                                          nrsFailureResponse = None
+          ),
+          pptReference = Some(eisResponse.pptReference),
+          processingDateTime = Some(eisResponse.processingDate)
         )
         handleNrsSuccess(eisResponse, nrSubmissionId)
     }.recoverWith {
       case exception: Exception =>
-        pptSubscription.copy(nrsDetails = Some(NrsDetails(failureReason = Some(exception.getMessage))))
-        auditor.subscriptionUpdated(subscription = pptSubscription, pptReference = Some(eisResponse.pptReference))
+        auditor.subscriptionUpdated(
+          subscription = updateNrsDetails(nrsSubmissionId = None,
+                                          pptSubscription = pptSubscription,
+                                          nrsFailureResponse = Some(exception.getMessage)
+          ),
+          pptReference = Some(eisResponse.pptReference)
+        )
         handleNrsFailure(eisResponse, exception)
     }
 
@@ -116,6 +124,15 @@ class SubscriptionController @Inject() (
                                                   eisResponse.formBundleNumber,
                                                   nrSubmissionId
       )
+    )
+
+  private def updateNrsDetails(
+    nrsSubmissionId: Option[String],
+    nrsFailureResponse: Option[String],
+    pptSubscription: Subscription
+  ): Subscription =
+    pptSubscription.copy(nrsDetails =
+      Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse))
     )
 
 }
