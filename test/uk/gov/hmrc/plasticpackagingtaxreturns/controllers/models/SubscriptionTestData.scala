@@ -72,7 +72,7 @@ trait SubscriptionTestData {
     taxObligationStartDate = now(UTC).toString,
     last12MonthTotalTonnageAmt = Some(15000),
     declaration = Declaration(declarationBox1 = true),
-    groupSubscription = None
+    groupPartnershipSubscription = None
   )
 
   protected val soleTraderSubscription: Subscription = {
@@ -113,7 +113,7 @@ trait SubscriptionTestData {
                                 declaration =
                                   subscription.declaration,
                                 groupSubscription =
-                                  subscription.groupSubscription
+                                  subscription.groupPartnershipSubscription
     )
 
   protected def createSubscriptionUpdateRequest(subscription: Subscription): SubscriptionUpdateRequest =
@@ -135,7 +135,7 @@ trait SubscriptionTestData {
       declaration =
         subscription.declaration,
       groupSubscription =
-        subscription.groupSubscription,
+        subscription.groupPartnershipSubscription,
       userHeaders = Some(pptUserHeaders)
     )
 
