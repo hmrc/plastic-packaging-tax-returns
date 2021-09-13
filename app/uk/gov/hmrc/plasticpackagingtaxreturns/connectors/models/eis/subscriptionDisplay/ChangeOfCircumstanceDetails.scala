@@ -30,7 +30,11 @@ object ChangeOfCircumstanceDetails {
 
 }
 
-case class DeregistrationDetails(deregistrationReason: String, deregistrationDate: String, deregistrationDeclarationBox1: Boolean)
+case class DeregistrationDetails(
+  deregistrationReason: String,
+  deregistrationDate: String,
+  deregistrationDeclarationBox1: Boolean
+)
 
 object DeregistrationDetails {
 
