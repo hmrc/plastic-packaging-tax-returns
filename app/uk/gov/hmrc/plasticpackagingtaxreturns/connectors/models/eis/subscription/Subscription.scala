@@ -30,7 +30,7 @@ case class Subscription(
   declaration: Declaration,
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: Option[Long] = None,
-  groupPartnershipSubscription: Option[GroupOrPartnershipSubscription] = None,
+  groupOrPartnershipSubscription: Option[GroupOrPartnershipSubscription] = None,
   nrsDetails: Option[NrsDetails] = None
 )
 

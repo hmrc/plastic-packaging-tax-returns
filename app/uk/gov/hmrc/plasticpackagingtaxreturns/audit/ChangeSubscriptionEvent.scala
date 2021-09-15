@@ -58,7 +58,7 @@ object ChangeSubscriptionEvent {
                             last12MonthTotalTonnageAmt =
                               Some(BigDecimal(subscription.last12MonthTotalTonnageAmt.getOrElse(0).toString)),
                             declaration = subscription.declaration,
-                            groupSubscription = subscription.groupPartnershipSubscription,
+                            groupSubscription = subscription.groupOrPartnershipSubscription,
                             pptReference = pptReference,
                             processingDateTime = processingDateTime,
                             nrsDetails = subscription.nrsDetails

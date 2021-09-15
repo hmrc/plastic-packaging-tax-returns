@@ -43,7 +43,7 @@ case class SubscriptionUpdateRequest(
                  declaration = this.declaration,
                  taxObligationStartDate = this.taxObligationStartDate,
                  last12MonthTotalTonnageAmt = Some(this.last12MonthTotalTonnageAmt.getOrElse(BigDecimal(0)).toLong),
-                 groupPartnershipSubscription = this.groupSubscription
+                 groupOrPartnershipSubscription = this.groupSubscription
     )
 
 }

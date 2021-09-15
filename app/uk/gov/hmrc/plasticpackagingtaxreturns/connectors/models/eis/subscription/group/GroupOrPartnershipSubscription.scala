@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 
 case class GroupOrPartnershipSubscription(
   representativeControl: Boolean,
-  groupPartnershipDetails: GroupOrPartnershipDetails,
+  groupOrPartnershipDetails: GroupOrPartnershipDetails,
   allMembersControl: Boolean
 )
 
