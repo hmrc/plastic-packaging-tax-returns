@@ -114,7 +114,7 @@ trait SubscriptionTestData {
                                   subscription.last12MonthTotalTonnageAmt.map(_.toLong),
                                 declaration =
                                   subscription.declaration,
-                                groupSubscription =
+                                groupPartnershipSubscription =
                                   subscription.groupPartnershipSubscription
     )
 
