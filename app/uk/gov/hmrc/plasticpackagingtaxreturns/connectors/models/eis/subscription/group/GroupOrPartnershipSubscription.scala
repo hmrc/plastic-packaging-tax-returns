@@ -17,23 +17,13 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.{
-  AddressDetails,
-  ContactDetails,
-  IndividualDetails,
-  OrganisationDetails
-}
 
-case class GroupDetails(
-  relationship: String,
-  customerIdentification1: String,
-  customerIdentification2: Option[String],
-  organisationDetails: Option[OrganisationDetails],
-  individualDetails: Option[IndividualDetails],
-  addressDetails: AddressDetails,
-  contactDetails: ContactDetails
+case class GroupOrPartnershipSubscription(
+  representativeControl: Boolean,
+  groupOrPartnershipDetails: GroupOrPartnershipDetails,
+  allMembersControl: Boolean
 )
 
-object GroupDetails {
-  implicit val format: OFormat[GroupDetails] = Json.format[GroupDetails]
+object GroupOrPartnershipSubscription {
+  implicit val format: OFormat[GroupOrPartnershipSubscription] = Json.format[GroupOrPartnershipSubscription]
 }

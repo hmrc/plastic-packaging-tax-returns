@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupOrPartnershipSubscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
@@ -33,7 +33,7 @@ case class ChangeSubscriptionEvent(
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: Option[BigDecimal],
   declaration: Declaration,
-  groupSubscription: Option[GroupSubscription],
+  groupSubscription: Option[GroupOrPartnershipSubscription],
   pptReference: Option[String],
   processingDateTime: Option[ZonedDateTime],
   nrsDetails: Option[NrsDetails]
@@ -42,7 +42,7 @@ case class ChangeSubscriptionEvent(
 object ChangeSubscriptionEvent {
 
   implicit val format: OFormat[ChangeSubscriptionEvent] = Json.format[ChangeSubscriptionEvent]
-  val eventType: String                                 = "CHANGE_PPT_REGISTRATION"
+  val eventType: String                                 = "changePPTRegistration"
 
   def apply(
     subscription: Subscription,
@@ -58,7 +58,7 @@ object ChangeSubscriptionEvent {
                             last12MonthTotalTonnageAmt =
                               Some(BigDecimal(subscription.last12MonthTotalTonnageAmt.getOrElse(0).toString)),
                             declaration = subscription.declaration,
-                            groupSubscription = subscription.groupSubscription,
+                            groupSubscription = subscription.groupOrPartnershipSubscription,
                             pptReference = pptReference,
                             processingDateTime = processingDateTime,
                             nrsDetails = subscription.nrsDetails
