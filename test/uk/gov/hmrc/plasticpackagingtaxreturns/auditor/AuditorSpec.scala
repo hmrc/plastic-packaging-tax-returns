@@ -107,12 +107,7 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
                                           |                    "clientPort": "-"
                                           |                  },
                                           |                  "detail": $body,
-                                          |                  "generatedAt": "$${json-unit.any-string}",
-                                          |                  "metadata": {
-                                          |                    "sendAttemptAt": "$${json-unit.any-string}",
-                                          |                    "instanceID": "$${json-unit.any-string}",
-                                          |                    "sequence": "$${json-unit.any-number}"
-                                          |                  }
+                                          |                  "generatedAt": "$${json-unit.any-string}"
                                           |                }""".stripMargin, true, true))
       )
       true
