@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.Timestamped
 
 case class TaxReturn(
   id: String,
@@ -28,8 +27,8 @@ case class TaxReturn(
   convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
   recycledPlasticWeight: Option[RecycledPlasticWeight] = None,
   metaData: MetaData = MetaData(),
-  override val lastModifiedDateTime: Option[DateTime] = None
-) extends Timestamped {
+  lastModifiedDateTime: Option[DateTime] = None
+) {
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
 }
 
