@@ -16,70 +16,95 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.repositories
 
+import java.util.concurrent.TimeUnit
+
 import com.codahale.metrics.Timer
+import com.google.inject.ImplementedBy
 import com.kenshoo.play.metrics.Metrics
+import com.mongodb.client.model.Indexes.ascending
+import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsObject, Json}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.collection.JSONCollection
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.objectIdFormats
+import org.mongodb.scala.model.Filters.equal
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 
-import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class TaxReturnRepository @Inject() (mc: ReactiveMongoComponent, appConfig: AppConfig, metrics: Metrics)(implicit
-  ec: ExecutionContext
-) extends ReactiveRepository[TaxReturn, BSONObjectID](collectionName = "taxReturns",
-                                                        mongo = mc.mongoConnector.db,
-                                                        domainFormat = MongoSerialisers.format,
-                                                        idFormat = objectIdFormats
-    ) with TTLIndexing[TaxReturn, BSONObjectID] {
+@ImplementedBy(classOf[TaxReturnRepositoryImpl])
+trait TaxReturnRepository {
+  def findById(id: String): Future[Option[TaxReturn]]
+  def create(taxReturn: TaxReturn): Future[TaxReturn]
+  def update(taxReturn: TaxReturn): Future[Option[TaxReturn]]
+  def delete(taxReturn: TaxReturn): Future[Unit]
+}
 
-  override lazy val collection: JSONCollection =
-    mongo().collection[JSONCollection](collectionName, failoverStrategy = RepositorySettings.failoverStrategy)
+class TaxReturnRepositoryImpl @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig, metrics: Metrics)(
+  implicit ec: ExecutionContext
+) extends PlayMongoRepository[TaxReturn](collectionName = "taxReturns",
+                                           mongoComponent = mongoComponent,
+                                           domainFormat = MongoSerialisers.format,
+                                           indexes = Seq(
+                                             IndexModel(ascending("lastModifiedDateTime"),
+                                                        IndexOptions().name("ttlIndexReturns").expireAfter(
+                                                          appConfig.dbTimeToLiveInSeconds,
+                                                          TimeUnit.SECONDS
+                                                        )
+                                             ),
+                                             IndexModel(ascending("id"), IndexOptions().name("idIdx").unique(true))
+                                           ),
+                                           replaceIndexes = true
+    ) with TaxReturnRepository {
 
-  override lazy val expireAfterSeconds: Long = appConfig.dbTimeToLiveInSeconds
+  private def filter(id: String) =
+    equal("id", Codecs.toBson(id))
 
-  override def indexes: Seq[Index] = Seq(Index(Seq("id" -> IndexType.Ascending), Some("idIdx"), unique = true))
+  private def newMongoDBTimer(name: String): Timer = metrics.defaultRegistry.timer(name)
 
-  def findById(id: String): Future[Option[TaxReturn]] = {
+  override def findById(id: String): Future[Option[TaxReturn]] = {
     val findStopwatch = newMongoDBTimer("ppt.returns.mongo.find").time()
-    super.find("id" -> id).map(_.headOption).andThen {
+    collection.find(filter(id)).headOption().andThen {
       case _ => findStopwatch.stop()
     }
   }
 
-  def create(taxReturn: TaxReturn): Future[TaxReturn] =
-    super.insert(taxReturn.updateLastModified()).map(_ => taxReturn)
-
-  def update(taxReturn: TaxReturn): Future[Option[TaxReturn]] = {
-    val updateStopwatch = newMongoDBTimer("ppt.returns.mongo.update").time()
-    super
-      .findAndUpdate(Json.obj("id" -> taxReturn.id),
-                     Json.toJson(taxReturn.updateLastModified()).as[JsObject],
-                     fetchNewObject = true,
-                     upsert = false
-      )
-      .map(_.value.map(_.as[TaxReturn]))
+  override def create(taxReturn: TaxReturn): Future[TaxReturn] = {
+    val createStopwatch  = newMongoDBTimer("ppt.returns.mongo.create").time()
+    val updatedTaxReturn = taxReturn.updateLastModified()
+    collection.insertOne(updatedTaxReturn).toFuture()
       .andThen {
-        case _ => updateStopwatch.stop()
+        case _ => createStopwatch.stop()
       }
+      .map(_ => updatedTaxReturn)
   }
 
-  def delete(taxReturn: TaxReturn): Future[Unit] =
-    super
-      .remove("id" -> taxReturn.id)
-      .map(_ => Unit)
+  override def update(taxReturn: TaxReturn): Future[Option[TaxReturn]] = {
+    val updateStopwatch  = newMongoDBTimer("ppt.returns.mongo.update").time()
+    val updatedTaxReturn = taxReturn.updateLastModified()
+    collection.replaceOne(filter(taxReturn.id), updatedTaxReturn).toFuture().map(
+      updateResult => if (updateResult.getModifiedCount == 1) Some(updatedTaxReturn) else None
+    ).andThen {
+      case _ => updateStopwatch.stop()
+    }
+  }
 
-  private def newMongoDBTimer(name: String): Timer = metrics.defaultRegistry.timer(name)
+  override def delete(taxReturn: TaxReturn): Future[Unit] = {
+    val deleteStopwatch = newMongoDBTimer("ppt.returns.mongo.delete").time()
+    collection.deleteOne(filter(taxReturn.id)).toFuture()
+      .andThen {
+        case _ => deleteStopwatch.stop()
+      }.map(_ => Unit)
+  }
+
 }
 
 object MongoSerialisers {
-  implicit val mongoDateTimeFormat: Format[DateTime] = uk.gov.hmrc.mongo.json.ReactiveMongoFormats.dateTimeFormats
-  implicit val format: Format[TaxReturn]             = Json.format[TaxReturn]
+
+  implicit val mongoDateTimeFormat: Format[DateTime] =
+    uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats.dateTimeFormat
+
+  implicit val format: Format[TaxReturn] = Json.format[TaxReturn]
 }
