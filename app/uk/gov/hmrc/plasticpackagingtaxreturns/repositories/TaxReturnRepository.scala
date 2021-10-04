@@ -72,8 +72,13 @@ class TaxReturnRepositoryImpl @Inject() (mongoComponent: MongoComponent, appConf
   }
 
   override def create(taxReturn: TaxReturn): Future[TaxReturn] = {
+    val createStopwatch  = newMongoDBTimer("ppt.returns.mongo.create").time()
     val updatedTaxReturn = taxReturn.updateLastModified()
-    collection.insertOne(updatedTaxReturn).toFuture().map(_ => updatedTaxReturn)
+    collection.insertOne(updatedTaxReturn).toFuture()
+      .andThen {
+        case _ => createStopwatch.stop()
+      }
+      .map(_ => updatedTaxReturn)
   }
 
   override def update(taxReturn: TaxReturn): Future[Option[TaxReturn]] = {
@@ -86,8 +91,13 @@ class TaxReturnRepositoryImpl @Inject() (mongoComponent: MongoComponent, appConf
     }
   }
 
-  override def delete(taxReturn: TaxReturn): Future[Unit] =
-    collection.deleteOne(filter(taxReturn.id)).toFuture().map(_ => Unit)
+  override def delete(taxReturn: TaxReturn): Future[Unit] = {
+    val deleteStopwatch = newMongoDBTimer("ppt.returns.mongo.delete").time()
+    collection.deleteOne(filter(taxReturn.id)).toFuture()
+      .andThen {
+        case _ => deleteStopwatch.stop()
+      }.map(_ => Unit)
+  }
 
 }
 

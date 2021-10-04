@@ -113,6 +113,8 @@ class TaxReturnRepositorySpec
       val saved = await(repository.findById(taxReturn.id)).get
 
       saved.lastModifiedDateTime must not be None
+
+      getTimer("ppt.returns.mongo.create").getCount mustBe 1
     }
 
   }
@@ -185,6 +187,8 @@ class TaxReturnRepositorySpec
       repository.delete(taxReturn).futureValue
 
       collectionSize mustBe 0
+
+      getTimer("ppt.returns.mongo.delete").getCount mustBe 1
     }
 
     "maintain other tax return" when {
