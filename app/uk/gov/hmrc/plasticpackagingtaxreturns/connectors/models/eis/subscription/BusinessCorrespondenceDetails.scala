@@ -29,6 +29,22 @@ case class BusinessCorrespondenceDetails(
 
 object BusinessCorrespondenceDetails {
 
+  def apply(
+    addressLine1: String,
+    addressLine2: String,
+    addressLine3: Option[String] = None,
+    addressLine4: Option[String] = None,
+    postalCode: Option[String] = None,
+    countryCode: String
+  ): BusinessCorrespondenceDetails =
+    new BusinessCorrespondenceDetails(addressLine1 = addressLine1,
+                                      addressLine2 = addressLine2.trim,
+                                      addressLine3 = addressLine3,
+                                      addressLine4 = addressLine4,
+                                      postalCode = postalCode,
+                                      countryCode = countryCode
+    )
+
   implicit val format: OFormat[BusinessCorrespondenceDetails] =
     Json.format[BusinessCorrespondenceDetails]
 
