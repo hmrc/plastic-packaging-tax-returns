@@ -73,7 +73,7 @@ class SubscriptionControllerSpec
   }
 
   val subscriptionUpdateResponse: SubscriptionUpdateSuccessfulResponse = SubscriptionUpdateSuccessfulResponse(
-    pptReference = pptReference,
+    pptReferenceNumber = pptReference,
     processingDate = ZonedDateTime.now(ZoneOffset.UTC),
     formBundleNumber = "12345678901"
   )
@@ -149,14 +149,14 @@ class SubscriptionControllerSpec
 
           status(result) must be(OK)
           val response = contentAsJson(result).as[SubscriptionUpdateWithNrsSuccessfulResponse]
-          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.pptReference mustBe subscriptionUpdateResponse.pptReferenceNumber
           response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
-            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
             ArgumentMatchers.eq(pptUserHeaders)
           )(any[HeaderCarrier])
         }
@@ -175,7 +175,7 @@ class SubscriptionControllerSpec
 
           status(result) must be(OK)
           val response = contentAsJson(result).as[SubscriptionUpdateWithNrsFailureResponse]
-          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.pptReference mustBe subscriptionUpdateResponse.pptReferenceNumber
           response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrsFailureReason mustBe nrsErrorMessage
@@ -183,7 +183,7 @@ class SubscriptionControllerSpec
           verify(mockNonRepudiationService).submitNonRepudiation(
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
-            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
             ArgumentMatchers.eq(pptUserHeaders)
           )(any[HeaderCarrier])
         }
@@ -208,14 +208,14 @@ class SubscriptionControllerSpec
 
           status(result) must be(OK)
           val response = contentAsJson(result).as[SubscriptionUpdateWithNrsSuccessfulResponse]
-          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.pptReference mustBe subscriptionUpdateResponse.pptReferenceNumber
           response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString()),
             any[ZonedDateTime],
-            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
             ArgumentMatchers.eq(pptUserHeaders)
           )(any[HeaderCarrier])
         }
@@ -234,7 +234,7 @@ class SubscriptionControllerSpec
 
           status(result) must be(OK)
           val response = contentAsJson(result).as[SubscriptionUpdateWithNrsFailureResponse]
-          response.pptReference mustBe subscriptionUpdateResponse.pptReference
+          response.pptReference mustBe subscriptionUpdateResponse.pptReferenceNumber
           response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrsFailureReason mustBe nrsErrorMessage
@@ -242,7 +242,7 @@ class SubscriptionControllerSpec
           verify(mockNonRepudiationService).submitNonRepudiation(
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
-            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReference),
+            ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
             ArgumentMatchers.eq(pptUserHeaders)
           )(any[HeaderCarrier])
         }
