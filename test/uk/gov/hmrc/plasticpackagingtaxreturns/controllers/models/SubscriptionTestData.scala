@@ -70,7 +70,7 @@ trait SubscriptionTestData {
                                                                   countryCode = "GB"
     ),
     taxObligationStartDate = now(UTC).toString,
-    last12MonthTotalTonnageAmt = Some(15000),
+    last12MonthTotalTonnageAmt = 15000,
     declaration = Declaration(declarationBox1 = true),
     groupOrPartnershipSubscription = None
   )
@@ -111,7 +111,7 @@ trait SubscriptionTestData {
                                 taxObligationStartDate =
                                   subscription.taxObligationStartDate,
                                 last12MonthTotalTonnageAmt =
-                                  subscription.last12MonthTotalTonnageAmt.map(_.toLong),
+                                  subscription.last12MonthTotalTonnageAmt.longValue(),
                                 declaration =
                                   subscription.declaration,
                                 groupOrPartnershipSubscription =
@@ -133,7 +133,7 @@ trait SubscriptionTestData {
       taxObligationStartDate =
         subscription.taxObligationStartDate,
       last12MonthTotalTonnageAmt =
-        subscription.last12MonthTotalTonnageAmt.map(_.toLong),
+        subscription.last12MonthTotalTonnageAmt.longValue(),
       declaration =
         subscription.declaration,
       groupSubscription =

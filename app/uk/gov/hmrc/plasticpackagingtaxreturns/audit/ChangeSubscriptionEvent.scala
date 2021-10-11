@@ -31,7 +31,7 @@ case class ChangeSubscriptionEvent(
   primaryContactDetails: PrimaryContactDetails,
   businessCorrespondenceDetails: BusinessCorrespondenceDetails,
   taxObligationStartDate: String,
-  last12MonthTotalTonnageAmt: Option[BigDecimal],
+  last12MonthTotalTonnageAmt: BigDecimal,
   declaration: Declaration,
   groupSubscription: Option[GroupOrPartnershipSubscription],
   pptReference: Option[String],
@@ -56,7 +56,7 @@ object ChangeSubscriptionEvent {
                             businessCorrespondenceDetails = subscription.businessCorrespondenceDetails,
                             taxObligationStartDate = subscription.taxObligationStartDate,
                             last12MonthTotalTonnageAmt =
-                              Some(BigDecimal(subscription.last12MonthTotalTonnageAmt.getOrElse(0).toString)),
+                              BigDecimal(subscription.last12MonthTotalTonnageAmt),
                             declaration = subscription.declaration,
                             groupSubscription = subscription.groupOrPartnershipSubscription,
                             pptReference = pptReference,
