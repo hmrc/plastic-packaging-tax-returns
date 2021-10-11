@@ -94,7 +94,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             SubscriptionUpdateSuccessfulResponse
           ]
 
-        res.pptReference mustBe pptReference
+        res.pptReferenceNumber mustBe pptReference
         res.formBundleNumber mustBe formBundleNumber
         res.processingDate mustBe ZonedDateTime.parse(subscriptionProcessingDate)
         getTimer(updateSubscriptionTimer).getCount mustBe 1
@@ -116,7 +116,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             SubscriptionUpdateSuccessfulResponse
           ]
 
-        res.pptReference mustBe pptReference
+        res.pptReferenceNumber mustBe pptReference
         res.formBundleNumber mustBe formBundleNumber
         res.processingDate mustBe ZonedDateTime.parse(subscriptionProcessingDate)
         getTimer(updateSubscriptionTimer).getCount mustBe 1
@@ -216,9 +216,9 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           aResponse()
             .withStatus(Status.OK)
             .withBody(
-              Json.obj("pptReference"     -> pptReference,
-                       "processingDate"   -> subscriptionProcessingDate,
-                       "formBundleNumber" -> formBundleNumber
+              Json.obj("pptReferenceNumber" -> pptReference,
+                       "processingDate"     -> subscriptionProcessingDate,
+                       "formBundleNumber"   -> formBundleNumber
               ).toString
             )
         )

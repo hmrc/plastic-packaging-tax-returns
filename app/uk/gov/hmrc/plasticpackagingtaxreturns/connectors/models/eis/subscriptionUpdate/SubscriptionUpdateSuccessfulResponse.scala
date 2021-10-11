@@ -21,7 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 import java.time.ZonedDateTime
 
 case class SubscriptionUpdateSuccessfulResponse(
-  pptReference: String,
+  pptReferenceNumber: String,
   processingDate: ZonedDateTime,
   formBundleNumber: String
 ) extends SubscriptionUpdateResponse

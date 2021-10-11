@@ -76,7 +76,7 @@ class SubscriptionController @Inject() (
                                           pptSubscription = pptSubscription,
                                           nrsFailureResponse = None
           ),
-          pptReference = Some(eisResponse.pptReference),
+          pptReference = Some(eisResponse.pptReferenceNumber),
           processingDateTime = Some(eisResponse.processingDate)
         )
         handleNrsSuccess(eisResponse, nrSubmissionId)
@@ -87,7 +87,7 @@ class SubscriptionController @Inject() (
                                           pptSubscription = pptSubscription,
                                           nrsFailureResponse = Some(exception.getMessage)
           ),
-          pptReference = Some(eisResponse.pptReference)
+          pptReference = Some(eisResponse.pptReferenceNumber)
         )
         handleNrsFailure(eisResponse, exception)
     }
@@ -99,7 +99,7 @@ class SubscriptionController @Inject() (
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationService.submitNonRepudiation(toJson(pptSubscription).toString,
                                                eisResponse.processingDate,
-                                               eisResponse.pptReference,
+                                               eisResponse.pptReferenceNumber,
                                                request.body.userHeaders.getOrElse(Map.empty)
     )
 
@@ -109,7 +109,7 @@ class SubscriptionController @Inject() (
   ): Future[Result] =
     Future.successful(
       Ok(
-        SubscriptionUpdateWithNrsFailureResponse(eisResponse.pptReference,
+        SubscriptionUpdateWithNrsFailureResponse(eisResponse.pptReferenceNumber,
                                                  eisResponse.processingDate,
                                                  eisResponse.formBundleNumber,
                                                  exception.getMessage
@@ -119,7 +119,7 @@ class SubscriptionController @Inject() (
 
   private def handleNrsSuccess(eisResponse: SubscriptionUpdateSuccessfulResponse, nrSubmissionId: String): Result =
     Ok(
-      SubscriptionUpdateWithNrsSuccessfulResponse(eisResponse.pptReference,
+      SubscriptionUpdateWithNrsSuccessfulResponse(eisResponse.pptReferenceNumber,
                                                   eisResponse.processingDate,
                                                   eisResponse.formBundleNumber,
                                                   nrSubmissionId
