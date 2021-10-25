@@ -28,7 +28,7 @@ case class SubscriptionUpdateRequest(
   primaryContactDetails: PrimaryContactDetails,
   businessCorrespondenceDetails: BusinessCorrespondenceDetails,
   taxObligationStartDate: String,
-  last12MonthTotalTonnageAmt: Option[BigDecimal],
+  last12MonthTotalTonnageAmt: BigDecimal,
   declaration: Declaration,
   groupSubscription: Option[GroupOrPartnershipSubscription],
   userHeaders: Option[Map[String, String]] = None
@@ -42,7 +42,7 @@ case class SubscriptionUpdateRequest(
                  businessCorrespondenceDetails = this.businessCorrespondenceDetails,
                  declaration = this.declaration,
                  taxObligationStartDate = this.taxObligationStartDate,
-                 last12MonthTotalTonnageAmt = Some(this.last12MonthTotalTonnageAmt.getOrElse(BigDecimal(0)).toLong),
+                 last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue(),
                  groupOrPartnershipSubscription = this.groupSubscription
     )
 
