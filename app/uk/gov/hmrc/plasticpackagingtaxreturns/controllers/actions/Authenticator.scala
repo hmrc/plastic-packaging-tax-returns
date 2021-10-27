@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json, Reads}
 import play.api.mvc._
@@ -29,7 +30,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
-import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -95,7 +95,7 @@ class Authenticator @Inject() (override val authConnector: AuthConnector, cc: Co
 
 object AuthAction {
   val pptEnrolmentKey            = "HMRC-PPT-ORG"
-  val pptEnrolmentIdentifierName = "PPTReference"
+  val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
 case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends WrappedRequest[A](request)
