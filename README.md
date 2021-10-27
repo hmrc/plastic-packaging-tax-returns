@@ -21,7 +21,7 @@ sm -s
 ```
 
 * Visit http://localhost:9949/auth-login-stub/gg-sign-in
-* Add an enrolment key `HMRC-PPT-ORG`, an identifier name `PPTReference` and an existing value, for example `XMPPT0000000001`
+* Add an enrolment key `HMRC-PPT-ORG`, an identifier name `EtmpRegistrationNumber` and an existing value, for example `XMPPT0000000001`
 * If a PPT Reference does not exist in the DB, we will need to create one by [creating a PPT Subscription](https://github.com/hmrc/plastic-packaging-tax-registration-frontend)
 * Enter the redirect url: http://localhost:8505/plastic-packaging-tax/account and press **Submit**.
   
