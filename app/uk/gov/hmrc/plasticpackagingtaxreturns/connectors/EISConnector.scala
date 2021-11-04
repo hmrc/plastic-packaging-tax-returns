@@ -29,5 +29,5 @@ trait EISConnector {
           -> appConfig.bearerToken
     )
 
-  val correlationId = "CorrelationId"
+  val correlationIdHeaderName = "CorrelationId"
 }
