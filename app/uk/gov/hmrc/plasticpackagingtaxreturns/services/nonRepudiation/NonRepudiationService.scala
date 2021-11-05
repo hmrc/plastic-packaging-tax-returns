@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
 import org.joda.time.LocalDate
+import play.api.Logger
 import uk.gov.hmrc.auth.core.{AffinityGroup, AuthConnector, AuthorisedFunctions, ConfidenceLevel, CredentialRole}
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -54,6 +55,8 @@ case class NonRepudiationService @Inject() (
 )(implicit ec: ExecutionContext)
     extends AuthorisedFunctions {
 
+  private val logger = Logger(this.getClass)
+
   def submitNonRepudiation(
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
@@ -86,9 +89,13 @@ case class NonRepudiationService @Inject() (
     encodedPayloadString: String
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationConnector.submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata).map {
-      case response @ NonRepudiationSubmissionAccepted(_) => response
+      case response @ NonRepudiationSubmissionAccepted(_) =>
+        logger.info(s"Successfully called NRS and got submissionId ${response.submissionId}")
+        response
     }.recoverWith {
-      case exception: HttpException => Future.failed(exception)
+      case exception: HttpException =>
+        logger.warn(s"Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
+        Future.failed(exception)
     }
 
   private def retrieveUserAuthToken(hc: HeaderCarrier): String =

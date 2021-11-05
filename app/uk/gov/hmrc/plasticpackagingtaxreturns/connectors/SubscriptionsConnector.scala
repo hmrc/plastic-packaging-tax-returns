@@ -20,6 +20,7 @@ import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
 import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
@@ -46,7 +47,7 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
     hc: HeaderCarrier
   ): Future[SubscriptionUpdateResponse] = {
     val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.subscription.update.timer").time()
-    val correlationIdHeader: (String, String) = correlationId -> UUID.randomUUID().toString
+    val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
     httpClient.PUT[SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse](
       url = appConfig.subscriptionUpdateUrl(pptReference),
       body = subscriptionUpdateDetails,
@@ -54,11 +55,15 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
     )
       .andThen { case _ => timer.stop() }
       .andThen {
-        case Success(response) => response
+        case Success(response) =>
+          logger.info(
+            s"PPT subscription update sent with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference] had response payload ${toJson(response)}"
+          )
+          response
         case Failure(exception) =>
           throw new Exception(
-            s"Subscription update with Correlation ID [${correlationIdHeader._2}] and " +
-              s"PptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
+            s"Subscription update with correlationId [${correlationIdHeader._2}] and " +
+              s"pptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
             exception
           )
       }
@@ -68,22 +73,28 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
     pptReference: String
   )(implicit hc: HeaderCarrier): Future[Either[Int, SubscriptionDisplayResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.subscription.display.timer").time()
-    val correlationIdHeader = correlationId -> UUID.randomUUID().toString
+    val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
     httpClient.GET[SubscriptionDisplayResponse](appConfig.subscriptionDisplayUrl(pptReference),
                                                 headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
-      .map(response => Right(response))
+      .map { response =>
+        logger.info(
+          s"PPT view subscription with correlationId [$correlationIdHeader._2] and pptReference [$pptReference]"
+        )
+        Right(response)
+      }
       .recover {
         case httpEx: UpstreamErrorResponse =>
-          logger.error(
-            s"Upstream error returned on viewing subscription, status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
+          logger.warn(
+            s"Upstream error returned on viewing subscription with correlationId [${correlationIdHeader._2}] and " +
+              s"pptReference [$pptReference], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
           )
           Left(httpEx.statusCode)
         case ex: Exception =>
-          logger.error(s"Subscription display with Correlation ID [${correlationIdHeader._2}] and " +
-                         s"PptReference [$pptReference] is currently unavailable due to [${ex.getMessage}]",
-                       ex
+          logger.warn(s"Subscription display with correlationId [${correlationIdHeader._2}] and " +
+                        s"pptReference [$pptReference] is currently unavailable due to [${ex.getMessage}]",
+                      ex
           )
           Left(INTERNAL_SERVER_ERROR)
       }
