@@ -25,6 +25,17 @@ sm -s
 * If a PPT Reference does not exist in the DB, we will need to create one by [creating a PPT Subscription](https://github.com/hmrc/plastic-packaging-tax-registration-frontend)
 * Enter the redirect url: http://localhost:8505/plastic-packaging-tax/account and press **Submit**.
   
+### Sample curl commands
+
+# EIS view subscription
+```
+curl -H "Authorization:Bearer <token>>" "http://localhost:8504/subscriptions/XMPPT0000000001"
+```
+#### EIS export credit balance
+```
+curl -H "Authorization:Bearer <token>" "http://localhost:8504/export-credits/XMPPT0000000001?fromDate=2021-08-01&toDate=2021-10-31"
+```
+  
 
 ### Precheck
 

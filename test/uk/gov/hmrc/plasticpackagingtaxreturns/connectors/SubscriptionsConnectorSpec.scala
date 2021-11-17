@@ -16,19 +16,19 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.util.UUID
+
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
-
-import java.time.{ZoneOffset, ZonedDateTime}
-import java.util.UUID
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, SubscriptionTestData}
 
 class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
 
@@ -233,10 +233,4 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         )
     )
 
-}
-
-case class EISError(code: String, reason: String)
-
-object EISError {
-  implicit val format: OFormat[EISError] = Json.format[EISError]
 }

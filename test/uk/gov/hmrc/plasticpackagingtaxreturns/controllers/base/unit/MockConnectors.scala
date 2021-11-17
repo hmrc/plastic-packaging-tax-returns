@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit
 
+import java.time.LocalDate
+
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
@@ -23,13 +25,18 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
   SubscriptionUpdateResponse,
   SubscriptionUpdateSuccessfulResponse
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{NonRepudiationConnector, SubscriptionsConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
+  ExportCreditBalanceConnector,
+  NonRepudiationConnector,
+  SubscriptionsConnector
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
@@ -40,8 +47,9 @@ import scala.concurrent.Future
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   self: Suite =>
 
-  protected val mockSubscriptionsConnector: SubscriptionsConnector   = mock[SubscriptionsConnector]
-  protected val mockNonRepudiationConnector: NonRepudiationConnector = mock[NonRepudiationConnector]
+  protected val mockSubscriptionsConnector: SubscriptionsConnector             = mock[SubscriptionsConnector]
+  protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -95,5 +103,27 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[NonRepudiationSubmissionAccepted]] =
     when(mockNonRepudiationConnector.submitNonRepudiation(any(), any())(any()))
       .thenThrow(ex)
+
+  protected def mockGetExportCreditBalance(
+    pptReference: String,
+    displayResponse: ExportCreditBalanceDisplayResponse
+  ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
+    when(
+      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference),
+                                                  any[LocalDate](),
+                                                  any[LocalDate]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Right(displayResponse)))
+
+  protected def mockGetExportCreditBalanceFailure(
+    pptReference: String,
+    statusCode: Int
+  ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
+    when(
+      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference),
+                                                  any[LocalDate](),
+                                                  any[LocalDate]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Left(statusCode)))
 
 }
