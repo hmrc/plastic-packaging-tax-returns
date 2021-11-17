@@ -27,6 +27,10 @@ sm -s
   
 ### Sample curl commands
 
+# EIS view subscription
+```
+curl -H "Authorization:Bearer <token>>" "http://localhost:8504/subscriptions/XMPPT0000000001"
+```
 #### EIS export credit balance
 ```
 curl -H "Authorization:Bearer <token>" "http://localhost:8504/export-credits/XMPPT0000000001?fromDate=2021-08-01&toDate=2021-10-31"
