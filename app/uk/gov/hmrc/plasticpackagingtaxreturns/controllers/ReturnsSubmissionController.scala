@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.EisReturnsSubmissionRequest
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -40,7 +40,7 @@ class ReturnsSubmissionController @Inject() (
     authenticator.authorisedAction(parse.default) { implicit request =>
       taxReturnRepository.findById(returnId).flatMap {
         case Some(taxReturn) =>
-          returnsConnector.submitReturn(returnId, EisReturnsSubmissionRequest.fromTaxReturn(taxReturn)).map {
+          returnsConnector.submitReturn(returnId, ReturnsSubmissionRequest.fromTaxReturn(taxReturn)).map {
             case Right(response)       => Ok(response)
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }

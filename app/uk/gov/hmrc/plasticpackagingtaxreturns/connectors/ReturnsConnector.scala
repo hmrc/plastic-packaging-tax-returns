@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
-  EisReturnsSubmissionRequest,
+  ReturnsSubmissionRequest,
   ReturnsSubmissionResponse
 }
 
@@ -38,16 +38,16 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
 
   private val logger = Logger(this.getClass)
 
-  def submitReturn(pptReference: String, request: EisReturnsSubmissionRequest)(implicit
+  def submitReturn(pptReference: String, request: ReturnsSubmissionRequest)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ReturnsSubmissionResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    httpClient.PUT[EisReturnsSubmissionRequest, ReturnsSubmissionResponse](
-      url = appConfig.returnsSubmissionUrl(pptReference),
-      headers = headers :+ correlationIdHeader,
-      body = request
+    httpClient.PUT[ReturnsSubmissionRequest, ReturnsSubmissionResponse](url =
+                                                                          appConfig.returnsSubmissionUrl(pptReference),
+                                                                        headers = headers :+ correlationIdHeader,
+                                                                        body = request
     )
       .andThen { case _ => timer.stop() }
       .map { response =>

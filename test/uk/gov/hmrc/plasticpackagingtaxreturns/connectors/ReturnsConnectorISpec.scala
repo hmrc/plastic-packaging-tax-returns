@@ -25,13 +25,12 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
   ChargeDetails,
   EisReturnDetails,
-  EisReturnsSubmissionRequest,
   IdDetails,
+  ReturnsSubmissionRequest,
   ReturnsSubmissionResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
 
@@ -108,19 +107,19 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
     )
 
   private def aReturnsSubmissionRequest() =
-    EisReturnsSubmissionRequest(returnType = "New",
-                                submissionId = None,
-                                periodKey = "AA22",
-                                returnDetails = EisReturnDetails(manufacturedWeight = 12000,
-                                                                 importedWeight = 1000,
-                                                                 totalNotLiable = 2000,
-                                                                 humanMedicines = 3000,
-                                                                 directExports = 4000,
-                                                                 recycledPlastic = 5000,
-                                                                 creditForPeriod = 10000,
-                                                                 totalWeight = 20000,
-                                                                 taxDue = 90000
-                                )
+    ReturnsSubmissionRequest(returnType = "New",
+                             submissionId = None,
+                             periodKey = "AA22",
+                             returnDetails = EisReturnDetails(manufacturedWeight = 12000,
+                                                              importedWeight = 1000,
+                                                              totalNotLiable = 2000,
+                                                              humanMedicines = 3000,
+                                                              directExports = 4000,
+                                                              recycledPlastic = 5000,
+                                                              creditForPeriod = 10000,
+                                                              totalWeight = 20000,
+                                                              taxDue = 90000
+                             )
     )
 
 }

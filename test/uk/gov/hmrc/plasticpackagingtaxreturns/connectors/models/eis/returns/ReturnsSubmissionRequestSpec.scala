@@ -20,7 +20,7 @@ import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
 
-class EisReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
+class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
 
   "The EIS Returns Submission Request Object" should {
     "convert a stored Tax Return as expected" in {
@@ -31,7 +31,7 @@ class EisReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder 
                                  withRecycledPlasticWeight(5000)
       )
 
-      val eisReturnsSubmissionRequest = EisReturnsSubmissionRequest.fromTaxReturn(taxReturn)
+      val eisReturnsSubmissionRequest = ReturnsSubmissionRequest.fromTaxReturn(taxReturn)
 
       eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1000
       eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2000
