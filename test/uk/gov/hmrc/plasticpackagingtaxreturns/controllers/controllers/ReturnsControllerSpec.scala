@@ -36,6 +36,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{route, status, _}
 import uk.gov.hmrc.auth.core.{AuthConnector, InsufficientEnrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockReturnsRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   ConvertedPackagingCredit,
@@ -53,20 +54,17 @@ import scala.concurrent.Future
 
 class ReturnsControllerSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with TaxReturnBuilder with TaxReturnRequestBuilder with AuthTestSupport {
+    with TaxReturnBuilder with TaxReturnRequestBuilder with AuthTestSupport with MockReturnsRepository {
 
   SharedMetricRegistries.clear()
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].to(taxReturnRepository))
-    .build()
-
-  private val taxReturnRepository: TaxReturnRepository = mock[TaxReturnRepository]
+    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].to(mockReturnsRepository)).build()
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    reset(taxReturnRepository)
+    reset(mockReturnsRepository)
   }
 
   "POST /" should {
@@ -77,7 +75,7 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn()
-        given(taxReturnRepository.create(any[TaxReturn])).willReturn(Future.successful(taxReturn))
+        given(mockReturnsRepository.create(any[TaxReturn])).willReturn(Future.successful(taxReturn))
 
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 
@@ -95,7 +93,7 @@ class ReturnsControllerSpec
 
         status(result) must be(BAD_REQUEST)
         contentAsJson(result) mustBe Json.obj("statusCode" -> 400, "message" -> "Bad Request")
-        verifyNoInteractions(taxReturnRepository)
+        verifyNoInteractions(mockReturnsRepository)
       }
     }
 
@@ -106,7 +104,7 @@ class ReturnsControllerSpec
         val result: Future[Result] = route(app, post.withJsonBody(toJson(aTaxReturnRequest()))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(taxReturnRepository)
+        verifyNoInteractions(mockReturnsRepository)
       }
     }
   }
@@ -118,26 +116,26 @@ class ReturnsControllerSpec
       "request is valid" in {
         withAuthorizedUser()
         val taxReturn = aTaxReturn(withId("test02"), withConvertedPlasticPackagingCredit(1122))
-        given(taxReturnRepository.findById("test02")).willReturn(Future.successful(Some(taxReturn)))
+        given(mockReturnsRepository.findById("test02")).willReturn(Future.successful(Some(taxReturn)))
 
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(OK)
         contentAsJson(result) mustBe toJson(taxReturn)
-        verify(taxReturnRepository).findById("test02")
+        verify(mockReturnsRepository).findById("test02")
       }
     }
 
     "return 404" when {
       "id is not found" in {
         withAuthorizedUser()
-        given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(None))
+        given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
-        verify(taxReturnRepository).findById("test02")
+        verify(mockReturnsRepository).findById("test02")
       }
     }
 
@@ -148,7 +146,7 @@ class ReturnsControllerSpec
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(taxReturnRepository)
+        verifyNoInteractions(mockReturnsRepository)
       }
     }
   }
@@ -172,8 +170,8 @@ class ReturnsControllerSpec
         val taxReturn =
           aTaxReturn(withId("id01"), withManufacturedPlasticWeight(totalKg = 1))
 
-        given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
-        given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(Some(taxReturn)))
+        given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
+        given(mockReturnsRepository.update(any[TaxReturn])).willReturn(Future.successful(Some(taxReturn)))
 
         val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
@@ -194,8 +192,8 @@ class ReturnsControllerSpec
       "tax return is not found - on find" in {
         withAuthorizedUser()
         val request = aTaxReturnRequest()
-        given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(None))
-        given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
+        given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(None))
+        given(mockReturnsRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
@@ -207,8 +205,8 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn(withId("id"))
-        given(taxReturnRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
-        given(taxReturnRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
+        given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
+        given(mockReturnsRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
@@ -224,20 +222,20 @@ class ReturnsControllerSpec
         val result: Future[Result] = route(app, put.withJsonBody(toJson(aTaxReturnRequest()))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(taxReturnRepository)
+        verifyNoInteractions(mockReturnsRepository)
       }
     }
   }
 
   def theCreatedTaxReturn: TaxReturn = {
     val captor: ArgumentCaptor[TaxReturn] = ArgumentCaptor.forClass(classOf[TaxReturn])
-    verify(taxReturnRepository).create(captor.capture())
+    verify(mockReturnsRepository).create(captor.capture())
     captor.getValue
   }
 
   def theUpdatedTaxReturn: TaxReturn = {
     val captor: ArgumentCaptor[TaxReturn] = ArgumentCaptor.forClass(classOf[TaxReturn])
-    verify(taxReturnRepository).update(captor.capture())
+    verify(mockReturnsRepository).update(captor.capture())
     captor.getValue
   }
 

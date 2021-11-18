@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit
 
 import java.time.LocalDate
-
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
@@ -35,8 +34,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
   ExportCreditBalanceConnector,
   NonRepudiationConnector,
+  ReturnsConnector,
   SubscriptionsConnector
 }
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{EisReturnsSubmissionRequest, ReturnsSubmissionResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
@@ -50,10 +51,11 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected val mockSubscriptionsConnector: SubscriptionsConnector             = mock[SubscriptionsConnector]
   protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
+  protected val mockReturnsConnector: ReturnsConnector                         = mock[ReturnsConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockSubscriptionsConnector, mockNonRepudiationConnector)
+    reset(mockSubscriptionsConnector, mockNonRepudiationConnector, mockReturnsConnector)
   }
 
   protected def mockGetSubscriptionFailure(
@@ -125,5 +127,11 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
                                                   any[LocalDate]()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
+
+  protected def mockReturnsSubmissionConnector(resp: ReturnsSubmissionResponse) =
+    when(mockReturnsConnector.createUpdateReturn(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+
+  protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
+    when(mockReturnsConnector.createUpdateReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
 }

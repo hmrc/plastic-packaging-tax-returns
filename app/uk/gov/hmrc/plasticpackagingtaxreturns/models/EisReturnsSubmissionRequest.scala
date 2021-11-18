@@ -63,20 +63,20 @@ object EisReturnDetails {
 
 }
 
-case class EisReturnCreateUpdateRequest(
+case class EisReturnsSubmissionRequest(
   returnType: String,
   submissionId: Option[String] = None,
   periodKey: String,
   returnDetails: EisReturnDetails
 )
 
-object EisReturnCreateUpdateRequest {
-  implicit val format: OFormat[EisReturnCreateUpdateRequest] = Json.format[EisReturnCreateUpdateRequest]
+object EisReturnsSubmissionRequest {
+  implicit val format: OFormat[EisReturnsSubmissionRequest] = Json.format[EisReturnsSubmissionRequest]
 
   def fromTaxReturn(taxReturn: TaxReturn) =
-    EisReturnCreateUpdateRequest(returnType = "New",
-                                 periodKey = "TODO",
-                                 returnDetails = EisReturnDetails.fromTaxReturn(taxReturn)
+    EisReturnsSubmissionRequest(returnType = "New",
+                                periodKey = "TODO",
+                                returnDetails = EisReturnDetails.fromTaxReturn(taxReturn)
     )
 
 }

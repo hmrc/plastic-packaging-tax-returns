@@ -41,13 +41,13 @@ object ExportChargeDetails {
   implicit val format: OFormat[ExportChargeDetails] = Json.format[ExportChargeDetails]
 }
 
-case class ReturnCreateUpdateResponse(
+case class ReturnsSubmissionResponse(
   processingDate: String,
   idDetails: IdDetails,
   chargeDetails: Option[ChargeDetails],
   exportChargeDetails: Option[ExportChargeDetails]
 )
 
-object ReturnCreateUpdateResponse {
-  implicit val format: OFormat[ReturnCreateUpdateResponse] = Json.format[ReturnCreateUpdateResponse]
+object ReturnsSubmissionResponse {
+  implicit val format: OFormat[ReturnsSubmissionResponse] = Json.format[ReturnsSubmissionResponse]
 }

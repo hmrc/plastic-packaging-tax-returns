@@ -21,7 +21,7 @@ import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.EisReturnCreateUpdateRequest
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.EisReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -40,7 +40,7 @@ class ReturnsSubmissionController @Inject() (
     authenticator.authorisedAction(parse.default) { implicit request =>
       taxReturnRepository.findById(returnId).flatMap {
         case Some(taxReturn) =>
-          returnsConnector.createUpdateReturn(returnId, EisReturnCreateUpdateRequest.fromTaxReturn(taxReturn)).map {
+          returnsConnector.createUpdateReturn(returnId, EisReturnsSubmissionRequest.fromTaxReturn(taxReturn)).map {
             case Right(response)       => Ok(response)
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }

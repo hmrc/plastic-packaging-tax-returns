@@ -22,7 +22,7 @@ import play.api.http.Status.INTERNAL_SERVER_ERROR
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{EisReturnCreateUpdateRequest, ReturnCreateUpdateResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{EisReturnsSubmissionRequest, ReturnsSubmissionResponse}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -35,20 +35,22 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
 
   private val logger = Logger(this.getClass)
 
-  def createUpdateReturn(pptReference: String, request: EisReturnCreateUpdateRequest)(implicit
+  def createUpdateReturn(pptReference: String, request: EisReturnsSubmissionRequest)(implicit
     hc: HeaderCarrier
-  ): Future[Either[Int, ReturnCreateUpdateResponse]] = {
+  ): Future[Either[Int, ReturnsSubmissionResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    httpClient.PUT[EisReturnCreateUpdateRequest, ReturnCreateUpdateResponse](
+    httpClient.PUT[EisReturnsSubmissionRequest, ReturnsSubmissionResponse](
       url = appConfig.createUpdateReturnUrl(pptReference),
       headers = headers :+ correlationIdHeader,
       body = request
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(s"PPT create return with correlationId [$correlationIdHeader._2] pptReference [$pptReference]")
+        logger.info(
+          s"PPT create/update return with correlationId [$correlationIdHeader._2] pptReference [$pptReference]"
+        )
         Right(response)
       }
       .recover {
