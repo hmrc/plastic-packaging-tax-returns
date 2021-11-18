@@ -22,7 +22,10 @@ import play.api.http.Status.INTERNAL_SERVER_ERROR
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{EisReturnsSubmissionRequest, ReturnsSubmissionResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
+  EisReturnsSubmissionRequest,
+  ReturnsSubmissionResponse
+}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}

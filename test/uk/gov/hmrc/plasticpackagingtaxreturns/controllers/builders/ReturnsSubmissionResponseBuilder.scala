@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{IdDetails, ReturnsSubmissionResponse, TaxReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, ReturnsSubmissionResponse}
 
 import java.time.LocalDate
 

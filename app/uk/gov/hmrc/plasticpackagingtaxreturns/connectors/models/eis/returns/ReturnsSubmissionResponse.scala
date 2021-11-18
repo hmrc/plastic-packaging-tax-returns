@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import play.api.libs.json.{Json, OFormat}
 

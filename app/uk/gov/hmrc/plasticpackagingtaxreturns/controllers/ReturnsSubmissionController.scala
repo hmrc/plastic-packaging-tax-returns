@@ -19,9 +19,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.mvc.ControllerComponents
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.EisReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.EisReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 

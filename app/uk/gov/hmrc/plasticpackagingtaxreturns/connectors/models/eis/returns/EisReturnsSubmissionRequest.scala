@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 
 case class EisReturnDetails(
   manufacturedWeight: BigDecimal,
@@ -34,7 +36,7 @@ object EisReturnDetails {
   implicit val format: OFormat[EisReturnDetails] = Json.format[EisReturnDetails]
 
   def fromTaxReturn(taxReturn: TaxReturn) =
-    EisReturnDetails(
+    returns.EisReturnDetails(
       manufacturedWeight = taxReturn.manufacturedPlasticWeight match {
         case Some(weight) => weight.totalKg
         case _            => 0

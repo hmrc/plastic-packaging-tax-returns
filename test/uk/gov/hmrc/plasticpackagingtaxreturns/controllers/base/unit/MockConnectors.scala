@@ -25,6 +25,7 @@ import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
@@ -37,7 +38,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
   ReturnsConnector,
   SubscriptionsConnector
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{EisReturnsSubmissionRequest, ReturnsSubmissionResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
