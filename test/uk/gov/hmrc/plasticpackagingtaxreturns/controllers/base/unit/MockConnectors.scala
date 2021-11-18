@@ -129,9 +129,9 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockReturnsSubmissionConnector(resp: ReturnsSubmissionResponse) =
-    when(mockReturnsConnector.createUpdateReturn(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+    when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
-    when(mockReturnsConnector.createUpdateReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+    when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
 }

@@ -35,20 +35,20 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
   private val pptReference = "XMPPT0000000123"
 
   "Returns Connector" when {
-    "creating/updating a return" should {
+    "submitting a return" should {
       "return expected response" in {
-        val createUpdateReturnResponse = aCreateUpdateReturnResponse()
-        stubSuccessfulReturnsCreateUpdate(pptReference, createUpdateReturnResponse)
+        val returnsSubmissionResponse = aReturnsSubmissionResponse()
+        stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
 
-        val res = await(returnsConnector.createUpdateReturn(pptReference, aCreateUpdateReturnRequest()))
+        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
 
-        res.right.get mustBe createUpdateReturnResponse
+        res.right.get mustBe returnsSubmissionResponse
       }
 
       "return error when unexpected response received" in {
-        stubFailedReturnsCreateUpdate(pptReference, Status.OK, "XXX")
+        stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
 
-        val res = await(returnsConnector.createUpdateReturn(pptReference, aCreateUpdateReturnRequest()))
+        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
       }
@@ -56,9 +56,9 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
       forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
         s"return $statusCode" when {
           s"upstream service fails with $statusCode" in {
-            stubFailedReturnsCreateUpdate(pptReference, statusCode, "")
+            stubFailedReturnsSubmission(pptReference, statusCode, "")
 
-            val res = await(returnsConnector.createUpdateReturn(pptReference, aCreateUpdateReturnRequest()))
+            val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
 
             res.left.get mustBe statusCode
           }
@@ -67,7 +67,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
     }
   }
 
-  private def aCreateUpdateReturnResponse() =
+  private def aReturnsSubmissionResponse() =
     ReturnsSubmissionResponse(processingDate = LocalDate.now().toString,
                               idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
                               chargeDetails = Some(
@@ -80,7 +80,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
                               exportChargeDetails = None
     )
 
-  private def stubSuccessfulReturnsCreateUpdate(returnId: String, resp: ReturnsSubmissionResponse) =
+  private def stubSuccessfulReturnsSubmission(returnId: String, resp: ReturnsSubmissionResponse) =
     stubFor(
       put(s"/plastic-packaging-tax/returns/PPT/$returnId")
         .willReturn(
@@ -90,7 +90,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
         )
     )
 
-  private def stubFailedReturnsCreateUpdate(returnId: String, statusCode: Int, body: String) =
+  private def stubFailedReturnsSubmission(returnId: String, statusCode: Int, body: String) =
     stubFor(
       put(s"/plastic-packaging-tax/returns/PPT/$returnId")
         .willReturn(
@@ -100,7 +100,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
         )
     )
 
-  private def aCreateUpdateReturnRequest() =
+  private def aReturnsSubmissionRequest() =
     EisReturnsSubmissionRequest(returnType = "New",
                                 submissionId = None,
                                 periodKey = "AA22",

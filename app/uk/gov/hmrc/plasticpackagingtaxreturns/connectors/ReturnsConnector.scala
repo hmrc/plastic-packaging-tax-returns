@@ -35,14 +35,14 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
 
   private val logger = Logger(this.getClass)
 
-  def createUpdateReturn(pptReference: String, request: EisReturnsSubmissionRequest)(implicit
+  def submitReturn(pptReference: String, request: EisReturnsSubmissionRequest)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ReturnsSubmissionResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
     httpClient.PUT[EisReturnsSubmissionRequest, ReturnsSubmissionResponse](
-      url = appConfig.createUpdateReturnUrl(pptReference),
+      url = appConfig.returnsSubmissionUrl(pptReference),
       headers = headers :+ correlationIdHeader,
       body = request
     )

@@ -40,7 +40,7 @@ class ReturnsSubmissionController @Inject() (
     authenticator.authorisedAction(parse.default) { implicit request =>
       taxReturnRepository.findById(returnId).flatMap {
         case Some(taxReturn) =>
-          returnsConnector.createUpdateReturn(returnId, EisReturnsSubmissionRequest.fromTaxReturn(taxReturn)).map {
+          returnsConnector.submitReturn(returnId, EisReturnsSubmissionRequest.fromTaxReturn(taxReturn)).map {
             case Right(response)       => Ok(response)
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }
