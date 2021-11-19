@@ -54,8 +54,9 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(
-          s"Successful PPT returns submission with correlationId [$correlationIdHeader._2], " +
-            s"pptReference [$pptReference], and submissionId [${request.submissionId}]"
+          s"Successful PPT returns submission for request with correlationId [$correlationIdHeader._2] and " +
+            s"pptReference [$pptReference], and submissionId [${request.submissionId}]. " +
+            s"Response contains submissionId [${response.idDetails.submissionId}]"
         )
         Right(response)
       }
