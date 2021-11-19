@@ -16,24 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, ReturnsSubmissionResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return}
 
 import java.time.LocalDate
 
 trait ReturnsSubmissionResponseBuilder {
 
-  private type ReturnsSubmissionResponseModifier = ReturnsSubmissionResponse => ReturnsSubmissionResponse
+  private type ReturnsResponseModifier = Return => Return
 
-  def aReturnsSubmissionResponse(modifiers: ReturnsSubmissionResponseModifier*): ReturnsSubmissionResponse =
+  def aReturn(modifiers: ReturnsResponseModifier*): Return =
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
-  private val modelWithDefaults = ReturnsSubmissionResponse(processingDate = LocalDate.now().toString,
-                                                            idDetails = IdDetails(pptReferenceNumber =
-                                                                                    "XMPPT0000000123",
-                                                                                  submissionId = "1234567890AA"
-                                                            ),
-                                                            chargeDetails = None,
-                                                            exportChargeDetails = None
+  private val modelWithDefaults = Return(processingDate = LocalDate.now().toString,
+                                         idDetails = IdDetails(pptReferenceNumber =
+                                                                 "XMPPT0000000123",
+                                                               submissionId = "1234567890AA"
+                                         ),
+                                         chargeDetails = None,
+                                         exportChargeDetails = None,
+                                         returnDetails = None
   )
+
+  def withReturnDetails(returnDetails: Option[EisReturnDetails]): ReturnsResponseModifier =
+    _.copy(returnDetails = returnDetails)
 
 }

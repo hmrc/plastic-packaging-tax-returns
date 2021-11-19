@@ -13,3 +13,4 @@ GET         /export-credits/:pptReference   uk.gov.hmrc.plasticpackagingtaxretur
 
 # EIS Return Submission
 POST        /returns-submission/:id     uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.submit(id)
+GET         /returns-submission/:id/:periodKey uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(id, periodKey)

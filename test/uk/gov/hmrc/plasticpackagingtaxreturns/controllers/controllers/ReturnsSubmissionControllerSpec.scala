@@ -33,6 +33,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, OK}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.EisReturnDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
@@ -65,7 +66,7 @@ class ReturnsSubmissionControllerSpec
       withAuthorizedUser()
       mockGetReturn(Some(aTaxReturn()))
 
-      val returnsSubmissionResponse = aReturnsSubmissionResponse()
+      val returnsSubmissionResponse = aReturn()
       mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
       val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
@@ -74,6 +75,51 @@ class ReturnsSubmissionControllerSpec
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
+    }
+
+    "get return to display" should {
+      "return OK response" in {
+        withAuthorizedUser()
+        val periodKey = "22CC"
+        val returnDisplayResponse = aReturn(
+          withReturnDetails(returnDetails =
+            Some(
+              EisReturnDetails(manufacturedWeight = BigDecimal(256.12),
+                               importedWeight = BigDecimal(352.15),
+                               totalNotLiable = BigDecimal(546.42),
+                               humanMedicines = BigDecimal(1234.15),
+                               directExports = BigDecimal(12121.16),
+                               recycledPlastic = BigDecimal(4345.72),
+                               creditForPeriod =
+                                 BigDecimal(1560000.12),
+                               totalWeight = BigDecimal(16466.88),
+                               taxDue = BigDecimal(4600)
+              )
+            )
+          )
+        )
+
+        mockReturnDisplayConnector(returnDisplayResponse)
+
+        val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference/$periodKey")
+
+        val result: Future[Result] = route(app, submitReturnRequest).get
+
+        status(result) mustBe OK
+        contentAsJson(result) mustBe toJson(returnDisplayResponse)
+      }
+
+      "return 404" in {
+        withAuthorizedUser()
+        val periodKey = "22CC"
+        mockReturnDisplayConnectorFailure(404)
+
+        val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference/$periodKey")
+
+        val result: Future[Result] = route(app, submitReturnRequest).get
+
+        status(result) mustBe NOT_FOUND
+      }
     }
 
     "return not found (404) if return not found in repository" in {
