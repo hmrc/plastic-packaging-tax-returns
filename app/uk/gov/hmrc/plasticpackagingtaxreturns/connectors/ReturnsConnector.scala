@@ -81,14 +81,14 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
     val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    httpClient.GET[Return](appConfig.returnDisplayUrl(pptReference, periodKey),
+    httpClient.GET[Return](appConfig.returnsDisplayUrl(pptReference, periodKey),
                            headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(
           s"Retrieved return display with correlationId [$correlationIdHeader._2], pptReference [$pptReference]" +
-            s"  and response has submissionId [${response.idDetails.submissionId}]"
+            s", periodKey [$periodKey] and response has submissionId [${response.idDetails.submissionId}]"
         )
         Right(response)
       }
@@ -96,13 +96,14 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
         case httpEx: UpstreamErrorResponse =>
           logger.warn(
             s"Upstream error returned on fetching return with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
+              s"pptReference [$pptReference], periodKey [$periodKey] status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
           )
           Left(httpEx.statusCode)
         case ex: Exception =>
-          logger.warn(s"Return response with correlationId [${correlationIdHeader._2}] and " +
-                        s"pptReference [$pptReference] is currently unavailable due to [${ex.getMessage}]",
-                      ex
+          logger.warn(
+            s"Return response with correlationId [${correlationIdHeader._2}] " +
+              s"pptReference [$pptReference] and periodKey [$periodKey] is currently unavailable due to [${ex.getMessage}]",
+            ex
           )
           Left(INTERNAL_SERVER_ERROR)
       }
