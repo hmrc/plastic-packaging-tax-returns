@@ -41,32 +41,38 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
   def submitReturn(pptReference: String, request: ReturnsSubmissionRequest)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ReturnsSubmissionResponse]] = {
-    val timer               = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
-    val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
+    val timer                = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
+    val correlationIdHeader  = correlationIdHeaderName -> UUID.randomUUID().toString
+    val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
 
-    httpClient.PUT[ReturnsSubmissionRequest, ReturnsSubmissionResponse](url =
-                                                                          appConfig.returnsSubmissionUrl(pptReference),
+    logger.info(s"Submitting PPT return via $returnsSubmissionUrl")
+
+    httpClient.PUT[ReturnsSubmissionRequest, ReturnsSubmissionResponse](url = returnsSubmissionUrl,
                                                                         headers = headers :+ correlationIdHeader,
                                                                         body = request
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(
-          s"PPT create/update return with correlationId [$correlationIdHeader._2] pptReference [$pptReference]"
+          s"Successful PPT returns submission with correlationId [$correlationIdHeader._2], " +
+            s"pptReference [$pptReference], and submissionId [${request.submissionId}]"
         )
         Right(response)
       }
       .recover {
         case httpEx: UpstreamErrorResponse =>
           logger.warn(
-            s"Upstream error returned on create return with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
+            s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
+              s"pptReference [$pptReference], and submissionId [${request.submissionId}, status: ${httpEx.statusCode}, " +
+              s"body: ${httpEx.getMessage()}",
+            httpEx
           )
           Left(httpEx.statusCode)
         case ex: Exception =>
-          logger.warn(s"Create return with correlationId [${correlationIdHeader._2}] and " +
-                        s"pptReference [$pptReference] failed due to [${ex.getMessage}]",
-                      ex
+          logger.warn(
+            s"Error on returns submission with correlationId [${correlationIdHeader._2}], " +
+              s"pptReference [$pptReference], and submissionId [${request.submissionId}, failed due to [${ex.getMessage}]",
+            ex
           )
           Left(INTERNAL_SERVER_ERROR)
       }
