@@ -25,7 +25,7 @@ import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
@@ -128,10 +128,16 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 
-  protected def mockReturnsSubmissionConnector(resp: ReturnsSubmissionResponse) =
+  protected def mockReturnsSubmissionConnector(resp: Return) =
     when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
     when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+
+  protected def mockReturnDisplayConnector(resp: Return) =
+    when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+
+  protected def mockReturnDisplayConnectorFailure(statusCode: Int) =
+    when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
 }

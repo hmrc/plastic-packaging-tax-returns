@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
@@ -45,6 +45,14 @@ class ReturnsSubmissionController @Inject() (
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }
         case None => Future.successful(NotFound)
+      }
+    }
+
+  def get(returnId: String, periodKey: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default) { implicit request =>
+      returnsConnector.get(pptReference = returnId, periodKey = periodKey).map {
+        case Right(response)       => Ok(response)
+        case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
 

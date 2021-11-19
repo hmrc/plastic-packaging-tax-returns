@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, put}
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put, urlMatching}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
@@ -26,8 +27,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
   ChargeDetails,
   EisReturnDetails,
   IdDetails,
-  ReturnsSubmissionRequest,
-  ReturnsSubmissionResponse
+  Return,
+  ReturnsSubmissionRequest
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
@@ -43,7 +44,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
   "Returns Connector" when {
     "submitting a return" should {
       "return expected response" in {
-        val returnsSubmissionResponse = aReturnsSubmissionResponse()
+        val returnsSubmissionResponse = aReturn()
         stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
@@ -71,24 +72,82 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
         }
       }
     }
+
+    "get return " should {
+      "return expected response" in {
+        val returnForDisplay = aReturnWithReturnDetails()
+        stubSuccessfulReturnDisplay(pptReference, "22C1", returnForDisplay)
+
+        val res = await(returnsConnector.get(pptReference, "22C1"))
+
+        res.right.get mustBe returnForDisplay
+      }
+
+      "return error when unexpected response received" in {
+        stubFailedReturnDisplay(pptReference, "22C2", Status.OK, "XXX")
+
+        val res = await(returnsConnector.get(pptReference, "22C2"))
+
+        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+      }
+
+      forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+        s"return $statusCode" when {
+          s"upstream service fails with $statusCode" in {
+            stubFailedReturnDisplay(pptReference, "22C2", statusCode, "")
+
+            val res = await(returnsConnector.get(pptReference, "22C2"))
+
+            res.left.get mustBe statusCode
+          }
+        }
+      }
+    }
   }
 
-  private def aReturnsSubmissionResponse() =
-    ReturnsSubmissionResponse(processingDate = LocalDate.now().toString,
-                              idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
-                              chargeDetails = Some(
-                                ChargeDetails(chargeType = "Plastic Tax",
-                                              chargeReference = "ABC123",
-                                              amount = 1234.56,
-                                              dueDate = LocalDate.now().plusDays(30).toString
-                                )
-                              ),
-                              exportChargeDetails = None
+  private def aReturn() =
+    Return(processingDate = LocalDate.now().toString,
+           idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
+           chargeDetails = Some(
+             ChargeDetails(chargeType = "Plastic Tax",
+                           chargeReference = "ABC123",
+                           amount = 1234.56,
+                           dueDate = LocalDate.now().plusDays(30).toString
+             )
+           ),
+           exportChargeDetails = None,
+           returnDetails = None
     )
 
-  private def stubSuccessfulReturnsSubmission(returnId: String, resp: ReturnsSubmissionResponse) =
+  private def aReturnWithReturnDetails() =
+    Return(processingDate = LocalDate.now().toString,
+           idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
+           chargeDetails = Some(
+             ChargeDetails(chargeType = "Plastic Tax",
+                           chargeReference = "ABC123",
+                           amount = 1234.56,
+                           dueDate = LocalDate.now().plusDays(30).toString
+             )
+           ),
+           exportChargeDetails = None,
+           returnDetails = Some(
+             EisReturnDetails(manufacturedWeight = BigDecimal(256.12),
+                              importedWeight = BigDecimal(352.15),
+                              totalNotLiable = BigDecimal(546.42),
+                              humanMedicines = BigDecimal(1234.15),
+                              directExports = BigDecimal(12121.16),
+                              recycledPlastic = BigDecimal(4345.72),
+                              creditForPeriod =
+                                BigDecimal(1560000.12),
+                              totalWeight = BigDecimal(16466.88),
+                              taxDue = BigDecimal(4600)
+             )
+           )
+    )
+
+  private def stubSuccessfulReturnsSubmission(returnId: String, resp: Return) =
     stubFor(
-      put(s"/plastic-packaging-tax/returns/PPT/$returnId")
+      put(urlMatching(s"/plastic-packaging-tax/returns/PPT/$returnId"))
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -98,7 +157,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
 
   private def stubFailedReturnsSubmission(returnId: String, statusCode: Int, body: String) =
     stubFor(
-      put(s"/plastic-packaging-tax/returns/PPT/$returnId")
+      put(urlMatching(s"/plastic-packaging-tax/returns/PPT/$returnId"))
         .willReturn(
           aResponse()
             .withStatus(statusCode)
@@ -120,6 +179,26 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with Subscripti
                                                               totalWeight = 20000,
                                                               taxDue = 90000
                              )
+    )
+
+  private def stubSuccessfulReturnDisplay(pptReference: String, periodKey: String, response: Return) =
+    stubFor(
+      get(urlMatching(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(Json.toJson(response).toString)
+        )
+    )
+
+  private def stubFailedReturnDisplay(pptReference: String, periodKey: String, statusCode: Int, body: String) =
+    stubFor(
+      get(urlMatching(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+            .withBody(body)
+        )
     )
 
 }
