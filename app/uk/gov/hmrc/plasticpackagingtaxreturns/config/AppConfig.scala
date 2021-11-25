@@ -27,7 +27,7 @@ import scala.concurrent.duration.FiniteDuration
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
 
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
-  lazy val desHost: String = servicesConfig.baseUrl("eis")
+  lazy val desHost: String = servicesConfig.baseUrl("des")
   lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
 
   def subscriptionDisplayUrl(pptReference: String): String =
