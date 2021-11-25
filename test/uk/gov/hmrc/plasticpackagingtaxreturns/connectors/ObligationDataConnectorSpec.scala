@@ -92,7 +92,7 @@ class ObligationDataConnectorSpec extends ConnectorISpec with Injector with Subs
   }
 
   "ObligationData connector for obligation data" should {
-    forAll(Seq(422, 409, 500, 502, 503)) { statusCode =>
+    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
       "return " + statusCode when {
         statusCode + " is returned from downstream service" in {
           stubObligationDataRequestFailure(httpStatus = statusCode,
