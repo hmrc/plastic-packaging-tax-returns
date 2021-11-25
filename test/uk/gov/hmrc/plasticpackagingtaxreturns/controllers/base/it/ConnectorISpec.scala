@@ -45,7 +45,9 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     Map("microservice.services.eis.host" -> wireHost,
         "microservice.services.eis.port" -> wirePort,
         "microservice.services.nrs.host" -> wireHost,
-        "microservice.services.nrs.port" -> wirePort
+        "microservice.services.nrs.port" -> wirePort,
+        "microservice.services.des.host" -> wireHost,
+        "microservice.services.des.port" -> wirePort
     )
 
   def getTimer(name: String): Timer =
