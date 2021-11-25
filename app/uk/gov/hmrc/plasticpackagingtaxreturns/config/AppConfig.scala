@@ -45,13 +45,8 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   def returnsDisplayUrl(pptReference: String, periodKey: String): String =
     s"$eisHost/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
 
-  def enterpriseObligationData(
-    pptReference: String,
-    fromDate: String,
-    toDate: String,
-    status: ObligationStatus
-  ): String =
-    s"$desHost/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
+  def enterpriseObligationData(pptReference: String): String =
+    s"$desHost/enterprise/obligation-data/zppt/$pptReference/PPT"
 
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 

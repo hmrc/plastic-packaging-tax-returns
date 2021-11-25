@@ -47,9 +47,9 @@ class ObligationDataConnector @Inject() (httpClient: HttpClient, override val ap
 
     val queryParams = Seq("fromDate" -> format(fromDate), "toDate" -> format(toDate), "status" -> status.toString)
 
-    httpClient.GET[ObligationDataResponse](
-      appConfig.enterpriseObligationData(pptReference, format(fromDate), format(toDate), status),
-      headers = headers :+ correlationIdHeader
+    httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationData(pptReference),
+                                           queryParams = queryParams,
+                                           headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
