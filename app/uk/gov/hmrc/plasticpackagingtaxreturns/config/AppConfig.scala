@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
+import org.joda.time.LocalDate
 import play.api.Configuration
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
@@ -26,6 +28,7 @@ import scala.concurrent.duration.FiniteDuration
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
 
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
+  lazy val desHost: String = servicesConfig.baseUrl("eis")
   lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
 
   def subscriptionDisplayUrl(pptReference: String): String =
@@ -43,6 +46,14 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   def returnsDisplayUrl(pptReference: String, periodKey: String): String =
     s"$eisHost/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
 
+  def enterpriseObligationData(
+    pptReference: String,
+    fromDate: String,
+    toDate: String,
+    status: ObligationStatus
+  ): String =
+    s"$desHost/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
+
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
   val auditingEnabled: Boolean   = config.get[Boolean]("auditing.enabled")
@@ -59,4 +70,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     servicesConfig.getString("microservice.services.nrs.api-key")
 
   val nrsRetries: Seq[FiniteDuration] = config.get[Seq[FiniteDuration]]("nrs.retries")
+
+  val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
 }

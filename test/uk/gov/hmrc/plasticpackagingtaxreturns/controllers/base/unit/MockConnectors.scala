@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit
 
-import java.time.LocalDate
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
@@ -24,6 +23,8 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
@@ -32,17 +33,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateResponse,
   SubscriptionUpdateSuccessfulResponse
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
-  ExportCreditBalanceConnector,
-  NonRepudiationConnector,
-  ReturnsConnector,
-  SubscriptionsConnector
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
 }
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
@@ -52,6 +49,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
   protected val mockReturnsConnector: ReturnsConnector                         = mock[ReturnsConnector]
+  protected val mockObligationDataConnector: ObligationDataConnector           = mock[ObligationDataConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -139,5 +137,29 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
 
   protected def mockReturnDisplayConnectorFailure(statusCode: Int) =
     when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+
+  protected def mockGetObligationData(
+    pptReference: String,
+    displayResponse: ObligationDataResponse
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(
+      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
+                                      any[LocalDate](),
+                                      any[LocalDate](),
+                                      any[ObligationStatus]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Right(displayResponse)))
+
+  protected def mockGetObligationDataFailure(
+    pptReference: String,
+    statusCode: Int
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(
+      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
+                                      any[LocalDate](),
+                                      any[LocalDate](),
+                                      any[ObligationStatus]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Left(statusCode)))
 
 }
