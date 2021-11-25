@@ -16,4 +16,4 @@ POST        /returns-submission/:id     uk.gov.hmrc.plasticpackagingtaxreturns.c
 GET         /returns-submission/:id/:periodKey uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(id, periodKey)
 
 # DES obligation data
-GET         /obligation-data/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: String)
+GET         /obligation-data/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])

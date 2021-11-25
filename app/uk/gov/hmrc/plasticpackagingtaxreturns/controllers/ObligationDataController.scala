@@ -35,9 +35,9 @@ class ObligationDataController @Inject() (
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: String): Action[AnyContent] =
+  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String]): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) { implicit request =>
-      obligationDataConnector.get(pptReference, fromDate, toDate, ObligationStatus.withName(status)).map {
+      obligationDataConnector.get(pptReference, fromDate, toDate, ObligationStatus.withName(status.getOrElse(""))).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

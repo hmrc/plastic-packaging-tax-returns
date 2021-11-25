@@ -32,7 +32,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.{OK, contentAsJson, route, status, _}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
@@ -79,18 +78,31 @@ class ObligationDataControllerSpec
     pptReference: String,
     fromDate: LocalDate = LocalDate.parse("2021-10-01"),
     toDate: LocalDate = LocalDate.parse("2021-10-31"),
-    status: ObligationStatus = ObligationStatus.OPEN
+    status: String
   ) =
     FakeRequest("GET", s"/obligation-data/$pptReference?fromDate=$fromDate&toDate=$toDate&status=$status")
 
   "GET obligation data" should {
 
     "return 200" when {
-      "request for obligation data is valid" in {
+      "request for obligation data is valid with status" in {
         withAuthorizedUser()
         mockGetObligationData(pptReference, getResponse)
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
+        val result: Future[Result] =
+          route(app, getRequest(pptReference, status = ObligationStatus.OPEN.toString)).get
+
+        status(result) must be(OK)
+        contentAsJson(result) mustBe toJson(getResponse)
+      }
+    }
+
+    "return 200" when {
+      "request for obligation data is valid with no status" in {
+        withAuthorizedUser()
+        mockGetObligationData(pptReference, getResponse)
+
+        val result: Future[Result] = route(app, getRequest(pptReference, status = "")).get
 
         status(result) must be(OK)
         contentAsJson(result) mustBe toJson(getResponse)
@@ -114,7 +126,8 @@ class ObligationDataControllerSpec
         withAuthorizedUser()
         mockGetObligationDataFailure(pptReference, 404)
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
+        val result: Future[Result] =
+          route(app, getRequest(pptReference, status = ObligationStatus.FULFILLED.toString)).get
 
         status(result) mustBe NOT_FOUND
       }
@@ -124,7 +137,8 @@ class ObligationDataControllerSpec
       "unauthorized" in {
         withUnauthorizedUser(new RuntimeException())
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
+        val result: Future[Result] =
+          route(app, getRequest(pptReference, status = ObligationStatus.OPEN.toString)).get
 
         status(result) must be(UNAUTHORIZED)
         verifyNoInteractions(mockObligationDataConnector)
