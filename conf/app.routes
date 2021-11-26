@@ -17,3 +17,6 @@ GET         /returns-submission/:id/:periodKey uk.gov.hmrc.plasticpackagingtaxre
 
 # DES obligation data
 GET         /obligation-data/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])
+
+# DES financial data
+GET         /financial-data/:pptReference   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])

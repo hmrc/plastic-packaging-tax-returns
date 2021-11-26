@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
+import java.time.LocalDate
+
 import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.Mockito.{reset, verifyNoInteractions}
 import org.scalatest.BeforeAndAfterEach
@@ -31,91 +33,74 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{OK, contentAsJson, route, status, _}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EnterpriseTestData, SubscriptionTestData}
 
-import java.time.LocalDate
 import scala.concurrent.Future
 
-class ObligationDataControllerSpec
+class FinancialDataControllerSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with SubscriptionTestData with MockConnectors {
+    with AuthTestSupport with SubscriptionTestData with MockConnectors with EnterpriseTestData {
 
   SharedMetricRegistries.clear()
 
-  val getResponse = ObligationDataResponse(obligations =
-    Seq(
-      Obligation(
-        identification =
-          Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
-        obligationDetails = Seq(
-          ObligationDetail(status = ObligationStatus.OPEN,
-                           inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
-                           inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
-                           inboundCorrespondenceDateReceived = LocalDate.parse("2021-10-01"),
-                           inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
-                           periodKey = "#001"
-          )
-        )
-      )
-    )
-  )
-
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[ObligationDataConnector].to(mockObligationDataConnector))
+    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[FinancialDataConnector].to(mockFinancialDataConnector))
     .build()
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    reset(mockObligationDataConnector)
+    reset(mockFinancialDataConnector)
   }
 
-  private def getRequest(
-    pptReference: String,
-    fromDate: LocalDate = LocalDate.parse("2021-10-01"),
-    toDate: LocalDate = LocalDate.parse("2021-10-31"),
-    status: String
-  ) =
-    FakeRequest("GET", s"/obligation-data/$pptReference?fromDate=$fromDate&toDate=$toDate&status=$status")
+  val fromDate: LocalDate = LocalDate.parse("2021-10-01")
+  val toDate: LocalDate   = LocalDate.parse("2021-10-31")
+  val baseUrl             = s"/financial-data/$pptReference?fromDate=$fromDate&toDate=$toDate"
 
-  "GET obligation data" should {
+  private def getRequest(url: String) =
+    FakeRequest("GET", url)
+
+  "GET financial data" should {
 
     "return 200" when {
-      "request for obligation data is valid with status" in {
+      "request for financial data is valid" in {
         withAuthorizedUser()
-        mockGetObligationData(pptReference, getResponse)
+        mockGetFinancialData(pptReference, financialDataResponse)
 
         val result: Future[Result] =
-          route(app, getRequest(pptReference, status = ObligationStatus.OPEN.toString)).get
+          route(app, getRequest(baseUrl)).get
 
         status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(getResponse)
+        contentAsJson(result) mustBe toJson(financialDataResponse)
       }
-    }
 
-    "return 200" when {
-      "request for obligation data is valid with no status" in {
+      "request for financial data has optional parameters" in {
         withAuthorizedUser()
-        mockGetObligationData(pptReference, getResponse)
+        mockGetFinancialData(pptReference, financialDataResponse)
 
-        val result: Future[Result] = route(app, getRequest(pptReference, status = "")).get
+        val result: Future[Result] =
+          route(
+            app,
+            getRequest(
+              baseUrl + s"&onlyOpenItems=true&includeLocks=false&calculateAccruedInterest=false&customerPaymentInformation=true"
+            )
+          ).get
 
         status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(getResponse)
+        contentAsJson(result) mustBe toJson(financialDataResponse)
       }
     }
 
     "return 400" when {
       "request for obligation data is invalid" in {
         withAuthorizedUser()
-        mockGetObligationData(pptReference, getResponse)
+        mockGetFinancialData(pptReference, financialDataResponse)
 
         val result: Future[Result] =
-          route(app, FakeRequest("GET", s"/obligation-data/$pptReference?fromDate=invalid&toDate=invalid")).get
+          route(app, FakeRequest("GET", s"/financial-data/$pptReference?fromDate=invalid&toDate=invalid")).get
 
         status(result) must be(BAD_REQUEST)
       }
@@ -124,10 +109,10 @@ class ObligationDataControllerSpec
     "return 404" when {
       "request for obligation data fails" in {
         withAuthorizedUser()
-        mockGetObligationDataFailure(pptReference, 404)
+        mockGetFinancialDataFailure(pptReference, 404)
 
         val result: Future[Result] =
-          route(app, getRequest(pptReference, status = ObligationStatus.FULFILLED.toString)).get
+          route(app, getRequest(baseUrl)).get
 
         status(result) mustBe NOT_FOUND
       }
@@ -138,7 +123,7 @@ class ObligationDataControllerSpec
         withUnauthorizedUser(new RuntimeException())
 
         val result: Future[Result] =
-          route(app, getRequest(pptReference, status = ObligationStatus.OPEN.toString)).get
+          route(app, getRequest(baseUrl)).get
 
         status(result) must be(UNAUTHORIZED)
         verifyNoInteractions(mockObligationDataConnector)

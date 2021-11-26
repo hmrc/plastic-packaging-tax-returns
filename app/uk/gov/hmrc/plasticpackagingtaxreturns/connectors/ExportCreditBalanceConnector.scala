@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 import com.kenshoo.play.metrics.Metrics
@@ -41,15 +40,13 @@ class ExportCreditBalanceConnector @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private def format(date: LocalDate): String = DateTimeFormatter.ISO_LOCAL_DATE.format(date)
-
   def getBalance(pptReference: String, fromDate: LocalDate, toDate: LocalDate)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ExportCreditBalanceDisplayResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.exportcreditbalance.display.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    val queryParams = Seq("fromDate" -> format(fromDate), "toDate" -> format(toDate))
+    val queryParams = Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
     httpClient.GET[ExportCreditBalanceDisplayResponse](appConfig.exportCreditBalanceDisplayUrl(pptReference),
                                                        queryParams = queryParams,
                                                        headers = headers :+ correlationIdHeader

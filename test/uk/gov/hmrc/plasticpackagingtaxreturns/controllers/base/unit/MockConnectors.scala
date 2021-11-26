@@ -23,7 +23,10 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  FinancialDataResponse,
+  ObligationDataResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
@@ -38,8 +41,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
 }
-
 import java.time.LocalDate
+
 import scala.concurrent.Future
 
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
@@ -50,6 +53,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
   protected val mockReturnsConnector: ReturnsConnector                         = mock[ReturnsConnector]
   protected val mockObligationDataConnector: ObligationDataConnector           = mock[ObligationDataConnector]
+  protected val mockFinancialDataConnector: FinancialDataConnector             = mock[FinancialDataConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -159,6 +163,36 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
                                       any[LocalDate](),
                                       any[LocalDate](),
                                       any[ObligationStatus]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Left(statusCode)))
+
+  protected def mockGetFinancialData(
+    pptReference: String,
+    response: FinancialDataResponse
+  ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+    when(
+      mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
+                                     any[LocalDate](),
+                                     any[LocalDate](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]]()
+      )(any[HeaderCarrier])
+    ).thenReturn(Future.successful(Right(response)))
+
+  protected def mockGetFinancialDataFailure(
+    pptReference: String,
+    statusCode: Int
+  ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+    when(
+      mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
+                                     any[LocalDate](),
+                                     any[LocalDate](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]](),
+                                     any[Option[Boolean]]()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 

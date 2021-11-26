@@ -27,7 +27,7 @@ sm -s
   
 ### Sample curl commands
 
-# EIS view subscription
+#### EIS view subscription
 ```
 curl -H "Authorization:Bearer <token>>" "http://localhost:8504/subscriptions/XMPPT0000000001"
 ```
@@ -35,7 +35,15 @@ curl -H "Authorization:Bearer <token>>" "http://localhost:8504/subscriptions/XMP
 ```
 curl -H "Authorization:Bearer <token>" "http://localhost:8504/export-credits/XMPPT0000000001?fromDate=2021-08-01&toDate=2021-10-31"
 ```
-  
+#### DES obligation data
+```
+curl -H "Authorization:Bearer <token>" "http://localhost:8504/obligation-data/XXPPTP103844232?fromDate=2021-08-01&toDate=2021-10-31&status=O"
+```
+#### DES financial data
+```
+curl -H "Authorization:Bearer <token>" "http://localhost:8504/financial-data/XXPPTP103844232?fromDate=2021-08-01&toDate=2021-10-31&onlyonlyOpenItems=true&includeLocks=false&calculateAccruedInterest=false&customerPaymentInformation=true"
+```
+
 
 ### Precheck
 

@@ -16,20 +16,20 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import java.time.LocalDate
+import java.util.UUID
+
 import com.kenshoo.play.metrics.Metrics
+import javax.inject.Inject
 import play.api.Logger
 import play.api.http.Status.INTERNAL_SERVER_ERROR
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.UUID
-import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 class ObligationDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
   implicit ec: ExecutionContext
@@ -37,17 +37,19 @@ class ObligationDataConnector @Inject() (httpClient: HttpClient, override val ap
 
   private val logger = Logger(this.getClass)
 
-  private def format(date: LocalDate): String = DateTimeFormatter.ISO_LOCAL_DATE.format(date)
-
   def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: ObligationStatus)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    val queryParams = Seq("fromDate" -> format(fromDate), "toDate" -> format(toDate), "status" -> status.toString)
+    val queryParams =
+      Seq("fromDate" -> DateFormat.isoFormat(fromDate),
+          "toDate"   -> DateFormat.isoFormat(toDate),
+          "status"   -> status.toString
+      )
 
-    httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationData(pptReference),
+    httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationDataUrl(pptReference),
                                            queryParams = queryParams,
                                            headers = headers :+ correlationIdHeader
     )
