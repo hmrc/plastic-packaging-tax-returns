@@ -18,6 +18,10 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{
+  GroupPartnershipDetails,
+  GroupPartnershipSubscription
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
   ChangeOfCircumstanceDetails,
   SubscriptionDisplayResponse
@@ -72,8 +76,61 @@ trait SubscriptionTestData {
     taxObligationStartDate = now(UTC).toString,
     last12MonthTotalTonnageAmt = 15000,
     declaration = Declaration(declarationBox1 = true),
-    groupOrPartnershipSubscription = None
+    groupPartnershipSubscription = None
   )
+
+  protected val ukLimitedCompanyGroupMember = GroupPartnershipDetails(relationship = "Representative",
+                                                                      customerIdentification1 = "abc123",
+                                                                      customerIdentification2 = Some("def456"),
+                                                                      organisationDetails = Some(
+                                                                        OrganisationDetails(Some("UK Limited Company"),
+                                                                                            Some("Subsidiary 1")
+                                                                        )
+                                                                      ),
+                                                                      individualDetails = None,
+                                                                      addressDetails =
+                                                                        AddressDetails(addressLine1 =
+                                                                                         "2-3 Scala Street",
+                                                                                       addressLine2 = "Soho",
+                                                                                       countryCode = "GB"
+                                                                        ),
+                                                                      contactDetails =
+                                                                        ContactDetails(email = "man@firm.com",
+                                                                                       telephone = "01274 873264"
+                                                                        ),
+                                                                      regWithoutIDFlag = false
+  )
+
+  protected val soleTraderGroupMember = GroupPartnershipDetails(relationship = "Representative",
+                                                                customerIdentification1 = "abc123",
+                                                                customerIdentification2 = Some("def456"),
+                                                                organisationDetails = None,
+                                                                individualDetails = Some(
+                                                                  IndividualDetails(firstName = "Andrew",
+                                                                                    lastName = "Man"
+                                                                  )
+                                                                ),
+                                                                addressDetails = AddressDetails(addressLine1 =
+                                                                                                  "2-3 Scala Street",
+                                                                                                addressLine2 = "Soho",
+                                                                                                countryCode = "GB"
+                                                                ),
+                                                                contactDetails = ContactDetails(email = "aman@firm.com",
+                                                                                                telephone =
+                                                                                                  "01274 873264"
+                                                                ),
+                                                                regWithoutIDFlag = false
+  )
+
+  protected val ukLimitedCompanyGroupSubscription: Subscription =
+    ukLimitedCompanySubscription.copy(groupPartnershipSubscription =
+      Some(
+        GroupPartnershipSubscription(representativeControl = true,
+                                     allMembersControl = true,
+                                     groupPartnershipDetails = List(ukLimitedCompanyGroupMember, soleTraderGroupMember)
+        )
+      )
+    )
 
   protected val soleTraderSubscription: Subscription = {
     val subscription = ukLimitedCompanySubscription.copy(legalEntityDetails =
@@ -115,7 +172,7 @@ trait SubscriptionTestData {
                                 declaration =
                                   subscription.declaration,
                                 groupOrPartnershipSubscription =
-                                  subscription.groupOrPartnershipSubscription
+                                  subscription.groupPartnershipSubscription
     )
 
   protected def createSubscriptionUpdateRequest(subscription: Subscription): SubscriptionUpdateRequest =
@@ -136,8 +193,8 @@ trait SubscriptionTestData {
         subscription.last12MonthTotalTonnageAmt.longValue(),
       declaration =
         subscription.declaration,
-      groupSubscription =
-        subscription.groupOrPartnershipSubscription,
+      groupPartnershipSubscription =
+        subscription.groupPartnershipSubscription,
       userHeaders = Some(pptUserHeaders)
     )
 

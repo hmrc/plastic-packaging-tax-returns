@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupOrPartnershipSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipSubscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
@@ -30,7 +30,7 @@ case class Subscription(
   declaration: Declaration,
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: Long,
-  groupOrPartnershipSubscription: Option[GroupOrPartnershipSubscription] = None,
+  groupPartnershipSubscription: Option[GroupPartnershipSubscription] = None,
   nrsDetails: Option[NrsDetails] = None
 )
 

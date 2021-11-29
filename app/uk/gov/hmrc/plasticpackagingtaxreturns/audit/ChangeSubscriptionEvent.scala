@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupOrPartnershipSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipSubscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
@@ -33,7 +33,7 @@ case class ChangeSubscriptionEvent(
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: BigDecimal,
   declaration: Declaration,
-  groupSubscription: Option[GroupOrPartnershipSubscription],
+  groupSubscription: Option[GroupPartnershipSubscription],
   pptReference: Option[String],
   processingDateTime: Option[ZonedDateTime],
   nrsDetails: Option[NrsDetails]
@@ -58,7 +58,7 @@ object ChangeSubscriptionEvent {
                             last12MonthTotalTonnageAmt =
                               BigDecimal(subscription.last12MonthTotalTonnageAmt),
                             declaration = subscription.declaration,
-                            groupSubscription = subscription.groupOrPartnershipSubscription,
+                            groupSubscription = subscription.groupPartnershipSubscription,
                             pptReference = pptReference,
                             processingDateTime = processingDateTime,
                             nrsDetails = subscription.nrsDetails
