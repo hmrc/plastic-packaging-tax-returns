@@ -249,6 +249,34 @@ class SubscriptionControllerSpec
       }
     }
 
+    "return 200 for group subscription" when {
+      "EIS update subscription is successful" in {
+        val nrSubmissionId = "nrSubmissionId"
+        withAuthorizedUser()
+        val request: SubscriptionUpdateRequest =
+          createSubscriptionUpdateRequest(ukLimitedCompanyGroupSubscription)
+        mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
+        when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+          Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
+        )
+
+        val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
+
+        status(result) must be(OK)
+        val response = contentAsJson(result).as[SubscriptionUpdateWithNrsSuccessfulResponse]
+        response.pptReference mustBe subscriptionUpdateResponse.pptReferenceNumber
+        response.formBundleNumber mustBe subscriptionUpdateResponse.formBundleNumber
+        response.processingDate mustBe subscriptionUpdateResponse.processingDate
+        response.nrSubmissionId mustBe nrSubmissionId
+        verify(mockNonRepudiationService).submitNonRepudiation(
+          ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
+          any[ZonedDateTime],
+          ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
+          ArgumentMatchers.eq(pptUserHeaders)
+        )(any[HeaderCarrier])
+      }
+    }
+
     "return 401" when {
       "unauthorized" in {
         withUnauthorizedUser(new RuntimeException())

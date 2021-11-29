@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupOrPartnershipSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipSubscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails
 
@@ -30,7 +30,7 @@ case class SubscriptionUpdateRequest(
   taxObligationStartDate: String,
   last12MonthTotalTonnageAmt: BigDecimal,
   declaration: Declaration,
-  groupSubscription: Option[GroupOrPartnershipSubscription],
+  groupPartnershipSubscription: Option[GroupPartnershipSubscription],
   userHeaders: Option[Map[String, String]] = None
 ) {
 
@@ -43,7 +43,7 @@ case class SubscriptionUpdateRequest(
                  declaration = this.declaration,
                  taxObligationStartDate = this.taxObligationStartDate,
                  last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue(),
-                 groupOrPartnershipSubscription = this.groupSubscription
+                 groupPartnershipSubscription = this.groupPartnershipSubscription
     )
 
 }
