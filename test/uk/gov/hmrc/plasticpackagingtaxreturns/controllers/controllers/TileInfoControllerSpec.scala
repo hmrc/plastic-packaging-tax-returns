@@ -18,19 +18,36 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.json.Json
 import play.api.mvc.Result
-import play.api.test.Helpers.{OK, defaultAwaitTimeout, status}
+import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, _}
 import play.api.test.{FakeRequest, Injecting}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 
+import java.util.UUID
 import scala.concurrent.Future
 
 class TileInfoControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Injecting {
-lazy val sut = inject[TileInfoController]
+
+  lazy val sut: TileInfoController = inject[TileInfoController]
+  val testPPTReference: String = UUID.randomUUID().toString
+
   "get" must {
-      "return 200 code" in {
-        val result:Future[Result] = sut.get()(FakeRequest())
-        status(result) mustBe OK
-      }
+    val request = FakeRequest("GET", "/obligations/open/" + testPPTReference)
+
+    "be accessible from the requestHandler" in {
+      val result: Future[Result] = route(app, request).get
+
+      status(result) must not be NOT_FOUND
+    }
+
+    "return 200 code" in {
+      val result:Future[Result] = sut.get(testPPTReference)(request)
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(PPTObligations(true))
     }
   }
+
+}
