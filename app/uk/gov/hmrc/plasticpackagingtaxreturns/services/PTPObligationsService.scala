@@ -14,25 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
+package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import javax.inject.Inject
+class PTPObligationsService {
 
-class TileInfoController @Inject()(
-                                    cc: ControllerComponents,
-                                    obligationsService: PTPObligationsService)
-  extends BackendController(cc) {
-
-
-  def get(ref: String): Action[AnyContent] = Action {
-    Ok(Json.toJson(obligationsService.get))
+  def get: PPTObligations ={
+    ???
   }
-
 
 }
