@@ -16,37 +16,59 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
+import play.api.inject.bind
+import org.mockito.Mockito.{reset, verify, when}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.mvc.Result
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, _}
 import play.api.test.{FakeRequest, Injecting}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
 
 import java.util.UUID
 import scala.concurrent.Future
 
-class TileInfoControllerSpec extends PlaySpec with GuiceOneAppPerSuite with Injecting {
-
+class TileInfoControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with GuiceOneAppPerSuite with Injecting {
+  val mockPTPObligations: PTPObligationsService = mock[PTPObligationsService]
   lazy val sut: TileInfoController = inject[TileInfoController]
   val testPPTReference: String = UUID.randomUUID().toString
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockPTPObligations)
+  }
+
+  override lazy val app: Application = GuiceApplicationBuilder()
+    .overrides(bind[PTPObligationsService].toInstance(mockPTPObligations))
+    .build()
+
   "get" must {
     val request = FakeRequest("GET", "/obligations/open/" + testPPTReference)
+    val obligations = PPTObligations(false)
 
-    "be accessible from the requestHandler" in {
+    "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
+      when(mockPTPObligations.get).thenReturn(obligations)
+
       val result: Future[Result] = route(app, request).get
 
       status(result) must not be NOT_FOUND
     }
 
-    "return 200 code" in {
-      val result:Future[Result] = sut.get(testPPTReference)(request)
+    "get PTPObligation from service" in {
+      when(mockPTPObligations.get).thenReturn(obligations)
 
+      val result: Future[Result] = sut.get(testPPTReference)(request)
+
+      verify(mockPTPObligations).get
+      contentAsJson(result) mustBe Json.toJson(obligations)
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(PPTObligations(true))
     }
   }
 
