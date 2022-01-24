@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
+import org.mockito.ArgumentMatchers.any
 import play.api.inject.bind
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
@@ -28,6 +29,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, _}
 import play.api.test.{FakeRequest, Injecting}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
@@ -54,7 +56,7 @@ class TileInfoControllerSpec extends PlaySpec with BeforeAndAfterEach with Mocki
     val obligations = PPTObligations(false)
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
-      when(mockPTPObligations.get).thenReturn(obligations)
+      when(mockPTPObligations.get(any())).thenReturn(obligations)
 
       val result: Future[Result] = route(app, request).get
 
@@ -62,11 +64,11 @@ class TileInfoControllerSpec extends PlaySpec with BeforeAndAfterEach with Mocki
     }
 
     "get PTPObligation from service" in {
-      when(mockPTPObligations.get).thenReturn(obligations)
+      when(mockPTPObligations.get(any())).thenReturn(obligations)
 
       val result: Future[Result] = sut.get(testPPTReference)(request)
 
-      verify(mockPTPObligations).get
+      verify(mockPTPObligations).get(ObligationDataResponse(Seq.empty))
       contentAsJson(result) mustBe Json.toJson(obligations)
       status(result) mustBe OK
     }

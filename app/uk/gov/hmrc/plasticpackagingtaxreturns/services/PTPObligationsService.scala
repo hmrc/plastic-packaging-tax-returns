@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 
 class PTPObligationsService {
 
-  def get: PPTObligations ={
+  def get(x: ObligationDataResponse): PPTObligations = {
     ???
   }
 
