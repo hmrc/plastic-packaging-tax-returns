@@ -30,7 +30,7 @@ import play.api.mvc.Result
 import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, _}
 import play.api.test.{FakeRequest, Injecting}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
@@ -39,7 +39,7 @@ import java.time.LocalDate
 import java.util.UUID
 import scala.concurrent.Future
 
-class TileInfoControllerSpecTileInfoControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with GuiceOneAppPerSuite with Injecting {
+class TileInfoControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with GuiceOneAppPerSuite with Injecting {
   val mockPTPObligations: PTPObligationsService = mock[PTPObligationsService]
   val mockObligationDataConnector = mock[ObligationDataConnector]
   lazy val sut: TileInfoController = inject[TileInfoController]
@@ -62,6 +62,8 @@ class TileInfoControllerSpecTileInfoControllerSpec extends PlaySpec with BeforeA
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
       when(mockPTPObligations.get(any())).thenReturn(obligations)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(ObligationDataResponse(Seq.empty))))
 
       val result: Future[Result] = route(app, request).get
 
@@ -69,7 +71,10 @@ class TileInfoControllerSpecTileInfoControllerSpec extends PlaySpec with BeforeA
     }
 
     "get PTPObligation from service" in {
+      val desResponse = ObligationDataResponse(Seq.empty)
       when(mockPTPObligations.get(any())).thenReturn(obligations)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(testPPTReference)(request)
 
@@ -79,10 +84,10 @@ class TileInfoControllerSpecTileInfoControllerSpec extends PlaySpec with BeforeA
     }
 
     "get should call Obligation Connector" in {
+      val desResponse = ObligationDataResponse(Seq.empty)
 
-      val response = ObligationDataResponse(Seq.empty)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(response)))
+        .thenReturn(Future.successful(Right(desResponse)))
       when(mockPTPObligations.get(any())).thenReturn(obligations)
 
       val result: Future[Result] = sut.get(testPPTReference)(request)
@@ -94,7 +99,26 @@ class TileInfoControllerSpecTileInfoControllerSpec extends PlaySpec with BeforeA
           exactlyEq(LocalDate.now()),
           exactlyEq(ObligationStatus.OPEN))(any())
 
-      verify(mockPTPObligations).get(response)
+      verify(mockPTPObligations).get(desResponse)
+    }
+
+    "get should call Obligation Connector and actually call the service with it" in {
+      val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+      when(mockPTPObligations.get(any())).thenReturn(obligations)
+
+      val result: Future[Result] = sut.get(testPPTReference)(request)
+
+
+      verify(mockObligationDataConnector)
+        .get(exactlyEq(testPPTReference),
+          exactlyEq(LocalDate.of(2022, 4, 1)),
+          exactlyEq(LocalDate.now()),
+          exactlyEq(ObligationStatus.OPEN))(any())
+
+      verify(mockPTPObligations).get(desResponse)
     }
   }
 

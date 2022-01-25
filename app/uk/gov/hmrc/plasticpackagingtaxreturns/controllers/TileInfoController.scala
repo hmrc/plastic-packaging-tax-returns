@@ -27,25 +27,30 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
 import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
 
-class TileInfoController @Inject()
-(
+class TileInfoController @Inject()(
   cc: ControllerComponents,
   obligationDataConnector: ObligationDataConnector,
   obligationsService: PTPObligationsService
-)
+)(implicit val executionContext: ExecutionContext)
 extends BackendController(cc) {
 
-  def get(ref: String): Action[AnyContent] = Action {
+  def get(ref: String): Action[AnyContent] = Action.async {
     implicit val hc: HeaderCarrier =  HeaderCarrier()
 
-    val data = obligationDataConnector.get(
+    val data: Future[Either[Int, ObligationDataResponse]] = obligationDataConnector.get(
       ref,
       LocalDate.of(2022, 4,1),
       LocalDate.now(),
-      ObligationStatus.OPEN )
+      ObligationStatus.OPEN
+    )
 
-    Ok(Json.toJson(obligationsService.get(ObligationDataResponse(Seq.empty))))
+    data.map {
+        case Left(value) => ???
+        case Right(value) =>
+          Ok(Json.toJson(obligationsService.get(value)))
+    }
   }
 
 
