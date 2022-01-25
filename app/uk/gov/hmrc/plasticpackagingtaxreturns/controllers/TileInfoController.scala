@@ -39,17 +39,16 @@ extends BackendController(cc) {
   def get(ref: String): Action[AnyContent] = Action.async {
     implicit val hc: HeaderCarrier =  HeaderCarrier()
 
-    val data: Future[Either[Int, ObligationDataResponse]] = obligationDataConnector.get(
+    obligationDataConnector.get(
       ref,
       LocalDate.of(2022, 4,1),
       LocalDate.now(),
       ObligationStatus.OPEN
-    )
-
-    data.map {
-        case Left(value) => ???
-        case Right(value) =>
-          Ok(Json.toJson(obligationsService.get(value)))
+    ).map {
+        case Left(_) =>
+          InternalServerError("{}")
+        case Right(obligationDataResponse) =>
+          Ok(Json.toJson(obligationsService.get(obligationDataResponse)))
     }
   }
 
