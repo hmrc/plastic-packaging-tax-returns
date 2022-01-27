@@ -28,7 +28,7 @@ object Obligation {
   implicit val ObligationWrites: Writes[Obligation] = Json.writes[Obligation]
 }
 
-final case class PPTObligations(nextObligation: Option[Obligation])
+final case class PPTObligations(nextObligation: Option[ObligationDetail])
 
 object PPTObligations {
   implicit val PPTObligationsWrites: OWrites[PPTObligations] = Json.writes[PPTObligations]

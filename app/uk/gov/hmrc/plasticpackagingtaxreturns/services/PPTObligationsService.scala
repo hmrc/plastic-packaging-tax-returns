@@ -16,14 +16,29 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  Obligation,
+  ObligationDataResponse,
+  ObligationDetail
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+
+import java.time.LocalDate
 
 class PPTObligationsService {
 
-  def get(x: ObligationDataResponse): PPTObligations = {
-    PPTObligations(None)
-  }
+  implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
 
+  def get(data: ObligationDataResponse): PPTObligations = {
+
+    val obligation: Obligation = //todo: what if there is none OR more than one?
+      if (data.obligations.length == 1) data.obligations.head else throw new Exception("Where is my only Obligation??")
+
+    val nextOb: Option[ObligationDetail] =
+      obligation.obligationDetails.filter(
+        _.inboundCorrespondenceDueDate.isAfter(LocalDate.now())
+      ).sortBy(_.inboundCorrespondenceDueDate).headOption
+    PPTObligations(nextOb)
+  }
 
 }
