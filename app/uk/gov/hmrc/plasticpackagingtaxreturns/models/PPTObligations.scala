@@ -16,20 +16,22 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import org.joda.time.LocalDate
-import play.api.libs.json.JodaWrites.DefaultJodaLocalDateWrites
-import play.api.libs.json.{Json, OWrites, Writes}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.{JsPath, Json, OWrites, Writes}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDetail
 
-final case class Obligation(fromDate: LocalDate, toDate: LocalDate, dueDate: LocalDate, periodKey: String)
-
-object Obligation {
-  implicit val DateWrites: Writes[LocalDate] = DefaultJodaLocalDateWrites
-  implicit val ObligationWrites: Writes[Obligation] = Json.writes[Obligation]
-}
+import java.time.LocalDate
 
 final case class PPTObligations(nextObligation: Option[ObligationDetail])
 
 object PPTObligations {
+
+  implicit val customObligationDetailWrites: Writes[ObligationDetail] = (
+    (JsPath \ "periodKey").write[String] and
+      (JsPath \ "fromDate").write[LocalDate] and
+      (JsPath \ "toDate").write[LocalDate] and
+      (JsPath \ "dueDate").write[LocalDate]
+  )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
+
   implicit val PPTObligationsWrites: OWrites[PPTObligations] = Json.writes[PPTObligations]
 }
