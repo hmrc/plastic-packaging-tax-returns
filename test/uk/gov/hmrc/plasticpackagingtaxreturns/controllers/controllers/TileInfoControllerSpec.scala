@@ -38,7 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
 import java.time.LocalDate
 import java.util.UUID
@@ -46,7 +46,7 @@ import scala.concurrent.Future
 
 class TileInfoControllerSpec
     extends PlaySpec with BeforeAndAfterEach with MockitoSugar with GuiceOneAppPerSuite with Injecting {
-  val mockPTPObligations: PTPObligationsService = mock[PTPObligationsService]
+  val mockPTPObligations: PPTObligationsService = mock[PPTObligationsService]
   val mockObligationDataConnector               = mock[ObligationDataConnector]
   lazy val sut: TileInfoController              = inject[TileInfoController]
   val testPPTReference: String                  = UUID.randomUUID().toString
@@ -57,14 +57,14 @@ class TileInfoControllerSpec
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[PTPObligationsService].toInstance(mockPTPObligations),
+    .overrides(bind[PPTObligationsService].toInstance(mockPTPObligations),
                bind[ObligationDataConnector].toInstance(mockObligationDataConnector)
     )
     .build()
 
   "get" must {
     val request     = FakeRequest("GET", "/obligations/open/" + testPPTReference)
-    val obligations = PPTObligations(false)
+    val obligations = PPTObligations(None)
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
       when(mockPTPObligations.get(any())).thenReturn(obligations)

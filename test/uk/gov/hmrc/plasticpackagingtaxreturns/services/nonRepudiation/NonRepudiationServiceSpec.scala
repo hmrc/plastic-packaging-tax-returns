@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.service.nonRepudiation
+package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
