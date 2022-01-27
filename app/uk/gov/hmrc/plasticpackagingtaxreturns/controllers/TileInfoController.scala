@@ -22,7 +22,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PTPObligationsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
@@ -32,7 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class TileInfoController @Inject()(
   cc: ControllerComponents,
   obligationDataConnector: ObligationDataConnector,
-  obligationsService: PTPObligationsService
+  obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
 extends BackendController(cc) {
 
