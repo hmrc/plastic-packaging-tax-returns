@@ -71,8 +71,8 @@ class PPTObligationsServiceSpec extends PlaySpec {
       "there is an upcoming obligation and an overdue obligation" in {
 
         val upcomingObligationDate = makeDetail(LocalDate.now())
-        val overdueObligationDate = makeDetail(LocalDate.now().minusMonths(1))
-        val obligationDataResponse = makeDataResponse(overdueObligationDate,upcomingObligationDate)
+        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val obligationDataResponse = makeDataResponse(overdueObligationDate, upcomingObligationDate)
 
         sut.get(obligationDataResponse) mustBe PPTObligations(Some(upcomingObligationDate))
 
@@ -80,9 +80,8 @@ class PPTObligationsServiceSpec extends PlaySpec {
       "there are two upcoming obligations" in {
 
         val upcomingObligationDate = makeDetail(LocalDate.now())
-        val laterObligationDate = makeDetail(LocalDate.now().plusMonths(1))
-        val obligationDataResponse = makeDataResponse(laterObligationDate,upcomingObligationDate)
-
+        val laterObligationDate    = makeDetail(LocalDate.now().plusMonths(1))
+        val obligationDataResponse = makeDataResponse(laterObligationDate, upcomingObligationDate)
 
         withClue("obligation should be the soonest") {
           sut.get(obligationDataResponse) mustBe PPTObligations(Some(upcomingObligationDate))
@@ -91,10 +90,11 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
       "there are a bunch of obligations" in {
         val upcomingObligationDate = makeDetail(LocalDate.now())
-        val overdueObligationDate = makeDetail(LocalDate.now().minusMonths(1))
-        val laterObligationDate = makeDetail(LocalDate.now().plusMonths(1))
+        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val laterObligationDate    = makeDetail(LocalDate.now().plusMonths(1))
 
-        val obligationDataResponse = makeDataResponse(laterObligationDate,upcomingObligationDate,overdueObligationDate)
+        val obligationDataResponse =
+          makeDataResponse(laterObligationDate, upcomingObligationDate, overdueObligationDate)
 
         sut.get(obligationDataResponse) mustBe PPTObligations(Some(upcomingObligationDate))
       }
