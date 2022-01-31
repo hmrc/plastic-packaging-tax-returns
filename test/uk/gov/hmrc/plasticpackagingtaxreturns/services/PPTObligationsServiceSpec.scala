@@ -78,7 +78,6 @@ class PPTObligationsServiceSpec extends PlaySpec {
         sut.get(obligationDataResponse).nextObligation mustBe Some(upcomingObligationDate)
       }
 
-
       "there are two upcoming obligations" in {
 
         val upcomingObligationDate = makeDetail()
@@ -113,23 +112,23 @@ class PPTObligationsServiceSpec extends PlaySpec {
 
       "an obligation is overdue" in {
 
-        val overdueObligationDate = makeDetail(LocalDate.now().minusMonths(1))
+        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
         val obligationDataResponse = makeDataResponse(overdueObligationDate)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(overdueObligationDate)
       }
 
       "there is more than one" in {
-        val overdueObligationDate = makeDetail(LocalDate.now().minusMonths(1))
-        val overdueObligationDate1 = makeDetail(LocalDate.now().minusMonths(2))
-        val obligationDataResponse = makeDataResponse(overdueObligationDate, overdueObligationDate1)
+        val overdueObligationDate     = makeDetail(LocalDate.now().minusMonths(1))
+        val mostOverdueObligationDate = makeDetail(LocalDate.now().minusMonths(2))
+        val obligationDataResponse    = makeDataResponse(overdueObligationDate, mostOverdueObligationDate)
 
-        sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(overdueObligationDate1)
+        sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(mostOverdueObligationDate)
       }
     }
 
     "return no oldestOverdueObligation" when {
-      "there are no overdue obligation" in {
+      "there are no overdue obligations" in {
         val upcomingObligationDate = makeDetail()
         val obligationDataResponse = makeDataResponse(upcomingObligationDate)
 
@@ -137,10 +136,36 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
 
       "an obligation is today" in {
-        val obligationDueToday = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
+        val obligationDueToday     = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
         val obligationDataResponse = makeDataResponse(obligationDueToday)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe None
+      }
+    }
+    "return count of overdue obligations" when {
+      "we have no obligations" in {
+        val noObligationsResponse = makeDataResponse()
+
+        sut.get(noObligationsResponse).overdueObligationCount mustBe 0
+      }
+      "we have one overdue obligation" in {
+        val overdueOb                  = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now.minusDays(1))
+        val overdueObligationsResponse = makeDataResponse(overdueOb)
+
+        sut.get(overdueObligationsResponse).overdueObligationCount mustBe 1
+      }
+      "we have multiple overdue obligations" in {
+        val overdueOb                  = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now.minusDays(1))
+        val overdueObligationsResponse = makeDataResponse(overdueOb, overdueOb, overdueOb)
+
+        sut.get(overdueObligationsResponse).overdueObligationCount mustBe 3
+      }
+      "we have both one due and one overdue obligations" in {
+        val upcomingObligationDate = makeDetail()
+        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val obligationDataResponse = makeDataResponse(overdueObligationDate, upcomingObligationDate)
+
+        sut.get(obligationDataResponse).overdueObligationCount mustBe 1
       }
     }
   }
