@@ -39,12 +39,13 @@ class PPTObligationsService {
         isEqualOrAfterToday(o.inboundCorrespondenceDueDate)
       ).sortBy(_.inboundCorrespondenceDueDate).headOption
 
-    val overdueObligation: Option[ObligationDetail] =
+    val overdueObligations: Seq[ObligationDetail] =
       obligation.obligationDetails.filter(
         _.inboundCorrespondenceDueDate.isBefore(LocalDate.now())
-      ).sortBy(_.inboundCorrespondenceDueDate).headOption
+      ).sortBy(_.inboundCorrespondenceDueDate)
 
-    PPTObligations(nextOb, overdueObligation)
+
+    PPTObligations(nextOb, overdueObligations.headOption, overdueObligations.length)
   }
 
   private def isEqualOrAfterToday(date: LocalDate) = {
