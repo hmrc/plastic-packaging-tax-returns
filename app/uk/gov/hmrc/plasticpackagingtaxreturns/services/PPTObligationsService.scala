@@ -30,25 +30,30 @@ class PPTObligationsService {
   implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
 
   def get(data: ObligationDataResponse): PPTObligations = {
+    val today = LocalDate.now()
 
     val obligation: Obligation = //todo: what if there is none OR more than one?
       if (data.obligations.length == 1) data.obligations.head else throw new Exception("Where is my only Obligation??")
 
     val nextOb: Option[ObligationDetail] =
-      obligation.obligationDetails.filter( o =>
-        isEqualOrAfterToday(o.inboundCorrespondenceDueDate)
-      ).sortBy(_.inboundCorrespondenceDueDate).headOption
+      obligation.obligationDetails.filter(o => isEqualOrAfterToday(o.inboundCorrespondenceDueDate)).sortBy(
+        _.inboundCorrespondenceDueDate
+      ).headOption
 
     val overdueObligations: Seq[ObligationDetail] =
-      obligation.obligationDetails.filter(
-        _.inboundCorrespondenceDueDate.isBefore(LocalDate.now())
-      ).sortBy(_.inboundCorrespondenceDueDate)
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBefore(LocalDate.now())).sortBy(
+        _.inboundCorrespondenceDueDate
+      )
 
+    val isNextObligationDue: Boolean =
+      nextOb.fold(false)(_.inboundCorrespondenceToDate.isBefore(LocalDate.now()))
 
-    PPTObligations(nextOb, overdueObligations.headOption, overdueObligations.length)
+    val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
+
+    PPTObligations(nextOb, overdueObligations.headOption, overdueObligations.length, isNextObligationDue, displaySubmitReturnsLink)
   }
 
-  private def isEqualOrAfterToday(date: LocalDate) = {
+  private def isEqualOrAfterToday(date: LocalDate) =
     date.compareTo(LocalDate.now()) >= 0
-  }
+
 }

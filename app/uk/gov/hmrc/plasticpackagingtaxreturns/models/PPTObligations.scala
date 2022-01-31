@@ -25,7 +25,9 @@ import java.time.LocalDate
 final case class PPTObligations(
   nextObligation: Option[ObligationDetail],
   oldestOverdueObligation: Option[ObligationDetail],
-  overdueObligationCount: Int
+  overdueObligationCount: Int,
+  isNextObligationDue: Boolean,
+  displaySubmitReturnsLink: Boolean
 )
 
 object PPTObligations {

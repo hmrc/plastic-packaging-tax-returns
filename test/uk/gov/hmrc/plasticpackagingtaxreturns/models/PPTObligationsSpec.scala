@@ -40,7 +40,7 @@ class PPTObligationsSpec extends PlaySpec {
                                    periodKey = "#001"
   )
 
-  val sut = PPTObligations(Some(nextObligation), Some(oldestOverdueObligation), 0)
+  val sut = PPTObligations(Some(nextObligation), Some(oldestOverdueObligation), 0, false, false)
 
   "json writer" must {
 
