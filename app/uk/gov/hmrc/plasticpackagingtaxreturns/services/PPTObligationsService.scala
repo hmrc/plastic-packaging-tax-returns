@@ -35,10 +35,19 @@ class PPTObligationsService {
       if (data.obligations.length == 1) data.obligations.head else throw new Exception("Where is my only Obligation??")
 
     val nextOb: Option[ObligationDetail] =
-      obligation.obligationDetails.filter(
-        _.inboundCorrespondenceDueDate.isAfter(LocalDate.now())
+      obligation.obligationDetails.filter( o =>
+        isEqualOrAfterToday(o.inboundCorrespondenceDueDate)
       ).sortBy(_.inboundCorrespondenceDueDate).headOption
-    PPTObligations(nextOb)
+
+    val overdueObligation: Option[ObligationDetail] =
+      obligation.obligationDetails.filter(
+        _.inboundCorrespondenceDueDate.isBefore(LocalDate.now())
+      ).sortBy(_.inboundCorrespondenceDueDate).headOption
+
+    PPTObligations(nextOb, overdueObligation)
   }
 
+  private def isEqualOrAfterToday(date: LocalDate) = {
+    date.compareTo(LocalDate.now()) >= 0
+  }
 }
