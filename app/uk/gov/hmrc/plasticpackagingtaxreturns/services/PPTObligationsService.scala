@@ -30,8 +30,6 @@ class PPTObligationsService {
   implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
 
   def get(data: ObligationDataResponse): PPTObligations = {
-    val today = LocalDate.now()
-
     val obligation: Obligation = //todo: what if there is none OR more than one?
       if (data.obligations.length == 1) data.obligations.head else throw new Exception("Where is my only Obligation??")
 
