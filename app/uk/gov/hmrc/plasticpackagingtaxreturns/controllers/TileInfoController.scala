@@ -21,35 +21,38 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class TileInfoController @Inject()(
   cc: ControllerComponents,
+  authenticator: Authenticator,
   obligationDataConnector: ObligationDataConnector,
   obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
 extends BackendController(cc) {
 
-  def get(ref: String): Action[AnyContent] = Action.async {
-    implicit val hc: HeaderCarrier =  HeaderCarrier()
+  def get(ref: String): Action[AnyContent] = authenticator.authorisedAction(parse.default) {
+    implicit request =>
 
-    obligationDataConnector.get(
-      ref,
-      LocalDate.of(2022, 4,1),
-      LocalDate.now(),
-      ObligationStatus.OPEN
-    ).map {
-        case Left(_) =>
-          InternalServerError("{}")
-        case Right(obligationDataResponse) =>
-          Ok(Json.toJson(obligationsService.get(obligationDataResponse)))
-    }
+      obligationDataConnector.get(
+        ref,
+        LocalDate.of(2022, 4,1),
+        LocalDate.now(),
+        ObligationStatus.OPEN
+      ).map {
+          case Left(error) =>
+            InternalServerError("{}")
+          case Right(obligationDataResponse) =>
+            Ok(Json.toJson(obligationsService.get(obligationDataResponse)))
+      }
   }
 
 

@@ -29,15 +29,14 @@ import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, _}
 import play.api.test.{FakeRequest, Injecting}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Identification,
-  Obligation,
-  ObligationDataResponse,
-  ObligationStatus
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
 import java.time.LocalDate
@@ -45,28 +44,45 @@ import java.util.UUID
 import scala.concurrent.Future
 
 class TileInfoControllerSpec
-    extends PlaySpec with BeforeAndAfterEach with MockitoSugar with GuiceOneAppPerSuite with Injecting {
+  extends PlaySpec
+    with AuthTestSupport
+    with SubscriptionTestData
+    with BeforeAndAfterEach
+    with MockitoSugar
+    with GuiceOneAppPerSuite
+    with Injecting {
+
   val mockPTPObligations: PPTObligationsService = mock[PPTObligationsService]
   val mockObligationDataConnector               = mock[ObligationDataConnector]
+  val mockTaxReturnRepository = mock[TaxReturnRepository]
   lazy val sut: TileInfoController              = inject[TileInfoController]
-  val testPPTReference: String                  = UUID.randomUUID().toString
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPTPObligations, mockObligationDataConnector)
+    reset(
+      mockAuthConnector,
+      mockPTPObligations,
+      mockObligationDataConnector,
+      mockTaxReturnRepository)
+
+
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[PPTObligationsService].toInstance(mockPTPObligations),
-               bind[ObligationDataConnector].toInstance(mockObligationDataConnector)
+    .overrides(
+      bind[PPTObligationsService].toInstance(mockPTPObligations),
+      bind[ObligationDataConnector].toInstance(mockObligationDataConnector),
+      bind[AuthConnector].toInstance(mockAuthConnector),
+      bind[TaxReturnRepository].toInstance(mockTaxReturnRepository)
     )
     .build()
 
   "get" must {
-    val request     = FakeRequest("GET", "/obligations/open/" + testPPTReference)
-    val obligations = PPTObligations(None)
+    val request     = FakeRequest("GET", "/obligations/open/" + pptReference)
+    val obligations = PPTObligations(None, None)
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
+      withAuthorizedUser()
       when(mockPTPObligations.get(any())).thenReturn(obligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(ObligationDataResponse(Seq.empty))))
@@ -77,13 +93,14 @@ class TileInfoControllerSpec
     }
 
     "get PTPObligation from service" in {
+      withAuthorizedUser()
       val desResponse = ObligationDataResponse(Seq.empty)
 
       when(mockPTPObligations.get(any())).thenReturn(obligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
-      val result: Future[Result] = sut.get(testPPTReference)(request)
+      val result: Future[Result] = sut.get(pptReference)(request)
 
       verify(mockPTPObligations).get(ObligationDataResponse(Seq.empty))
       contentAsJson(result) mustBe Json.toJson(obligations)
@@ -91,16 +108,18 @@ class TileInfoControllerSpec
     }
 
     "get should call Obligation Connector" in {
+      withAuthorizedUser()
       val desResponse = ObligationDataResponse(Seq.empty)
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
       when(mockPTPObligations.get(any())).thenReturn(obligations)
 
-      val result: Future[Result] = sut.get(testPPTReference)(request)
+      val result: Future[Result] = sut.get(pptReference)(request)
+      Thread.sleep(20)
 
       verify(mockObligationDataConnector)
-        .get(exactlyEq(testPPTReference),
+        .get(exactlyEq(pptReference),
              exactlyEq(LocalDate.of(2022, 4, 1)),
              exactlyEq(LocalDate.now()),
              exactlyEq(ObligationStatus.OPEN)
@@ -110,16 +129,18 @@ class TileInfoControllerSpec
     }
 
     "get should call Obligation Connector and actually call the service with it" in {
+      withAuthorizedUser()
       val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
       when(mockPTPObligations.get(any())).thenReturn(obligations)
 
-      val result: Future[Result] = sut.get(testPPTReference)(request)
+      val result: Future[Result] = sut.get(pptReference)(request)
+      Thread.sleep(20)
 
       verify(mockObligationDataConnector)
-        .get(exactlyEq(testPPTReference),
+        .get(exactlyEq(pptReference),
              exactlyEq(LocalDate.of(2022, 4, 1)),
              exactlyEq(LocalDate.now()),
              exactlyEq(ObligationStatus.OPEN)
@@ -130,15 +151,17 @@ class TileInfoControllerSpec
 
     "return internal server error response" when {
       "if error return from connector" in {
+        withAuthorizedUser()
         val desResponse: Int = 500
 
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Left(desResponse)))
 
-        val result: Future[Result] = sut.get(testPPTReference)(request)
+        val result: Future[Result] = sut.get(pptReference)(request)
+        Thread.sleep(20)
 
         verify(mockObligationDataConnector)
-          .get(exactlyEq(testPPTReference),
+          .get(exactlyEq(pptReference),
                exactlyEq(LocalDate.of(2022, 4, 1)),
                exactlyEq(LocalDate.now()),
                exactlyEq(ObligationStatus.OPEN)
