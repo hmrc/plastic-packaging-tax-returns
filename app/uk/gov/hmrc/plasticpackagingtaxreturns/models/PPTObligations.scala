@@ -22,7 +22,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.O
 
 import java.time.LocalDate
 
-final case class PPTObligations(nextObligation: Option[ObligationDetail])
+final case class PPTObligations(nextObligation: Option[ObligationDetail],
+                                oldestOverdueObligation: Option[ObligationDetail])
 
 object PPTObligations {
 
