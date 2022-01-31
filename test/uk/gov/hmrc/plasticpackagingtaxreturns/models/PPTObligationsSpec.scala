@@ -32,7 +32,15 @@ class PPTObligationsSpec extends PlaySpec {
                                         periodKey = "#001"
   )
 
-  val sut = PPTObligations(Some(nextObligation), None, 0)
+  val oldestOverdueObligation = ObligationDetail(status = ObligationStatus.OPEN,
+                                   inboundCorrespondenceFromDate = LocalDate.now().plusDays(1),
+                                   inboundCorrespondenceToDate = LocalDate.now().plusDays(2),
+                                   inboundCorrespondenceDateReceived = LocalDate.now().plusDays(3),
+                                   inboundCorrespondenceDueDate = LocalDate.now().minusDays(4),
+                                   periodKey = "#001"
+  )
+
+  val sut = PPTObligations(Some(nextObligation), Some(oldestOverdueObligation), 0)
 
   "json writer" must {
 
@@ -42,6 +50,13 @@ class PPTObligationsSpec extends PlaySpec {
       (json \ "nextObligation" \ "fromDate").get mustBe JsString(nextObligation.inboundCorrespondenceFromDate.toString)
       (json \ "nextObligation" \ "toDate").get mustBe JsString(nextObligation.inboundCorrespondenceToDate.toString)
       (json \ "nextObligation" \ "dueDate").get mustBe JsString(nextObligation.inboundCorrespondenceDueDate.toString)
+    }
+    "write overdue obligation in current format" in {
+      val json = Json.toJson(sut)
+      (json \ "oldestOverdueObligation" \ "periodKey").get mustBe JsString(oldestOverdueObligation.periodKey)
+      (json \ "oldestOverdueObligation" \ "fromDate").get mustBe JsString(oldestOverdueObligation.inboundCorrespondenceFromDate.toString)
+      (json \ "oldestOverdueObligation" \ "toDate").get mustBe JsString(oldestOverdueObligation.inboundCorrespondenceToDate.toString)
+      (json \ "oldestOverdueObligation" \ "dueDate").get mustBe JsString(oldestOverdueObligation.inboundCorrespondenceDueDate.toString)
     }
   }
 }
