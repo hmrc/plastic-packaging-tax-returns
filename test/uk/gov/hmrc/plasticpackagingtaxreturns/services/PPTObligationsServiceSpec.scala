@@ -30,6 +30,7 @@ import java.time.LocalDate
 
 class PPTObligationsServiceSpec extends PlaySpec {
   val sut: PPTObligationsService = new PPTObligationsService()
+  val today                      = LocalDate.now()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
@@ -41,14 +42,18 @@ class PPTObligationsServiceSpec extends PlaySpec {
       )
     )
 
-  def makeDetail(fromDate: LocalDate = LocalDate.now): ObligationDetail =
+  def makeDetail(fromDate: LocalDate = today): ObligationDetail =
     ObligationDetail(status = ObligationStatus.OPEN,
                      inboundCorrespondenceFromDate = fromDate,
                      inboundCorrespondenceToDate = fromDate.plusMonths(1),
                      inboundCorrespondenceDateReceived = fromDate,
-                     inboundCorrespondenceDueDate = fromDate.plusMonths(1).minusDays(1),
+                     inboundCorrespondenceDueDate = fromDate.plusMonths(2),
                      periodKey = "#001"
     )
+
+  val overdueObligation: ObligationDetail = makeDetail(today.minusMonths(2))
+  val dueObligation: ObligationDetail = makeDetail(today.minusMonths(1).minusDays(1))
+  val upcomingObligation: ObligationDetail = makeDetail(today)
 
   "get" must {
 
@@ -59,6 +64,8 @@ class PPTObligationsServiceSpec extends PlaySpec {
       sut.get(obligationDataResponse).nextObligation mustBe None
 
     }
+
+
     "return nextObligation" when {
       "there is only one obligationDetail" in {
 
@@ -72,7 +79,7 @@ class PPTObligationsServiceSpec extends PlaySpec {
       "there is an upcoming obligation and an overdue obligation" in {
 
         val upcomingObligationDate = makeDetail()
-        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val overdueObligationDate  = overdueObligation
         val obligationDataResponse = makeDataResponse(overdueObligationDate, upcomingObligationDate)
 
         sut.get(obligationDataResponse).nextObligation mustBe Some(upcomingObligationDate)
@@ -81,7 +88,7 @@ class PPTObligationsServiceSpec extends PlaySpec {
       "there are two upcoming obligations" in {
 
         val upcomingObligationDate = makeDetail()
-        val laterObligationDate    = makeDetail(LocalDate.now().plusMonths(1))
+        val laterObligationDate    = makeDetail(today.plusMonths(1))
         val obligationDataResponse = makeDataResponse(laterObligationDate, upcomingObligationDate)
 
         withClue("obligation should be the soonest") {
@@ -91,8 +98,8 @@ class PPTObligationsServiceSpec extends PlaySpec {
 
       "there are a bunch of obligations" in {
         val upcomingObligationDate = makeDetail()
-        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
-        val laterObligationDate    = makeDetail(LocalDate.now().plusMonths(1))
+        val overdueObligationDate  = overdueObligation
+        val laterObligationDate    = makeDetail(today.plusMonths(1))
 
         val obligationDataResponse =
           makeDataResponse(laterObligationDate, upcomingObligationDate, overdueObligationDate)
@@ -101,7 +108,7 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
 
       "the due date is equal to today date" in {
-        val upcomingObligationDate = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now())
+        val upcomingObligationDate = makeDetail().copy(inboundCorrespondenceDueDate = today)
         val obligationDataResponse = makeDataResponse(upcomingObligationDate)
 
         sut.get(obligationDataResponse).nextObligation mustBe Some(upcomingObligationDate)
@@ -112,15 +119,15 @@ class PPTObligationsServiceSpec extends PlaySpec {
 
       "an obligation is overdue" in {
 
-        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val overdueObligationDate  = overdueObligation
         val obligationDataResponse = makeDataResponse(overdueObligationDate)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(overdueObligationDate)
       }
 
       "there is more than one" in {
-        val overdueObligationDate     = makeDetail(LocalDate.now().minusMonths(1))
-        val mostOverdueObligationDate = makeDetail(LocalDate.now().minusMonths(2))
+        val overdueObligationDate     = overdueObligation
+        val mostOverdueObligationDate = makeDetail(today.minusMonths(5))
         val obligationDataResponse    = makeDataResponse(overdueObligationDate, mostOverdueObligationDate)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(mostOverdueObligationDate)
@@ -162,10 +169,58 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
       "we have both one due and one overdue obligations" in {
         val upcomingObligationDate = makeDetail()
-        val overdueObligationDate  = makeDetail(LocalDate.now().minusMonths(1))
+        val overdueObligationDate  = overdueObligation
         val obligationDataResponse = makeDataResponse(overdueObligationDate, upcomingObligationDate)
 
         sut.get(obligationDataResponse).overdueObligationCount mustBe 1
+      }
+      "return whether there is Next Obligation Due" when {
+        "we have no obligations" in {
+          val noObligationsResponse = makeDataResponse()
+
+          sut.get(noObligationsResponse).isNextObligationDue mustBe false
+        }
+        "we have one upcoming obligation that is not within due period" in {
+          val upcomingObligationDate = makeDetail(today.plusDays(1))
+          val obligationDataResponse = makeDataResponse(upcomingObligationDate)
+
+          sut.get(obligationDataResponse).isNextObligationDue mustBe false
+        }
+        "we have one upcoming obligation that is within due period" in {
+          val dueObligationDate      = makeDetail(today.minusMonths(1).minusDays(1))
+          val obligationDataResponse = makeDataResponse(dueObligationDate)
+
+          sut.get(obligationDataResponse).isNextObligationDue mustBe true
+        }
+      }
+      "return whether to display the Submit Returns Link" when {
+        "there are 0 obligations" in {
+          val obligationDataResponse = makeDataResponse()
+
+          sut.get(obligationDataResponse).displaySubmitReturnsLink mustBe false
+        }
+
+        "there is 0 overdue and 0 within due period" in {
+          val obligationDataResponse = makeDataResponse(upcomingObligation)
+
+          sut.get(obligationDataResponse).displaySubmitReturnsLink mustBe false
+        }
+        "there is 0 overdue and 1 within due period" in {
+          val obligationDataResponse = makeDataResponse(dueObligation)
+
+          sut.get(obligationDataResponse).displaySubmitReturnsLink mustBe true
+        }
+        "there is 1 overdue and 0 within due period" in {
+          val obligationDataResponse = makeDataResponse(overdueObligation)
+
+          sut.get(obligationDataResponse).displaySubmitReturnsLink mustBe true
+        }
+        "there is 1 overdue and 1 within due period" in {
+          val obligationDataResponse = makeDataResponse(overdueObligation, dueObligation)
+
+          sut.get(obligationDataResponse).displaySubmitReturnsLink mustBe true
+        }
+
       }
     }
   }
