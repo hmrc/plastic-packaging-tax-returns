@@ -79,7 +79,7 @@ class TileInfoControllerSpec
 
   "get" must {
     val request     = FakeRequest("GET", "/obligations/open/" + pptReference)
-    val obligations = PPTObligations(None, None)
+    val obligations = PPTObligations(None, None, 0)
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
       withAuthorizedUser()
