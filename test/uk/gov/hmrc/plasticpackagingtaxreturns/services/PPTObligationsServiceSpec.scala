@@ -51,12 +51,36 @@ class PPTObligationsServiceSpec extends PlaySpec {
                      periodKey = "#001"
     )
 
-  val overdueObligation: ObligationDetail   = makeDetail(today.minusMonths(2))
-  val dueObligation: ObligationDetail       = makeDetail(today.minusMonths(1).minusDays(1))
-  val upcomingObligation: ObligationDetail  = makeDetail(today)
-  val laterObligation: ObligationDetail = makeDetail(today.plusMonths(1))
+  val overdueObligation: ObligationDetail  = makeDetail(today.minusMonths(2))
+  val dueObligation: ObligationDetail      = makeDetail(today.minusMonths(1).minusDays(1))
+  val upcomingObligation: ObligationDetail = makeDetail(today)
+  val laterObligation: ObligationDetail    = makeDetail(today.plusMonths(1))
 
   "get" must {
+
+    "throws exception" when {
+      "there are no obligations in data" in {
+        val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
+
+        val exception =  intercept[Exception](sut.get(obligationDataResponse))
+        exception.getMessage mustBe("Where is my only Obligation??")
+      }
+      "there are multiple obligations in data" in{
+        val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(
+          Seq(
+            Obligation(identification =
+              Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+              obligationDetails = Nil),
+            Obligation(identification =
+                Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+                obligationDetails = Nil
+            )
+          )
+        )
+        val exception =  intercept[Exception](sut.get(obligationDataResponse))
+        exception.getMessage mustBe("Where is my only Obligation??")
+      }
+    }
 
     "return no obligations" in {
       val obligationDataResponse: ObligationDataResponse = makeDataResponse()
@@ -109,8 +133,8 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
 
       "there is more than one" in {
-        val veryOverdueObligation = makeDetail(today.minusMonths(5))
-        val obligationDataResponse    = makeDataResponse(overdueObligation, veryOverdueObligation)
+        val veryOverdueObligation  = makeDetail(today.minusMonths(5))
+        val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(veryOverdueObligation)
       }
