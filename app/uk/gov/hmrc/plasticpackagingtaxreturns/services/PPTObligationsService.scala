@@ -48,7 +48,12 @@ class PPTObligationsService {
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 
-    PPTObligations(nextOb, overdueObligations.headOption, overdueObligations.length, isNextObligationDue, displaySubmitReturnsLink)
+    PPTObligations(nextOb,
+                   overdueObligations.headOption,
+                   overdueObligations.length,
+                   isNextObligationDue,
+                   displaySubmitReturnsLink
+    )
   }
 
   private def isEqualOrAfterToday(date: LocalDate) =
