@@ -29,10 +29,13 @@ class PPTObligationsService {
 
   implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
 
-  def get(data: ObligationDataResponse): PPTObligations = {
-    val obligation: Obligation = //todo: what if there is none OR more than one?
-      if (data.obligations.length == 1) data.obligations.head else throw new Exception("Where is my only Obligation??")
+  def get(data: ObligationDataResponse): Either[String, PPTObligations] = //todo: change method name (munge?)
+    data.obligations match {
+      case obligation :: Nil => Right(got(obligation))
+      case _                 => Left("Where is my only Obligation??")
+    }
 
+  private def got(obligation: Obligation): PPTObligations = { //todo: change method name (munge?)
     val nextOb: Option[ObligationDetail] =
       obligation.obligationDetails.filter(o => isEqualOrAfterToday(o.inboundCorrespondenceDueDate)).sortBy(
         _.inboundCorrespondenceDueDate
