@@ -42,19 +42,19 @@ class PPTObligationsServiceSpec extends PlaySpec {
       )
     )
 
-  def makeDetail(fromDate: LocalDate = today): ObligationDetail =
+  def makeDetail(fromDate: LocalDate = today, periodKey: String = "#001"): ObligationDetail =
     ObligationDetail(status = ObligationStatus.OPEN,
                      inboundCorrespondenceFromDate = fromDate,
-                     inboundCorrespondenceToDate = fromDate.plusMonths(1),
+                     inboundCorrespondenceToDate = fromDate.plusDays(10),
                      inboundCorrespondenceDateReceived = fromDate,
-                     inboundCorrespondenceDueDate = fromDate.plusMonths(2),
-                     periodKey = "#001"
+                     inboundCorrespondenceDueDate = fromDate.plusDays(19),
+                     periodKey = periodKey
     )
 
-  val overdueObligation: ObligationDetail  = makeDetail(today.minusMonths(2))
-  val dueObligation: ObligationDetail      = makeDetail(today.minusMonths(1).minusDays(1))
-  val upcomingObligation: ObligationDetail = makeDetail(today)
-  val laterObligation: ObligationDetail    = makeDetail(today.plusMonths(1))
+  val overdueObligation: ObligationDetail  = makeDetail(today.minusDays(20),"overdue")
+  val dueObligation: ObligationDetail      = makeDetail(today.minusDays(10).minusDays(1),"due")
+  val upcomingObligation: ObligationDetail = makeDetail(today,"upcoming")
+  val laterObligation: ObligationDetail    = makeDetail(today.plusDays(10),"later")
 
   "get" must {
 
@@ -133,7 +133,7 @@ class PPTObligationsServiceSpec extends PlaySpec {
       }
 
       "there is more than one" in {
-        val veryOverdueObligation  = makeDetail(today.minusMonths(5))
+        val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
 
         sut.get(obligationDataResponse).oldestOverdueObligation mustBe Some(veryOverdueObligation)
