@@ -17,21 +17,17 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.http.HeaderCarrier
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  ObligationDataResponse,
-  ObligationStatus
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController.PPTTaxStartDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class TileInfoController @Inject() (
@@ -45,15 +41,18 @@ class TileInfoController @Inject() (
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        obligationDataConnector.get(ref, LocalDate.of(2022, 4, 1), LocalDate.now(), ObligationStatus.OPEN).map { //todo: take out constant date
-          case Left(error) =>
+        obligationDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
+          case Left(_) =>
             InternalServerError("{}")
-          case Right(obligationDataResponse) => obligationsService.get(obligationDataResponse) match {
-            case Left(error) => ServiceUnavailable("{}")
+          case Right(obligationDataResponse) => obligationsService.constructPPTObligations(obligationDataResponse) match {
+            case Left(error) =>  InternalServerError("{}")
             case Right(response) => Ok(Json.toJson(response))
           }
-//            Ok(Json.toJson(obligationsService.get(obligationDataResponse).right.get)) //todo: fix
         }
     }
-
 }
+
+object TileInfoController {
+  private val PPTTaxStartDate = LocalDate.of(2022, 4, 1)
+}
+
