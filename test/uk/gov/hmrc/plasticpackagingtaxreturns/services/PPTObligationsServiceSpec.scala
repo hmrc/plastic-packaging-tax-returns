@@ -63,7 +63,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
 
-        sut.get(obligationDataResponse) mustBe Left("Where is my only Obligation??")
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
       }
       "there are multiple obligations in data" in {
         val obligation = Obligation(
@@ -74,34 +74,34 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         val obligationDataResponse: ObligationDataResponse =
           ObligationDataResponse(Seq(obligation, obligation))
 
-        sut.get(obligationDataResponse) mustBe Left("Where is my only Obligation??")
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
       }
     }
 
     "return no obligations" in {
       val obligationDataResponse: ObligationDataResponse = makeDataResponse()
 
-      sut.get(obligationDataResponse).value.nextObligation mustBe None
+      sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe None
     }
 
     "return nextObligation" when {
       "there is only one obligationDetail" in {
         val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-        sut.get(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
       }
 
       "there is an upcoming obligation and an overdue obligation" in {
         val obligationDataResponse = makeDataResponse(overdueObligation, upcomingObligation)
 
-        sut.get(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
       }
 
       "there are two upcoming obligations" in {
         val obligationDataResponse = makeDataResponse(laterObligation, upcomingObligation)
 
         withClue("obligation should be the soonest") {
-          sut.get(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
+          sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
         }
       }
 
@@ -110,13 +110,13 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         val obligationDataResponse =
           makeDataResponse(laterObligation, upcomingObligation, overdueObligation)
 
-        sut.get(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
       }
 
       "the due date is equal to today date" in {
         val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-        sut.get(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
       }
     }
 
@@ -125,14 +125,14 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
       "an obligation is overdue" in {
         val obligationDataResponse = makeDataResponse(overdueObligation)
 
-        sut.get(obligationDataResponse).value.oldestOverdueObligation mustBe Some(overdueObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(overdueObligation)
       }
 
       "there is more than one" in {
         val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
 
-        sut.get(obligationDataResponse).value.oldestOverdueObligation mustBe Some(veryOverdueObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(veryOverdueObligation)
       }
     }
 
@@ -140,80 +140,80 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
       "there are no overdue obligations" in {
         val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-        sut.get(obligationDataResponse).value.oldestOverdueObligation mustBe None
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe None
       }
 
       "an obligation is today" in {
         val obligationDueToday     = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
         val obligationDataResponse = makeDataResponse(obligationDueToday)
 
-        sut.get(obligationDataResponse).value.oldestOverdueObligation mustBe None
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe None
       }
     }
     "return count of overdue obligations" when {
       "we have no obligations" in {
         val noObligationsResponse = makeDataResponse()
 
-        sut.get(noObligationsResponse).value.overdueObligationCount mustBe 0
+        sut.constructPPTObligations(noObligationsResponse).value.overdueObligationCount mustBe 0
       }
       "we have one overdue obligation" in {
         val overdueObligationsResponse = makeDataResponse(overdueObligation)
 
-        sut.get(overdueObligationsResponse).value.overdueObligationCount mustBe 1
+        sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 1
       }
       "we have multiple overdue obligations" in {
         val overdueObligationsResponse = makeDataResponse(overdueObligation, overdueObligation, overdueObligation)
 
-        sut.get(overdueObligationsResponse).value.overdueObligationCount mustBe 3
+        sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 3
       }
       "we have both one due and one overdue obligations" in {
         val obligationDataResponse = makeDataResponse(overdueObligation, upcomingObligation)
 
-        sut.get(obligationDataResponse).value.overdueObligationCount mustBe 1
+        sut.constructPPTObligations(obligationDataResponse).value.overdueObligationCount mustBe 1
       }
       "return whether there is Next Obligation Due" when {
         "we have no obligations" in {
           val noObligationsResponse = makeDataResponse()
 
-          sut.get(noObligationsResponse).value.isNextObligationDue mustBe false
+          sut.constructPPTObligations(noObligationsResponse).value.isNextObligationDue mustBe false
         }
         "we have one upcoming obligation that is not within due period" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-          sut.get(obligationDataResponse).value.isNextObligationDue mustBe false
+          sut.constructPPTObligations(obligationDataResponse).value.isNextObligationDue mustBe false
         }
         "we have one upcoming obligation that is within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)
 
-          sut.get(obligationDataResponse).value.isNextObligationDue mustBe true
+          sut.constructPPTObligations(obligationDataResponse).value.isNextObligationDue mustBe true
         }
       }
       "return whether to display the Submit Returns Link" when {
         "there are 0 obligations" in {
           val obligationDataResponse = makeDataResponse()
 
-          sut.get(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
         }
 
         "there is 0 overdue and 0 within due period" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-          sut.get(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
         }
         "there is 0 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)
 
-          sut.get(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
         "there is 1 overdue and 0 within due period" in {
           val obligationDataResponse = makeDataResponse(overdueObligation)
 
-          sut.get(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
         "there is 1 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(overdueObligation, dueObligation)
 
-          sut.get(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
       }
     }
