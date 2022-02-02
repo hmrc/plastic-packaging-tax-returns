@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq => exactlyEq}
-import org.mockito.Mockito.{never, reset, times, verify, when}
+import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
@@ -31,12 +31,7 @@ import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, sta
 import play.api.test.{FakeRequest, Injecting}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Identification,
-  Obligation,
-  ObligationDataResponse,
-  ObligationStatus
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
@@ -45,7 +40,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
 import java.time.LocalDate
-import java.util.UUID
 import scala.concurrent.Future
 
 class TileInfoControllerSpec
@@ -78,7 +72,7 @@ class TileInfoControllerSpec
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
       withAuthorizedUser()
-      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(ObligationDataResponse(Seq.empty))))
 
@@ -91,14 +85,14 @@ class TileInfoControllerSpec
       withAuthorizedUser()
       val desResponse = ObligationDataResponse(Seq.empty)
 
-      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(pptReference)(request)
 
       status(result) mustBe OK
-      verify(mockPPTObligationsService).get(ObligationDataResponse(Seq.empty))
+      verify(mockPPTObligationsService).constructPPTObligations(ObligationDataResponse(Seq.empty))
       contentAsJson(result) mustBe Json.toJson(obligations)
     }
 
@@ -108,7 +102,7 @@ class TileInfoControllerSpec
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
       await(sut.get(pptReference)(request))
 
@@ -127,11 +121,11 @@ class TileInfoControllerSpec
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
       await(sut.get(pptReference)(request))
 
-      verify(mockPPTObligationsService).get(desResponse)
+      verify(mockPPTObligationsService).constructPPTObligations(desResponse)
     }
 
     "return internal server error response" when {
@@ -150,11 +144,11 @@ class TileInfoControllerSpec
         val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Right(desResponse)))
-        when(mockPPTObligationsService.get(any())).thenReturn(Left("test error message"))
+        when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(Left("test error message"))
 
         val result: Future[Result] = sut.get(pptReference)(request)
 
-        status(result) mustBe SERVICE_UNAVAILABLE
+        status(result) mustBe INTERNAL_SERVER_ERROR
       }
     }
   }
