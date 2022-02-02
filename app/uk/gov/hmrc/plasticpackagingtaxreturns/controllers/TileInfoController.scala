@@ -48,8 +48,11 @@ class TileInfoController @Inject() (
         obligationDataConnector.get(ref, LocalDate.of(2022, 4, 1), LocalDate.now(), ObligationStatus.OPEN).map { //todo: take out constant date
           case Left(error) =>
             InternalServerError("{}")
-          case Right(obligationDataResponse) =>
-            Ok(Json.toJson(obligationsService.get(obligationDataResponse).right.get)) //todo: fix
+          case Right(obligationDataResponse) => obligationsService.get(obligationDataResponse) match {
+            case Left(error) => ServiceUnavailable("{}")
+            case Right(response) => Ok(Json.toJson(response))
+          }
+//            Ok(Json.toJson(obligationsService.get(obligationDataResponse).right.get)) //todo: fix
         }
     }
 
