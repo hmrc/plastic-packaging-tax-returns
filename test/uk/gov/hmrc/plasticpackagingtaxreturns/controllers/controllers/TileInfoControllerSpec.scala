@@ -52,19 +52,19 @@ class TileInfoControllerSpec
     extends PlaySpec with AuthTestSupport with SubscriptionTestData with BeforeAndAfterEach with MockitoSugar
     with GuiceOneAppPerSuite with Injecting {
 
-  val mockPTPObligations: PPTObligationsService = mock[PPTObligationsService]
+  val mockPPTObligationsService: PPTObligationsService = mock[PPTObligationsService]
   val mockObligationDataConnector               = mock[ObligationDataConnector]
   val mockTaxReturnRepository                   = mock[TaxReturnRepository]
   lazy val sut: TileInfoController              = inject[TileInfoController]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAuthConnector, mockPTPObligations, mockObligationDataConnector, mockTaxReturnRepository)
+    reset(mockAuthConnector, mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository)
 
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[PPTObligationsService].toInstance(mockPTPObligations),
+    .overrides(bind[PPTObligationsService].toInstance(mockPPTObligationsService),
                bind[ObligationDataConnector].toInstance(mockObligationDataConnector),
                bind[AuthConnector].toInstance(mockAuthConnector),
                bind[TaxReturnRepository].toInstance(mockTaxReturnRepository)
@@ -78,7 +78,7 @@ class TileInfoControllerSpec
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
       withAuthorizedUser()
-      when(mockPTPObligations.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(ObligationDataResponse(Seq.empty))))
 
@@ -91,15 +91,15 @@ class TileInfoControllerSpec
       withAuthorizedUser()
       val desResponse = ObligationDataResponse(Seq.empty)
 
-      when(mockPTPObligations.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(pptReference)(request)
 
-      verify(mockPTPObligations).get(ObligationDataResponse(Seq.empty))
-      contentAsJson(result) mustBe Json.toJson(obligations)
       status(result) mustBe OK
+      verify(mockPPTObligationsService).get(ObligationDataResponse(Seq.empty))
+      contentAsJson(result) mustBe Json.toJson(obligations)
     }
 
     "get should call Obligation Connector" in {
@@ -108,10 +108,9 @@ class TileInfoControllerSpec
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPTPObligations.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
 
-      val result: Future[Result] = sut.get(pptReference)(request)
-      Thread.sleep(20)
+      await(sut.get(pptReference)(request))
 
       verify(mockObligationDataConnector)
         .get(exactlyEq(pptReference),
@@ -119,56 +118,44 @@ class TileInfoControllerSpec
              exactlyEq(LocalDate.now()),
              exactlyEq(ObligationStatus.OPEN)
         )(any())
-
-      verify(mockPTPObligations).get(desResponse)
     }
 
-    "get should call Obligation Connector and actually call the service with it" in {
+    "get should call the service" in {
       withAuthorizedUser()
+
       val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPTPObligations.get(any())).thenReturn(rightObligations)
+      when(mockPPTObligationsService.get(any())).thenReturn(rightObligations)
 
-      val result: Future[Result] = sut.get(pptReference)(request)
-      Thread.sleep(20)
+      await(sut.get(pptReference)(request))
 
-      verify(mockObligationDataConnector)
-        .get(exactlyEq(pptReference),
-             exactlyEq(LocalDate.of(2022, 4, 1)),
-             exactlyEq(LocalDate.now()),
-             exactlyEq(ObligationStatus.OPEN)
-        )(any())
-
-      verify(mockPTPObligations).get(desResponse)
+      verify(mockPPTObligationsService).get(desResponse)
     }
 
     "return internal server error response" when {
       "if error return from connector" in {
         withAuthorizedUser()
-        val desResponse: Int = 500
-
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(Left(desResponse)))
+          .thenReturn(Future.successful(Left(500)))
 
         val result: Future[Result] = sut.get(pptReference)(request)
-        Thread.sleep(20)
-
-        verify(mockObligationDataConnector)
-          .get(exactlyEq(pptReference),
-               exactlyEq(LocalDate.of(2022, 4, 1)),
-               exactlyEq(LocalDate.now()),
-               exactlyEq(ObligationStatus.OPEN)
-          )(any())
-
-        verify(mockPTPObligations, never()).get(any())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
+      }
 
+      "if the controller handles an error" in {
+        withAuthorizedUser()
+        val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+        when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Right(desResponse)))
+        when(mockPPTObligationsService.get(any())).thenReturn(Left("test error message"))
+
+        val result: Future[Result] = sut.get(pptReference)(request)
+
+        status(result) mustBe SERVICE_UNAVAILABLE
       }
     }
-
   }
-
 }
