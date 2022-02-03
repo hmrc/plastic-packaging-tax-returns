@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 
+import play.api.libs.json.Reads
 import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthenticatorImpl, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 
 import javax.inject.Inject
 import scala.concurrent.Future
@@ -31,4 +32,5 @@ extends Authenticator {
     }
   }
 
+  override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???
 }

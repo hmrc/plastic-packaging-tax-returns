@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-package common.test
-
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
 import uk.gov.hmrc.auth.core.{AffinityGroup, Enrolments}
 

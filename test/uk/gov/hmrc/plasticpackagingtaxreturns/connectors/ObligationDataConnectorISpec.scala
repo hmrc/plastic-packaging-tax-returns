@@ -25,7 +25,7 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, SubscriptionTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 
 import java.time.LocalDate
 

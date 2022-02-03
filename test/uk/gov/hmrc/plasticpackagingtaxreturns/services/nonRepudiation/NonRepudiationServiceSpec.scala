@@ -28,11 +28,7 @@ import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{NrsTestData, SubscriptionTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
 
 import java.nio.charset.StandardCharsets
