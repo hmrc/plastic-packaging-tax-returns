@@ -28,7 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTes
 
 import java.time.LocalDate
 
-class ReturnsConnectorISpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
+class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
 

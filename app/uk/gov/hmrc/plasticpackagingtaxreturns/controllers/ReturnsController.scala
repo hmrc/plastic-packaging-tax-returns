@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, _}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthenticatorImpl
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxReturn, TaxReturnRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -29,9 +29,9 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
-  authenticator: Authenticator,
-  taxReturnRepository: TaxReturnRepository,
-  override val controllerComponents: ControllerComponents
+                                    authenticator: AuthenticatorImpl,
+                                    taxReturnRepository: TaxReturnRepository,
+                                    override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
