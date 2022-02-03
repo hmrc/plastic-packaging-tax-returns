@@ -16,21 +16,20 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import java.time.LocalDate
-
-import javax.inject.{Inject, Singleton}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthenticatorImpl
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.time.LocalDate
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class ExportCreditBalanceController @Inject() (
                                                 exportCreditBalanceConnector: ExportCreditBalanceConnector,
-                                                authenticator: AuthenticatorImpl,
+                                                authenticator: Authenticator,
                                                 override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {

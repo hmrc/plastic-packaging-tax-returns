@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-package common.test
-
 /*
  * Copyright 2022 HM Revenue & Customs
  *
