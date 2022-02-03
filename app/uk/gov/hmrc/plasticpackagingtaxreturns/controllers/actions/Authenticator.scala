@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
 import com.google.inject.ImplementedBy
+import play.api.libs.json.Reads
 import play.api.mvc.{Action, BodyParser, Result}
 
 import scala.concurrent.Future
@@ -24,4 +25,5 @@ import scala.concurrent.Future
 @ImplementedBy(classOf[AuthenticatorImpl])
 trait Authenticator {
   def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A]
+  def parsingJson[T](implicit rds: Reads[T]): BodyParser[T]
 }

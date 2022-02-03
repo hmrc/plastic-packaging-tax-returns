@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import java.time.LocalDate
-
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
@@ -26,7 +24,9 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData, SubscriptionTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
+
+import java.time.LocalDate
 
 class FinancialDataConnectorISpec
     extends ConnectorISpec with Injector with ScalaFutures with EnterpriseTestData {

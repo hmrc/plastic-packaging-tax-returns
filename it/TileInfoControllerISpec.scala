@@ -16,7 +16,6 @@
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
-import common.test.{AuthTestSupport, CustomWireMockTestServer}
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
@@ -35,19 +34,19 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-
 import java.time.LocalDate
 
 class TileInfoControllerISpec extends PlaySpec
   with GuiceOneServerPerSuite
-  with BeforeAndAfterAll
   with AuthTestSupport
+  with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
   val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: CustomWireMockTestServer = CustomWireMockTestServer()
-  lazy val mockReturnsRepository = mock[TaxReturnRepository]
   lazy val wsClient  = app.injector.instanceOf[WSClient]
+
+  lazy val mockReturnsRepository = mock[TaxReturnRepository]
 
   val fromDate = LocalDate.of(2022, 4, 1)
   val toDate = LocalDate.now()
@@ -89,6 +88,8 @@ class TileInfoControllerISpec extends PlaySpec
     super.afterAll()
     server.stop()
   }
+
+
 
   "GET" must {
     "return 200" in {
