@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
+package common.test
 
-import com.google.inject.ImplementedBy
-import play.api.mvc.{Action, BodyParser, Result}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
+import uk.gov.hmrc.auth.core.{AffinityGroup, Enrolments}
 
-import scala.concurrent.Future
-
-@ImplementedBy(classOf[AuthenticatorImpl])
-trait Authenticator {
-  def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A]
-}
+case class SignedInUser(
+  credentials: Credentials,
+  name: Name,
+  email: Option[String],
+  externalId: String,
+  internalId: Option[String],
+  affinityGroup: Option[AffinityGroup],
+  enrolments: Enrolments
+)

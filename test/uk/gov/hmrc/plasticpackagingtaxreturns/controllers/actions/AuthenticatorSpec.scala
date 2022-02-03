@@ -39,7 +39,7 @@ class AuthenticatorSpec
   private val mcc           = stubMessagesControllerComponents()
   private val hc            = HeaderCarrier()
   private val request       = FakeRequest()
-  private val authenticator = new Authenticator(mockAuthConnector, mcc)(ExecutionContext.global)
+  private val authenticator = new AuthenticatorImpl(mockAuthConnector, mcc)(ExecutionContext.global)
 
   "Authenticator" should {
     "return 401 unauthorised " when {

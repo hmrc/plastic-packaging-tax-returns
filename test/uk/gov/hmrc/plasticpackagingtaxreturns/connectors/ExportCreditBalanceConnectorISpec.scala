@@ -29,7 +29,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpe
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, SubscriptionTestData}
 
 class ExportCreditBalanceConnectorISpec
-    extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
+    extends ConnectorISpec with Injector with ScalaFutures {
 
   lazy val connector: ExportCreditBalanceConnector = app.injector.instanceOf[ExportCreditBalanceConnector]
 

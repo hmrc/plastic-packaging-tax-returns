@@ -28,7 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateWithNrsFailureResponse,
   SubscriptionUpdateWithNrsSuccessfulResponse
 }
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{AuthenticatorImpl, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
@@ -39,11 +39,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubscriptionController @Inject() (
-  subscriptionsConnector: SubscriptionsConnector,
-  authenticator: Authenticator,
-  auditor: Auditor,
-  nonRepudiationService: NonRepudiationService,
-  override val controllerComponents: ControllerComponents
+                                         subscriptionsConnector: SubscriptionsConnector,
+                                         authenticator: AuthenticatorImpl,
+                                         auditor: Auditor,
+                                         nonRepudiationService: NonRepudiationService,
+                                         override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

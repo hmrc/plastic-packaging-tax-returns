@@ -29,7 +29,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, Subs
 
 import java.time.LocalDate
 
-class ObligationDataConnectorISpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
+class ObligationDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   lazy val connector: ObligationDataConnector = app.injector.instanceOf[ObligationDataConnector]
 

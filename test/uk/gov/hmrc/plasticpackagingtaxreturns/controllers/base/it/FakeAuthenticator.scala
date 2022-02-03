@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
+package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 
-import com.google.inject.ImplementedBy
-import play.api.mvc.{Action, BodyParser, Result}
+import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthenticatorImpl, AuthorizedRequest}
 
+import javax.inject.Inject
 import scala.concurrent.Future
 
-@ImplementedBy(classOf[AuthenticatorImpl])
-trait Authenticator {
-  def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A]
+class FakeAuthenticator @Inject()
+(cc: ControllerComponents)
+extends Authenticator {
+  override def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] = {
+    cc.actionBuilder.async(bodyParser) { implicit request =>
+      body(AuthorizedRequest("uiui", request))
+    }
+  }
+
 }
