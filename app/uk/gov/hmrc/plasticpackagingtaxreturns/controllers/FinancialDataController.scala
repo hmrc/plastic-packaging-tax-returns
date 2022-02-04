@@ -28,9 +28,9 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class FinancialDataController @Inject() (
-                                          financialDataConnector: FinancialDataConnector,
-                                          authenticator: Authenticator,
-                                          override val controllerComponents: ControllerComponents
+  financialDataConnector: FinancialDataConnector,
+  authenticator: Authenticator,
+  override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

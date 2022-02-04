@@ -29,9 +29,9 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsController @Inject() (
-                                    authenticator: Authenticator,
-                                    taxReturnRepository: TaxReturnRepository,
-                                    override val controllerComponents: ControllerComponents
+  authenticator: Authenticator,
+  taxReturnRepository: TaxReturnRepository,
+  override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
