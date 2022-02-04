@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.TileInfoController.PPTTaxStartDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationController.PPTTaxStartDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -30,7 +30,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class TileInfoController @Inject() (
+class PPTObligationController @Inject()(
                                      cc: ControllerComponents,
                                      authenticator: Authenticator,
                                      obligationDataConnector: ObligationDataConnector,
@@ -52,7 +52,7 @@ class TileInfoController @Inject() (
     }
 }
 
-object TileInfoController {
+object PPTObligationController {
   private val PPTTaxStartDate = LocalDate.of(2022, 4, 1)
 }
 
