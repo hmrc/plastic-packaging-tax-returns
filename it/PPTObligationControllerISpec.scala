@@ -28,7 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.{AuthTestSupport, CustomWireMockTestServer}
+import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
@@ -44,7 +44,7 @@ class PPTObligationControllerISpec extends PlaySpec
   with BeforeAndAfterEach {
 
   val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
-  implicit lazy val server: CustomWireMockTestServer = CustomWireMockTestServer()
+  implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient  = app.injector.instanceOf[WSClient]
 
   lazy val mockReturnsRepository = mock[TaxReturnRepository]

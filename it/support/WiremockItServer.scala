@@ -53,7 +53,7 @@ import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 
-class CustomWireMockTestServer {
+class WiremockItServer {
   val wireHost = "localhost"
   lazy val server = new WireMockServer(options().dynamicPort())
   lazy val wirePort = port()
@@ -82,6 +82,6 @@ class CustomWireMockTestServer {
   private def port() =  if(!server.isRunning) {start(); server.port()} else server.port()
 }
 
-object CustomWireMockTestServer {
-  def apply() = new CustomWireMockTestServer
+object WiremockItServer {
+  def apply() = new WiremockItServer
 }
