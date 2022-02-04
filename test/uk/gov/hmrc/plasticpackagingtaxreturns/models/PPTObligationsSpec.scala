@@ -24,31 +24,34 @@ import java.time.LocalDate
 
 class PPTObligationsSpec extends PlaySpec {
 
-  val someObligationDetail: ObligationDetail = ObligationDetail(
-    status = ObligationStatus.OPEN,
-    inboundCorrespondenceFromDate = LocalDate.now().plusDays(1),
-    inboundCorrespondenceToDate = LocalDate.now().plusDays(2),
-    inboundCorrespondenceDateReceived = LocalDate.now().plusDays(3),
-    inboundCorrespondenceDueDate = LocalDate.now().plusDays(4),
-    periodKey = "#001"
+  val someObligationDetail: ObligationDetail = ObligationDetail(status = ObligationStatus.OPEN,
+                                                                inboundCorrespondenceFromDate =
+                                                                  LocalDate.now().plusDays(1),
+                                                                inboundCorrespondenceToDate =
+                                                                  LocalDate.now().plusDays(2),
+                                                                inboundCorrespondenceDateReceived =
+                                                                  LocalDate.now().plusDays(3),
+                                                                inboundCorrespondenceDueDate =
+                                                                  LocalDate.now().plusDays(4),
+                                                                periodKey = "#001"
   )
 
   val sut: PPTObligations = PPTObligations(Some(someObligationDetail), Some(someObligationDetail), 0, false, false)
-  
+
   "customObligationDetailWrites" must {
     "format ObligationDetail for PPT obligations" in {
       val jsValue = Json.toJson(someObligationDetail)(PPTObligations.customObligationDetailWrites)
-      
+
       (jsValue \ "periodKey").get mustBe JsString(someObligationDetail.periodKey)
       (jsValue \ "fromDate").get mustBe JsString(someObligationDetail.inboundCorrespondenceFromDate.toString)
       (jsValue \ "toDate").get mustBe JsString(someObligationDetail.inboundCorrespondenceToDate.toString)
       (jsValue \ "dueDate").get mustBe JsString(someObligationDetail.inboundCorrespondenceDueDate.toString)
     }
   }
-  
+
   "PPTObligationsWrites" must {
     "use the customObligationDetailWrites" when {
-      val json = Json.toJson(sut)
+      val json     = Json.toJson(sut)
       val expected = Json.toJson(someObligationDetail)(PPTObligations.customObligationDetailWrites)
 
       "writing nextObligation" in {
@@ -56,7 +59,7 @@ class PPTObligationsSpec extends PlaySpec {
       }
       "writing oldestOverdueObligation" in {
         (json \ "oldestOverdueObligation").get mustBe expected
-      }    
+      }
     }
   }
 }

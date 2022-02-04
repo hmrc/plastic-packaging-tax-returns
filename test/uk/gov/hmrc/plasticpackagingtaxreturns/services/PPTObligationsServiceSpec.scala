@@ -18,14 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatest.EitherValues
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Identification,
-  Obligation,
-  ObligationDataResponse,
-  ObligationDetail,
-  ObligationStatus
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 
 import java.time.LocalDate
 
@@ -132,7 +125,9 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
 
-        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(veryOverdueObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(
+          veryOverdueObligation
+        )
       }
     }
 

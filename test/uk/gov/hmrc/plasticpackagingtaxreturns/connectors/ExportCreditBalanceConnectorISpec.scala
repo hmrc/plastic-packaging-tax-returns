@@ -28,8 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 
 import java.time.LocalDate
 
-class ExportCreditBalanceConnectorISpec
-    extends ConnectorISpec with Injector with ScalaFutures {
+class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   lazy val connector: ExportCreditBalanceConnector = app.injector.instanceOf[ExportCreditBalanceConnector]
 

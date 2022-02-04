@@ -26,7 +26,12 @@ import play.api.mvc.Result
 import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, status, _}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  Identification,
+  Obligation,
+  ObligationDataResponse,
+  ObligationStatus
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
@@ -37,35 +42,26 @@ import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PPTObligationControllerSpec
-  extends PlaySpec
-    with BeforeAndAfterEach
-    with MockitoSugar {
+class PPTObligationControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   val mockPPTObligationsService: PPTObligationsService = mock[PPTObligationsService]
-  val mockObligationDataConnector               = mock[ObligationDataConnector]
-  val mockTaxReturnRepository                   = mock[TaxReturnRepository]
+  val mockObligationDataConnector                      = mock[ObligationDataConnector]
+  val mockTaxReturnRepository                          = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(
-      mockPPTObligationsService,
-      mockObligationDataConnector,
-      mockTaxReturnRepository)
+    reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository)
   }
 
   val cc = Helpers.stubControllerComponents()
 
-  lazy val sut = new PPTObligationController(
-    cc,
-    new FakeAuthenticator(cc),
-    mockObligationDataConnector,
-    mockPPTObligationsService)
+  lazy val sut =
+    new PPTObligationController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService)
 
   "get" must {
     val obligations      = PPTObligations(None, None, 0, false, false)
     val rightObligations = Right(obligations)
-    val pptReference = "1234"
+    val pptReference     = "1234"
 
     "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
 
@@ -105,9 +101,9 @@ class PPTObligationControllerSpec
 
       verify(mockObligationDataConnector)
         .get(exactlyEq(pptReference),
-          exactlyEq(LocalDate.of(2022, 4, 1)),
-          exactlyEq(LocalDate.now()),
-          exactlyEq(ObligationStatus.OPEN)
+             exactlyEq(LocalDate.of(2022, 4, 1)),
+             exactlyEq(LocalDate.now()),
+             exactlyEq(ObligationStatus.OPEN)
         )(any())
     }
 

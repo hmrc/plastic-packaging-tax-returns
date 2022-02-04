@@ -29,9 +29,9 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class ObligationDataController @Inject() (
-                                           obligationDataConnector: ObligationDataConnector,
-                                           authenticator: Authenticator,
-                                           override val controllerComponents: ControllerComponents
+  obligationDataConnector: ObligationDataConnector,
+  authenticator: Authenticator,
+  override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

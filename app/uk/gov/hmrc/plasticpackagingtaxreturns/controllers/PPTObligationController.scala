@@ -30,11 +30,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PPTObligationController @Inject()(
-                                     cc: ControllerComponents,
-                                     authenticator: Authenticator,
-                                     obligationDataConnector: ObligationDataConnector,
-                                     obligationsService: PPTObligationsService
+class PPTObligationController @Inject() (
+  cc: ControllerComponents,
+  authenticator: Authenticator,
+  obligationDataConnector: ObligationDataConnector,
+  obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
 
@@ -44,15 +44,16 @@ class PPTObligationController @Inject()(
         obligationDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
           case Left(_) =>
             InternalServerError("{}")
-          case Right(obligationDataResponse) => obligationsService.constructPPTObligations(obligationDataResponse) match {
-            case Left(error) =>  InternalServerError("{}")
-            case Right(response) => Ok(Json.toJson(response))
-          }
+          case Right(obligationDataResponse) =>
+            obligationsService.constructPPTObligations(obligationDataResponse) match {
+              case Left(error)     => InternalServerError("{}")
+              case Right(response) => Ok(Json.toJson(response))
+            }
         }
     }
+
 }
 
 object PPTObligationController {
   private val PPTTaxStartDate = LocalDate.of(2022, 4, 1)
 }
-

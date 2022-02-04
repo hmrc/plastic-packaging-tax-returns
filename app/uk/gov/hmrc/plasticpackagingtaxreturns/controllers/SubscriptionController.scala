@@ -22,7 +22,12 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse,
+  SubscriptionUpdateWithNrsFailureResponse,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
@@ -34,11 +39,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubscriptionController @Inject() (
-                                         subscriptionsConnector: SubscriptionsConnector,
-                                         authenticator: Authenticator,
-                                         auditor: Auditor,
-                                         nonRepudiationService: NonRepudiationService,
-                                         override val controllerComponents: ControllerComponents
+  subscriptionsConnector: SubscriptionsConnector,
+  authenticator: Authenticator,
+  auditor: Auditor,
+  nonRepudiationService: NonRepudiationService,
+  override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

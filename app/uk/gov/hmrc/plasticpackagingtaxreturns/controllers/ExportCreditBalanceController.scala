@@ -28,9 +28,9 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class ExportCreditBalanceController @Inject() (
-                                                exportCreditBalanceConnector: ExportCreditBalanceConnector,
-                                                authenticator: Authenticator,
-                                                override val controllerComponents: ControllerComponents
+  exportCreditBalanceConnector: ExportCreditBalanceConnector,
+  authenticator: Authenticator,
+  override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
