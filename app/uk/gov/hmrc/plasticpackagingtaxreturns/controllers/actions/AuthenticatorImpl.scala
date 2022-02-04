@@ -33,10 +33,9 @@ import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatorImpl @Inject()
-(override val authConnector: AuthConnector, cc: ControllerComponents)
-(implicit ec: ExecutionContext)
-  extends BackendController(cc) with AuthorisedFunctions with Authenticator {
+class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
+  ec: ExecutionContext
+) extends BackendController(cc) with AuthorisedFunctions with Authenticator {
 
   private val logger = Logger(this.getClass)
 

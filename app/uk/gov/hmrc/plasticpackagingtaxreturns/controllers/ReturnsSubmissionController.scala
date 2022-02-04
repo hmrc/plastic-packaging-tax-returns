@@ -29,10 +29,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
-                                              authenticator: Authenticator,
-                                              taxReturnRepository: TaxReturnRepository,
-                                              override val controllerComponents: ControllerComponents,
-                                              returnsConnector: ReturnsConnector
+  authenticator: Authenticator,
+  taxReturnRepository: TaxReturnRepository,
+  override val controllerComponents: ControllerComponents,
+  returnsConnector: ReturnsConnector
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

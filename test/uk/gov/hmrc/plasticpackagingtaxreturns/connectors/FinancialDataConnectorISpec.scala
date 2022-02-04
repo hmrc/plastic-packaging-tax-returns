@@ -28,8 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, Ente
 
 import java.time.LocalDate
 
-class FinancialDataConnectorISpec
-    extends ConnectorISpec with Injector with ScalaFutures with EnterpriseTestData {
+class FinancialDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EnterpriseTestData {
 
   lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
 

@@ -23,14 +23,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator
 import javax.inject.Inject
 import scala.concurrent.Future
 
-class FakeAuthenticator @Inject()
-(cc: ControllerComponents)
-extends Authenticator {
-  override def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] = {
+class FakeAuthenticator @Inject() (cc: ControllerComponents) extends Authenticator {
+
+  override def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
     cc.actionBuilder.async(bodyParser) { implicit request =>
       body(AuthorizedRequest("uiui", request))
     }
-  }
 
   override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???
 }

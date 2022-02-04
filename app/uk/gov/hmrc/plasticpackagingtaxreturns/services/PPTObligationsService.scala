@@ -32,7 +32,7 @@ class PPTObligationsService {
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
       case Seq(obligation) => Right(construct(obligation))
-      case _                 => Left("No Obligation found")
+      case _               => Left("No Obligation found")
     }
 
   private def construct(obligation: Obligation): PPTObligations = {
