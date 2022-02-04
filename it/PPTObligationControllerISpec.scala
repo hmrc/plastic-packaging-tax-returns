@@ -28,6 +28,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import support.{AuthTestSupport, CustomWireMockTestServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
@@ -36,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
 
-class TileInfoControllerISpec extends PlaySpec
+class PPTObligationControllerISpec extends PlaySpec
   with GuiceOneServerPerSuite
   with AuthTestSupport
   with BeforeAndAfterAll
