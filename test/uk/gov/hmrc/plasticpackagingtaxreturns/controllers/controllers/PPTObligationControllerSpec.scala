@@ -63,17 +63,6 @@ class PPTObligationControllerSpec extends PlaySpec with BeforeAndAfterEach with 
     val rightObligations = Right(obligations)
     val pptReference     = "1234"
 
-    "be accessible from the requestHandler" in { //todo eventually be moved to integration test package
-
-      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
-      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(ObligationDataResponse(Seq.empty))))
-
-      val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
-
-      status(result) must not be NOT_FOUND
-    }
-
     "get PTPObligation from service" in {
 
       val desResponse = ObligationDataResponse(Seq.empty)
