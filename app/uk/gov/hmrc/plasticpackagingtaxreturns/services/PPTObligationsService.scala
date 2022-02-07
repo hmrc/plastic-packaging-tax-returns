@@ -16,23 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
+import play.api.Logger
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
   Obligation,
   ObligationDataResponse,
   ObligationDetail
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-
 import java.time.LocalDate
 
 class PPTObligationsService {
 
   implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
+  private val logger                                  = Logger(this.getClass)
 
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
-      case Seq(obligation) => Right(construct(obligation))
-      case _               => Left("No Obligation found")
+      case Seq(obligation) =>
+        logger.info("Constructing Obligations.")
+        Right(construct(obligation))
+      case _ =>
+        logger.error("No Obligations found.")
+        Left("No Obligation found")
     }
 
   private def construct(obligation: Obligation): PPTObligations = {

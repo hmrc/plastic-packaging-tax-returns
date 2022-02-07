@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationController.PPTTaxStartDate
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -38,16 +39,23 @@ class PPTObligationController @Inject() (
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
 
+  private val logger = Logger(this.getClass)
+
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
         obligationDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
-          case Left(_) =>
+          case Left(errorStatusCode) =>
+            logger.error(s"Error getting Obligation data from DES: $errorStatusCode.")
             InternalServerError("{}")
           case Right(obligationDataResponse) =>
             obligationsService.constructPPTObligations(obligationDataResponse) match {
-              case Left(error)     => InternalServerError("{}")
-              case Right(response) => Ok(Json.toJson(response))
+              case Left(error) =>
+                logger.error(s"Error constructing Obligation response: $error.")
+                InternalServerError("{}")
+              case Right(response) =>
+                logger.info("Success: returning Obligation response.")
+                Ok(Json.toJson(response))
             }
         }
     }
