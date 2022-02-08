@@ -31,11 +31,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PPTObligationsController @Inject()(
-                                          cc: ControllerComponents,
-                                          authenticator: Authenticator,
-                                          obligationsDataConnector: ObligationsDataConnector,
-                                          obligationsService: PPTObligationsService
+class PPTObligationsController @Inject() (
+  cc: ControllerComponents,
+  authenticator: Authenticator,
+  obligationsDataConnector: ObligationsDataConnector,
+  obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
 

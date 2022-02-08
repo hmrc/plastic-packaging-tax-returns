@@ -46,7 +46,7 @@ class ObligationDataControllerSpec
 
   SharedMetricRegistries.clear()
 
-  val getResponse = ObligationDataResponse(obligations =
+  val getResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(
         identification =
@@ -65,7 +65,9 @@ class ObligationDataControllerSpec
   )
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[ObligationsDataConnector].to(mockObligationDataConnector))
+    .overrides(bind[AuthConnector].to(mockAuthConnector),
+               bind[ObligationsDataConnector].to(mockObligationDataConnector)
+    )
     .build()
 
   override def beforeEach(): Unit = {

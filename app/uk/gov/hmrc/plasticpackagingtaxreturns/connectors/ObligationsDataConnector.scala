@@ -31,7 +31,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.O
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ObligationsDataConnector @Inject()(httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
+class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
   implicit ec: ExecutionContext
 ) extends DESConnector {
 
@@ -42,7 +42,7 @@ class ObligationsDataConnector @Inject()(httpClient: HttpClient, override val ap
   ): Future[Either[Int, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
-    val correlationId = correlationIdHeader._2
+    val correlationId       = correlationIdHeader._2
 
     val queryParams =
       Seq("fromDate" -> DateFormat.isoFormat(fromDate),
@@ -64,13 +64,13 @@ class ObligationsDataConnector @Inject()(httpClient: HttpClient, override val ap
       .recover {
         case httpEx: UpstreamErrorResponse =>
           logger.error(
-            s"Upstream error returned when getting enterprise obligation data correlationId [${correlationId}] and " +
+            s"""Upstream error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
               s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
           )
           Left(httpEx.statusCode)
         case ex: Exception =>
           logger.error(
-            s"Failed when getting enterprise obligation data with correlationId [${correlationId}] and " +
+            s"""Failed when getting enterprise obligation data with correlationId [$correlationId] and """ +
               s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
             ex
           )
