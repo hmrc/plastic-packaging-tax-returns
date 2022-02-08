@@ -78,7 +78,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
     }
 
     "return nextObligation" when {
-      "there is only one obligationDetail" in {
+      "there is only one obligationDetail and it is not overdue" in {
         val obligationDataResponse = makeDataResponse(upcomingObligation)
 
         sut.constructPPTObligations(obligationDataResponse).value.nextObligation mustBe Some(upcomingObligation)
@@ -98,7 +98,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         }
       }
 
-      "there are a bunch of obligations" in {
+      "there are two upcoming and one overdue" in {
 
         val obligationDataResponse =
           makeDataResponse(laterObligation, upcomingObligation, overdueObligation)
@@ -121,7 +121,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(overdueObligation)
       }
 
-      "there is more than one" in {
+      "there is more than one overdue" in {
         val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
 
@@ -138,7 +138,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe None
       }
 
-      "an obligation is today" in {
+      "an obligation is due today" in {
         val obligationDueToday     = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
         val obligationDataResponse = makeDataResponse(obligationDueToday)
 
@@ -157,7 +157,9 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 1
       }
       "we have multiple overdue obligations" in {
-        val overdueObligationsResponse = makeDataResponse(overdueObligation, overdueObligation, overdueObligation)
+        val veryOverdueObligation: ObligationDetail  = makeDetail(today.minusDays(120), "very-overdue")
+        val tardiestOverdueObligation: ObligationDetail  = makeDetail(today.minusDays(220), "tardiest-overdue")
+        val overdueObligationsResponse = makeDataResponse(overdueObligation, veryOverdueObligation, tardiestOverdueObligation)
 
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 3
       }

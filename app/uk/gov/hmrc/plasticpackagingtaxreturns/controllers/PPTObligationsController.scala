@@ -19,9 +19,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationController.PPTTaxStartDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.PPTTaxStartDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -31,11 +31,11 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PPTObligationController @Inject() (
-  cc: ControllerComponents,
-  authenticator: Authenticator,
-  obligationDataConnector: ObligationDataConnector,
-  obligationsService: PPTObligationsService
+class PPTObligationsController @Inject()(
+                                          cc: ControllerComponents,
+                                          authenticator: Authenticator,
+                                          obligationsDataConnector: ObligationsDataConnector,
+                                          obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
 
@@ -44,9 +44,8 @@ class PPTObligationController @Inject() (
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        obligationDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
+        obligationsDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
           case Left(errorStatusCode) =>
-            logger.error(s"Error getting Obligation data from DES: $errorStatusCode.")
             InternalServerError("{}")
           case Right(obligationDataResponse) =>
             obligationsService.constructPPTObligations(obligationDataResponse) match {
@@ -54,7 +53,6 @@ class PPTObligationController @Inject() (
                 logger.error(s"Error constructing Obligation response: $error.")
                 InternalServerError("{}")
               case Right(response) =>
-                logger.info("Success: returning Obligation response.")
                 Ok(Json.toJson(response))
             }
         }
@@ -62,6 +60,6 @@ class PPTObligationController @Inject() (
 
 }
 
-object PPTObligationController {
+object PPTObligationsController {
   private val PPTTaxStartDate = LocalDate.of(2022, 4, 1)
 }

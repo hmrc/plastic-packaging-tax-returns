@@ -40,23 +40,25 @@ class PPTObligationsService {
         Left("No Obligation found")
     }
 
+
   private def construct(obligation: Obligation): PPTObligations = {
-    val nextOb: Option[ObligationDetail] =
-      obligation.obligationDetails.filter(o => isEqualOrAfterToday(o.inboundCorrespondenceDueDate)).sortBy(
+    val today: LocalDate = LocalDate.now()
+    val nextObligation: Option[ObligationDetail] =
+      obligation.obligationDetails.filter(o => isEqualOrAfterToday(o.inboundCorrespondenceDueDate, today)).sortBy(
         _.inboundCorrespondenceDueDate
       ).headOption
 
     val overdueObligations: Seq[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBefore(LocalDate.now())).sortBy(
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBefore(today)).sortBy(
         _.inboundCorrespondenceDueDate
       )
 
     val isNextObligationDue: Boolean =
-      nextOb.fold(false)(_.inboundCorrespondenceToDate.isBefore(LocalDate.now()))
+      nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 
-    PPTObligations(nextOb,
+    PPTObligations(nextObligation,
                    overdueObligations.headOption,
                    overdueObligations.length,
                    isNextObligationDue,
@@ -64,7 +66,7 @@ class PPTObligationsService {
     )
   }
 
-  private def isEqualOrAfterToday(date: LocalDate) =
-    date.compareTo(LocalDate.now()) >= 0
+  private def isEqualOrAfterToday(date: LocalDate, today: LocalDate) =
+    date.compareTo(today) >= 0
 
 }

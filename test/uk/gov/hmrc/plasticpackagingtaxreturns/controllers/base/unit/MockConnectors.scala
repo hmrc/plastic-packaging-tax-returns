@@ -52,7 +52,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
   protected val mockReturnsConnector: ReturnsConnector                         = mock[ReturnsConnector]
-  protected val mockObligationDataConnector: ObligationDataConnector           = mock[ObligationDataConnector]
+  protected val mockObligationDataConnector: ObligationsDataConnector          = mock[ObligationsDataConnector]
   protected val mockFinancialDataConnector: FinancialDataConnector             = mock[FinancialDataConnector]
 
   override protected def beforeEach(): Unit = {
