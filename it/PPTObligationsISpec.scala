@@ -30,37 +30,36 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationStatus, _}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
 
-class PPTObligationsControllerISpec extends PlaySpec
-  with GuiceOneServerPerSuite
-  with AuthTestSupport
-  with BeforeAndAfterAll
-  with BeforeAndAfterEach {
+class PPTObligationsISpec
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
 
-  val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
+  val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
-  lazy val wsClient  = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
-  val mockReturnsRepository = mock[TaxReturnRepository]
+  lazy val mockReturnsRepository: TaxReturnRepository = mock[TaxReturnRepository]
 
-  val fromDate = LocalDate.of(2022, 4, 1)
-  val toDate = LocalDate.now()
-  val status = ObligationStatus.OPEN
-  val DESUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
+  val fromDate: LocalDate = LocalDate.of(2022, 4, 1)
+  val toDate: LocalDate = LocalDate.now()
+  val status: ObligationStatus.Value = ObligationStatus.OPEN
+
+  val DESUrl =
+    s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
+
   val PPTUrl = s"http://localhost:$port/obligations/open/$pptReference"
 
   val obligationResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
-      Obligation(
-        identification =
-          Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
-        obligationDetails = Seq.empty
+      Obligation(identification =
+                   Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+                 obligationDetails = Seq.empty
       )
     )
   )
@@ -69,9 +68,7 @@ class PPTObligationsControllerISpec extends PlaySpec
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[TaxReturnRepository].toInstance(mockReturnsRepository))
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].toInstance(mockReturnsRepository))
       .build()
   }
 
@@ -90,8 +87,6 @@ class PPTObligationsControllerISpec extends PlaySpec
     server.stop()
   }
 
-
-
   "GET" must {
     "return 200" in {
       withAuthorizedUser()
@@ -100,7 +95,7 @@ class PPTObligationsControllerISpec extends PlaySpec
       val response = await(wsClient.url(PPTUrl).get())
 
       response.status mustBe OK
-      response.json mustBe Json.toJson(PPTObligations(None,None, 0, false, false))
+      response.json mustBe Json.toJson(PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false))
     }
 
     "should return Unauthorised" in {
@@ -139,4 +134,5 @@ class PPTObligationsControllerISpec extends PlaySpec
             .withStatus(Status.INTERNAL_SERVER_ERROR)
         )
     )
+
 }

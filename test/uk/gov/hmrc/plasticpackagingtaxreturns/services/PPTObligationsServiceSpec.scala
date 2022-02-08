@@ -24,7 +24,7 @@ import java.time.LocalDate
 
 class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
   val sut: PPTObligationsService = new PPTObligationsService()
-  val today                      = LocalDate.now()
+  val today: LocalDate           = LocalDate.now()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
@@ -157,9 +157,10 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 1
       }
       "we have multiple overdue obligations" in {
-        val veryOverdueObligation: ObligationDetail  = makeDetail(today.minusDays(120), "very-overdue")
-        val tardiestOverdueObligation: ObligationDetail  = makeDetail(today.minusDays(220), "tardiest-overdue")
-        val overdueObligationsResponse = makeDataResponse(overdueObligation, veryOverdueObligation, tardiestOverdueObligation)
+        val veryOverdueObligation: ObligationDetail     = makeDetail(today.minusDays(120), "very-overdue")
+        val tardiestOverdueObligation: ObligationDetail = makeDetail(today.minusDays(220), "tardiest-overdue")
+        val overdueObligationsResponse =
+          makeDataResponse(overdueObligation, veryOverdueObligation, tardiestOverdueObligation)
 
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 3
       }
