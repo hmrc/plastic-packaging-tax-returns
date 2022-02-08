@@ -40,7 +40,6 @@ class PPTObligationsService {
         Left("No Obligation found")
     }
 
-
   private def construct(obligation: Obligation): PPTObligations = {
     val today: LocalDate = LocalDate.now()
     val nextObligation: Option[ObligationDetail] =
