@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
@@ -28,10 +28,10 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class ObligationDataController @Inject() (
-  obligationDataConnector: ObligationDataConnector,
-  authenticator: Authenticator,
-  override val controllerComponents: ControllerComponents
+class ObligationDataController @Inject() ( // TODO is this needed any longer?
+                                           obligationDataConnector: ObligationsDataConnector,
+                                           authenticator: Authenticator,
+                                           override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 

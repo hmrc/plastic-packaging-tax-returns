@@ -31,7 +31,7 @@ import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{OK, contentAsJson, route, status, _}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
@@ -65,7 +65,7 @@ class ObligationDataControllerSpec
   )
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[ObligationDataConnector].to(mockObligationDataConnector))
+    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[ObligationsDataConnector].to(mockObligationDataConnector))
     .build()
 
   override def beforeEach(): Unit = {

@@ -22,17 +22,12 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, status, _}
+import play.api.mvc.{ControllerComponents, Result}
+import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Identification,
-  Obligation,
-  ObligationDataResponse,
-  ObligationStatus
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationController
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -42,24 +37,23 @@ import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PPTObligationControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
+class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   val mockPPTObligationsService: PPTObligationsService = mock[PPTObligationsService]
-  val mockObligationDataConnector                      = mock[ObligationDataConnector]
-  val mockTaxReturnRepository                          = mock[TaxReturnRepository]
+  val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
+  val mockTaxReturnRepository: TaxReturnRepository = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository)
   }
 
-  val cc = Helpers.stubControllerComponents()
+  val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  lazy val sut =
-    new PPTObligationController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService)
+  val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService)
 
   "get" must {
-    val obligations      = PPTObligations(None, None, 0, false, false)
+    val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
     val rightObligations = Right(obligations)
     val pptReference     = "1234"
 
