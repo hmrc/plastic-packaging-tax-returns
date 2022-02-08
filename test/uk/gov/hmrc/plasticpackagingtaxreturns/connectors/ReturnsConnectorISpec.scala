@@ -24,11 +24,10 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 
 import java.time.LocalDate
 
-class ReturnsConnectorISpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
+class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
 

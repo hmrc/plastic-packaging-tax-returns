@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
+import com.google.inject.ImplementedBy
+
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsSuccess, Json, Reads}
@@ -33,9 +35,9 @@ import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class Authenticator @Inject() (override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
+class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
   ec: ExecutionContext
-) extends BackendController(cc) with AuthorisedFunctions {
+) extends BackendController(cc) with AuthorisedFunctions with Authenticator {
 
   private val logger = Logger(this.getClass)
 
@@ -99,3 +101,9 @@ object AuthAction {
 }
 
 case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends WrappedRequest[A](request)
+
+@ImplementedBy(classOf[AuthenticatorImpl])
+trait Authenticator {
+  def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A]
+  def parsingJson[T](implicit rds: Reads[T]): BodyParser[T]
+}

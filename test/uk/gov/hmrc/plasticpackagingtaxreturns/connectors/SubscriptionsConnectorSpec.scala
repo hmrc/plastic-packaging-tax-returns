@@ -18,7 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
-
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
