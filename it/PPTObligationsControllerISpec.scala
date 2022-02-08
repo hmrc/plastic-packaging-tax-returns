@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
 
-class PPTObligationControllerISpec extends PlaySpec
+class PPTObligationsControllerISpec extends PlaySpec
   with GuiceOneServerPerSuite
   with AuthTestSupport
   with BeforeAndAfterAll
@@ -47,7 +47,7 @@ class PPTObligationControllerISpec extends PlaySpec
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient  = app.injector.instanceOf[WSClient]
 
-  lazy val mockReturnsRepository = mock[TaxReturnRepository]
+  val mockReturnsRepository = mock[TaxReturnRepository]
 
   val fromDate = LocalDate.of(2022, 4, 1)
   val toDate = LocalDate.now()

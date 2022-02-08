@@ -29,9 +29,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 
 import java.time.LocalDate
 
-class ObligationDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
+class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
-  lazy val connector: ObligationDataConnector = app.injector.instanceOf[ObligationDataConnector]
+  lazy val connector: ObligationsDataConnector = app.injector.instanceOf[ObligationsDataConnector]
 
   val getObligationDataTimer = "ppt.get.obligation.data.timer"
 
