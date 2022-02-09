@@ -49,6 +49,14 @@ class PPTObligationsISpec
   val fromDate: LocalDate = LocalDate.of(2022, 4, 1)
   val toDate: LocalDate = LocalDate.now()
   val status: ObligationStatus.Value = ObligationStatus.OPEN
+  val obligationDetails: ObligationDetail = ObligationDetail(
+    status = status,
+    inboundCorrespondenceFromDate = fromDate,
+    inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
+    inboundCorrespondenceDateReceived = LocalDate.of(2022,6,30),
+    inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
+    periodKey = "22C2"
+  )
 
   val DESUrl =
     s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
@@ -71,15 +79,6 @@ class PPTObligationsISpec
         obligationDetails = Seq(obligationDetails)
       )
     )
-  )
-
-  val obligationDetails: ObligationDetail = ObligationDetail(
-    status = status,
-    inboundCorrespondenceFromDate = fromDate,
-    inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
-    inboundCorrespondenceDateReceived = LocalDate.of(2022,6,30),
-    inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
-    periodKey = "22C2"
   )
 
   override lazy val app: Application = {
