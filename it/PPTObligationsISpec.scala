@@ -64,6 +64,24 @@ class PPTObligationsISpec
     )
   )
 
+  val obligationResponseWithObligationDetails: ObligationDataResponse = ObligationDataResponse(obligations =
+    Seq(
+      Obligation(identification =
+        Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+        obligationDetails = Seq(obligationDetails)
+      )
+    )
+  )
+
+  val obligationDetails: ObligationDetail = ObligationDetail(
+    status = status,
+    inboundCorrespondenceFromDate = fromDate,
+    inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
+    inboundCorrespondenceDateReceived = LocalDate.of(2022,6,30),
+    inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
+    periodKey = "22C2"
+  )
+
   override lazy val app: Application = {
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
@@ -96,6 +114,16 @@ class PPTObligationsISpec
 
       response.status mustBe OK
       response.json mustBe Json.toJson(PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false))
+    }
+
+    "return 200 with obligationDetails" in {
+      withAuthorizedUser()
+      stubObligationDataRequest(obligationResponseWithObligationDetails)
+
+      val response = await(wsClient.url(PPTUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(PPTObligations(Option(obligationDetails), None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false))
     }
 
     "should return Unauthorised" in {
