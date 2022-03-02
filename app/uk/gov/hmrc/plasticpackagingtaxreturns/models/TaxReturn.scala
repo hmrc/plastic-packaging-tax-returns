@@ -20,6 +20,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 
 case class TaxReturn(
   id: String,
+  manufacturedPlastic: Option[Boolean] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
   importedPlasticWeight: Option[ImportedPlasticWeight] = None,
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
