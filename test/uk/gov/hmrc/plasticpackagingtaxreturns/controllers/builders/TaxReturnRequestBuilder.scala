@@ -24,6 +24,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   _
 }
 
+import java.time.LocalDate
+
 //noinspection ScalaStyle
 trait TaxReturnRequestBuilder {
 
@@ -33,7 +35,8 @@ trait TaxReturnRequestBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturnRequest =
-    TaxReturnRequest(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
+    TaxReturnRequest(obligation = defaultTaxReturnRequestObligation,
+                     manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
                      importedPlasticWeight = Some(ImportedPlasticWeight(6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000)),
@@ -41,6 +44,12 @@ trait TaxReturnRequestBuilder {
                      recycledPlasticWeight = Some(RecycledPlasticWeight(1000)),
                      metaData = MetaData()
     )
+
+  val defaultTaxReturnRequestObligation = TaxReturnObligation(fromDate = LocalDate.parse("2022-04-01"),
+                                                              toDate = LocalDate.parse("2022-06-30"),
+                                                              dueDate = LocalDate.parse("2022-09-30"),
+                                                              periodKey = "22AC"
+  )
 
   def withManufacturedPlasticWeight(manufacturedPlasticWeight: ManufacturedPlasticWeight): TaxReturnRequestModifier =
     _.copy(manufacturedPlasticWeight = Some(manufacturedPlasticWeight))
