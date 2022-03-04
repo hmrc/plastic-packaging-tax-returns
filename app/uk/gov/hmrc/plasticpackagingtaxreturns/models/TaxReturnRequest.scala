@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 case class TaxReturnRequest(
-  obligation: TaxReturnObligation,
+  obligation: Option[TaxReturnObligation] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight],
   importedPlasticWeight: Option[ImportedPlasticWeight],
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight],
