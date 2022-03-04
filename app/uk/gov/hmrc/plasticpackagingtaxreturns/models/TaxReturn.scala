@@ -29,7 +29,7 @@ object TaxReturnObligation {
 
 case class TaxReturn(
   id: String,
-  obligation: TaxReturnObligation,
+  obligation: Option[TaxReturnObligation] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
   importedPlasticWeight: Option[ImportedPlasticWeight] = None,
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
