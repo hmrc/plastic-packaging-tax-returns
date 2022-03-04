@@ -29,7 +29,7 @@ trait TaxReturnRequestBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturnRequest =
-    TaxReturnRequest(obligation = defaultTaxReturnRequestObligation,
+    TaxReturnRequest(obligation = Some(defaultTaxReturnRequestObligation),
                      manufacturedPlastic = Some(true),
                      manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
                      importedPlasticWeight = Some(ImportedPlasticWeight(6)),
