@@ -16,13 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
-  ConvertedPackagingCredit,
-  ImportedPlasticWeight,
-  ManufacturedPlasticWeight,
-  TaxReturnRequest,
-  _
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
 
@@ -36,6 +30,7 @@ trait TaxReturnRequestBuilder {
 
   private def modelWithDefaults: TaxReturnRequest =
     TaxReturnRequest(obligation = Some(defaultTaxReturnRequestObligation),
+                     manufacturedPlastic = Some(true),
                      manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(5)),
                      importedPlasticWeight = Some(ImportedPlasticWeight(6)),
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
