@@ -31,6 +31,7 @@ case class TaxReturn(
   id: String,
   obligation: Option[TaxReturnObligation] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
+  importedPlastic: Option[Boolean] = None,
   importedPlasticWeight: Option[ImportedPlasticWeight] = None,
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
   exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
