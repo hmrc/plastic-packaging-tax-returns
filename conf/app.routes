@@ -22,3 +22,5 @@ GET         /obligations/open/:pptReference                 uk.gov.hmrc.plasticp
 
 # DES financial data
 GET         /financial-data/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])
+GET         /financials/open/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController.get(pptReference)
+
