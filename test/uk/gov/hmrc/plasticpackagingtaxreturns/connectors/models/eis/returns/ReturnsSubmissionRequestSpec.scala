@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
 
@@ -40,7 +41,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
       eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 5000
 
       // TODO: fix up the translation of these values
-      eisReturnsSubmissionRequest.returnType mustBe "New"
+      eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
       eisReturnsSubmissionRequest.periodKey mustBe defaultObligation.periodKey
       eisReturnsSubmissionRequest.submissionId mustBe None
       eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 0

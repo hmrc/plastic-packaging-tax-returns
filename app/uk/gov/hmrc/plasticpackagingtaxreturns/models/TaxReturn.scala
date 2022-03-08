@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 
 import java.time.LocalDate
 
@@ -29,6 +30,7 @@ object TaxReturnObligation {
 
 case class TaxReturn(
   id: String,
+  returnType: Option[ReturnType] = Some(ReturnType.NEW),
   obligation: Option[TaxReturnObligation] = None,
   manufacturedPlastic: Option[Boolean] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,

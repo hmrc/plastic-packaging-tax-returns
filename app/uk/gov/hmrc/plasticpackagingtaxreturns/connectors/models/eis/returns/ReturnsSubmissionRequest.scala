@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
 
 case class EisReturnDetails(
   manufacturedWeight: BigDecimal,
@@ -66,7 +67,7 @@ object EisReturnDetails {
 }
 
 case class ReturnsSubmissionRequest(
-  returnType: String,
+  returnType: ReturnType,
   submissionId: Option[String] = None,
   periodKey: String,
   returnDetails: EisReturnDetails
@@ -76,7 +77,7 @@ object ReturnsSubmissionRequest {
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
   def fromTaxReturn(taxReturn: TaxReturn) =
-    ReturnsSubmissionRequest(returnType = "New",
+    ReturnsSubmissionRequest(returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
                              periodKey = taxReturn.obligation.map(_.periodKey).getOrElse(
                                throw new IllegalStateException("Obligation is absent")
                              ),
