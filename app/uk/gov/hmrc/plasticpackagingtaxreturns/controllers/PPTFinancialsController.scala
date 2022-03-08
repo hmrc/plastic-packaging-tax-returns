@@ -38,15 +38,15 @@ class PPTFinancialsController @Inject() (
     extends BackendController(cc) {
 
   def get(ref: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) {
+    Action.async {
       implicit request =>
         financialDataConnector.get(ref,
                                    PPTTaxStartDate,
                                    LocalDate.now(),
                                    onlyOpenItems = Some(true),
-                                   Some(true),
-                                   Some(true),
-                                   Some(true) //todo confirm all these params
+                                   includeLocks = Some(true),
+                                   calculateAccruedInterest = Some(true),
+                                   customerPaymentInformation = Some(true) //todo confirm all these params
         ).map {
           case Left(_) =>
             InternalServerError("{}")

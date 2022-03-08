@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OWrites}
 
 import java.time.LocalDate
 
-case class PPTFinancials(
+final case class PPTFinancials(
   creditAmount: Option[BigDecimal],
   debitAmount: Option[(BigDecimal, LocalDate)],
   overdueAmount: Option[BigDecimal]
