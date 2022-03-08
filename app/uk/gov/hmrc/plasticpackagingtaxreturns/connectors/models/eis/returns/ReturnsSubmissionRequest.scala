@@ -77,7 +77,9 @@ object ReturnsSubmissionRequest {
 
   def fromTaxReturn(taxReturn: TaxReturn) =
     ReturnsSubmissionRequest(returnType = "New",
-                             periodKey = "TODO",
+                             periodKey = taxReturn.obligation.map(_.periodKey).getOrElse(
+                               throw new IllegalStateException("Obligation is absent")
+                             ),
                              returnDetails = EisReturnDetails.fromTaxReturn(taxReturn)
     )
 
