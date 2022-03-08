@@ -24,6 +24,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 import java.time.LocalDate
 
@@ -158,7 +159,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
     )
 
   private def aReturnsSubmissionRequest() =
-    ReturnsSubmissionRequest(returnType = "New",
+    ReturnsSubmissionRequest(returnType = ReturnType.NEW,
                              submissionId = None,
                              periodKey = "AA22",
                              returnDetails = EisReturnDetails(manufacturedWeight = 12000,

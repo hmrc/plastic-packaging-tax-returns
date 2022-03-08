@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
 
@@ -40,13 +41,26 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
       eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 5000
 
       // TODO: fix up the translation of these values
-      eisReturnsSubmissionRequest.returnType mustBe "New"
-      eisReturnsSubmissionRequest.periodKey mustBe "TODO"
+      eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
+      eisReturnsSubmissionRequest.periodKey mustBe defaultObligation.periodKey
       eisReturnsSubmissionRequest.submissionId mustBe None
       eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 0
       eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe 0
       eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
       eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 0
+    }
+
+    "throw exception when obligation is not present" in {
+      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
+                                 withImportedPlasticWeight(2000),
+                                 withHumanMedicinesPlasticWeight(3000),
+                                 withDirectExportDetails(4000),
+                                 withRecycledPlasticWeight(5000)
+      ).copy(obligation = None)
+
+      intercept[IllegalStateException] {
+        ReturnsSubmissionRequest.fromTaxReturn(taxReturn)
+      }
     }
   }
 }
