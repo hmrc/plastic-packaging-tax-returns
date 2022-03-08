@@ -1,24 +1,24 @@
 # microservice specific routes
 
-POST        /submit-return-for-plastic-packaging-tax        uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create()
-PUT         /submit-return-for-plastic-packaging-tax/:id    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(id)
-GET         /submit-return-for-plastic-packaging-tax/:id    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(id)
+POST        /returns                                uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create()
+PUT         /returns/:id                            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(id)
+GET         /returns/:id                            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(id)
 
 # EIS subscription
-GET         /subscriptions/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)
-PUT         /subscriptions/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.update(pptReference: String)
+GET         /subscriptions/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)
+PUT         /subscriptions/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.update(pptReference: String)
 
 # EIS export credit balance
-GET         /export-credits/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate)
+GET         /export-credits/:pptReference           uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate)
 
 # EIS Return Submission
-POST        /returns-submission/:id                         uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.submit(id)
-GET         /returns-submission/:id/:periodKey              uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(id, periodKey)
+POST        /returns-submission/:id                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.submit(id)
+GET         /returns-submission/:id/:periodKey      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(id, periodKey)
 
 # DES obligation data
-GET         /obligation-data/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])
-GET         /obligations/open/:pptReference                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.get(pptReference)
+GET         /obligation-data/:pptReference          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])
+GET         /obligations/open/:pptReference         uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.get(pptReference)
 
 
 # DES financial data
-GET         /financial-data/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])
+GET         /financial-data/:pptReference           uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])

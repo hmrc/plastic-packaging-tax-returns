@@ -68,7 +68,7 @@ class ReturnsControllerSpec
   }
 
   "POST /" should {
-    val post = FakeRequest("POST", "/submit-return-for-plastic-packaging-tax")
+    val post = FakeRequest("POST", "/returns")
 
     "return 201" when {
       "request is valid" in {
@@ -110,7 +110,7 @@ class ReturnsControllerSpec
   }
 
   "GET /:id" should {
-    val get = FakeRequest("GET", "/submit-return-for-plastic-packaging-tax/test02")
+    val get = FakeRequest("GET", "/returns/test02")
 
     "return 200" when {
       "request is valid" in {
@@ -152,7 +152,7 @@ class ReturnsControllerSpec
   }
 
   "PUT /:id" should {
-    val put = FakeRequest("PUT", "/submit-return-for-plastic-packaging-tax/id01")
+    val put = FakeRequest("PUT", "/returns/id01")
     "return 200" when {
       "request is valid" in {
         withAuthorizedUser()
