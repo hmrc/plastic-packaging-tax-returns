@@ -27,12 +27,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  FinancialDataResponse,
-  Identification,
-  Obligation,
-  ObligationDataResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
@@ -71,7 +66,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
     val pptReference = "1234"
     val desResponse  = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
 
-    "get PTPObligation from service" in {
+    "get PTPFinancial from service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
       when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
@@ -83,7 +78,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
       contentAsJson(result) mustBe Json.toJson(financials)
     }
 
-    "get should call Obligation Connector" in {
+    "get should call Financial Connector" in {
 
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
       when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
