@@ -28,13 +28,19 @@ final case class PPTFinancials(
 
 object PPTFinancials {
 
-  val NothingDue: PPTFinancials                   = PPTFinancials(None, None, None)
-  def inCredit(amount: BigDecimal): PPTFinancials = NothingDue.copy(creditAmount = Some(amount))
+  val NothingDue: PPTFinancials = new PPTFinancials(None, None, None)
 
   def debitDue(amount: BigDecimal, dueDate: LocalDate): PPTFinancials =
-    NothingDue.copy(debitAmount = Some((amount, dueDate)))
+    new PPTFinancials(None, debitAmount = Some((amount, dueDate)), None)
 
-  def overdue(amount: BigDecimal): PPTFinancials = NothingDue.copy(overdueAmount = Some(amount))
+  def overdue(amount: BigDecimal): PPTFinancials =
+    new PPTFinancials(None, None, overdueAmount = Some(amount))
+
+  def inCredit(amount: BigDecimal): PPTFinancials =
+    new PPTFinancials(creditAmount = Some(amount.abs), None, None)
+
+  def debitAndOverdue(amount: BigDecimal, dueDate: LocalDate, overdue: BigDecimal) =
+    new PPTFinancials(None, debitAmount = Some((amount, dueDate)), overdueAmount = Some(overdue))
 
   implicit val PPTFinancialsWrites: OWrites[PPTFinancials] = Json.writes[PPTFinancials]
 }

@@ -19,9 +19,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.PPTTaxStartDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -32,6 +32,7 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class PPTObligationsController @Inject() (
+  appConfig: AppConfig,
   cc: ControllerComponents,
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
@@ -44,7 +45,7 @@ class PPTObligationsController @Inject() (
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        obligationsDataConnector.get(ref, PPTTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
+        obligationsDataConnector.get(ref, appConfig.pptTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
           case Left(errorStatusCode) =>
             InternalServerError("{}")
           case Right(obligationDataResponse) =>
@@ -58,8 +59,4 @@ class PPTObligationsController @Inject() (
         }
     }
 
-}
-
-object PPTObligationsController {
-  private val PPTTaxStartDate = LocalDate.of(2022, 4, 1)
 }

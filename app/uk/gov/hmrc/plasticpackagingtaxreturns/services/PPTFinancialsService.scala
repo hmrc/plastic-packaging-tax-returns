@@ -16,19 +16,58 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  FinancialDataResponse,
+  FinancialTransaction
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService.Charge
+
+import java.time.LocalDate
 
 class PPTFinancialsService {
 
-  //todo.
-  def construct(data: FinancialDataResponse): PPTFinancials = { //none of this is correct its just example
-    // #maths #numbers #funtimes
-    val totalAmount: BigDecimal = data.financialTransactions.flatMap(_.items.map(_.amount.getOrElse(BigDecimal(0)))).sum
+  def construct(data: FinancialDataResponse): PPTFinancials = {
+    val charges: Seq[Charge] = data.financialTransactions.map(Charge.apply)
 
-    if (totalAmount > 0) PPTFinancials.overdue(totalAmount)
-    else if (totalAmount < 0) PPTFinancials.inCredit(totalAmount)
-    else PPTFinancials.NothingDue
+    val dueCharge: Option[Charge] =
+      charges.filter(_.due.isEqualOrAfterToday).sortBy(_.due).headOption
+
+    val overdueCharges: Seq[Charge] =
+      charges.filter(_.due.isBeforeToday).sortBy(_.due)
+
+    val overdueSum: BigDecimal = overdueCharges.map(_.amount).sum
+
+    val overdueAmount: Option[BigDecimal] = Some(overdueSum).filter(_ > 0)
+
+    val dueSum: Option[BigDecimal]                   = dueCharge.map(due => if (overdueSum < 0) due.amount + overdueSum else due.amount)
+    val debitAmount: Option[(BigDecimal, LocalDate)] = dueSum.flatMap(sum => dueCharge.map(sum -> _.due))
+
+    val totalChargesSum = charges.map(_.amount).sum
+
+    if (totalChargesSum < 0) PPTFinancials.inCredit(totalChargesSum)
+    else
+      (debitAmount, overdueAmount) match {
+        case (None, None)                         => PPTFinancials.NothingDue
+        case (Some((amount, due)), None)          => PPTFinancials.debitDue(amount, due)
+        case (None, Some(amount))                 => PPTFinancials.overdue(amount)
+        case (Some((amount, due)), Some(overdue)) => PPTFinancials.debitAndOverdue(amount, due, overdue)
+      }
+  }
+
+}
+
+object PPTFinancialsService {
+  private final case class Charge(amount: BigDecimal, due: LocalDate)
+
+  private object Charge {
+
+    def apply(financialTransaction: FinancialTransaction): Charge =
+      (financialTransaction.outstandingAmount, financialTransaction.items.headOption.flatMap(_.dueDate)) match {
+        case (Some(amount), Some(due)) => new Charge(amount, due)
+        case _                         => throw new Exception("Failed to extract charge from financialTransaction")
+      }
+
   }
 
 }

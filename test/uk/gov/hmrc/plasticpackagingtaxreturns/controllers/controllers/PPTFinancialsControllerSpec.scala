@@ -25,6 +25,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
   FinancialDataResponse,
@@ -44,19 +45,26 @@ import scala.concurrent.Future
 
 class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
+  val mockAppConfig: AppConfig                           = mock[AppConfig]
   val mockPPTFinancialsService: PPTFinancialsService     = mock[PPTFinancialsService]
   val mockFinancialDataConnector: FinancialDataConnector = mock[FinancialDataConnector]
   val mockTaxReturnRepository: TaxReturnRepository       = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTFinancialsService, mockFinancialDataConnector, mockTaxReturnRepository)
+    reset(mockPPTFinancialsService, mockFinancialDataConnector, mockTaxReturnRepository, mockAppConfig)
+    when(mockAppConfig.pptTaxStartDate).thenReturn(LocalDate.of(2022, 4, 1))
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   val sut =
-    new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataConnector, mockPPTFinancialsService)
+    new PPTFinancialsController(mockAppConfig,
+                                cc,
+                                new FakeAuthenticator(cc),
+                                mockFinancialDataConnector,
+                                mockPPTFinancialsService
+    )
 
   "get" must {
     val financials   = PPTFinancials(None, None, None)
@@ -90,7 +98,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
              exactlyEq(Some(true)),
              exactlyEq(Some(true)),
              exactlyEq(Some(true)),
-             exactlyEq(Some(true)) //todo confirm these flags
+             exactlyEq(Some(true))
         )(any())
     }
 

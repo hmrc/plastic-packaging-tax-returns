@@ -27,8 +27,7 @@ import java.time.LocalDate
 
 class PPTObligationsService {
 
-  implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
-  private val logger                                  = Logger(this.getClass)
+  private val logger = Logger(this.getClass)
 
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
@@ -43,12 +42,12 @@ class PPTObligationsService {
   private def construct(obligation: Obligation): PPTObligations = {
     val today: LocalDate = LocalDate.now()
     val nextObligation: Option[ObligationDetail] =
-      obligation.obligationDetails.filter(o => isEqualOrAfterToday(o.inboundCorrespondenceDueDate, today)).sortBy(
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(
         _.inboundCorrespondenceDueDate
       ).headOption
 
     val overdueObligations: Seq[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBefore(today)).sortBy(
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(
         _.inboundCorrespondenceDueDate
       )
 
@@ -64,8 +63,5 @@ class PPTObligationsService {
                    displaySubmitReturnsLink
     )
   }
-
-  private def isEqualOrAfterToday(date: LocalDate, today: LocalDate) =
-    date.compareTo(today) >= 0
 
 }

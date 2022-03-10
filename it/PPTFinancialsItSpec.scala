@@ -17,7 +17,6 @@
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
 import org.mockito.Mockito.reset
-import org.scalatest.Assertions.pending
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -99,10 +98,10 @@ class PPTFinancialsItSpec extends PlaySpec
       val response = await(wsClient.url(Url).get())
 
       response.status mustBe OK
-      response.json mustBe Json.toJson(PPTFinancials(creditAmount = None, debitAmount = None, overdueAmount = Some(1.0)))
+      response.json mustBe Json.toJson(PPTFinancials(creditAmount = None, debitAmount = Some((1.0, LocalDate.now())), overdueAmount = None))
     }
 
-    "return Unauthorized" ignore {
+    "return Unauthorized" in {
       withUnauthorizedUser(new RuntimeException)
 
       val response = await(wsClient.url(Url).get())
@@ -155,10 +154,11 @@ class PPTFinancialsItSpec extends PlaySpec
           periodKeyDescription = None,
           taxPeriodFrom = None,
           taxPeriodTo = None,
+          outstandingAmount = Some(amount),
           items = Seq(
             FinancialItem(
               subItem = None,
-              dueDate = None,
+              dueDate = Some(LocalDate.now()),
               amount = Some(amount),
               clearingDate = None,
               clearingReason = None
