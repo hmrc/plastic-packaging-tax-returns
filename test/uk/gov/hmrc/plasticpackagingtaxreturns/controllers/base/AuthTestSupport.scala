@@ -39,8 +39,10 @@ trait AuthTestSupport extends MockitoSugar {
   lazy val mockAuthConnector: AuthConnector = mock[AuthConnector]
   lazy val mockLogger: Logger               = mock[Logger]
 
-  val enrolment: Predicate = Enrolment(pptEnrolmentKey)
-  val pptReference         = "7777777"
+  val pptReference = "7777777"
+  val enrolmentWithDelegatedAuth = Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName,
+                                                                             pptReference
+  ).withDelegatedAuthRule("ppt-auth")
 
   def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment("external1")))): Unit =
     when(
@@ -71,11 +73,7 @@ trait AuthTestSupport extends MockitoSugar {
       .thenReturn(Future.successful(Enrolments(Set())))
 
   def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
-    (p: Predicate) => {
-      p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
-      println(p)
-      false
-    }
+    (p: Predicate) => p == enrolmentWithDelegatedAuth && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),
