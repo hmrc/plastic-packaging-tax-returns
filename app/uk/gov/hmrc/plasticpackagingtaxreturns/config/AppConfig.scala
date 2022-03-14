@@ -68,4 +68,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val nrsRetries: Seq[FiniteDuration] = config.get[Seq[FiniteDuration]]("nrs.retries")
 
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
+
+  val taxRatePoundsPerKg: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
 }
