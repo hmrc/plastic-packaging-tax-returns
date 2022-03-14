@@ -21,21 +21,25 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
+import scala.math.BigDecimal.RoundingMode
+
 class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
+
+  private val taxRate = BigDecimal("0.211") // Use a strange rate to test rounding
 
   "The EIS Returns Submission Request Object" should {
     "convert a stored Tax Return" when {
       "positive liability" in {
-        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(9000),
+        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(9001),
                                    withImportedPlasticWeight(8000),
                                    withHumanMedicinesPlasticWeight(5000),
                                    withDirectExportDetails(4000),
                                    withRecycledPlasticWeight(3000)
         )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, 0.20)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate)
 
-        eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 9000
+        eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 9001
         eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 8000
         eisReturnsSubmissionRequest.returnDetails.humanMedicines mustBe 5000
         eisReturnsSubmissionRequest.returnDetails.directExports mustBe 4000
@@ -46,9 +50,12 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
         eisReturnsSubmissionRequest.submissionId mustBe None
 
         eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
-        eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe (9000 + 8000) - (5000 + 4000 + 3000)
+        eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe (9001 + 8000) - (5000 + 4000 + 3000)
         eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
-        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe ((9000 + 8000) - (5000 + 4000 + 3000)) * 0.20
+        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe (((9001 + 8000) - (5000 + 4000 + 3000)) * taxRate).setScale(
+          2,
+          RoundingMode.HALF_EVEN
+        )
       }
 
       "negative liability" in {
@@ -59,7 +66,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
                                    withRecycledPlasticWeight(3000)
         )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, 0.20)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate)
 
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1000
         eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2000

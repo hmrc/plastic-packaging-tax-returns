@@ -21,6 +21,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
 
+import scala.math.BigDecimal.RoundingMode
+
 case class EisReturnDetails(
   manufacturedWeight: BigDecimal,
   importedWeight: BigDecimal,
@@ -56,7 +58,7 @@ object EisReturnDetails {
                              recycledPlastic = recycledWeightKg,
                              creditForPeriod = 0,
                              totalWeight = taxableKg,
-                             taxDue = BigDecimal(taxableKg) * taxRatePoundsPerKg
+                             taxDue = (BigDecimal(taxableKg) * taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
     )
   }
 
