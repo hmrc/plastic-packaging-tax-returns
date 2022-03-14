@@ -28,15 +28,14 @@ import java.time.LocalDate
 class PPTFinancialsService {
 
   def construct(data: FinancialDataResponse): PPTFinancials = {
-    val charges: Seq[Charge] = data.financialTransactions.map(Charge.apply)
+    val charges: Seq[Charge] =
+      data.financialTransactions.collect { case ft if ft.outstandingAmount.forall(_ != 0) => Charge(ft) }
 
     val dueCharge: Option[Charge] =
       charges.filter(_.due.isEqualOrAfterToday).sortBy(_.due).headOption
 
-    val overdueCharges: Seq[Charge] =
-      charges.filter(_.due.isBeforeToday).sortBy(_.due)
-
-    val overdueSum: BigDecimal = overdueCharges.map(_.amount).sum
+    val overdueSum: BigDecimal =
+      charges.filter(_.due.isBeforeToday).map(_.amount).sum
 
     val overdueAmount: Option[BigDecimal] = Some(overdueSum).filter(_ > 0)
 
@@ -48,7 +47,7 @@ class PPTFinancialsService {
     if (totalChargesSum < 0) PPTFinancials.inCredit(totalChargesSum)
     else
       (debitAmount, overdueAmount) match {
-        case (None, None)                         => PPTFinancials.NothingDue
+        case (None, None)                         => PPTFinancials.NothingOutstanding
         case (Some((amount, due)), None)          => PPTFinancials.debitDue(amount, due)
         case (None, Some(amount))                 => PPTFinancials.overdue(amount)
         case (Some((amount, due)), Some(overdue)) => PPTFinancials.debitAndOverdue(amount, due, overdue)

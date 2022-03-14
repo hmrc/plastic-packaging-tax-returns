@@ -50,7 +50,11 @@ class PPTFinancialsServiceSpec extends PlaySpec {
   "construct" must {
     "return NothingDue" when {
       "there is no FinancialTransactions" in {
-        sut.construct(makeData()) mustBe PPTFinancials.NothingDue
+        sut.construct(makeData()) mustBe PPTFinancials.NothingOutstanding
+      }
+
+      "there is no outstanding amount" in {
+        sut.construct(makeData(BigDecimal(0) -> today)) mustBe PPTFinancials.NothingOutstanding
       }
     }
     "return debitDue" when {

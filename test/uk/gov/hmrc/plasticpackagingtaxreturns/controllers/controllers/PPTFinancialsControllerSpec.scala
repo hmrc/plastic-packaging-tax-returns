@@ -25,41 +25,32 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  val mockAppConfig: AppConfig                           = mock[AppConfig]
-  val mockPPTFinancialsService: PPTFinancialsService     = mock[PPTFinancialsService]
-  val mockFinancialDataConnector: FinancialDataConnector = mock[FinancialDataConnector]
-  val mockTaxReturnRepository: TaxReturnRepository       = mock[TaxReturnRepository]
+  val mockPPTFinancialsService: PPTFinancialsService = mock[PPTFinancialsService]
+  val mockFinancialDataService: FinancialDataService = mock[FinancialDataService]
+  val mockTaxReturnRepository: TaxReturnRepository   = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTFinancialsService, mockFinancialDataConnector, mockTaxReturnRepository, mockAppConfig)
-    when(mockAppConfig.pptTaxStartDate).thenReturn(LocalDate.of(2022, 4, 1))
+    reset(mockPPTFinancialsService, mockFinancialDataService, mockTaxReturnRepository)
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   val sut =
-    new PPTFinancialsController(mockAppConfig,
-                                cc,
-                                new FakeAuthenticator(cc),
-                                mockFinancialDataConnector,
-                                mockPPTFinancialsService
-    )
+    new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, mockPPTFinancialsService)
 
   "get" must {
     val financials   = PPTFinancials(None, None, None)
@@ -68,7 +59,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "get PTPFinancial from service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
+      when(mockFinancialDataService.getFinancials(any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
@@ -81,25 +72,17 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
     "get should call Financial Connector" in {
 
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
+      when(mockFinancialDataService.getFinancials(any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       sut.get(pptReference).apply(FakeRequest())
 
-      verify(mockFinancialDataConnector)
-        .get(exactlyEq(pptReference),
-             exactlyEq(LocalDate.of(2022, 4, 1)),
-             exactlyEq(LocalDate.now()),
-             exactlyEq(Some(true)),
-             exactlyEq(Some(true)),
-             exactlyEq(Some(true)),
-             exactlyEq(Some(true))
-        )(any())
+      verify(mockFinancialDataService).getFinancials(exactlyEq(pptReference))(any())
     }
 
     "get should call the service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
+      when(mockFinancialDataService.getFinancials(any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       await(sut.get(pptReference).apply(FakeRequest()))
@@ -109,7 +92,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "return internal server error response" when {
       "if error return from connector" in {
-        when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any())(any()))
+        when(mockFinancialDataService.getFinancials(any())(any()))
           .thenReturn(Future.successful(Left(500)))
 
         val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())

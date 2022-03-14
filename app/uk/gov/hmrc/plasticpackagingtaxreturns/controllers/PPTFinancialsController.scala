@@ -18,22 +18,18 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class PPTFinancialsController @Inject() (
-  appConfig: AppConfig,
   cc: ControllerComponents,
   authenticator: Authenticator,
-  financialDataConnector: FinancialDataConnector,
+  financialDataService: FinancialDataService,
   financialsService: PPTFinancialsService
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
@@ -41,14 +37,7 @@ class PPTFinancialsController @Inject() (
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        financialDataConnector.get(ref,
-                                   appConfig.pptTaxStartDate,
-                                   LocalDate.now(),
-                                   onlyOpenItems = Some(true),
-                                   includeLocks = Some(true),
-                                   calculateAccruedInterest = Some(true),
-                                   customerPaymentInformation = Some(true)
-        ).map {
+        financialDataService.getFinancials(ref).map {
           case Left(_) =>
             InternalServerError("{}")
           case Right(financialDataResponse) =>

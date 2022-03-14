@@ -26,7 +26,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.LocalDate
+import java.time.{LocalDate, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -45,7 +45,11 @@ class PPTObligationsController @Inject() (
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        obligationsDataConnector.get(ref, appConfig.pptTaxStartDate, LocalDate.now(), ObligationStatus.OPEN).map {
+        obligationsDataConnector.get(ref,
+                                     appConfig.pptTaxStartDate,
+                                     LocalDate.now(ZoneOffset.UTC),
+                                     ObligationStatus.OPEN
+        ).map {
           case Left(errorStatusCode) =>
             InternalServerError("{}")
           case Right(obligationDataResponse) =>

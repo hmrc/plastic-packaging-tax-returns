@@ -28,7 +28,7 @@ final case class PPTFinancials(
 
 object PPTFinancials {
 
-  val NothingDue: PPTFinancials = new PPTFinancials(None, None, None)
+  val NothingOutstanding: PPTFinancials = new PPTFinancials(None, None, None)
 
   def debitDue(amount: BigDecimal, dueDate: LocalDate): PPTFinancials =
     new PPTFinancials(None, debitAmount = Some((amount, dueDate)), None)

@@ -23,7 +23,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
   ObligationDetail
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import java.time.LocalDate
+
+import java.time.{LocalDate, ZoneOffset}
 
 class PPTObligationsService {
 
@@ -40,7 +41,7 @@ class PPTObligationsService {
     }
 
   private def construct(obligation: Obligation): PPTObligations = {
-    val today: LocalDate = LocalDate.now()
+    val today: LocalDate = LocalDate.now(ZoneOffset.UTC)
     val nextObligation: Option[ObligationDetail] =
       obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(
         _.inboundCorrespondenceDueDate

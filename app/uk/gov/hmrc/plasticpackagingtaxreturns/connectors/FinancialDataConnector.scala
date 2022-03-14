@@ -38,8 +38,8 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
 
   def get(
     pptReference: String,
-    fromDate: LocalDate,
-    toDate: LocalDate,
+    fromDate: Option[LocalDate],
+    toDate: Option[LocalDate],
     onlyOpenItems: Option[Boolean],
     includeLocks: Option[Boolean],
     calculateAccruedInterest: Option[Boolean],
@@ -48,8 +48,8 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
     val timer               = metrics.defaultRegistry.timer("ppt.get.financial.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    val queryParams: Seq[(String, String)] = QueryParams.fromOptions("dateFrom" -> Some(DateFormat.isoFormat(fromDate)),
-                                                                     "dateTo"                     -> Some(DateFormat.isoFormat(toDate)),
+    val queryParams: Seq[(String, String)] = QueryParams.fromOptions("dateFrom" -> fromDate.map(DateFormat.isoFormat),
+                                                                     "dateTo"                     -> toDate.map(DateFormat.isoFormat),
                                                                      "onlyOpenItems"              -> onlyOpenItems,
                                                                      "includeLocks"               -> includeLocks,
                                                                      "calculateAccruedInterest"   -> calculateAccruedInterest,
