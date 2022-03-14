@@ -39,8 +39,8 @@ object PPTFinancials {
   def inCredit(amount: BigDecimal): PPTFinancials =
     new PPTFinancials(creditAmount = Some(amount.abs), None, None)
 
-  def debitAndOverdue(amount: BigDecimal, dueDate: LocalDate, overdue: BigDecimal) =
-    new PPTFinancials(None, debitAmount = Some((amount, dueDate)), overdueAmount = Some(overdue))
+  def debitAndOverdue(dueAmount: BigDecimal, dueDate: LocalDate, overdueAmount: BigDecimal) =
+    new PPTFinancials(None, debitAmount = Some((dueAmount, dueDate)), overdueAmount = Some(overdueAmount))
 
   implicit val PPTFinancialsWrites: OWrites[PPTFinancials] = Json.writes[PPTFinancials]
 }
