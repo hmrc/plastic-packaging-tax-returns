@@ -40,40 +40,29 @@ trait AuthTestSupport extends MockitoSugar {
   lazy val mockLogger: Logger               = mock[Logger]
 
   val pptReference = "7777777"
-  val enrolmentWithDelegatedAuth = Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName,
-                                                                             pptReference
-  ).withDelegatedAuthRule("ppt-auth")
 
-  def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment("external1")))): Unit =
+  def enrolmentWithDelegatedAuth(pptReference: String) =
+    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule(
+      "ppt-auth"
+    )
+
+  def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit =
     when(
-      mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcher(user)),
+      mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
                                   ArgumentMatchers.eq(allEnrolments)
       )(any(), any())
-    )
-      .thenReturn(Future.successful(user.enrolments))
-
-  def withUserWithEnrolments(user: SignedInUser) =
-    when(
-      mockAuthConnector.authorise(ArgumentMatchers.argThat((_: Predicate) => true), ArgumentMatchers.eq(allEnrolments))(
-        any(),
-        any()
-      )
     )
       .thenReturn(Future.successful(user.enrolments))
 
   def withUnauthorizedUser(error: Throwable): Unit =
     when(mockAuthConnector.authorise(any(), any())(any(), any())).thenReturn(Future.failed(error))
 
-  def userWithoutProviderId(user: SignedInUser = newUser(Some(pptEnrolment("")))): Unit =
-    when(
-      mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcher(user)),
-                                  ArgumentMatchers.eq(allEnrolments)
-      )(any(), any())
-    )
-      .thenReturn(Future.successful(Enrolments(Set())))
-
-  def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
-    (p: Predicate) => p == enrolmentWithDelegatedAuth && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+  def pptEnrollmentMatcherForPptUser(user: SignedInUser): ArgumentMatcher[Predicate] = {
+    val pptEnrolment = user.enrolments.getEnrolment(pptEnrolmentKey).get
+    val pptReference = pptEnrolment.getIdentifier(pptEnrolmentIdentifierName).get.value
+    (p: Predicate) =>
+      p == enrolmentWithDelegatedAuth(pptReference) && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+  }
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),

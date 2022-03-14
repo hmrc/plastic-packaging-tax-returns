@@ -68,11 +68,11 @@ class ReturnsControllerSpec
   }
 
   "POST /" should {
-    val post = FakeRequest("POST", "/returns")
+    val post = FakeRequest("POST", "/returns/test1")
 
     "return 201" when {
       "request is valid" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("test1"))))
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn()
         given(mockReturnsRepository.create(any[TaxReturn])).willReturn(Future.successful(taxReturn))
@@ -114,7 +114,7 @@ class ReturnsControllerSpec
 
     "return 200" when {
       "request is valid" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
         val taxReturn = aTaxReturn(withId("test02"), withConvertedPlasticPackagingCredit(1122))
         given(mockReturnsRepository.findById("test02")).willReturn(Future.successful(Some(taxReturn)))
 
@@ -128,7 +128,7 @@ class ReturnsControllerSpec
 
     "return 404" when {
       "id is not found" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
         given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
@@ -155,7 +155,7 @@ class ReturnsControllerSpec
     val put = FakeRequest("PUT", "/returns/id01")
     "return 200" when {
       "request is valid" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("id01"))))
         val request = aTaxReturnRequest(withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5)),
                                         withConvertedPlasticPackagingCredit(
                                           ConvertedPackagingCredit(totalInPence = 1433)
@@ -190,7 +190,7 @@ class ReturnsControllerSpec
 
     "return 404" when {
       "tax return is not found - on find" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("id01"))))
         val request = aTaxReturnRequest()
         given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(None))
         given(mockReturnsRepository.update(any[TaxReturn])).willReturn(Future.successful(None))
@@ -202,7 +202,7 @@ class ReturnsControllerSpec
       }
 
       "tax return is not found - on update" in {
-        withAuthorizedUser()
+        withAuthorizedUser(newUser(Some(pptEnrolment("id01"))))
         val request   = aTaxReturnRequest()
         val taxReturn = aTaxReturn(withId("id"))
         given(mockReturnsRepository.findById(anyString())).willReturn(Future.successful(Some(taxReturn)))
