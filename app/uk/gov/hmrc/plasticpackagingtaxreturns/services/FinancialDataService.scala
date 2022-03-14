@@ -50,8 +50,8 @@ class FinancialDataService @Inject() (connector: FinancialDataConnector) {
                   fromDate = None,
                   toDate = None,
                   onlyOpenItems = Some(true),
-                  includeLocks = None,
-                  calculateAccruedInterest = None,
+                  includeLocks = Some(true),
+                  calculateAccruedInterest = Some(true),
                   customerPaymentInformation = None
     )
 

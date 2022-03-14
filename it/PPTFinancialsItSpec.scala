@@ -48,7 +48,8 @@ class PPTFinancialsItSpec extends PlaySpec
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   val dateFrom = LocalDate.of(2022, 4, 1)
-  val DESUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?onlyOpenItems=true"
+  val DESUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?onlyOpenItems=true" +
+    s"&includeLocks=true&calculateAccruedInterest=true"
 
   val Url = s"http://localhost:$port/financials/open/$pptReference"
 

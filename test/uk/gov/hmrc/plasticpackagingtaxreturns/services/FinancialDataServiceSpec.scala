@@ -63,7 +63,7 @@ class FinancialDataServiceSpec
     "default params" in {
       await(sut.getFinancials("pptRef")(hc))
 
-      verify(mockConnector).get("pptRef", None, None, Some(true), None, None, None)(hc)
+      verify(mockConnector).get("pptRef", None, None, Some(true), Some(true), Some(true), None)(hc)
     }
   }
 

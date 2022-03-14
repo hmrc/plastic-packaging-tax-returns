@@ -56,6 +56,10 @@ class PPTFinancialsServiceSpec extends PlaySpec {
       "there is no outstanding amount" in {
         sut.construct(makeData(BigDecimal(0) -> today)) mustBe PPTFinancials.NothingOutstanding
       }
+
+      "there is a credit that equals the due amount" in {
+        sut.construct(makeData(-amount -> yesterday, amount -> today)) mustBe PPTFinancials.NothingOutstanding
+      }
     }
     "return debitDue" when {
       "there is only a debit due" in {
