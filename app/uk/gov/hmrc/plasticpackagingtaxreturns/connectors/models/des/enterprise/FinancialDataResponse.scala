@@ -42,6 +42,7 @@ case class FinancialTransaction(
   periodKeyDescription: Option[String],
   taxPeriodFrom: Option[LocalDate],
   taxPeriodTo: Option[LocalDate],
+  outstandingAmount: Option[BigDecimal],
   items: Seq[FinancialItem]
 )
 

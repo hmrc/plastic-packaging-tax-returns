@@ -25,6 +25,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
   Identification,
@@ -44,19 +45,26 @@ import scala.concurrent.Future
 
 class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
+  val mockAppConfig: AppConfig                              = mock[AppConfig]
   val mockPPTObligationsService: PPTObligationsService      = mock[PPTObligationsService]
   val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
   val mockTaxReturnRepository: TaxReturnRepository          = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository)
+    reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository, mockAppConfig)
+    when(mockAppConfig.pptTaxStartDate).thenReturn(LocalDate.of(2022, 4, 1))
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   val sut =
-    new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService)
+    new PPTObligationsController(mockAppConfig,
+                                 cc,
+                                 new FakeAuthenticator(cc),
+                                 mockObligationDataConnector,
+                                 mockPPTObligationsService
+    )
 
   "get" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)

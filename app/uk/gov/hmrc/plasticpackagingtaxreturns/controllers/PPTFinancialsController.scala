@@ -16,50 +16,33 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.{LocalDate, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PPTObligationsController @Inject() (
-  appConfig: AppConfig,
+class PPTFinancialsController @Inject() (
   cc: ControllerComponents,
   authenticator: Authenticator,
-  obligationsDataConnector: ObligationsDataConnector,
-  obligationsService: PPTObligationsService
+  financialDataService: FinancialDataService,
+  financialsService: PPTFinancialsService
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
-
-  private val logger = Logger(this.getClass)
 
   def get(ref: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) {
       implicit request =>
-        obligationsDataConnector.get(ref,
-                                     appConfig.pptTaxStartDate,
-                                     LocalDate.now(ZoneOffset.UTC),
-                                     ObligationStatus.OPEN
-        ).map {
-          case Left(errorStatusCode) =>
+        financialDataService.getFinancials(ref).map {
+          case Left(_) =>
             InternalServerError("{}")
-          case Right(obligationDataResponse) =>
-            obligationsService.constructPPTObligations(obligationDataResponse) match {
-              case Left(error) =>
-                logger.error(s"Error constructing Obligation response: $error.")
-                InternalServerError("{}")
-              case Right(response) =>
-                Ok(Json.toJson(response))
-            }
+          case Right(financialDataResponse) =>
+            val financials = financialsService.construct(financialDataResponse)
+            Ok(Json.toJson(financials))
         }
     }
 

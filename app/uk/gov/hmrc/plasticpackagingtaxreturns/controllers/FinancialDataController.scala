@@ -20,6 +20,7 @@ import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.FinancialDataService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
@@ -28,7 +29,7 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class FinancialDataController @Inject() (
-  financialDataConnector: FinancialDataConnector,
+  financialDataService: FinancialDataService,
   authenticator: Authenticator,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
@@ -44,13 +45,13 @@ class FinancialDataController @Inject() (
     customerPaymentInformation: Option[Boolean] = None
   ): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) { implicit request =>
-      financialDataConnector.get(pptReference,
-                                 fromDate,
-                                 toDate,
-                                 onlyOpenItems,
-                                 includeLocks,
-                                 calculateAccruedInterest,
-                                 customerPaymentInformation
+      financialDataService.getRaw(pptReference,
+                                  fromDate,
+                                  toDate,
+                                  onlyOpenItems,
+                                  includeLocks,
+                                  calculateAccruedInterest,
+                                  customerPaymentInformation
       ).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)

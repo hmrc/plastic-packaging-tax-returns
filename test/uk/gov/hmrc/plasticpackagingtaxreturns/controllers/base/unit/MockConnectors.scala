@@ -172,8 +172,8 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[LocalDate](),
-                                     any[LocalDate](),
+                                     any[Option[LocalDate]](),
+                                     any[Option[LocalDate]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
@@ -187,8 +187,8 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[LocalDate](),
-                                     any[LocalDate](),
+                                     any[Option[LocalDate]](),
+                                     any[Option[LocalDate]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
