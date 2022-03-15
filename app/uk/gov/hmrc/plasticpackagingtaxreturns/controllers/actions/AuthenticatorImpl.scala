@@ -57,7 +57,7 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
     body: AuthorizedRequest[A] => Future[Result]
   ): Action[A] =
     Action.async(bodyParser) { implicit request =>
-      authorisedWithPptId.flatMap {
+      authorisedWithPptId(pptReference).flatMap {
         case Right(authorisedRequest) =>
           logger.info(s"Authorised request for ${authorisedRequest.pptId}")
           body(authorisedRequest)
@@ -67,18 +67,15 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
       }
     }
 
-  def authorisedWithPptId[A](implicit
-    hc: HeaderCarrier,
-    request: Request[A]
-  ): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
-    authorised(Enrolment(pptEnrolmentKey)).retrieve(allEnrolments) { enrolments =>
-      hasEnrolment(enrolments, pptEnrolmentIdentifierName) match {
-        case Some(pptReference) => Future.successful(Right(AuthorizedRequest(pptReference.value, request)))
-        case _ =>
-          val msg = "Unauthorised access. User without PPT Id."
-          logger.error(msg)
-          Future.successful(Left(ErrorResponse(UNAUTHORIZED, msg)))
-      }
+  def authorisedWithPptId[A](
+    pptReference: String
+  )(implicit hc: HeaderCarrier, request: Request[A]): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
+    authorised(
+      Enrolment(pptEnrolmentKey).withDelegatedAuthRule("ppt-auth").withIdentifier(pptEnrolmentIdentifierName,
+                                                                                  pptReference
+      )
+    ).retrieve(allEnrolments) { enrolments =>
+      Future.successful(Right(AuthorizedRequest(pptReference, request)))
     } recover {
       case error: AuthorisationException =>
         logger.error(s"Unauthorised Exception for ${request.uri} with error ${error.reason}")
@@ -88,12 +85,6 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
         logger.error(msg)
         Left(ErrorResponse(INTERNAL_SERVER_ERROR, msg))
     }
-
-  private def hasEnrolment(enrolmentsList: Enrolments, identifier: String): Option[EnrolmentIdentifier] =
-    enrolmentsList.enrolments
-      .filter(_.key == pptEnrolmentKey)
-      .flatMap(_.identifiers)
-      .find(_.key == identifier)
 
 }
 
