@@ -50,13 +50,15 @@ object EisReturnDetails {
 
     val taxableKg = Math.max(liableKg - notLiableKg, 0)
 
+    val creditClaimed = taxReturn.convertedPackagingCredit.map(_.totalInPounds).getOrElse(BigDecimal(0))
+
     returns.EisReturnDetails(manufacturedWeight = manufacturedWeightKg,
                              importedWeight = importedWeightKg,
                              totalNotLiable = notLiableKg,
                              humanMedicines = humanMedicinesWeightKg,
                              directExports = directExportsWeightKg,
                              recycledPlastic = recycledWeightKg,
-                             creditForPeriod = 0,
+                             creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
                              totalWeight = taxableKg,
                              taxDue = (BigDecimal(taxableKg) * taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
     )
