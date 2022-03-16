@@ -42,15 +42,24 @@ trait AuthTestSupport extends MockitoSugar {
   val pptReference = "7777777"
 
   def enrolmentWithDelegatedAuth(pptReference: String) =
-    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule(
-      "ppt-auth"
-    )
+    Enrolment(
+      pptEnrolmentKey
+    ) //.withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule("ppt-auth")
 
   def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit =
     when(
       mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
                                   ArgumentMatchers.eq(allEnrolments)
       )(any(), any())
+    )
+      .thenReturn(Future.successful(user.enrolments))
+
+  def withUserWithEnrolments(user: SignedInUser) =
+    when(
+      mockAuthConnector.authorise(ArgumentMatchers.argThat((_: Predicate) => true), ArgumentMatchers.eq(allEnrolments))(
+        any(),
+        any()
+      )
     )
       .thenReturn(Future.successful(user.enrolments))
 
