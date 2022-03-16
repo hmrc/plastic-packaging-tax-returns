@@ -42,15 +42,15 @@ class PPTObligationsController @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def get(ref: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) {
+  def get(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(ref,
+        obligationsDataConnector.get(pptReference,
                                      appConfig.pptTaxStartDate,
                                      LocalDate.now(ZoneOffset.UTC),
                                      ObligationStatus.OPEN
         ).map {
-          case Left(errorStatusCode) =>
+          case Left(_) =>
             InternalServerError("{}")
           case Right(obligationDataResponse) =>
             obligationsService.constructPPTObligations(obligationDataResponse) match {

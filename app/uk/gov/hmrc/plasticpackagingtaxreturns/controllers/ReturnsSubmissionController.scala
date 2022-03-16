@@ -38,11 +38,11 @@ class ReturnsSubmissionController @Inject() (
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def submit(returnId: String) =
-    authenticator.authorisedAction(parse.default) { implicit request =>
-      taxReturnRepository.findById(returnId).flatMap {
+  def submit(pptReference: String) =
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
+      taxReturnRepository.findById(pptReference).flatMap {
         case Some(taxReturn) =>
-          returnsConnector.submitReturn(returnId,
+          returnsConnector.submitReturn(pptReference,
                                         ReturnsSubmissionRequest(taxReturn, appConfig.taxRatePoundsPerKg)
           ).map {
             case Right(response)       => Ok(response)
@@ -52,9 +52,9 @@ class ReturnsSubmissionController @Inject() (
       }
     }
 
-  def get(returnId: String, periodKey: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
-      returnsConnector.get(pptReference = returnId, periodKey = periodKey).map {
+  def get(pptReference: String, periodKey: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
+      returnsConnector.get(pptReference = pptReference, periodKey = periodKey).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

@@ -37,16 +37,16 @@ class ReturnsController @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def get(id: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { _ =>
-      taxReturnRepository.findById(id).map {
+  def get(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) { _ =>
+      taxReturnRepository.findById(pptReference).map {
         case Some(taxReturn) => Ok(taxReturn)
         case None            => NotFound
       }
     }
 
-  def create(): Action[TaxReturnRequest] =
-    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest]) { implicit request =>
+  def create(pptReference: String): Action[TaxReturnRequest] =
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest], pptReference) { implicit request =>
       logPayload("Create Tax Return Request Received", request.body)
       taxReturnRepository
         .create(request.body.toTaxReturn(request.pptId))
@@ -54,13 +54,13 @@ class ReturnsController @Inject() (
         .map(taxReturn => Created(taxReturn))
     }
 
-  def update(id: String): Action[TaxReturnRequest] =
-    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest]) { implicit request =>
+  def update(pptReference: String): Action[TaxReturnRequest] =
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturnRequest], pptReference) { implicit request =>
       logPayload("Update Tax Return Request Received", request.body)
-      taxReturnRepository.findById(id).flatMap {
+      taxReturnRepository.findById(pptReference).flatMap {
         case Some(_) =>
           taxReturnRepository
-            .update(request.body.toTaxReturn(id))
+            .update(request.body.toTaxReturn(pptReference))
             .map(logPayload("Update Tax Return Response", _))
             .map {
               case Some(taxReturn) => Ok[TaxReturn](taxReturn)

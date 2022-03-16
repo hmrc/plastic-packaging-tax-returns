@@ -35,7 +35,7 @@ class ExportCreditBalanceController @Inject() (
     extends BackendController(controllerComponents) with JSONResponses {
 
   def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       exportCreditBalanceConnector.getBalance(pptReference, fromDate, toDate).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)

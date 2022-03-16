@@ -53,7 +53,9 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
       }
     }
 
-  def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
+  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(
+    body: AuthorizedRequest[A] => Future[Result]
+  ): Action[A] =
     Action.async(bodyParser) { implicit request =>
       authorisedWithPptId.flatMap {
         case Right(authorisedRequest) =>
@@ -104,6 +106,10 @@ case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends Wrap
 
 @ImplementedBy(classOf[AuthenticatorImpl])
 trait Authenticator {
-  def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A]
+
+  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(
+    body: AuthorizedRequest[A] => Future[Result]
+  ): Action[A]
+
   def parsingJson[T](implicit rds: Reads[T]): BodyParser[T]
 }

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.FinancialDataService
@@ -44,7 +43,7 @@ class FinancialDataController @Inject() (
     calculateAccruedInterest: Option[Boolean] = None,
     customerPaymentInformation: Option[Boolean] = None
   ): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       financialDataService.getRaw(pptReference,
                                   fromDate,
                                   toDate,
