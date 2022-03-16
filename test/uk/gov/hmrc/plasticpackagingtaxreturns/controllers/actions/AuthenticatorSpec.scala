@@ -53,7 +53,7 @@ class AuthenticatorSpec
       "auth returns Insufficient enrolments" in {
         withUnauthorizedUser(InsufficientEnrolments())
 
-        val result = await(authenticator.authorisedWithPptId("someone-elses-ppt-account")(hc, request))
+        val result = await(authenticator.authorisedWithPptReference("someone-elses-ppt-account")(hc, request))
 
         result.left.value.statusCode mustBe 401
       }
@@ -61,7 +61,7 @@ class AuthenticatorSpec
       "auth fails generally" in {
         withUnauthorizedUser(InternalError("A general auth failure"))
 
-        val result = await(authenticator.authorisedWithPptId("val1")(hc, request))
+        val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
         result.left.value.statusCode mustBe 401
       }
@@ -73,7 +73,7 @@ class AuthenticatorSpec
           newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"))))
         )
 
-        val result = await(authenticator.authorisedWithPptId("val1")(hc, request))
+        val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
         result.value.pptId mustBe "val1"
       }

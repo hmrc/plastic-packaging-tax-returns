@@ -57,7 +57,7 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
     body: AuthorizedRequest[A] => Future[Result]
   ): Action[A] =
     Action.async(bodyParser) { implicit request =>
-      authorisedWithPptId(pptReference).flatMap {
+      authorisedWithPptReference(pptReference).flatMap {
         case Right(authorisedRequest) =>
           logger.info(s"Authorised request for ${authorisedRequest.pptId}")
           body(authorisedRequest)
@@ -67,7 +67,7 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
       }
     }
 
-  def authorisedWithPptId[A](
+  def authorisedWithPptReference[A](
     pptReference: String
   )(implicit hc: HeaderCarrier, request: Request[A]): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
     authorised(
