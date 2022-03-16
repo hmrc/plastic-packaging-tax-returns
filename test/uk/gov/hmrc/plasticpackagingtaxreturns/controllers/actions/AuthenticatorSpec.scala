@@ -16,12 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions
 
-import org.scalatest.EitherValues
+import org.mockito.Mockito.reset
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers.await
 import play.api.test.{DefaultAwaitTimeout, FakeRequest}
+import uk.gov.hmrc.auth.core.{InsufficientEnrolments, InternalError}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
   pptEnrolmentIdentifierName,
@@ -33,78 +35,45 @@ import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 import scala.concurrent.ExecutionContext
 
 class AuthenticatorSpec
-    extends AnyWordSpec with Matchers with MockitoSugar with AuthTestSupport with DefaultAwaitTimeout
-    with EitherValues {
+    extends AnyWordSpec with Matchers with MockitoSugar with AuthTestSupport with DefaultAwaitTimeout with EitherValues
+    with BeforeAndAfterEach {
 
   private val mcc           = stubMessagesControllerComponents()
   private val hc            = HeaderCarrier()
   private val request       = FakeRequest()
   private val authenticator = new AuthenticatorImpl(mockAuthConnector, mcc)(ExecutionContext.global)
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockAuthConnector)
+  }
+
   "Authenticator" should {
-    "return 401 unauthorised " when {
-      "missing ppt enrolment key" in {
-        withUserWithEnrolments(newUser(Some(newEnrolments(newEnrolment("rubbishKey", "id1", "val1")))))
+    "return left" when {
+      "auth returns Insufficient enrolments" in {
+        withUnauthorizedUser(InsufficientEnrolments())
 
-        val result = await(authenticator.authorisedWithPptId(hc, request))
-
-        result.left.value.statusCode mustBe 401
-      }
-      "missing ppt enrolment identifier" in {
-        withUserWithEnrolments(newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, "id1", "val1")))))
-
-        val result = await(authenticator.authorisedWithPptId(hc, request))
+        val result = await(authenticator.authorisedWithPptReference("someone-elses-ppt-account")(hc, request))
 
         result.left.value.statusCode mustBe 401
       }
-      "correct ppt enrolment identifier but no ppt enrolment key" in {
-        withUserWithEnrolments(
-          newUser(Some(newEnrolments(newEnrolment("someKey", pptEnrolmentIdentifierName, "val1"))))
-        )
 
-        val result = await(authenticator.authorisedWithPptId(hc, request))
+      "auth fails generally" in {
+        withUnauthorizedUser(InternalError("A general auth failure"))
+
+        val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
         result.left.value.statusCode mustBe 401
       }
     }
 
-    "return 200" when {
-      "ppt enrolments exist" in {
-        withUserWithEnrolments(
+    "return right and populate verified ppt reference" when {
+      "ppt enrolment exists" in {
+        withAuthorizedUser(
           newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"))))
         )
 
-        val result = await(authenticator.authorisedWithPptId(hc, request))
-
-        result.value.pptId mustBe "val1"
-      }
-      "ppt enrolments exist among other enrolment keys" in {
-        withUserWithEnrolments(
-          newUser(
-            Some(
-              newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"),
-                            newEnrolment("someKey", "someidentifier", "val2")
-              )
-            )
-          )
-        )
-
-        val result = await(authenticator.authorisedWithPptId(hc, request))
-
-        result.value.pptId mustBe "val1"
-      }
-      "multiple enrolment identifiers under same key" in {
-        withUserWithEnrolments(
-          newUser(
-            Some(
-              newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"),
-                            newEnrolment(pptEnrolmentKey, "someidentifier", "val2")
-              )
-            )
-          )
-        )
-
-        val result = await(authenticator.authorisedWithPptId(hc, request))
+        val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
         result.value.pptId mustBe "val1"
       }
