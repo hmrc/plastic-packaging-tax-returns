@@ -48,7 +48,7 @@ class SubscriptionController @Inject() (
     extends BackendController(controllerComponents) with JSONResponses {
 
   def get(pptReference: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       subscriptionsConnector.getSubscription(pptReference).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
@@ -56,12 +56,13 @@ class SubscriptionController @Inject() (
     }
 
   def update(pptReference: String): Action[SubscriptionUpdateRequest] =
-    authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest]) { implicit request =>
-      val updatedSubscription = request.body.toSubscription
-      subscriptionsConnector.updateSubscription(pptReference, request.body).flatMap {
-        case response @ SubscriptionUpdateSuccessfulResponse(_, _, _) =>
-          handleNrsRequest(request, updatedSubscription, response)
-      }
+    authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest], pptReference) {
+      implicit request =>
+        val updatedSubscription = request.body.toSubscription
+        subscriptionsConnector.updateSubscription(pptReference, request.body).flatMap {
+          case response @ SubscriptionUpdateSuccessfulResponse(_, _, _) =>
+            handleNrsRequest(request, updatedSubscription, response)
+        }
     }
 
   private def handleNrsRequest(

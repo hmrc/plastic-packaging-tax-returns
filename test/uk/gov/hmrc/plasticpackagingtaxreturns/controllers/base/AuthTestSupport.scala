@@ -71,7 +71,11 @@ trait AuthTestSupport extends MockitoSugar {
       .thenReturn(Future.successful(Enrolments(Set())))
 
   def pptEnrollmentMatcher(user: SignedInUser): ArgumentMatcher[Predicate] =
-    (p: Predicate) => p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+    (p: Predicate) => {
+      p == enrolment && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+      println(p)
+      false
+    }
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),
