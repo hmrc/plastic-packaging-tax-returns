@@ -34,10 +34,10 @@ class PPTFinancialsController @Inject() (
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) {
 
-  def get(ref: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) {
+  def get(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        financialDataService.getFinancials(ref).map {
+        financialDataService.getFinancials(pptReference).map {
           case Left(_) =>
             InternalServerError("{}")
           case Right(financialDataResponse) =>
