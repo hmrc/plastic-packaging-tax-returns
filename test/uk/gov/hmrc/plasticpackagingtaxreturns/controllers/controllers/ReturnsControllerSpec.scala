@@ -158,7 +158,7 @@ class ReturnsControllerSpec
         withAuthorizedUser(newUser(Some(pptEnrolment("id01"))))
         val request = aTaxReturnRequest(withManufacturedPlasticWeight(ManufacturedPlasticWeight(totalKg = 5)),
                                         withConvertedPlasticPackagingCredit(
-                                          ConvertedPackagingCredit(totalInPence = 1433)
+                                          ConvertedPackagingCredit(totalInPounds = 1433)
                                         ),
                                         withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
                                         withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
