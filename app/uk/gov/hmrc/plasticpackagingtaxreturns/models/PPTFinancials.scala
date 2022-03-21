@@ -20,9 +20,15 @@ import play.api.libs.json.{Json, OWrites}
 
 import java.time.LocalDate
 
+final case class Charge(amount: BigDecimal, date: LocalDate)
+
+object Charge {
+  implicit val writes: OWrites[Charge] = Json.writes[Charge]
+}
+
 final case class PPTFinancials(
   creditAmount: Option[BigDecimal],
-  debitAmount: Option[(BigDecimal, LocalDate)],
+  debitAmount: Option[Charge],
   overdueAmount: Option[BigDecimal]
 )
 
@@ -31,7 +37,7 @@ object PPTFinancials {
   val NothingOutstanding: PPTFinancials = new PPTFinancials(None, None, None)
 
   def debitDue(amount: BigDecimal, dueDate: LocalDate): PPTFinancials =
-    new PPTFinancials(None, debitAmount = Some((amount, dueDate)), None)
+    new PPTFinancials(None, debitAmount = Some(Charge(amount, dueDate)), None)
 
   def overdue(amount: BigDecimal): PPTFinancials =
     new PPTFinancials(None, None, overdueAmount = Some(amount))
@@ -40,7 +46,7 @@ object PPTFinancials {
     new PPTFinancials(creditAmount = Some(amount.abs), None, None)
 
   def debitAndOverdue(dueAmount: BigDecimal, dueDate: LocalDate, overdueAmount: BigDecimal) =
-    new PPTFinancials(None, debitAmount = Some((dueAmount, dueDate)), overdueAmount = Some(overdueAmount))
+    new PPTFinancials(None, debitAmount = Some(Charge(dueAmount, dueDate)), overdueAmount = Some(overdueAmount))
 
   implicit val PPTFinancialsWrites: OWrites[PPTFinancials] = Json.writes[PPTFinancials]
 }
