@@ -28,7 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
+import scala.util.{Failure, Success}
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
@@ -51,6 +51,7 @@ class ReturnsSubmissionController @Inject() (
           ).map {
             case Right(response) =>
               taxReturnRepository.delete(taxReturn).andThen {
+                case Success(_) => logger.info(s"Successfully deleted tax return for $pptReference")
                 case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
               }
               Ok(response)
