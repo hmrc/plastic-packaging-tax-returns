@@ -44,7 +44,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   HumanMedicinesPlasticWeight,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
-  MetaData,
   RecycledPlasticWeight,
   TaxReturn
 }
@@ -163,8 +162,7 @@ class ReturnsControllerSpec
                                         withHumanMedicinesPlasticWeight(HumanMedicinesPlasticWeight(totalKg = 4)),
                                         withImportedPlasticWeight(ImportedPlasticWeight(totalKg = 2)),
                                         withDirectExportDetails(ExportedPlasticWeight(totalKg = 5)),
-                                        withRecycledPlasticWeight(RecycledPlasticWeight(3)),
-                                        withMetadata(MetaData(returnCompleted = true))
+                                        withRecycledPlasticWeight(RecycledPlasticWeight(3))
         )
 
         val taxReturn =
@@ -184,7 +182,6 @@ class ReturnsControllerSpec
         updatedTaxReturn.humanMedicinesPlasticWeight.get.totalKg mustBe 4
         updatedTaxReturn.exportedPlasticWeight.get.totalKg mustBe 5
         updatedTaxReturn.recycledPlasticWeight.get.totalKg mustBe 3
-        updatedTaxReturn.metaData.returnCompleted mustBe true
       }
     }
 

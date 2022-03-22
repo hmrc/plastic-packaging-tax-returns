@@ -24,8 +24,7 @@ case class TaxReturnRequest(
   humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight],
   exportedPlasticWeight: Option[ExportedPlasticWeight],
   convertedPackagingCredit: Option[ConvertedPackagingCredit],
-  recycledPlasticWeight: Option[RecycledPlasticWeight],
-  metaData: MetaData
+  recycledPlasticWeight: Option[RecycledPlasticWeight]
 ) {
 
   def toTaxReturn(providerId: String): TaxReturn =
@@ -37,8 +36,7 @@ case class TaxReturnRequest(
               humanMedicinesPlasticWeight = this.humanMedicinesPlasticWeight,
               exportedPlasticWeight = this.exportedPlasticWeight,
               convertedPackagingCredit = this.convertedPackagingCredit,
-              recycledPlasticWeight = this.recycledPlasticWeight,
-              metaData = this.metaData
+              recycledPlasticWeight = this.recycledPlasticWeight
     )
 
 }
