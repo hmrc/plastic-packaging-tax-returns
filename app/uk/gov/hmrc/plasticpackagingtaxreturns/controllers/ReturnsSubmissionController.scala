@@ -51,7 +51,7 @@ class ReturnsSubmissionController @Inject() (
           ).map {
             case Right(response) =>
               taxReturnRepository.delete(taxReturn).andThen {
-                case Success(_) => logger.info(s"Successfully deleted tax return for $pptReference")
+                case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
                 case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
               }
               Ok(response)
