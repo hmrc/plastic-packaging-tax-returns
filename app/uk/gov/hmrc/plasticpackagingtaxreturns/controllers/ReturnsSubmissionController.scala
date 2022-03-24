@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
@@ -27,6 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
@@ -38,14 +40,21 @@ class ReturnsSubmissionController @Inject() (
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def submit(pptReference: String) =
+  private val logger = Logger(this.getClass)
+
+  def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       taxReturnRepository.findById(pptReference).flatMap {
         case Some(taxReturn) =>
           returnsConnector.submitReturn(pptReference,
                                         ReturnsSubmissionRequest(taxReturn, appConfig.taxRatePoundsPerKg)
           ).map {
-            case Right(response)       => Ok(response)
+            case Right(response) =>
+              taxReturnRepository.delete(taxReturn).andThen {
+                case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
+                case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
+              }
+              Ok(response)
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }
         case None => Future.successful(NotFound)

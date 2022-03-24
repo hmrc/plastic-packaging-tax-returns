@@ -23,7 +23,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
   HumanMedicinesPlasticWeight,
   ImportedPlasticWeight,
   ManufacturedPlasticWeight,
-  MetaData,
   RecycledPlasticWeight,
   TaxReturn,
   TaxReturnObligation
@@ -77,9 +76,6 @@ trait TaxReturnBuilder {
 
   def withRecycledPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(recycledPlasticWeight = Some(RecycledPlasticWeight(totalKg = totalKg)))
-
-  def withMetadata(returnCompleted: Boolean): TaxReturnModifier =
-    _.copy(metaData = MetaData(returnCompleted = returnCompleted))
 
   def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = Some(dateTime))
 }
