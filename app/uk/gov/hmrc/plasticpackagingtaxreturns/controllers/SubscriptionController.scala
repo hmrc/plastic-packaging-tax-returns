@@ -50,8 +50,8 @@ class SubscriptionController @Inject() (
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       subscriptionsConnector.getSubscription(pptReference).map {
-        case Right(response)       => Ok(response)
-        case Left(errorStatusCode) => new Status(errorStatusCode)
+        case Right(response)  => Ok(response)
+        case Left(eisFailure) => new Status(eisFailure.httpCode)(eisFailure)
       }
     }
 
