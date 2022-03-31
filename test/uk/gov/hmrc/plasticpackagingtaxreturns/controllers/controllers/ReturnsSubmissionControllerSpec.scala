@@ -30,10 +30,18 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, OK}
+import play.api.test.Helpers.{
+  contentAsJson,
+  defaultAwaitTimeout,
+  route,
+  status,
+  writeableOf_AnyContentAsEmpty,
+  writeableOf_AnyContentAsJson,
+  OK
+}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.EisReturnDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
@@ -72,6 +80,28 @@ class ReturnsSubmissionControllerSpec
       val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
 
       val result: Future[Result] = route(app, submitReturnRequest).get
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
+    }
+
+    "amend a return via the returns connector" in {
+
+      val put = FakeRequest("PUT", "/returns-amend/" + pptReference)
+
+      val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
+                                        withImportedPlasticWeight(2000),
+                                        withHumanMedicinesPlasticWeight(3000),
+                                        withDirectExportDetails(4000),
+                                        withRecycledPlasticWeight(5000)
+      )
+
+      withAuthorizedUser()
+
+      val returnsSubmissionResponse = aReturn()
+      mockReturnsSubmissionConnector(returnsSubmissionResponse)
+
+      val result: Future[Result] = route(app, put.withJsonBody(toJson(updatedTaxReturn))).get
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnsSubmissionResponse)

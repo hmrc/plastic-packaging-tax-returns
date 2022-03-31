@@ -22,6 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -36,7 +37,7 @@ class ReturnsSubmissionController @Inject() (
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def submit(returnId: String) =
+  def submit(returnId: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) { implicit request =>
       taxReturnRepository.findById(returnId).flatMap {
         case Some(taxReturn) =>
@@ -45,6 +46,14 @@ class ReturnsSubmissionController @Inject() (
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }
         case None => Future.successful(NotFound)
+      }
+    }
+
+  def amend(returnId: String): Action[TaxReturn] =
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturn]) { implicit request =>
+      returnsConnector.submitReturn(returnId, ReturnsSubmissionRequest.fromTaxReturn(request.body.toTaxReturn)).map {
+        case Right(response)       => Ok(response)
+        case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
 
