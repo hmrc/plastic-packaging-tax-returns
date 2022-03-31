@@ -163,7 +163,7 @@ class SubscriptionControllerSpec
 
         "and NRS submission is not successful " in {
           val nrsErrorMessage = "Service unavailable"
-          withAuthorizedUser(user = newUser())
+          withAuthorizedUser()
           val request: SubscriptionUpdateRequest =
             createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
@@ -222,7 +222,7 @@ class SubscriptionControllerSpec
 
         "and NRS submission is not successful " in {
           val nrsErrorMessage = "Service unavailable"
-          withAuthorizedUser(user = newUser())
+          withAuthorizedUser()
           val request: SubscriptionUpdateRequest =
             createSubscriptionUpdateRequest(soleTraderSubscription)
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)

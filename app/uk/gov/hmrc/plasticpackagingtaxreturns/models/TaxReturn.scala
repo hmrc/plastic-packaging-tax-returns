@@ -40,7 +40,6 @@ case class TaxReturn(
   exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
   convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
   recycledPlasticWeight: Option[RecycledPlasticWeight] = None,
-  metaData: MetaData = MetaData(),
   lastModifiedDateTime: Option[DateTime] = None
 ) {
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
@@ -57,7 +56,6 @@ case class TaxReturn(
               this.exportedPlasticWeight,
               this.convertedPackagingCredit,
               this.recycledPlasticWeight,
-              this.metaData,
               this.lastModifiedDateTime
     )
 

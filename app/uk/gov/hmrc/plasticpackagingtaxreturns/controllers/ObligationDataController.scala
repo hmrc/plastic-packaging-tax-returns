@@ -36,7 +36,7 @@ class ObligationDataController @Inject() ( // TODO is this needed any longer?
     extends BackendController(controllerComponents) with JSONResponses {
 
   def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String]): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default) { implicit request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       obligationDataConnector.get(pptReference, fromDate, toDate, ObligationStatus.withName(status.getOrElse(""))).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)

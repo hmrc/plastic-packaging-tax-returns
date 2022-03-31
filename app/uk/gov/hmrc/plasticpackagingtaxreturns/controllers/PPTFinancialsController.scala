@@ -16,30 +16,34 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class ExportCreditBalanceController @Inject() (
-  exportCreditBalanceConnector: ExportCreditBalanceConnector,
+class PPTFinancialsController @Inject() (
+  cc: ControllerComponents,
   authenticator: Authenticator,
-  override val controllerComponents: ControllerComponents
-)(implicit executionContext: ExecutionContext)
-    extends BackendController(controllerComponents) with JSONResponses {
+  financialDataService: FinancialDataService,
+  financialsService: PPTFinancialsService
+)(implicit val executionContext: ExecutionContext)
+    extends BackendController(cc) {
 
-  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      exportCreditBalanceConnector.getBalance(pptReference, fromDate, toDate).map {
-        case Right(response)       => Ok(response)
-        case Left(errorStatusCode) => new Status(errorStatusCode)
-      }
+  def get(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
+      implicit request =>
+        financialDataService.getFinancials(pptReference).map {
+          case Left(_) =>
+            InternalServerError("{}")
+          case Right(financialDataResponse) =>
+            val financials = financialsService.construct(financialDataResponse)
+            Ok(Json.toJson(financials))
+        }
     }
 
 }

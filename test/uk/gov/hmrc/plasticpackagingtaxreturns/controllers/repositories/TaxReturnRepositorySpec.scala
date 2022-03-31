@@ -148,7 +148,6 @@ class TaxReturnRepositorySpec
       updatedTaxReturn.exportedPlasticWeight mustBe taxReturn.exportedPlasticWeight
       updatedTaxReturn.convertedPackagingCredit mustBe taxReturn.convertedPackagingCredit
       updatedTaxReturn.recycledPlasticWeight mustBe taxReturn.recycledPlasticWeight
-      updatedTaxReturn.metaData mustBe taxReturn.metaData
 
       // this indicates that a timer has started and has been stopped
       getTimer("ppt.returns.mongo.update").getCount mustBe 1

@@ -36,8 +36,7 @@ trait TaxReturnRequestBuilder {
                      humanMedicinesPlasticWeight = Some(HumanMedicinesPlasticWeight(1)),
                      exportedPlasticWeight = Some(ExportedPlasticWeight(2000)),
                      convertedPackagingCredit = Some(ConvertedPackagingCredit(1010)),
-                     recycledPlasticWeight = Some(RecycledPlasticWeight(1000)),
-                     metaData = MetaData()
+                     recycledPlasticWeight = Some(RecycledPlasticWeight(1000))
     )
 
   val defaultTaxReturnRequestObligation = TaxReturnObligation(fromDate = LocalDate.parse("2022-04-01"),
@@ -68,5 +67,4 @@ trait TaxReturnRequestBuilder {
   def withRecycledPlasticWeight(recycledPlasticWeight: RecycledPlasticWeight): TaxReturnRequestModifier =
     _.copy(recycledPlasticWeight = Some(recycledPlasticWeight))
 
-  def withMetadata(metaData: MetaData): TaxReturnRequestModifier = _.copy(metaData = metaData)
 }

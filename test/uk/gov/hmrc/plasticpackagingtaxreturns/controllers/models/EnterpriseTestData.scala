@@ -39,6 +39,8 @@ trait EnterpriseTestData {
                                                                                  Some("periodKeyDescription"),
                                                                                taxPeriodFrom = Some(LocalDate.now()),
                                                                                taxPeriodTo = Some(LocalDate.now()),
+                                                                               outstandingAmount =
+                                                                                 Some(BigDecimal(1000)),
                                                                                items = Seq(
                                                                                  FinancialItem(
                                                                                    subItem = Some("subItem"),

@@ -14,12 +14,24 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns
 
-import play.api.libs.json.{Json, OFormat}
+import java.time.{LocalDate, ZoneOffset}
 
-case class MetaData(returnCompleted: Boolean = false)
+package object services {
 
-object MetaData {
-  implicit val format: OFormat[MetaData] = Json.format[MetaData]
+  implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
+
+  implicit class RichLocalDate(val localDate: LocalDate) extends AnyVal {
+
+    private def today: LocalDate = LocalDate.now(ZoneOffset.UTC)
+
+    def isEqualOrAfterToday: Boolean =
+      localDate.compareTo(today) >= 0
+
+    def isBeforeToday: Boolean =
+      localDate.isBefore(today)
+
+  }
+
 }

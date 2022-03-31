@@ -24,6 +24,7 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
@@ -58,7 +59,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 
-      "handle unexpected exceptions thrown" in {
+      "handle unexpected failure responses" in {
         val pptReference = UUID.randomUUID().toString
 
         stubFor(
@@ -70,9 +71,10 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             )
         )
 
-        val res = await(connector.getSubscription(pptReference))
+        intercept[UpstreamErrorResponse] {
+          await(connector.getSubscription(pptReference))
+        }
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
     }
@@ -156,7 +158,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
           val res = await(connector.getSubscription(pptReference))
 
-          res.left.get mustBe statusCode
+          res.left.get.httpCode mustBe statusCode
           getTimer(displaySubscriptionTimer).getCount mustBe 1
         }
       }
@@ -190,7 +192,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         .willReturn(
           aResponse()
             .withStatus(httpStatus)
-            .withBody(Json.obj("failures" -> errors).toString)
+            .withBody(Json.obj("failures" -> errors, "httpCode" -> httpStatus).toString)
         )
     )
 

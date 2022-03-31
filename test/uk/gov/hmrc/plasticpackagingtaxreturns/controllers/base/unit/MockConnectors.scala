@@ -37,12 +37,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateSuccessfulResponse
 }
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.EisFailure
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
   NonRepudiationMetadata,
   NonRepudiationSubmissionAccepted
 }
-import java.time.LocalDate
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
@@ -63,15 +64,15 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetSubscriptionFailure(
     pptReference: String,
     statusCode: Int
-  ): OngoingStubbing[Future[Either[Int, SubscriptionDisplayResponse]]] =
+  ): OngoingStubbing[Future[Either[EisFailure, SubscriptionDisplayResponse]]] =
     when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
-      Future.successful(Left(statusCode))
+      Future.successful(Left(EisFailure(Seq(), statusCode)))
     )
 
   protected def mockGetSubscription(
     pptReference: String,
     displayResponse: SubscriptionDisplayResponse
-  ): OngoingStubbing[Future[Either[Int, SubscriptionDisplayResponse]]] =
+  ): OngoingStubbing[Future[Either[EisFailure, SubscriptionDisplayResponse]]] =
     when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
       Future.successful(Right(displayResponse))
     )
@@ -172,8 +173,8 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[LocalDate](),
-                                     any[LocalDate](),
+                                     any[Option[LocalDate]](),
+                                     any[Option[LocalDate]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
@@ -187,8 +188,8 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[LocalDate](),
-                                     any[LocalDate](),
+                                     any[Option[LocalDate]](),
+                                     any[Option[LocalDate]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),
                                      any[Option[Boolean]](),

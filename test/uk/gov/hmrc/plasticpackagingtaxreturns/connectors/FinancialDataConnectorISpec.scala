@@ -78,8 +78,8 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
 
   private def getFinancialData =
     connector.get(pptReference,
-                  fromDate,
-                  toDate,
+                  Some(fromDate),
+                  Some(toDate),
                   onlyOpenItems,
                   includeLocks,
                   calculateAccruedInterest,

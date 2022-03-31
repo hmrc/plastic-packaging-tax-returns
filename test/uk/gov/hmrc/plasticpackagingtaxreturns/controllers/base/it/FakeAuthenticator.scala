@@ -25,7 +25,9 @@ import scala.concurrent.Future
 
 class FakeAuthenticator @Inject() (cc: ControllerComponents) extends Authenticator {
 
-  override def authorisedAction[A](bodyParser: BodyParser[A])(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
+  override def authorisedAction[A](bodyParser: BodyParser[A], ppt: String)(
+    body: AuthorizedRequest[A] => Future[Result]
+  ): Action[A] =
     cc.actionBuilder.async(bodyParser) { implicit request =>
       body(AuthorizedRequest("uiui", request))
     }

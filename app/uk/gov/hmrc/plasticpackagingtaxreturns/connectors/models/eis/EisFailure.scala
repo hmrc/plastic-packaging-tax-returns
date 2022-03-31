@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ConvertedPackagingCredit(totalInPounds: BigDecimal)
+case class EisError(code: String, reason: String)
 
-object ConvertedPackagingCredit {
-  implicit val format: OFormat[ConvertedPackagingCredit] = Json.format[ConvertedPackagingCredit]
+object EisError {
+  implicit val format: OFormat[EisError] = Json.format[EisError]
+}
+
+case class EisFailure(failures: Seq[EisError], httpCode: Int)
+
+object EisFailure {
+  implicit val format: OFormat[EisFailure] = Json.format[EisFailure]
 }
