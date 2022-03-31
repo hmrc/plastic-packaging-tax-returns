@@ -49,14 +49,6 @@ class ReturnsSubmissionController @Inject() (
       }
     }
 
-  def amend(returnId: String): Action[TaxReturn] =
-    authenticator.authorisedAction(authenticator.parsingJson[TaxReturn]) { implicit request =>
-      returnsConnector.submitReturn(returnId, ReturnsSubmissionRequest.fromTaxReturn(request.body.toTaxReturn)).map {
-        case Right(response)       => Ok(response)
-        case Left(errorStatusCode) => new Status(errorStatusCode)
-      }
-    }
-
   def get(returnId: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default) { implicit request =>
       returnsConnector.get(pptReference = returnId, periodKey = periodKey).map {

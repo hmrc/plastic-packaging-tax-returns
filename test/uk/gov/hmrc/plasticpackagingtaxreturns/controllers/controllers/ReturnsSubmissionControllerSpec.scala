@@ -85,28 +85,6 @@ class ReturnsSubmissionControllerSpec
       contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
     }
 
-    "amend a return via the returns connector" in {
-
-      val put = FakeRequest("PUT", "/returns-amend/" + pptReference)
-
-      val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
-                                        withImportedPlasticWeight(2000),
-                                        withHumanMedicinesPlasticWeight(3000),
-                                        withDirectExportDetails(4000),
-                                        withRecycledPlasticWeight(5000)
-      )
-
-      withAuthorizedUser()
-
-      val returnsSubmissionResponse = aReturn()
-      mockReturnsSubmissionConnector(returnsSubmissionResponse)
-
-      val result: Future[Result] = route(app, put.withJsonBody(toJson(updatedTaxReturn))).get
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
-    }
-
     "get return to display" should {
       "return OK response" in {
         withAuthorizedUser()
