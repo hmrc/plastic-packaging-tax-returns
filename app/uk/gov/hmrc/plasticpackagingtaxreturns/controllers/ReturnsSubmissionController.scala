@@ -66,7 +66,7 @@ class ReturnsSubmissionController @Inject() (
   def amend(pptReference: String): Action[TaxReturn] =
     authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
       returnsConnector.submitReturn(pptReference,
-                                    ReturnsSubmissionRequest(request.body.toTaxReturn, appConfig.taxRatePoundsPerKg)
+                                    ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg)
       ).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)

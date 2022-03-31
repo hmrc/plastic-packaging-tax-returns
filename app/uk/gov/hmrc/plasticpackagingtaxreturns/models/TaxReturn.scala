@@ -43,22 +43,6 @@ case class TaxReturn(
   lastModifiedDateTime: Option[DateTime] = None
 ) {
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
-
-  def toTaxReturn: TaxReturn =
-    TaxReturn(this.id,
-              this.returnType,
-              this.obligation,
-              this.manufacturedPlastic,
-              this.manufacturedPlasticWeight,
-              this.importedPlastic,
-              this.importedPlasticWeight,
-              this.humanMedicinesPlasticWeight,
-              this.exportedPlasticWeight,
-              this.convertedPackagingCredit,
-              this.recycledPlasticWeight,
-              this.lastModifiedDateTime
-    )
-
 }
 
 object TaxReturn {
