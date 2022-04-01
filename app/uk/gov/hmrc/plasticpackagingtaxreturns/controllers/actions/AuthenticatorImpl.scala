@@ -70,6 +70,7 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
   def authorisedWithPptReference[A](
     pptReference: String
   )(implicit hc: HeaderCarrier, request: Request[A]): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
+    // TODO - PUT THIS BACK WHEN AUTH ACTION DONE!!
 //    authorised(
 //      Enrolment(pptEnrolmentKey).withDelegatedAuthRule("ppt-auth").withIdentifier(pptEnrolmentIdentifierName,
 //                                                                                  pptReference
