@@ -1,6 +1,7 @@
 
 # microservice specific routes
 
+# Cached, in-progress returns
 POST        /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create(pptReference: String)
 PUT         /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(pptReference: String)
 GET         /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(pptReference: String)
@@ -14,6 +15,8 @@ GET         /export-credits/:pptReference           uk.gov.hmrc.plasticpackaging
 
 # EIS Return Submission
 POST        /returns-submission/:pptReference                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.submit(pptReference: String)
+
+# Return Display API
 GET         /returns-submission/:pptReference/:periodKey      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(pptReference: String, periodKey: String)
 
 # EIS Return Amend
@@ -22,7 +25,6 @@ PUT        /returns-amend/:pptReference                      uk.gov.hmrc.plastic
 # DES obligation data
 GET         /obligation-data/:pptReference          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])
 GET         /obligations/open/:pptReference         uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.get(pptReference)
-
 
 # DES financial data
 GET         /financial-data/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])

@@ -19,9 +19,10 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
-import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 
@@ -77,36 +78,33 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
       }
   }
 
-  def get(pptReference: String, periodKey: String)(implicit hc: HeaderCarrier): Future[Either[Int, Return]] = {
-    val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
+  def get(pptReference: String, periodKey: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
+    val timer: Timer.Context = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
 
-    httpClient.GET[Return](appConfig.returnsDisplayUrl(pptReference, periodKey),
-                           headers = headers :+ correlationIdHeader
+    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey),
+      headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"Retrieved return display with correlationId [$correlationIdHeader._2], pptReference [$pptReference]" +
-            s", periodKey [$periodKey] and response has submissionId [${response.idDetails.submissionId}]"
-        )
-        Right(response)
+        logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
+        if (response.status == OK) Right(response.json)
+        else Left(response.status)
       }
       .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.warn(
-            s"Upstream error returned on fetching return with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], periodKey [$periodKey] status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
-          )
-          Left(httpEx.statusCode)
         case ex: Exception =>
-          logger.warn(
-            s"Return response with correlationId [${correlationIdHeader._2}] " +
-              s"pptReference [$pptReference] and periodKey [$periodKey] is currently unavailable due to [${ex.getMessage}]",
-            ex
-          )
+          logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, s"exception: ${ex.getMessage}"), ex)
           Left(INTERNAL_SERVER_ERROR)
       }
   }
 
+  private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {
+    logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, outcomeMessage)
+    )
+  }
+
+  private def cookLogMessage(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String) = {
+    s"Return Display API call for correlationId [${correlationIdHeader._2}], " +
+      s"pptReference [$pptReference], periodKey [$periodKey]: " + outcomeMessage
+  }
 }

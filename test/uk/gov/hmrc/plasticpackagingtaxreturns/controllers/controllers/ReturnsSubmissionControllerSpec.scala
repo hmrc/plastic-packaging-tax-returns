@@ -29,6 +29,7 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -142,7 +143,7 @@ class ReturnsSubmissionControllerSpec
           )
         )
 
-        mockReturnDisplayConnector(returnDisplayResponse)
+        mockReturnDisplayConnector(Json.toJson(returnDisplayResponse))
 
         val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference/$periodKey")
 

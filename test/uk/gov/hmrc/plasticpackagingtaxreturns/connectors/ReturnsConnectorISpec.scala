@@ -73,7 +73,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.get(pptReference, "22C1"))
 
-        res.right.get mustBe returnForDisplay
+        res.right.get mustBe Json.toJson(returnForDisplay)
       }
 
       "return error when unexpected response received" in {
