@@ -68,7 +68,7 @@ class ReturnsSubmissionControllerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    when(mockReturnsRepository.delete(any())).thenReturn(Future.successful(()))
+    when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.successful(()))
     reset(mockAuthConnector)
   }
 
@@ -96,16 +96,29 @@ class ReturnsSubmissionControllerSpec
       verify(mockReturnsRepository).delete(taxReturn)
     }
 
+    "delete a return after successful amend" in {
+      amendSubmittedAsExpected(pptReference)
+
+      verify(mockReturnsRepository).delete(pptReference)
+    }
+
     "respond successfully when return submission is successful but the return delete fails" in {
-      when(mockReturnsRepository.delete(any())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       val taxReturn = aTaxReturn()
       returnSubmittedAsExpected(pptReference, taxReturn)
     }
 
+    "respond successfully when return amend is successful but the return delete fails" in {
+      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+
+      amendSubmittedAsExpected(pptReference)
+    }
+
     "use the tax rate defined in config" in {
       withAuthorizedUser()
       mockGetReturn(Some(aTaxReturn().copy(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(1000)))))
+      when(mockReturnsRepository.delete(any[TaxReturn]())).thenReturn(Future.unit)
 
       val returnsSubmissionResponse = aReturn()
       mockReturnsSubmissionConnector(returnsSubmissionResponse)
@@ -202,6 +215,7 @@ class ReturnsSubmissionControllerSpec
     )
 
     withAuthorizedUser()
+    when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.unit)
 
     val returnsSubmissionResponse = aReturn()
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
@@ -216,6 +230,8 @@ class ReturnsSubmissionControllerSpec
   private def returnSubmittedAsExpected(pptReference: String, taxReturn: TaxReturn) = {
     withAuthorizedUser()
     mockGetReturn(Some(taxReturn))
+
+    when(mockReturnsRepository.delete(any[TaxReturn]())).thenReturn(Future.unit)
 
     val returnsSubmissionResponse = aReturn()
     mockReturnsSubmissionConnector(returnsSubmissionResponse)

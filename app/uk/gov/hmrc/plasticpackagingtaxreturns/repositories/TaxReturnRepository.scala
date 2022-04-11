@@ -40,6 +40,7 @@ trait TaxReturnRepository {
   def create(taxReturn: TaxReturn): Future[TaxReturn]
   def update(taxReturn: TaxReturn): Future[Option[TaxReturn]]
   def delete(taxReturn: TaxReturn): Future[Unit]
+  def delete(taxReturnId: String): Future[Unit]
 }
 
 class TaxReturnRepositoryImpl @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig, metrics: Metrics)(
@@ -91,13 +92,16 @@ class TaxReturnRepositoryImpl @Inject() (mongoComponent: MongoComponent, appConf
     }
   }
 
-  override def delete(taxReturn: TaxReturn): Future[Unit] = {
+  override def delete(taxReturnId: String): Future[Unit] = {
     val deleteStopwatch = newMongoDBTimer("ppt.returns.mongo.delete").time()
-    collection.deleteOne(filter(taxReturn.id)).toFuture()
+    collection.deleteOne(filter(taxReturnId)).toFuture()
       .andThen {
         case _ => deleteStopwatch.stop()
       }.map(_ => Unit)
   }
+
+  override def delete(taxReturn: TaxReturn): Future[Unit] =
+    delete(taxReturn.id)
 
 }
 
