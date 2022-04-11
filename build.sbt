@@ -19,11 +19,7 @@ lazy val microservice = Project(appName, file("."))
             libraryDependencies ++= Seq(
               compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
               "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-            ),
-            // ***************
-            // auto format code following .scalafmt.conf
-            scalafmtOnCompile in Compile := true,
-            scalafmtOnCompile in Test := true
+            )
   )
   .settings(publishingSettings: _*)
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")

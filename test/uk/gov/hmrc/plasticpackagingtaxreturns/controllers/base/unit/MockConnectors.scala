@@ -22,6 +22,7 @@ import org.mockito.Mockito.{reset, when}
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
   FinancialDataResponse,
@@ -137,7 +138,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
     when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
-  protected def mockReturnDisplayConnector(resp: Return) =
+  protected def mockReturnDisplayConnector(resp: JsValue) =
     when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnDisplayConnectorFailure(statusCode: Int) =

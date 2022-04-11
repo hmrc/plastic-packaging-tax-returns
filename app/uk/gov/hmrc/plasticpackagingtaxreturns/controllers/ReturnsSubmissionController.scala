@@ -24,6 +24,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -58,6 +59,17 @@ class ReturnsSubmissionController @Inject() (
             case Left(errorStatusCode) => new Status(errorStatusCode)
           }
         case None => Future.successful(NotFound)
+      }
+    }
+
+  // TODO do we need to delete the submitted return as above when successful?
+  def amend(pptReference: String): Action[TaxReturn] =
+    authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
+      returnsConnector.submitReturn(pptReference,
+                                    ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg)
+      ).map {
+        case Right(response)       => Ok(response)
+        case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
 

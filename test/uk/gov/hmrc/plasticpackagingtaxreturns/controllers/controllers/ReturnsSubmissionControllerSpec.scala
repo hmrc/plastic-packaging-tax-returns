@@ -29,6 +29,7 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -39,6 +40,7 @@ import play.api.test.Helpers.{
   route,
   status,
   writeableOf_AnyContentAsEmpty,
+  writeableOf_AnyContentAsJson,
   OK
 }
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -81,6 +83,10 @@ class ReturnsSubmissionControllerSpec
   "Returns submission controller" should {
     "submit a return via the returns connector" in {
       returnSubmittedAsExpected(pptReference, aTaxReturn())
+    }
+
+    "submit an amendment via the returns controller" in {
+      amendSubmittedAsExpected(pptReference)
     }
 
     "delete a return after successful submission" in {
@@ -137,7 +143,7 @@ class ReturnsSubmissionControllerSpec
           )
         )
 
-        mockReturnDisplayConnector(returnDisplayResponse)
+        mockReturnDisplayConnector(Json.toJson(returnDisplayResponse))
 
         val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference/$periodKey")
 
@@ -182,6 +188,29 @@ class ReturnsSubmissionControllerSpec
 
       status(result) mustBe BAD_REQUEST
     }
+  }
+
+  private def amendSubmittedAsExpected(pptReference: String) = {
+
+    val put = FakeRequest("PUT", "/returns-amend/" + pptReference)
+
+    val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
+                                      withImportedPlasticWeight(2000),
+                                      withHumanMedicinesPlasticWeight(3000),
+                                      withDirectExportDetails(4000),
+                                      withRecycledPlasticWeight(5000)
+    )
+
+    withAuthorizedUser()
+
+    val returnsSubmissionResponse = aReturn()
+    mockReturnsSubmissionConnector(returnsSubmissionResponse)
+
+    val result: Future[Result] = route(app, put.withJsonBody(toJson(updatedTaxReturn))).get
+
+    status(result) mustBe OK
+    contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
+
   }
 
   private def returnSubmittedAsExpected(pptReference: String, taxReturn: TaxReturn) = {
