@@ -62,13 +62,17 @@ class ReturnsSubmissionController @Inject() (
       }
     }
 
-  // TODO do we need to delete the submitted return as above when successful?
   def amend(pptReference: String): Action[TaxReturn] =
     authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
       returnsConnector.submitReturn(pptReference,
                                     ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg)
       ).map {
-        case Right(response)       => Ok(response)
+        case Right(response)       =>
+          taxReturnRepository.delete(pptReference).andThen {
+            case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
+            case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
+          }
+          Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
