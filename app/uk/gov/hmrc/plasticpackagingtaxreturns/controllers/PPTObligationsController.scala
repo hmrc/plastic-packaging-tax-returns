@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.Logger
-import play.api.libs.json.Json
+import play.api.{Logger, Logging}
+import play.api.libs.json.{Json, Writes}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDetail, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -38,11 +39,11 @@ class PPTObligationsController @Inject() (
   obligationsDataConnector: ObligationsDataConnector,
   obligationsService: PPTObligationsService
 )(implicit val executionContext: ExecutionContext)
-    extends BackendController(cc) {
+    extends BackendController(cc) with Logging{
 
-  private val logger = Logger(this.getClass)
+  private val internalServerError = InternalServerError("{}")
 
-  def get(pptReference: String): Action[AnyContent] =
+  def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference,
@@ -51,13 +52,35 @@ class PPTObligationsController @Inject() (
                                      ObligationStatus.OPEN
         ).map {
           case Left(_) =>
-            InternalServerError("{}")
+            internalServerError
           case Right(obligationDataResponse) =>
             obligationsService.constructPPTObligations(obligationDataResponse) match {
               case Left(error) =>
                 logger.error(s"Error constructing Obligation response: $error.")
-                InternalServerError("{}")
+                internalServerError
               case Right(response) =>
+                Ok(Json.toJson(response))
+            }
+        }
+    }
+
+  def getFulfilled(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
+      implicit request =>
+        obligationsDataConnector.get(pptReference,
+          appConfig.pptTaxStartDate,
+          LocalDate.now(ZoneOffset.UTC),
+          ObligationStatus.FULFILLED
+        ).map {
+          case Left(_) =>
+            internalServerError
+          case Right(obligationDataResponse) =>
+            obligationsService.constructPPTFulfilled(obligationDataResponse) match {
+              case Left(error) =>
+                logger.error(s"Error constructing Obligation response: $error.")
+                internalServerError
+              case Right(response) =>
+                implicit val writes: Writes[ObligationDetail] = PPTObligations.customObligationDetailWrites
                 Ok(Json.toJson(response))
             }
         }

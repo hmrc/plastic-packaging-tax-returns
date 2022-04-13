@@ -16,28 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.Logger
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Obligation,
-  ObligationDataResponse,
-  ObligationDetail
-}
+import play.api.Logging
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 
 import java.time.{LocalDate, ZoneOffset}
 
-class PPTObligationsService {
+class PPTObligationsService extends Logging {
 
-  private val logger = Logger(this.getClass)
+  def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
+    data.obligations match {
+      case Seq(obligation) => Right(obligation.obligationDetails)
+      case obligations =>
+        Left(s"Error constructing Obligations, expected 1 found ${obligations.size}")
+  }
 
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
       case Seq(obligation) =>
         logger.info("Constructing Obligations.")
         Right(construct(obligation))
-      case _ =>
-        logger.error("No Obligations found.")
-        Left("No Obligation found")
+      case obligations =>
+        Left(s"Error constructing Obligations, expected 1 found ${obligations.size}")
     }
 
   private def construct(obligation: Obligation): PPTObligations = {
