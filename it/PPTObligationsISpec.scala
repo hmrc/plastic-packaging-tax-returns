@@ -25,7 +25,7 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{JsArray, JsBoolean, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites, Writes}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
@@ -37,9 +37,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
+import scala.language.implicitConversions
 
 class PPTObligationsISpec
     extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
+
+  implicit def toJsString(s: String): JsString = JsString(s)
+  def jsObject(t: (String, JsValue)*): JsObject = JsObject(t)
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
@@ -125,7 +129,17 @@ class PPTObligationsISpec
       val response = await(wsClient.url(pptOpenUrl).get())
 
       response.status mustBe OK
-      response.json mustBe Json.toJson(PPTObligations(Some(obligationDetail(open)), None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false))
+      response.json mustBe jsObject(
+        "nextObligation" -> jsObject(
+          "periodKey" -> "22C2",
+          "fromDate" -> "2022-04-01",
+          "toDate" -> "2022-06-30",
+          "dueDate" -> "2022-07-29"
+        ),
+        "overdueObligationCount" -> JsNumber(0),
+        "isNextObligationDue" -> JsFalse,
+        "displaySubmitReturnsLink" -> JsFalse
+      )
     }
 
     "should return Unauthorised" in {
@@ -164,8 +178,14 @@ class PPTObligationsISpec
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
       response.status mustBe OK
-      implicit val writes: Writes[ObligationDetail] = PPTObligations.customObligationDetailWrites
-      response.json mustBe Json.toJson(Seq(obligationDetail(fulfilled)))
+      response.json mustBe JsArray(Seq(
+        jsObject(
+          "periodKey" -> "22C2",
+          "fromDate" -> "2022-04-01",
+          "toDate" -> "2022-06-30",
+          "dueDate" -> "2022-07-29"
+        )
+      ))
     }
 
     "should return Unauthorised" in {
@@ -186,15 +206,19 @@ class PPTObligationsISpec
     }
   }
 
-  private def stubObligationDataRequest(status: ObligationStatus, response: ObligationDataResponse): Unit =
+  private def stubObligationDataRequest(status: ObligationStatus, response: ObligationDataResponse): Unit = {
+    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
+    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
     server.stubFor(
       get(DESUrl(status))
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(ObligationDataResponse.format.writes(response).toString())
+            .withBody(Json.toJson(response)(writes).toString())
         )
     )
+  }
 
   private def stubInvalidObligationDataRequest(status: ObligationStatus): Unit =
     server.stubFor(

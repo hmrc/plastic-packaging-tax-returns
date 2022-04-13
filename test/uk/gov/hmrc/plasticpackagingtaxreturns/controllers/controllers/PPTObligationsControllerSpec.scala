@@ -168,20 +168,6 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
         )(any())
     }
 
-    "use the correct jsonWrites" in {
-      val now = LocalDate.now()
-      val detail = ObligationDetail(ObligationStatus.FULFILLED, now, now, now, now, "PKEY")
-      val details = Seq(detail)
-
-      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(Right(details))
-
-      val result = sut.getFulfilled(pptReference).apply(FakeRequest())
-
-      contentAsJson(result) mustBe JsArray.apply(Seq(Json.toJson(detail)(PPTObligations.customObligationDetailWrites)))
-    }
-
     "return internal server error response" when {
       "an error is returned from connector" in {
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))

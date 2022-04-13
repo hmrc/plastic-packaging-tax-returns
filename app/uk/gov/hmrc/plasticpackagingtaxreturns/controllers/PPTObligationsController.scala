@@ -80,7 +80,6 @@ class PPTObligationsController @Inject() (
                 logger.error(s"Error constructing Obligation response: $error.")
                 internalServerError
               case Right(response) =>
-                implicit val writes: Writes[ObligationDetail] = PPTObligations.customObligationDetailWrites
                 Ok(Json.toJson(response))
             }
         }

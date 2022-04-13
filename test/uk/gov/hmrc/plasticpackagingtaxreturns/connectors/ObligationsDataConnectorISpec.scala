@@ -20,7 +20,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -108,7 +108,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
     }
   }
 
-  private def stubObligationDataRequest(response: ObligationDataResponse): Unit =
+  private def stubObligationDataRequest(response: ObligationDataResponse): Unit = {
+    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
+    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
     stubFor(
       get(
         s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
@@ -116,9 +119,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(ObligationDataResponse.format.writes(response).toString())
+            .withBody(Json.toJson(response)(writes).toString())
         )
     )
+  }
 
   private def stubObligationDataRequestFailure(httpStatus: Int, errors: Seq[EISError]): Any =
     stubFor(

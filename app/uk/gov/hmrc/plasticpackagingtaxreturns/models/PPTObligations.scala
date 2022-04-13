@@ -16,11 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsPath, Json, OWrites, Writes}
+import play.api.libs.json.{Json, OWrites}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDetail
-
-import java.time.LocalDate
 
 final case class PPTObligations(
   nextObligation: Option[ObligationDetail],
@@ -31,13 +28,5 @@ final case class PPTObligations(
 )
 
 object PPTObligations {
-
-  implicit val customObligationDetailWrites: Writes[ObligationDetail] = (
-    (JsPath \ "periodKey").write[String] and
-      (JsPath \ "fromDate").write[LocalDate] and
-      (JsPath \ "toDate").write[LocalDate] and
-      (JsPath \ "dueDate").write[LocalDate]
-  )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
-
   implicit val PPTObligationsWrites: OWrites[PPTObligations] = Json.writes[PPTObligations]
 }
