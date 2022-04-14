@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise
 
-import play.api.libs.json.{Format, Json, OFormat, Reads, Writes}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import play.api.libs.json.{Format, JsPath, Json, OFormat, Reads, Writes}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 
 import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 
 object ObligationStatus extends Enumeration {
   type ObligationStatus = Value
@@ -48,7 +49,16 @@ case class ObligationDetail(
 )
 
 object ObligationDetail {
-  implicit val format: OFormat[ObligationDetail] = Json.format[ObligationDetail]
+
+  //to keep PPT APIs simple; filter information returned
+  implicit val customWrites: Writes[ObligationDetail] = (
+    (JsPath \ "periodKey").write[String] and
+      (JsPath \ "fromDate").write[LocalDate] and
+      (JsPath \ "toDate").write[LocalDate] and
+      (JsPath \ "dueDate").write[LocalDate]
+    )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
+
+  implicit val format: Reads[ObligationDetail] = Json.reads[ObligationDetail]
 }
 
 case class Obligation(identification: Identification, obligationDetails: Seq[ObligationDetail])

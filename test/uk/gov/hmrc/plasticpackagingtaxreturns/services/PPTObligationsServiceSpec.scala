@@ -50,13 +50,12 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
   val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
   val laterObligation: ObligationDetail    = makeDetail(today.plusDays(10), "later")
 
-  "get" must {
-
-    "returns an error message" when {
+  "constructPPTFulfilled" must {
+    "return an error message" when {
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
       }
       "there are multiple obligations in data" in {
         val obligation = Obligation(
@@ -67,7 +66,55 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         val obligationDataResponse: ObligationDataResponse =
           ObligationDataResponse(Seq(obligation, obligation))
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
+      }
+    }
+
+    "return a sequence of details" when {
+      "the sequence is empty" in {
+        val obligation = Obligation(
+          identification =
+            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+          obligationDetails = Nil
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation))
+
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Right(Seq.empty)
+      }
+      "the sequence is non empty" in {
+        val obligationDetail = ObligationDetail(ObligationStatus.FULFILLED, today, today, today, today, "PKEY")
+        val obligation = Obligation(
+          identification =
+            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+          obligationDetails = Seq(obligationDetail)
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation))
+
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Right(Seq(obligationDetail))
+      }
+    }
+  }
+
+  "constructPPTObligations" must {
+
+    "returns an error message" when {
+      "there are no obligations in data" in {
+        val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
+
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
+      }
+      "there are multiple obligations in data" in {
+        val obligation = Obligation(
+          identification =
+            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+          obligationDetails = Nil
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation, obligation))
+
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
       }
     }
 
