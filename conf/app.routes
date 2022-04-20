@@ -31,3 +31,6 @@ GET         /obligations/fulfilled/:pptReference            uk.gov.hmrc.plasticp
 GET         /financial-data/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])
 GET         /financials/open/:pptReference           uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController.get(pptReference)
 
+# User Answers Cache
+GET         /cache/get/:internalId/:pptReference       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.get(internalId: String, pptReference: String)
+PUT         /cache/set/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.set(pptReference: String)
