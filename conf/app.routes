@@ -33,4 +33,4 @@ GET         /financials/open/:pptReference           uk.gov.hmrc.plasticpackagin
 
 # User Answers Cache
 GET         /cache/get/:internalId/:pptReference       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.get(internalId: String, pptReference: String)
-PUT         /cache/set/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.set(pptReference: String)
+POST        /cache/set/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.set(pptReference: String)

@@ -21,7 +21,8 @@ import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.{SessionRepository, TaxReturnRepository}
 
 import scala.concurrent.Future
 
@@ -29,6 +30,7 @@ trait MockReturnsRepository extends MockitoSugar with BeforeAndAfterEach {
   self: Suite =>
 
   protected val mockReturnsRepository = mock[TaxReturnRepository]
+  protected val mockSessionRepository = mock[SessionRepository]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -38,4 +40,6 @@ trait MockReturnsRepository extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetReturn(taxReturn: Option[TaxReturn]) =
     when(mockReturnsRepository.findById(any())).thenReturn(Future.successful(taxReturn))
 
+  protected def mockGetCache(userAnswers: Option[UserAnswers]) =
+    when(mockSessionRepository.get(any())).thenReturn(Future.successful(userAnswers))
 }
