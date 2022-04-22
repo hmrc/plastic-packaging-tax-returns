@@ -25,16 +25,15 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Retu
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.{SessionRepository, TaxReturnRepository}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 @Singleton
 class ReturnsSubmissionController @Inject() (
   authenticator: Authenticator,
-  taxReturnRepository: TaxReturnRepository,
   sessionRepository: SessionRepository,
   override val controllerComponents: ControllerComponents,
   returnsConnector: ReturnsConnector,
@@ -43,26 +42,6 @@ class ReturnsSubmissionController @Inject() (
     extends BackendController(controllerComponents) with JSONResponses {
 
   private val logger = Logger(this.getClass)
-
-  // TODO Replace with new submit from scaffold front end
-//  def submit(pptReference: String): Action[AnyContent] =
-//    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-//      taxReturnRepository.findById(pptReference).flatMap {
-//        case Some(taxReturn) =>
-//          returnsConnector.submitReturn(pptReference,
-//                                        ReturnsSubmissionRequest(taxReturn, appConfig.taxRatePoundsPerKg)
-//          ).map {
-//            case Right(response) =>
-//              taxReturnRepository.delete(taxReturn).andThen {
-//                case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
-//                case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
-//              }
-//              Ok(response)
-//            case Left(errorStatusCode) => new Status(errorStatusCode)
-//          }
-//        case None => Future.successful(NotFound)
-//      }
-//    }
 
   def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference)
   def amend(pptReference: String): Action[TaxReturn] = doSubmission(pptReference)
@@ -73,6 +52,7 @@ class ReturnsSubmissionController @Inject() (
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
+
     }
 
   private def doSubmission(pptReference: String): Action[TaxReturn] =

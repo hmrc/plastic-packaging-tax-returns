@@ -29,7 +29,7 @@ class FakeAuthenticator @Inject() (cc: ControllerComponents) extends Authenticat
     body: AuthorizedRequest[A] => Future[Result]
   ): Action[A] =
     cc.actionBuilder.async(bodyParser) { implicit request =>
-      body(AuthorizedRequest("uiui", request))
+      body(AuthorizedRequest("uiui", request, "someId"))
     }
 
   override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???

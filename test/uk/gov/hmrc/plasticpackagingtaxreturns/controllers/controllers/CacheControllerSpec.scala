@@ -101,7 +101,7 @@ class CacheControllerSpec
   }
 
   "GET /:id" should {
-    val get = FakeRequest("GET", "/cache/get/id/test02")
+    val get = FakeRequest("GET", "/cache/get/test02")
 
     "return 200" when {
       "request is valid" in {
@@ -122,14 +122,15 @@ class CacheControllerSpec
 
     "return 404" when {
       "id is not found" in {
-        withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
+        val user = newUser(Some(pptEnrolment("test02")))
+        withAuthorizedUser(user)
         given(mockSessionRepository.get(anyString())).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
-        verify(mockSessionRepository, atLeastOnce()).get("id")
+        verify(mockSessionRepository, atLeastOnce()).get(user.internalId.get)
       }
     }
 

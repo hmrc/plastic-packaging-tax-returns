@@ -28,6 +28,8 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+// TODO - remove when we move over to scaffold and user answers for all submissions
+
 class ReturnsController @Inject() (
   authenticator: Authenticator,
   taxReturnRepository: TaxReturnRepository,
