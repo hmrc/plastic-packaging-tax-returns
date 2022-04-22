@@ -93,6 +93,7 @@ object AuthAction {
   val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
+// TODO - need to add the internal id here and populate from retrievals
 case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends WrappedRequest[A](request)
 
 @ImplementedBy(classOf[AuthenticatorImpl])
