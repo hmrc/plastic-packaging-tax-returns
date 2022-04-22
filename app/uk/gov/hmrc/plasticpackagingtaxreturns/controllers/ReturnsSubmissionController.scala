@@ -81,11 +81,7 @@ class ReturnsSubmissionController @Inject() (
         ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg)
       ).map {
         case Right(response)       =>
-          // TODO - deleting from the wrong repo! This is the old cache. We need to delete from user answers
-          // To achieve this we need the Internal ID from auth
-          // I.e. -
-          sessionRepository.clear(request.)
-          taxReturnRepository.delete(pptReference).andThen {
+          sessionRepository.clear(request.internalId).andThen {
             case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
             case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
           }
