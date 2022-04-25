@@ -93,15 +93,6 @@ class PPTFinancialsServiceSpec extends PlaySpec {
                                                                                                    amount2 + amount3
         )
       }
-      //final case class PPTFinancials(
-      //  creditAmount: Option[BigDecimal],
-      //  debitAmount: Option[(BigDecimal, LocalDate)],
-      //  overdueAmount: Option[BigDecimal]
-      //)
-
-      "linsday and pan" in {
-        sut.construct(makeData(BigDecimal(10) -> LocalDate.now(), BigDecimal(1) -> yesterday)) mustBe PPTFinancials(None, Some(BigDecimal(11), LocalDate.now()), Some(BigDecimal(1)))
-      }
     }
     "return in credit" when {
       val credit = -amount
