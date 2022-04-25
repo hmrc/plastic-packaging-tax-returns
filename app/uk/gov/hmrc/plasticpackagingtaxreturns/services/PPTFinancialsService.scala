@@ -33,25 +33,20 @@ class PPTFinancialsService {
 
     val totalChargesSum = charges.map(_.amount).sum
 
-    if (totalChargesSum < 0) PPTFinancials.inCredit(totalChargesSum)
+    if (totalChargesSum == 0) PPTFinancials.NothingOutstanding
+    else if (totalChargesSum < 0) PPTFinancials.inCredit(totalChargesSum)
     else {
-      val dueCharge: Option[Charge] =
-        charges.filter(_.due.isEqualOrAfterToday).sortBy(_.due).headOption
+      val dueDateOpt: Option[LocalDate] =
+        charges.filter(_.due.isEqualOrAfterToday).sortBy(_.due).headOption.map(_.due)
 
       val overdueSum: BigDecimal =
         charges.filter(_.due.isBeforeToday).map(_.amount).sum
 
-      val overdueAmount: Option[BigDecimal] = Some(overdueSum).filter(_ > 0)
-
-      val dueSum: Option[BigDecimal] = dueCharge.map(due => if (overdueSum < 0) due.amount + overdueSum else due.amount)
-      val debitAmount: Option[(BigDecimal, LocalDate)] =
-        dueSum.flatMap(sum => dueCharge.map(sum -> _.due)).filter(_._1 > 0)
-
-      (debitAmount, overdueAmount) match {
-        case (None, None)                         => PPTFinancials.NothingOutstanding
-        case (Some((amount, due)), None)          => PPTFinancials.debitDue(amount, due)
-        case (None, Some(amount))                 => PPTFinancials.overdue(amount)
-        case (Some((amount, due)), Some(overdue)) => PPTFinancials.debitAndOverdue(amount, due, overdue)
+      if (overdueSum == totalChargesSum) PPTFinancials.overdue(totalChargesSum)
+      else {
+        val dueDate = dueDateOpt.getOrElse(throw new Exception("Due date missing"))
+        if (overdueSum <= 0) PPTFinancials.debitDue(totalChargesSum, dueDate)
+        else PPTFinancials.debitAndOverdue(totalChargesSum, dueDate, overdueSum)
       }
     }
   }
