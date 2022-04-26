@@ -16,24 +16,20 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.{Logger, Logging}
-import play.api.libs.json.{Json, Writes}
+import play.api.Logging
+import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDetail, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.{LocalDate, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class PPTObligationsController @Inject() (
-  appConfig: AppConfig,
   cc: ControllerComponents,
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
@@ -46,11 +42,7 @@ class PPTObligationsController @Inject() (
   def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference,
-                                     appConfig.pptTaxStartDate,
-                                     LocalDate.now(ZoneOffset.UTC),
-                                     ObligationStatus.OPEN
-        ).map {
+        obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
           case Left(_) =>
             internalServerError
           case Right(obligationDataResponse) =>
@@ -67,11 +59,7 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference,
-          appConfig.pptTaxStartDate,
-          LocalDate.now(ZoneOffset.UTC),
-          ObligationStatus.FULFILLED
-        ).map {
+        obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.FULFILLED)).map {
           case Left(_) =>
             internalServerError
           case Right(obligationDataResponse) =>

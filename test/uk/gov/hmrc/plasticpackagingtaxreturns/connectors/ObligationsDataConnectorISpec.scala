@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, anyUrl, get}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
@@ -35,10 +36,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   val getObligationDataTimer = "ppt.get.obligation.data.timer"
 
-  val pptReference             = "XXPPTP103844123"
-  val fromDate: LocalDate      = LocalDate.parse("2021-10-01")
-  val toDate: LocalDate        = LocalDate.parse("2021-10-31")
-  val status: ObligationStatus = ObligationStatus.OPEN
+  val pptReference = "XXPPTP103844123"
+  val fromDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-01"))
+  val toDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-31"))
+  val status: Option[ObligationStatus] = Some(ObligationStatus.OPEN)
 
   val response: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
@@ -58,6 +59,11 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
     )
   )
 
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    wireMockServer.resetAll()
+  }
+
   "ObligationData connector" when {
     "get obligation data" should {
       "handle a 200 with obligation data" in {
@@ -72,9 +78,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
       "handle unexpected exceptions thrown" in {
         stubFor(
-          get(
-            s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
-          )
+          get(anyUrl())
             .willReturn(
               aResponse()
                 .withStatus(Status.OK)
@@ -92,12 +96,13 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
   }
 
   "ObligationData connector for obligation data" should {
+
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+
       "return " + statusCode when {
         statusCode + " is returned from downstream service" in {
-          stubObligationDataRequestFailure(httpStatus = statusCode,
-                                           errors = Seq(EISError("Error Code", "Error Reason"))
-          )
+
+          stubFor(get(anyUrl()).willReturn(WireMock.status(statusCode)))
 
           val res = await(connector.get(pptReference, fromDate, toDate, status))
 
@@ -105,6 +110,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
           getTimer(getObligationDataTimer).getCount mustBe 1
         }
       }
+
     }
   }
 
@@ -114,7 +120,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
     val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
     stubFor(
       get(
-        s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
+        s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=${fromDate.get}&toDate=${toDate.get}&status=${status.get}"
       )
         .willReturn(
           aResponse()
@@ -123,17 +129,5 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         )
     )
   }
-
-  private def stubObligationDataRequestFailure(httpStatus: Int, errors: Seq[EISError]): Any =
-    stubFor(
-      get(
-        s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
-      )
-        .willReturn(
-          aResponse()
-            .withStatus(httpStatus)
-            .withBody(Json.obj("failures" -> errors).toString)
-        )
-    )
 
 }

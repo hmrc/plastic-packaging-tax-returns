@@ -19,14 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.config
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
 @Singleton
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
-
-  val pptTaxStartDate: LocalDate = LocalDate.of(2022, 4, 1)
 
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
   lazy val desHost: String = servicesConfig.baseUrl("des")
@@ -63,7 +60,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val bearerToken: String = s"Bearer ${config.get[String]("microservice.services.eis.bearerToken")}"
 
-  lazy val nonRepudiationSubmissionUrl: String = s"${nrsHost}/submission"
+  lazy val nonRepudiationSubmissionUrl: String = s"$nrsHost/submission"
 
   lazy val nonRepudiationApiKey: String =
     servicesConfig.getString("microservice.services.nrs.api-key")
