@@ -25,7 +25,7 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsArray, JsBoolean, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites, Writes}
+import play.api.libs.json.{JsArray, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
@@ -33,7 +33,6 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationStatus, _}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
@@ -48,8 +47,6 @@ class PPTObligationsISpec
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
-
-  lazy val mockReturnsRepository: TaxReturnRepository = mock[TaxReturnRepository]
 
   val fromDate: LocalDate = LocalDate.of(2022, 4, 1)
   val toDate: LocalDate = LocalDate.now()
@@ -92,13 +89,13 @@ class PPTObligationsISpec
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].toInstance(mockReturnsRepository))
+      .overrides(bind[AuthConnector].to(mockAuthConnector))
       .build()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAuthConnector, mockReturnsRepository)
+    reset(mockAuthConnector)
   }
 
   override protected def beforeAll(): Unit = {

@@ -95,7 +95,7 @@ class CacheControllerSpec
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockReturnsRepository)
+        verifyNoInteractions(mockSessionRepository)
       }
     }
   }
@@ -141,7 +141,7 @@ class CacheControllerSpec
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockReturnsRepository)
+        verifyNoInteractions(mockSessionRepository)
       }
     }
   }

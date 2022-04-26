@@ -31,7 +31,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
 import java.time.LocalDate
@@ -43,11 +42,10 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
   val mockAppConfig: AppConfig                              = mock[AppConfig]
   val mockPPTObligationsService: PPTObligationsService      = mock[PPTObligationsService]
   val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
-  val mockTaxReturnRepository: TaxReturnRepository          = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository, mockAppConfig)
+    reset(mockPPTObligationsService, mockObligationDataConnector, mockAppConfig)
     when(mockAppConfig.pptTaxStartDate).thenReturn(LocalDate.of(2022, 4, 1))
   }
 

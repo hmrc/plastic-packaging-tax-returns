@@ -29,7 +29,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.F
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 
 import java.time.LocalDateTime
@@ -40,11 +39,10 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
   val mockPPTFinancialsService: PPTFinancialsService = mock[PPTFinancialsService]
   val mockFinancialDataService: FinancialDataService = mock[FinancialDataService]
-  val mockTaxReturnRepository: TaxReturnRepository   = mock[TaxReturnRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTFinancialsService, mockFinancialDataService, mockTaxReturnRepository)
+    reset(mockPPTFinancialsService, mockFinancialDataService)
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()

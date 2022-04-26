@@ -1,10 +1,4 @@
-
 # microservice specific routes
-
-# Cached, in-progress returns
-POST        /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.create(pptReference: String)
-PUT         /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.update(pptReference: String)
-GET         /returns/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(pptReference: String)
 
 # EIS subscription
 GET         /subscriptions/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)

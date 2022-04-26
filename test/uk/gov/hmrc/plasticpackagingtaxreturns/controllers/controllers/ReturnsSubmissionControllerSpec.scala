@@ -43,7 +43,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnect
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturn}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.{SessionRepository, TaxReturnRepository}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.Future
 
@@ -59,7 +59,7 @@ class ReturnsSubmissionControllerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.successful(()))
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     reset(mockAuthConnector)
     reset(mockSessionRepository)
   }
@@ -67,7 +67,6 @@ class ReturnsSubmissionControllerSpec
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(bind[AuthConnector].to(mockAuthConnector),
                bind[ReturnsConnector].to(mockReturnsConnector),
-               bind[TaxReturnRepository].to(mockReturnsRepository),
                bind[SessionRepository].to(mockSessionRepository),
                bind[AppConfig].to(mockAppConfig)
     )
@@ -96,14 +95,14 @@ class ReturnsSubmissionControllerSpec
     }
 
     "respond successfully when return submission is successful but the return delete fails" in {
-      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       val taxReturn = aTaxReturn()
       returnSubmittedAsExpected(pptReference, taxReturn)
     }
 
     "respond successfully when return amend is successful but the return delete fails" in {
-      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       amendSubmittedAsExpected(pptReference)
     }
