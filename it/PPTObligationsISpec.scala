@@ -15,7 +15,6 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -30,7 +29,6 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
@@ -51,18 +49,8 @@ class PPTObligationsISpec
 
   lazy val mockReturnsRepository: TaxReturnRepository = mock[TaxReturnRepository]
 
-  val fromDate: LocalDate = LocalDate.of(2022, 4, 1)
-  val toDate: LocalDate = LocalDate.now()
   val open: ObligationStatus.Value = ObligationStatus.OPEN
   val fulfilled: ObligationStatus.Value = ObligationStatus.FULFILLED
-  def obligationDetail(status: ObligationStatus): ObligationDetail = ObligationDetail(
-    status = status,
-    inboundCorrespondenceFromDate = fromDate,
-    inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
-    inboundCorrespondenceDateReceived = LocalDate.of(2022,6,30),
-    inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
-    periodKey = "22C2"
-  )
 
   val pptOpenUrl = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
@@ -74,11 +62,18 @@ class PPTObligationsISpec
     )
   )
 
-  def obligationResponseWithObligationDetails(status: ObligationStatus): ObligationDataResponse = ObligationDataResponse(obligations =
+  val oneObligation: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(identification =
         Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
-        obligationDetails = Seq(obligationDetail(status))
+        obligationDetails = Seq(ObligationDetail(
+          status = ObligationStatus.UNKNOWN, // Don't care about this here
+          inboundCorrespondenceDateReceived = LocalDate.MIN, // Don't care about this here
+          inboundCorrespondenceFromDate = LocalDate.of(2022,4,1),
+          inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
+          inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
+          periodKey = "22C2"
+        ))
       )
     )
   )
@@ -110,14 +105,14 @@ class PPTObligationsISpec
 
     "not send dates when fetching open obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest(noObligations)
+      stubWillReturn(noObligations)
       await(wsClient.url(pptOpenUrl).get())
-      server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
+      server.server.verify(getRequestedFor(urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
     }
 
     "return 200 with no obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest(noObligations)
+      stubWillReturn(noObligations)
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -127,7 +122,7 @@ class PPTObligationsISpec
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest(obligationResponseWithObligationDetails(open))
+      stubWillReturn(oneObligation)
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -165,14 +160,14 @@ class PPTObligationsISpec
 
     "call the Get Obligations api" in {
       withAuthorizedUser()
-      stubObligationDataRequest(noObligations)
+      stubWillReturn(noObligations)
       await(wsClient.url(pptFulfilledUrl).get())
-      server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=F")))
+      server.server.verify(getRequestedFor(urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=F")))
     }
 
     "return 200 with no obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest(noObligations)
+      stubWillReturn(noObligations)
       val response = await(wsClient.url(pptFulfilledUrl).get())
       response.status mustBe OK
       response.json mustBe Json.toJson(Seq.empty[ObligationDetail])
@@ -180,7 +175,7 @@ class PPTObligationsISpec
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest(obligationResponseWithObligationDetails(fulfilled))
+      stubWillReturn(oneObligation)
 
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
@@ -211,7 +206,7 @@ class PPTObligationsISpec
     }
   }
 
-  private def stubObligationDataRequest(response: ObligationDataResponse): Unit = {
+  private def stubWillReturn(response: ObligationDataResponse): Unit = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
     implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
