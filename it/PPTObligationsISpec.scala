@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-import support.{AuthTestSupport, WiremockItServer}
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, anyUrl, get, getRequestedFor, ok, serverError}
-import org.mockito.ArgumentMatchers.any
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
@@ -31,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-//import support.{AuthTestSupport, WiremockItServer}
+import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._

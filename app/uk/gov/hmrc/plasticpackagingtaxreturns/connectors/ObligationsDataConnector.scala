@@ -44,11 +44,11 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
     val correlationId       = correlationIdHeader._2
 
-    val queryParams =
-      Seq("fromDate" -> fromDate.map(DateFormat.isoFormat),
-          "toDate"   -> toDate.map(DateFormat.isoFormat),
-          "status"   -> status.map(_.toString)
-      ).collect { case (k, Some(v)) => (k, v)}
+    val queryParams = Seq(
+      fromDate.map("fromDate" -> DateFormat.isoFormat(_)),
+      toDate.map("toDate"   -> DateFormat.isoFormat(_)),
+      status.map("status"   -> _.toString)
+      ).flatten
 
     httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationDataUrl(pptReference),
                                            queryParams = queryParams,
