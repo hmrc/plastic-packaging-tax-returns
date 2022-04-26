@@ -22,7 +22,6 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -65,26 +64,11 @@ class PPTObligationsISpec
     periodKey = "22C2"
   )
 
-  def DESUrl(status: ObligationStatus) =
-    s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
-
-  def DESUrl_v2(status: ObligationStatus) =
-    s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=${status.toString}"
-
   val pptOpenUrl = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
 
   private val noObligations = ObligationDataResponse(obligations = Seq(
     Obligation(identification = Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
-        obligationDetails = Seq.empty
-      )
-    )
-  )
-
-  val obligationResponse: ObligationDataResponse = ObligationDataResponse(obligations =
-    Seq(
-      Obligation(identification =
-        Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
         obligationDetails = Seq.empty
       )
     )
@@ -126,14 +110,14 @@ class PPTObligationsISpec
 
     "not send dates when fetching open obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest(open, obligationResponse)
+      stubObligationDataRequest(noObligations)
       await(wsClient.url(pptOpenUrl).get())
       server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
     }
 
-    "return 200" in {
+    "return 200 with no obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest2(obligationResponse)
+      stubObligationDataRequest(noObligations)
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -143,7 +127,7 @@ class PPTObligationsISpec
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest2(obligationResponseWithObligationDetails(open))
+      stubObligationDataRequest(obligationResponseWithObligationDetails(open))
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -181,14 +165,14 @@ class PPTObligationsISpec
 
     "call the Get Obligations api" in {
       withAuthorizedUser()
-      stubObligationDataRequest2(noObligations)
+      stubObligationDataRequest(noObligations)
       await(wsClient.url(pptFulfilledUrl).get())
       server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=F")))
     }
 
     "return 200 with no obligations" in {
       withAuthorizedUser()
-      stubObligationDataRequest2(noObligations)
+      stubObligationDataRequest(noObligations)
       val response = await(wsClient.url(pptFulfilledUrl).get())
       response.status mustBe OK
       response.json mustBe Json.toJson(Seq.empty[ObligationDetail])
@@ -196,7 +180,7 @@ class PPTObligationsISpec
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest2(obligationResponseWithObligationDetails(fulfilled))
+      stubObligationDataRequest(obligationResponseWithObligationDetails(fulfilled))
 
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
@@ -227,21 +211,7 @@ class PPTObligationsISpec
     }
   }
 
-  private def stubObligationDataRequest(status: ObligationStatus, response: ObligationDataResponse): Unit = {
-    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
-    server.stubFor(
-      get(DESUrl(status))
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(Json.toJson(response)(writes).toString())
-        )
-    )
-  }
-
-  private def stubObligationDataRequest2(response: ObligationDataResponse): Unit = {
+  private def stubObligationDataRequest(response: ObligationDataResponse): Unit = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
     implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
