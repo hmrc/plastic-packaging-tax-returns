@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+import support.{AuthTestSupport, WiremockItServer}
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, anyUrl, get, getRequestedFor, ok, serverError}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
@@ -25,13 +28,13 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsArray, JsBoolean, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites, Writes}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.{AuthTestSupport, WiremockItServer}
+//import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationStatus, _}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
@@ -67,14 +70,24 @@ class PPTObligationsISpec
   def DESUrl(status: ObligationStatus) =
     s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=$fromDate&toDate=$toDate&status=${status.toString}"
 
+  def DESUrl_v2(status: ObligationStatus) =
+    s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=${status.toString}"
+
   val pptOpenUrl = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
+
+  private val noObligations = ObligationDataResponse(obligations = Seq(
+    Obligation(identification = Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+        obligationDetails = Seq.empty
+      )
+    )
+  )
 
   val obligationResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(identification =
-                   Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
-                 obligationDetails = Seq.empty
+        Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+        obligationDetails = Seq.empty
       )
     )
   )
@@ -112,9 +125,17 @@ class PPTObligationsISpec
   }
 
   "GET /obligations/open/:pptReference" must {
-    "return 200" in {
+
+    "not send dates when fetching open obligations" in {
       withAuthorizedUser()
       stubObligationDataRequest(open, obligationResponse)
+      await(wsClient.url(pptOpenUrl).get())
+      server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
+    }
+
+    "return 200" in {
+      withAuthorizedUser()
+      stubObligationDataRequest2(obligationResponse)
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -124,7 +145,7 @@ class PPTObligationsISpec
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest(open, obligationResponseWithObligationDetails(open))
+      stubObligationDataRequest2(obligationResponseWithObligationDetails(open))
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -152,28 +173,32 @@ class PPTObligationsISpec
 
     "should return 500" in {
       withAuthorizedUser()
-      stubInvalidObligationDataRequest(open)
-
+      server.stubFor(get(anyUrl()).willReturn(serverError()))
       val response = await(wsClient.url(pptOpenUrl).get())
-
       response.status mustBe INTERNAL_SERVER_ERROR
     }
   }
 
   "GET /obligations/fulfilled/:pptReference" must {
-    "return 200" in {
+
+    "call the Get Obligations api" in {
       withAuthorizedUser()
-      stubObligationDataRequest(fulfilled, obligationResponse)
+      stubObligationDataRequest2(noObligations)
+      await(wsClient.url(pptFulfilledUrl).get())
+      server.server.verify(getRequestedFor(WireMock.urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=F")))
+    }
 
+    "return 200 with no obligations" in {
+      withAuthorizedUser()
+      stubObligationDataRequest2(noObligations)
       val response = await(wsClient.url(pptFulfilledUrl).get())
-
       response.status mustBe OK
       response.json mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubObligationDataRequest(fulfilled, obligationResponseWithObligationDetails(fulfilled))
+      stubObligationDataRequest2(obligationResponseWithObligationDetails(fulfilled))
 
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
@@ -198,10 +223,8 @@ class PPTObligationsISpec
 
     "should return 500" in {
       withAuthorizedUser()
-      stubInvalidObligationDataRequest(fulfilled)
-
+      server.stubFor(get(anyUrl()).willReturn(serverError()))
       val response = await(wsClient.url(pptFulfilledUrl).get())
-
       response.status mustBe INTERNAL_SERVER_ERROR
     }
   }
@@ -220,13 +243,13 @@ class PPTObligationsISpec
     )
   }
 
-  private def stubInvalidObligationDataRequest(status: ObligationStatus): Unit =
-    server.stubFor(
-      get(DESUrl(status))
-        .willReturn(
-          aResponse()
-            .withStatus(Status.INTERNAL_SERVER_ERROR)
-        )
+  private def stubObligationDataRequest2(response: ObligationDataResponse): Unit = {
+    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
+    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
+    val jsonString = Json.toJson(response)(writes).toString()
+    server.stubFor(get(anyUrl()).willReturn(ok().withBody(jsonString))
     )
+  }
 
 }

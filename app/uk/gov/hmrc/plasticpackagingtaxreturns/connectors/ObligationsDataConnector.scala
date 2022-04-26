@@ -37,7 +37,7 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
 
   private val logger = Logger(this.getClass)
 
-  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: ObligationStatus)(implicit
+  def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
@@ -45,10 +45,10 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
     val correlationId       = correlationIdHeader._2
 
     val queryParams =
-      Seq("fromDate" -> DateFormat.isoFormat(fromDate),
-          "toDate"   -> DateFormat.isoFormat(toDate),
-          "status"   -> status.toString
-      )
+      Seq("fromDate" -> fromDate.map(DateFormat.isoFormat),
+          "toDate"   -> toDate.map(DateFormat.isoFormat),
+          "status"   -> status.map(_.toString)
+      ).collect { case (k, Some(v)) => (k, v)}
 
     httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationDataUrl(pptReference),
                                            queryParams = queryParams,

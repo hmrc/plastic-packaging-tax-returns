@@ -35,10 +35,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   val getObligationDataTimer = "ppt.get.obligation.data.timer"
 
-  val pptReference             = "XXPPTP103844123"
-  val fromDate: LocalDate      = LocalDate.parse("2021-10-01")
-  val toDate: LocalDate        = LocalDate.parse("2021-10-31")
-  val status: ObligationStatus = ObligationStatus.OPEN
+  val pptReference = "XXPPTP103844123"
+  val fromDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-01"))
+  val toDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-31"))
+  val status: Option[ObligationStatus] = Some(ObligationStatus.OPEN)
 
   val response: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(

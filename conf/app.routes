@@ -23,7 +23,7 @@ GET         /returns-submission/:pptReference/:periodKey      uk.gov.hmrc.plasti
 PUT        /returns-amend/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.amend(pptReference: String)
 
 # DES obligation data
-GET         /obligation-data/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String])
+GET         /obligation-data/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String])
 GET         /obligations/open/:pptReference                 uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getOpen(pptReference)
 GET         /obligations/fulfilled/:pptReference            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getFulfilled(pptReference)
 
