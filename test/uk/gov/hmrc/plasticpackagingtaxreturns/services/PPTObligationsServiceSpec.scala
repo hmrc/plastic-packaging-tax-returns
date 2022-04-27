@@ -225,7 +225,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         "we have one upcoming obligation that is not within due period" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-          sut.constructPPTObligations(obligationDataResponse).value.isNextObligationDue mustBe false
+          sut.constructPPTObligations(obligationDataResponse).value.isNextObligationDue mustBe true
         }
         "we have one upcoming obligation that is within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)
@@ -243,7 +243,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         "there is 0 overdue and 0 within due period" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
 
-          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
         "there is 0 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)

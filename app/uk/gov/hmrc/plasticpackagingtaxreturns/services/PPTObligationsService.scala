@@ -53,7 +53,7 @@ class PPTObligationsService extends Logging {
       )
 
     val isNextObligationDue: Boolean =
-      nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
+      nextObligation.nonEmpty
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 

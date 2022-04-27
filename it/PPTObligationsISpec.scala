@@ -135,8 +135,8 @@ class PPTObligationsISpec
           "dueDate" -> "2022-07-29"
         ),
         "overdueObligationCount" -> JsNumber(0),
-        "isNextObligationDue" -> JsFalse,
-        "displaySubmitReturnsLink" -> JsFalse
+        "isNextObligationDue" -> JsTrue,
+        "displaySubmitReturnsLink" -> JsTrue
       )
     }
 

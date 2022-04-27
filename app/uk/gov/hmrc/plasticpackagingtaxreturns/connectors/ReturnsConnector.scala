@@ -55,7 +55,9 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
         logger.info(
           s"Successful PPT returns submission for request with correlationId [$correlationIdHeader._2] and " +
             s"pptReference [$pptReference], and submissionId [${request.submissionId}]. " +
-            s"Response contains submissionId [${response.idDetails.submissionId}]"
+            s"Response contains submissionId [${response.idDetails.submissionId}]" +
+            s"Request body: [${request.returnDetails}]"
+
         )
         Right(response)
       }
