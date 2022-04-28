@@ -28,16 +28,16 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class ObligationDataController @Inject() ( // TODO is this needed any longer?
+class ObligationDataController @Inject() ( // TODO make this controller test-only (or bin it)
   obligationDataConnector: ObligationsDataConnector,
   authenticator: Authenticator,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: Option[String]): Action[AnyContent] =
+  def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String]): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      obligationDataConnector.get(pptReference, fromDate, toDate, ObligationStatus.withName(status.getOrElse(""))).map {
+      obligationDataConnector.get(pptReference, fromDate, toDate, status.map(ObligationStatus.withName)).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

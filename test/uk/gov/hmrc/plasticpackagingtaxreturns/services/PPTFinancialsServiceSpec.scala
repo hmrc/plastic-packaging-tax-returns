@@ -85,10 +85,10 @@ class PPTFinancialsServiceSpec extends PlaySpec {
       val overdue        = amount2 -> yesterday
       val anotherOverdue = amount3 -> lastWeek
       "there is a due and overdue FinancialTransaction" in {
-        sut.construct(makeData(due, overdue)) mustBe PPTFinancials.debitAndOverdue(amount, today, amount2)
+        sut.construct(makeData(due, overdue)) mustBe PPTFinancials.debitAndOverdue(amount + amount2, today, amount2)
       }
       "there is a due and multiple overdue FinancialTransaction" in {
-        sut.construct(makeData(due, overdue, anotherOverdue)) mustBe PPTFinancials.debitAndOverdue(amount,
+        sut.construct(makeData(due, overdue, anotherOverdue)) mustBe PPTFinancials.debitAndOverdue(amount + amount2 + amount3,
                                                                                                    today,
                                                                                                    amount2 + amount3
         )
