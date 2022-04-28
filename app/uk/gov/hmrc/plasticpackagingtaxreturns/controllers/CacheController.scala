@@ -36,9 +36,9 @@ class CacheController @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  def get(internalId: String, pptReference: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default, pptReference) { _ =>
-      sessionRepository.get(internalId).map {
+  def get(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) { request =>
+      sessionRepository.get(request.internalId).map {
         case Some(userAnswers) => Ok(userAnswers)
         case None => NotFound
       }

@@ -46,7 +46,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
         eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 3000
 
         eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
-        eisReturnsSubmissionRequest.periodKey mustBe defaultObligation.periodKey
+        eisReturnsSubmissionRequest.periodKey mustBe taxReturn.periodKey
         eisReturnsSubmissionRequest.submissionId mustBe None
 
         eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
@@ -75,26 +75,13 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
         eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 3000
 
         eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
-        eisReturnsSubmissionRequest.periodKey mustBe defaultObligation.periodKey
+        eisReturnsSubmissionRequest.periodKey mustBe taxReturn.periodKey
         eisReturnsSubmissionRequest.submissionId mustBe None
 
         eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
         eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe 0
         eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
         eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 0
-      }
-    }
-
-    "throw exception when obligation is not present" in {
-      val taxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
-                                 withImportedPlasticWeight(2000),
-                                 withHumanMedicinesPlasticWeight(3000),
-                                 withDirectExportDetails(4000),
-                                 withRecycledPlasticWeight(5000)
-      ).copy(obligation = None)
-
-      intercept[IllegalStateException] {
-        ReturnsSubmissionRequest(taxReturn, 0.20)
       }
     }
   }

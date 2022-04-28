@@ -78,9 +78,7 @@ object ReturnsSubmissionRequest {
 
   def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal): ReturnsSubmissionRequest =
     ReturnsSubmissionRequest(returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
-                             periodKey = taxReturn.obligation.map(_.periodKey).getOrElse(
-                               throw new IllegalStateException("Obligation is absent")
-                             ),
+                             periodKey = taxReturn.periodKey,
                              returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
     )
 

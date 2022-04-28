@@ -33,16 +33,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{
-  await,
-  contentAsJson,
-  defaultAwaitTimeout,
-  route,
-  status,
-  writeableOf_AnyContentAsEmpty,
-  writeableOf_AnyContentAsJson,
-  OK
-}
+import play.api.test.Helpers.{OK, await, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
@@ -52,7 +43,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnect
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturn}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.Future
 
@@ -68,14 +59,15 @@ class ReturnsSubmissionControllerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.successful(()))
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     reset(mockAuthConnector)
+    reset(mockSessionRepository)
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(bind[AuthConnector].to(mockAuthConnector),
                bind[ReturnsConnector].to(mockReturnsConnector),
-               bind[TaxReturnRepository].to(mockReturnsRepository),
+               bind[SessionRepository].to(mockSessionRepository),
                bind[AppConfig].to(mockAppConfig)
     )
     .build()
@@ -93,42 +85,36 @@ class ReturnsSubmissionControllerSpec
       val taxReturn = aTaxReturn()
       returnSubmittedAsExpected(pptReference, taxReturn)
 
-      verify(mockReturnsRepository).delete(taxReturn)
+      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b")
     }
 
     "delete a return after successful amend" in {
       amendSubmittedAsExpected(pptReference)
 
-      verify(mockReturnsRepository).delete(pptReference)
+      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b")
     }
 
     "respond successfully when return submission is successful but the return delete fails" in {
-      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       val taxReturn = aTaxReturn()
       returnSubmittedAsExpected(pptReference, taxReturn)
     }
 
     "respond successfully when return amend is successful but the return delete fails" in {
-      when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       amendSubmittedAsExpected(pptReference)
     }
 
     "use the tax rate defined in config" in {
-      withAuthorizedUser()
-      mockGetReturn(Some(aTaxReturn().copy(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(1000)))))
-      when(mockReturnsRepository.delete(any[TaxReturn]())).thenReturn(Future.unit)
-
-      val returnsSubmissionResponse = aReturn()
-      mockReturnsSubmissionConnector(returnsSubmissionResponse)
-
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
-
-      await(route(app, submitReturnRequest).get)
+      val taxReturn = aTaxReturn().copy(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(1000)))
 
       val returnsSubmissionRequestCaptor: ArgumentCaptor[ReturnsSubmissionRequest] =
         ArgumentCaptor.forClass(classOf[ReturnsSubmissionRequest])
+
+      returnSubmittedAsExpected(pptReference, taxReturn)
+
       verify(mockReturnsConnector).submitReturn(any(), returnsSubmissionRequestCaptor.capture())(any())
 
       returnsSubmissionRequestCaptor.getValue.returnDetails.taxDue mustBe 1000 * BigDecimal("0.25")
@@ -179,25 +165,13 @@ class ReturnsSubmissionControllerSpec
       }
     }
 
-    "return not found (404) if return not found in repository" in {
-      withAuthorizedUser()
-      mockGetReturn(None)
-
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
-
-      val result: Future[Result] = route(app, submitReturnRequest).get
-
-      status(result) mustBe NOT_FOUND
-    }
-
     "propagate status code when failure occurs" in {
       withAuthorizedUser()
-      mockGetReturn(Some(aTaxReturn()))
       mockReturnsSubmissionConnectorFailure(BAD_REQUEST)
 
       val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
 
-      val result: Future[Result] = route(app, submitReturnRequest).get
+      val result: Future[Result] = route(app, submitReturnRequest.withJsonBody(toJson(aTaxReturn()))).get
 
       status(result) mustBe BAD_REQUEST
     }
@@ -215,7 +189,7 @@ class ReturnsSubmissionControllerSpec
     )
 
     withAuthorizedUser()
-    when(mockReturnsRepository.delete(any[String]())).thenReturn(Future.unit)
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
 
     val returnsSubmissionResponse = aReturn()
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
@@ -229,16 +203,15 @@ class ReturnsSubmissionControllerSpec
 
   private def returnSubmittedAsExpected(pptReference: String, taxReturn: TaxReturn) = {
     withAuthorizedUser()
-    mockGetReturn(Some(taxReturn))
 
-    when(mockReturnsRepository.delete(any[TaxReturn]())).thenReturn(Future.unit)
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
 
     val returnsSubmissionResponse = aReturn()
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
     val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
 
-    val result: Future[Result] = route(app, submitReturnRequest).get
+    val result: Future[Result] = route(app, submitReturnRequest.withJsonBody(toJson(taxReturn))).get
 
     status(result) mustBe OK
     contentAsJson(result) mustBe toJson(returnsSubmissionResponse)

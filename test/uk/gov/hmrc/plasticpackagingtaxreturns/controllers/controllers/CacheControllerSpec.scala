@@ -37,15 +37,14 @@ import play.api.test.Helpers.{route, status, _}
 import uk.gov.hmrc.auth.core.{AuthConnector, InsufficientEnrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockReturnsRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{TaxReturnBuilder, TaxReturnRequestBuilder}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.Future
 
 class CacheControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with TaxReturnBuilder with TaxReturnRequestBuilder with AuthTestSupport with MockReturnsRepository {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockReturnsRepository {
 
   SharedMetricRegistries.clear()
 
@@ -95,13 +94,13 @@ class CacheControllerSpec
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockReturnsRepository)
+        verifyNoInteractions(mockSessionRepository)
       }
     }
   }
 
   "GET /:id" should {
-    val get = FakeRequest("GET", "/cache/get/id/test02")
+    val get = FakeRequest("GET", "/cache/get/test02")
 
     "return 200" when {
       "request is valid" in {
@@ -122,14 +121,15 @@ class CacheControllerSpec
 
     "return 404" when {
       "id is not found" in {
-        withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
+        val user = newUser(Some(pptEnrolment("test02")))
+        withAuthorizedUser(user)
         given(mockSessionRepository.get(anyString())).willReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
-        verify(mockSessionRepository, atLeastOnce()).get("id")
+        verify(mockSessionRepository, atLeastOnce()).get(user.internalId.get)
       }
     }
 
@@ -140,7 +140,7 @@ class CacheControllerSpec
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockReturnsRepository)
+        verifyNoInteractions(mockSessionRepository)
       }
     }
   }

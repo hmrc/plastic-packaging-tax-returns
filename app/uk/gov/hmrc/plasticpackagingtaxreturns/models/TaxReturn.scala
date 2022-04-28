@@ -22,16 +22,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 
 import java.time.LocalDate
 
-final case class TaxReturnObligation(fromDate: LocalDate, toDate: LocalDate, dueDate: LocalDate, periodKey: String)
-
-object TaxReturnObligation {
-  implicit val format: OFormat[TaxReturnObligation] = Json.format[TaxReturnObligation]
-}
-
 case class TaxReturn(
   id: String,
+  periodKey: String,
   returnType: Option[ReturnType] = Some(ReturnType.NEW),
-  obligation: Option[TaxReturnObligation] = None,
   manufacturedPlastic: Option[Boolean] = None,
   manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
   importedPlastic: Option[Boolean] = None,
