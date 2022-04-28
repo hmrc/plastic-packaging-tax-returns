@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.scalatest.EitherValues
+import org.mockito.Mockito.{reset, verify, when}
+import org.scalatest.{BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
@@ -24,11 +25,18 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 
 import java.time.LocalDate
 
-class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
+class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAndAfterEach {
 
   val appConfig: AppConfig = mock[AppConfig]
   val sut: PPTObligationsService = new PPTObligationsService(appConfig)
   val today: LocalDate           = LocalDate.now()
+
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(appConfig)
+  }
+
+  override protected def afterEach(): Unit = super.afterEach()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
@@ -238,22 +246,31 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         }
       }
       "return whether to display the Submit Returns Link" when {
+
         "there are 0 obligations" in {
           val obligationDataResponse = makeDataResponse()
-
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
         }
 
-        "there is 0 overdue and 0 within due period" in {
+        "there is an obligation but it is not yet due" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
-
+          when(appConfig.suppressObligationDateCheck).thenReturn(false)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
+          verify(appConfig).suppressObligationDateCheck
         }
+
+        "there is an obligation, it is not yet due, but the bypass flag is set in app conf" in {
+          val obligationDataResponse = makeDataResponse(upcomingObligation)
+          when(appConfig.suppressObligationDateCheck).thenReturn(true)
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
+          verify(appConfig).suppressObligationDateCheck
+        }
+
         "there is 0 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)
-
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
+
         "there is 1 overdue and 0 within due period" in {
           val obligationDataResponse = makeDataResponse(overdueObligation)
 
