@@ -17,13 +17,17 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatest.EitherValues
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 
 import java.time.LocalDate
 
 class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
-  val sut: PPTObligationsService = new PPTObligationsService()
+
+  val appConfig: AppConfig = mock[AppConfig]
+  val sut: PPTObligationsService = new PPTObligationsService(appConfig)
   val today: LocalDate           = LocalDate.now()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =

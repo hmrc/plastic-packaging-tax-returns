@@ -17,12 +17,16 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 
 import java.time.{LocalDate, ZoneOffset}
+import javax.inject.Inject
 
-class PPTObligationsService extends Logging {
+class PPTObligationsService @Inject()(
+   appConfig: AppConfig
+  ) extends Logging {
 
   def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
     data.obligations match {
@@ -52,8 +56,10 @@ class PPTObligationsService extends Logging {
         _.inboundCorrespondenceDueDate
       )
 
-    val isNextObligationDue: Boolean =
-      nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
+    val isNextObligationDue: Boolean = {
+      appConfig.suppressObligationDateCheck ||
+        nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
+    }
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 

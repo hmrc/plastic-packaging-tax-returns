@@ -70,4 +70,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
 
   val taxRatePoundsPerKg: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
+
+  // Used in QA testing to allow open returns that aren't yet due to be filed anyway
+  val suppressObligationDateCheck: Boolean = config.getOptional[Boolean]("features.suppress-obligation-date-check")
+    .getOrElse(false)
+
 }
