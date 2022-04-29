@@ -42,7 +42,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
     ObligationDataResponse(
       Seq(
         Obligation(identification =
-                     Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+                     Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
                    obligationDetails = obligationDetail
         )
       )
@@ -52,7 +52,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
     ObligationDetail(status = ObligationStatus.OPEN,
                      inboundCorrespondenceFromDate = fromDate,
                      inboundCorrespondenceToDate = fromDate.plusDays(10),
-                     inboundCorrespondenceDateReceived = fromDate,
+                     inboundCorrespondenceDateReceived = Some(fromDate),
                      inboundCorrespondenceDueDate = fromDate.plusDays(19),
                      periodKey = periodKey
     )
@@ -72,7 +72,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
       "there are multiple obligations in data" in {
         val obligation = Obligation(
           identification =
-            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
@@ -86,7 +86,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
       "the sequence is empty" in {
         val obligation = Obligation(
           identification =
-            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
@@ -95,10 +95,10 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
         sut.constructPPTFulfilled(obligationDataResponse) mustBe Right(Seq.empty)
       }
       "the sequence is non empty" in {
-        val obligationDetail = ObligationDetail(ObligationStatus.FULFILLED, today, today, today, today, "PKEY")
+        val obligationDetail = ObligationDetail(ObligationStatus.FULFILLED, today, today, Some(today), today, "PKEY")
         val obligation = Obligation(
           identification =
-            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = Seq(obligationDetail)
         )
         val obligationDataResponse: ObligationDataResponse =
@@ -120,7 +120,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
       "there are multiple obligations in data" in {
         val obligation = Obligation(
           identification =
-            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =

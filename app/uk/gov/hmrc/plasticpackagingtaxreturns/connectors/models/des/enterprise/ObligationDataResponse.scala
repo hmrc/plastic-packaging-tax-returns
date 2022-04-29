@@ -33,7 +33,7 @@ object ObligationStatus extends Enumeration {
 
 }
 
-case class Identification(incomeSourceType: String, referenceNumber: String, referenceType: String)
+case class Identification(incomeSourceType: Option[String], referenceNumber: String, referenceType: String)
 
 object Identification {
   implicit val format: OFormat[Identification] = Json.format[Identification]
@@ -43,7 +43,7 @@ case class ObligationDetail(
   status: ObligationStatus,
   inboundCorrespondenceFromDate: LocalDate,
   inboundCorrespondenceToDate: LocalDate,
-  inboundCorrespondenceDateReceived: LocalDate,
+  inboundCorrespondenceDateReceived: Option[LocalDate],
   inboundCorrespondenceDueDate: LocalDate,
   periodKey: String
 )
@@ -61,7 +61,7 @@ object ObligationDetail {
   implicit val format: Reads[ObligationDetail] = Json.reads[ObligationDetail]
 }
 
-case class Obligation(identification: Identification, obligationDetails: Seq[ObligationDetail])
+case class Obligation(identification: Option[Identification], obligationDetails: Seq[ObligationDetail])
 
 object Obligation {
   implicit val format: OFormat[Obligation] = Json.format[Obligation]
