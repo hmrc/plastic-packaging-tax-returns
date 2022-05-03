@@ -30,7 +30,7 @@ class PPTObligationDetailsSpec extends PlaySpec {
                                                                 inboundCorrespondenceToDate =
                                                                   LocalDate.now().plusDays(2),
                                                                 inboundCorrespondenceDateReceived =
-                                                                  LocalDate.now().plusDays(3),
+                                                                  Some(LocalDate.now().plusDays(3)),
                                                                 inboundCorrespondenceDueDate =
                                                                   LocalDate.now().plusDays(4),
                                                                 periodKey = "#001"

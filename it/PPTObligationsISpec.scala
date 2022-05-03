@@ -53,7 +53,7 @@ class PPTObligationsISpec
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
 
   private val noObligations = ObligationDataResponse(obligations = Seq(
-    Obligation(identification = Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+    Obligation(identification = Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq.empty
       )
     )
@@ -62,10 +62,10 @@ class PPTObligationsISpec
   val oneObligation: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(identification =
-        Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+        Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq(ObligationDetail(
           status = ObligationStatus.UNKNOWN, // Don't care about this here
-          inboundCorrespondenceDateReceived = LocalDate.MIN, // Don't care about this here
+          inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
           inboundCorrespondenceFromDate = LocalDate.of(2022,4,1),
           inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
           inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),

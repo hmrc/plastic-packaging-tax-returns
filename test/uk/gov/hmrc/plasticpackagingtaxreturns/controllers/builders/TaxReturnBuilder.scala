@@ -17,17 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
-  ConvertedPackagingCredit,
-  ExportedPlasticWeight,
-  HumanMedicinesPlasticWeight,
-  ImportedPlasticWeight,
-  ManufacturedPlasticWeight,
-  RecycledPlasticWeight,
-  TaxReturn
-}
-
-import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
 trait TaxReturnBuilder {

@@ -94,7 +94,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     }
 
     "get should call the service" in {
-      val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+      val desResponse = ObligationDataResponse(Seq(Obligation(Some(Identification(Some(""), "", "")), Nil)))
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
@@ -118,7 +118,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
       "if the controller handles an error" in {
 
-        val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+        val desResponse = ObligationDataResponse(Seq(Obligation(Some(Identification(Some(""), "", "")), Nil)))
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Right(desResponse)))
         when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(Left("test error message"))
