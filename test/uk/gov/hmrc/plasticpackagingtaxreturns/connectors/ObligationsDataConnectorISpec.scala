@@ -119,7 +119,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
     val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
     stubFor(
       get(
-        s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=${fromDate.get}&toDate=${toDate.get}&status=${status.get}"
+        s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}"
       )
         .willReturn(
           aResponse()
