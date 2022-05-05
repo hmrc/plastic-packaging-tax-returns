@@ -160,7 +160,7 @@ class PPTObligationsISpec
       withAuthorizedUser()
       stubWillReturn(noObligations)
       await(wsClient.url(pptFulfilledUrl).get())
-      val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?fromDate=2022-04-01&toDate=2022-05-05&status=F"
+      val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=2022-04-01&to=2022-05-05&status=F"
       server.server.verify(getRequestedFor(urlEqualTo(expectedUrl)))
     }
 
