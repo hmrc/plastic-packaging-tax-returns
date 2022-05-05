@@ -28,3 +28,6 @@ GET         /financials/open/:pptReference           uk.gov.hmrc.plasticpackagin
 # User Answers Cache
 GET         /cache/get/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.get(pptReference: String)
 POST        /cache/set/:pptReference                   uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.set(pptReference: String)
+
+# Does yer man here have a direct debit already?
+GET /direct uk.gov.hmrc.plasticpackagingtaxreturns.controllers.DirectDebitsContoller.get(pptReference: String)
