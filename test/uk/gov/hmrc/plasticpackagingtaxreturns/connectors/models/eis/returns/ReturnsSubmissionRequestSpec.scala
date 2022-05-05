@@ -37,7 +37,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
                                    withRecycledPlasticWeight(3000)
         )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate, None)
 
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 9001
         eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 8000
@@ -66,7 +66,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
                                    withRecycledPlasticWeight(3000)
         )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate, None)
 
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1000
         eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2000

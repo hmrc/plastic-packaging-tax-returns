@@ -43,8 +43,9 @@ class ReturnsSubmissionController @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference)
-  def amend(pptReference: String): Action[TaxReturn] = doSubmission(pptReference)
+  def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
+
+  def amend(pptReference: String, submissionId: String): Action[TaxReturn] = doSubmission(pptReference, Some(submissionId))
 
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
@@ -55,15 +56,15 @@ class ReturnsSubmissionController @Inject() (
 
     }
 
-  private def doSubmission(pptReference: String): Action[TaxReturn] =
+  private def doSubmission(pptReference: String, submissionId: Option[String]): Action[TaxReturn] =
     authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
       returnsConnector.submitReturn(pptReference,
-        ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg)
+        ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg, submissionId = submissionId)
       ).map {
         case Right(response)       =>
           sessionRepository.clear(request.internalId).andThen {
-            case Success(_)  => logger.info(s"Successfully deleted tax return for $pptReference")
-            case Failure(ex) => logger.warn(s"Failed to delete tax return for $pptReference - ${ex.getMessage}", ex)
+            case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
+            case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
           }
           Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)

@@ -74,12 +74,20 @@ case class ReturnsSubmissionRequest(
 )
 
 object ReturnsSubmissionRequest {
+
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
-  def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal): ReturnsSubmissionRequest =
-    ReturnsSubmissionRequest(returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
-                             periodKey = taxReturn.periodKey,
-                             returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
-    )
+  def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal, submissionId: Option[String]): ReturnsSubmissionRequest = {
+
+    if (taxReturn.returnType.contains(ReturnType.AMEND) && submissionId.isEmpty)
+      throw new IllegalStateException("must have a submission id to amend a return")
+
+    ReturnsSubmissionRequest(
+        returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
+        submissionId = submissionId,
+        periodKey = taxReturn.periodKey,
+        returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
+      )
+    }
 
 }

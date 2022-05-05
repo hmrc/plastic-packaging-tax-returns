@@ -14,7 +14,7 @@ POST        /returns-submission/:pptReference                 uk.gov.hmrc.plasti
 GET         /returns-submission/:pptReference/:periodKey      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.get(pptReference: String, periodKey: String)
 
 # EIS Return Amend
-PUT        /returns-amend/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.amend(pptReference: String)
+PUT  /returns-amend/:pptReference/:submissionId  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController.amend(pptReference: String, submissionId: String)
 
 # DES obligation data
 GET         /obligation-data/:pptReference                  uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String])
