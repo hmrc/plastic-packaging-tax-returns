@@ -51,7 +51,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     s"$desHost/enterprise/financial-data/ZPPT/$pptReference/PPT"
 
   def directDebitsUrl(pptReference: String): String =
-    s"$desHost/cross-regime/direct-debits/ppt/zppt/$pptReference"
+    s"$desHost/cross-regime/direct-debits/PPT/ZPPT/$pptReference"
 
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
