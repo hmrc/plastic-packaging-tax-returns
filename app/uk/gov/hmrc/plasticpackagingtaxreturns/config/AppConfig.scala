@@ -50,6 +50,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   def enterpriseFinancialDataUrl(pptReference: String): String =
     s"$desHost/enterprise/financial-data/ZPPT/$pptReference/PPT"
 
+  def directDebitsUrl(pptReference: String): String =
+    s"$desHost/cross-regime/direct-debits/ppt/zppt/$pptReference"
+
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
   val auditingEnabled: Boolean   = config.get[Boolean]("auditing.enabled")
