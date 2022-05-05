@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -39,38 +39,57 @@ class PPTObligationsController @Inject() (
 
   private val internalServerError = InternalServerError("{}")
 
-  def getOpen(pptReference: String): Action[AnyContent] =
+  def getOpen(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
-          case Left(_) =>
-            internalServerError
-          case Right(obligationDataResponse) =>
-            obligationsService.constructPPTObligations(obligationDataResponse) match {
-              case Left(error) =>
-                logger.error(s"Error constructing Obligation response: $error.")
-                internalServerError
-              case Right(response) =>
-                Ok(Json.toJson(response))
-            }
+          case Left(404) => createEmptyOpenResponse()
+          case Left(_) => internalServerError
+          case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
         }
     }
+  }
 
-  def getFulfilled(pptReference: String): Action[AnyContent] =
+  def getFulfilled(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.FULFILLED)).map {
-          case Left(_) =>
-            internalServerError
-          case Right(obligationDataResponse) =>
-            obligationsService.constructPPTFulfilled(obligationDataResponse) match {
-              case Left(error) =>
-                logger.error(s"Error constructing Obligation response: $error.")
-                internalServerError
-              case Right(response) =>
-                Ok(Json.toJson(response))
-            }
+          case Left(404) => createEmptyFulfilledResponse()
+          case Left(_) => internalServerError
+          case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
         }
     }
+  }
+
+  private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) = {
+    obligationsService.constructPPTFulfilled(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        internalServerError
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
+  }
+
+  private def createOpenResponse(obligationDataResponse: ObligationDataResponse) = {
+    obligationsService.constructPPTObligations(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        internalServerError
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
+  }
+
+  private def createEmptyFulfilledResponse() = {
+    val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
+    createFulfilledResponse(emptyObligationList)
+  }
+
+  private def createEmptyOpenResponse() = {
+    val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
+    createOpenResponse(emptyObligationList)
+  }
+
 
 }
