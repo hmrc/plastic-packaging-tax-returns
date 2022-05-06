@@ -179,7 +179,7 @@ class ReturnsSubmissionControllerSpec
 
   private def amendSubmittedAsExpected(pptReference: String) = {
 
-    val put = FakeRequest("PUT", "/returns-amend/" + pptReference)
+    val put = FakeRequest("PUT", s"/returns-amend/$pptReference/submission12")
 
     val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
                                       withImportedPlasticWeight(2000),

@@ -32,6 +32,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthentica
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -156,8 +157,8 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
       verify(mockObligationDataConnector)
         .get(exactlyEq(pptReference),
-          exactlyEq(None),
-          exactlyEq(None),
+          exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+          exactlyEq(Some(LocalDate.now())),
           exactlyEq(Some(ObligationStatus.FULFILLED))
         )(any())
     }

@@ -45,8 +45,8 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
     val correlationId       = correlationIdHeader._2
 
     val queryParams = Seq(
-      fromDate.map("fromDate" -> DateFormat.isoFormat(_)),
-      toDate.map("toDate"   -> DateFormat.isoFormat(_)),
+      fromDate.map("from" -> DateFormat.isoFormat(_)),
+      toDate.map("to"   -> DateFormat.isoFormat(_)),
       status.map("status"   -> _.toString)
       ).flatten
 
