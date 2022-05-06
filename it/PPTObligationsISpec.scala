@@ -85,8 +85,8 @@ class PPTObligationsISpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    server.server.resetAll()
     reset(mockAuthConnector)
+    server.server.resetAll()
   }
 
   override protected def beforeAll(): Unit = {
@@ -160,7 +160,9 @@ class PPTObligationsISpec
       withAuthorizedUser()
       stubWillReturn(noObligations)
       await(wsClient.url(pptFulfilledUrl).get())
-      val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=2022-04-01&to=2022-05-05&status=F"
+
+      val today = LocalDate.now()
+      val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=2022-04-01&to=$today&status=F"
       server.server.verify(getRequestedFor(urlEqualTo(expectedUrl)))
     }
 
