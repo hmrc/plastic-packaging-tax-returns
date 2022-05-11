@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
@@ -34,7 +35,8 @@ class PPTObligationsController @Inject() (
   cc: ControllerComponents,
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
-  obligationsService: PPTObligationsService
+  obligationsService: PPTObligationsService,
+  appConfig: AppConfig
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) with Logging{
 
@@ -56,7 +58,7 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        val today: Option[LocalDate] = Some(LocalDate.now())
+        val today: Option[LocalDate] = if (appConfig.suppressObligationDateCheck) Some(LocalDate.now().plusYears(1)) else Some(LocalDate.now())
         obligationsDataConnector.get(pptReference, pptStartDate, today, Some(ObligationStatus.FULFILLED)).map {
           case Left(404) => createEmptyFulfilledResponse()
           case Left(_) => internalServerError

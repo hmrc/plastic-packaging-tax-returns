@@ -23,8 +23,9 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.Helpers._
+import play.api.test.Helpers.{status, _}
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController
@@ -40,10 +41,11 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
   val mockPPTObligationsService: PPTObligationsService      = mock[PPTObligationsService]
   val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
+  val appConfig: AppConfig = mock[AppConfig]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTObligationsService, mockObligationDataConnector)
+    reset(appConfig, mockPPTObligationsService, mockObligationDataConnector)
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
@@ -53,7 +55,8 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
       cc,
       new FakeAuthenticator(cc),
       mockObligationDataConnector,
-      mockPPTObligationsService
+      mockPPTObligationsService,
+      appConfig
     )
 
   "getOpen" must {
@@ -135,11 +138,68 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     val serviceResponse = Right(Seq.empty)
     val pptReference     = "1234"
     val desResponse = ObligationDataResponse(Seq.empty)
+    val desResponseFutureFulfilled: ObligationDataResponse = ObligationDataResponse(obligations =
+      Seq(
+        Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
+          obligationDetails = Seq(
+            ObligationDetail(status = ObligationStatus.FULFILLED,
+              inboundCorrespondenceFromDate = LocalDate.now.plusMonths(9),
+              inboundCorrespondenceToDate = LocalDate.now.plusYears(1),
+              inboundCorrespondenceDateReceived = Some(LocalDate.now().plusYears(1)),
+              inboundCorrespondenceDueDate = LocalDate.now().plusYears(1).plusMonths(1),
+              periodKey = "22C3"
+            )
+          )
+        )
+      )
+    )
 
     "get PTPObligation from construct service" in {
       when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
+
+      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+      status(result) mustBe OK
+      verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq.empty))
+      contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
+    }
+
+    "get future period fulfilled obligation if flag set" in {
+      when(appConfig.suppressObligationDateCheck).thenReturn(true)
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponseFutureFulfilled)))
+
+      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+      status(result) mustBe OK
+      verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq(
+        Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
+          obligationDetails = Seq(
+            ObligationDetail(status = ObligationStatus.FULFILLED,
+              inboundCorrespondenceFromDate = LocalDate.now.plusMonths(9),
+              inboundCorrespondenceToDate = LocalDate.now.plusYears(1),
+              inboundCorrespondenceDateReceived = Some(LocalDate.now().plusYears(1)),
+              inboundCorrespondenceDueDate = LocalDate.now().plusYears(1).plusMonths(1),
+              periodKey = "22C3"
+            )
+          )
+        )
+      )))
+      contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
+    }
+
+    "not get future period fulfilled obligation if flag not set" in {
+      when(appConfig.suppressObligationDateCheck).thenReturn(false)
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponseFutureFulfilled)))
 
       val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
 
