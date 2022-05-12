@@ -42,6 +42,8 @@ class PPTObligationsController @Inject() (
 
   private val internalServerError = InternalServerError("{}")
 
+  // todo dedupe
+
   def getOpen(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
@@ -58,13 +60,21 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        val today: Option[LocalDate] = if (appConfig.suppressObligationDateCheck) Some(LocalDate.now().plusYears(1)) else Some(LocalDate.now())
-        obligationsDataConnector.get(pptReference, pptStartDate, today, Some(ObligationStatus.FULFILLED)).map {
+        obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
           case Left(404) => createEmptyFulfilledResponse()
           case Left(_) => internalServerError
           case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
         }
     }
+  }
+
+  private def fulfilledToDate: LocalDate = {
+    // If feature flag used by E2E test threads is set, then include test obligations that are in the future
+    val today = LocalDate.now()
+    if (appConfig.qaTestingInProgress)
+      today.plusYears(1)
+    else
+      today
   }
 
   private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) = {

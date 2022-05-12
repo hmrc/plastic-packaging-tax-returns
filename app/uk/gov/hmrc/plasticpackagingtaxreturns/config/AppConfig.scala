@@ -71,8 +71,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val taxRatePoundsPerKg: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
 
+  // TODO change config setting name? (Might be more agro than worth it)
   // Used in QA testing to allow open returns that aren't yet due to be filed anyway
-  val suppressObligationDateCheck: Boolean = config.getOptional[Boolean]("features.suppress-obligation-date-check")
-    .getOrElse(false)
+  val qaTestingInProgress: Boolean = {
+    config.getOptional[Boolean]("features.suppress-obligation-date-check")
+      .getOrElse(false)
+  }
 
 }

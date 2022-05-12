@@ -57,7 +57,7 @@ class PPTObligationsService @Inject()(
       )
 
     val isNextObligationDue: Boolean = {
-      appConfig.suppressObligationDateCheck ||
+      appConfig.qaTestingInProgress ||
         nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
     }
 

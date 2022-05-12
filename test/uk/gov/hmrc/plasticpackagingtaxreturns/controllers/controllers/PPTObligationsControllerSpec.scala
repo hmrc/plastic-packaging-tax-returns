@@ -138,23 +138,6 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     val serviceResponse = Right(Seq.empty)
     val pptReference     = "1234"
     val desResponse = ObligationDataResponse(Seq.empty)
-    val desResponseFutureFulfilled: ObligationDataResponse = ObligationDataResponse(obligations =
-      Seq(
-        Obligation(
-          identification =
-            Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
-          obligationDetails = Seq(
-            ObligationDetail(status = ObligationStatus.FULFILLED,
-              inboundCorrespondenceFromDate = LocalDate.now.plusMonths(9),
-              inboundCorrespondenceToDate = LocalDate.now.plusYears(1),
-              inboundCorrespondenceDateReceived = Some(LocalDate.now().plusYears(1)),
-              inboundCorrespondenceDueDate = LocalDate.now().plusYears(1).plusMonths(1),
-              periodKey = "22C3"
-            )
-          )
-        )
-      )
-    )
 
     "get PTPObligation from construct service" in {
       when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
@@ -165,41 +148,37 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
       status(result) mustBe OK
       verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq.empty))
+      verify(mockObligationDataConnector).get(
+        exactlyEq(pptReference),
+        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+        exactlyEq(Some(LocalDate.now)),
+        exactlyEq(Some(ObligationStatus.FULFILLED)))(any())
       contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
 
     "get future period fulfilled obligation if flag set" in {
-      when(appConfig.suppressObligationDateCheck).thenReturn(true)
+      when(appConfig.qaTestingInProgress).thenReturn(true)
       when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(desResponseFutureFulfilled)))
+        .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
 
       status(result) mustBe OK
-      verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq(
-        Obligation(
-          identification =
-            Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
-          obligationDetails = Seq(
-            ObligationDetail(status = ObligationStatus.FULFILLED,
-              inboundCorrespondenceFromDate = LocalDate.now.plusMonths(9),
-              inboundCorrespondenceToDate = LocalDate.now.plusYears(1),
-              inboundCorrespondenceDateReceived = Some(LocalDate.now().plusYears(1)),
-              inboundCorrespondenceDueDate = LocalDate.now().plusYears(1).plusMonths(1),
-              periodKey = "22C3"
-            )
-          )
-        )
-      )))
+      verify(mockPPTObligationsService).constructPPTFulfilled(desResponse)
+      verify(mockObligationDataConnector).get(
+        exactlyEq(pptReference),
+        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+        exactlyEq(Some(LocalDate.now.plusYears(1))),
+        exactlyEq(Some(ObligationStatus.FULFILLED)))(any())
       contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
 
     "not get future period fulfilled obligation if flag not set" in {
-      when(appConfig.suppressObligationDateCheck).thenReturn(false)
+      when(appConfig.qaTestingInProgress).thenReturn(false)
       when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponseFutureFulfilled)))
+        .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
 
