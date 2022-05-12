@@ -254,16 +254,16 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
 
         "there is an obligation but it is not yet due" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
-          when(appConfig.suppressObligationDateCheck).thenReturn(false)
+          when(appConfig.qaTestingInProgress).thenReturn(false)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
-          verify(appConfig).suppressObligationDateCheck
+          verify(appConfig).qaTestingInProgress
         }
 
         "there is an obligation, it is not yet due, but the bypass flag is set in app conf" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
-          when(appConfig.suppressObligationDateCheck).thenReturn(true)
+          when(appConfig.qaTestingInProgress).thenReturn(true)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
-          verify(appConfig).suppressObligationDateCheck
+          verify(appConfig).qaTestingInProgress
         }
 
         "there is 0 overdue and 1 within due period" in {

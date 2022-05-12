@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
@@ -34,11 +35,14 @@ class PPTObligationsController @Inject() (
   cc: ControllerComponents,
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
-  obligationsService: PPTObligationsService
+  obligationsService: PPTObligationsService,
+  appConfig: AppConfig
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) with Logging{
 
   private val internalServerError = InternalServerError("{}")
+
+  // todo dedupe
 
   def getOpen(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
@@ -56,13 +60,21 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        val today: Option[LocalDate] = Some(LocalDate.now())
-        obligationsDataConnector.get(pptReference, pptStartDate, today, Some(ObligationStatus.FULFILLED)).map {
+        obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
           case Left(404) => createEmptyFulfilledResponse()
           case Left(_) => internalServerError
           case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
         }
     }
+  }
+
+  private def fulfilledToDate: LocalDate = {
+    // If feature flag used by E2E test threads is set, then include test obligations that are in the future
+    val today = LocalDate.now()
+    if (appConfig.qaTestingInProgress)
+      today.plusYears(1)
+    else
+      today
   }
 
   private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) = {
