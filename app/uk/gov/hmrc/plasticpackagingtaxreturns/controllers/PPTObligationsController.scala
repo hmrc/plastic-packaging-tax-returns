@@ -50,7 +50,10 @@ class PPTObligationsController @Inject() (
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
           case Left(404) => createEmptyOpenResponse()
           case Left(_) => internalServerError
-          case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
+          case Right(obligationDataResponse) => {
+            println("-2-")
+            createOpenResponse(obligationDataResponse)
+          }
         }
     }
   }
@@ -60,11 +63,22 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
-          case Left(404) => createEmptyFulfilledResponse()
+        val t = obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
+          case Left(404) => {
+            println("-1-")
+            createEmptyFulfilledResponse()
+          }
           case Left(_) => internalServerError
-          case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
+          case Right(obligationDataResponse) => {
+            println("-2-")
+            createFulfilledResponse(obligationDataResponse)
+          }
         }
+
+        t.map(res => {
+          println(s"##### ${res.body}")
+          res
+        })
     }
   }
 

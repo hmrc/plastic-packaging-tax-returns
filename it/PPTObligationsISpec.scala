@@ -21,7 +21,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites}
@@ -145,6 +145,20 @@ class PPTObligationsISpec
 
       response.status mustBe UNAUTHORIZED
     }
+
+    "should return 404" when {
+      "empty data" in {
+        withAuthorizedUser()
+        server.stubFor(get(anyUrl()).willReturn(notFound().withBody("""{"code": "NOT_FOUND", "reason":"any reason"}""")))
+
+        val response = await(wsClient.url(pptOpenUrl).get())
+
+        println(s"==> ${response.body}")
+        response.status mustBe NOT_FOUND
+
+      }
+    }
+
 
     "should return 500" in {
       withAuthorizedUser()
