@@ -23,7 +23,7 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.EisFailure
@@ -136,7 +136,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetObligationData(
     pptReference: String,
     displayResponse: ObligationDataResponse
-  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+  ): OngoingStubbing[Future[Either[UpstreamErrorResponse, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
                                       any(),
@@ -148,14 +148,14 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetObligationDataFailure(
     pptReference: String,
     statusCode: Int
-  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+  ): OngoingStubbing[Future[Either[UpstreamErrorResponse, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
                                       any(),
                                       any(),
                                       any()
       )(any[HeaderCarrier])
-    ).thenReturn(Future.successful(Left(statusCode)))
+    ).thenReturn(Future.successful(Left(UpstreamErrorResponse("", statusCode))))
 
   protected def mockGetFinancialData(
     pptReference: String,

@@ -17,10 +17,13 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.Logging
+import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import uk.gov.hmrc.http.{HttpResponse, Upstream4xxResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.ObligationEmptyDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
@@ -29,6 +32,8 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success, Try}
+
 
 @Singleton
 class PPTObligationsController @Inject() (
@@ -48,12 +53,9 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
-          case Left(404) => createEmptyOpenResponse()
+          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message)
           case Left(_) => internalServerError
-          case Right(obligationDataResponse) => {
-            println("-2-")
-            createOpenResponse(obligationDataResponse)
-          }
+          case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
         }
     }
   }
@@ -64,8 +66,8 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         val t = obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
-          case Left(404) => {
-            println("-1-")
+          case Left(HttpResponse(_, body, _)) => {
+            println(s"-1- => $body")
             createEmptyFulfilledResponse()
           }
           case Left(_) => internalServerError
@@ -119,6 +121,15 @@ class PPTObligationsController @Inject() (
   private def createEmptyOpenResponse() = {
     val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
     createOpenResponse(emptyObligationList)
+  }
+
+  private def handleNotFoundResponse(message: String) = {
+    val json = message.substring(message.indexOf("{"), message.lastIndexOf("}") + 1)
+
+    Try(Json.parse(json).as[ObligationEmptyDataResponse]) match {
+      case Success(_) => createEmptyOpenResponse()
+      case Failure(_) => NotFound("{}")
+    }
   }
 
 

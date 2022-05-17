@@ -39,7 +39,7 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
 
   def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
     hc: HeaderCarrier
-  ): Future[Either[Int, ObligationDataResponse]] = {
+  ): Future[Either[UpstreamErrorResponse, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
     val correlationId       = correlationIdHeader._2
@@ -67,14 +67,15 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
             s"""Upstream error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
               s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
           )
-          Left(httpEx.statusCode)
+          Left(httpEx)
         case ex: Exception =>
+          println("%%%%%%%%%%%%%%")
           logger.error(
             s"""Failed when getting enterprise obligation data with correlationId [$correlationId] and """ +
               s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
             ex
           )
-          Left(INTERNAL_SERVER_ERROR)
+          Left(UpstreamErrorResponse("Error getting enterprise obligation", INTERNAL_SERVER_ERROR))
       }
   }
 

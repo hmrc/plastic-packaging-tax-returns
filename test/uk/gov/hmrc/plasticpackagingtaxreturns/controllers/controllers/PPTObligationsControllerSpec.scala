@@ -25,6 +25,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{status, _}
 import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.http.UpstreamErrorResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -113,7 +114,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
       "if error return from connector" in {
 
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(Left(500)))
+          .thenReturn(Future.successful(Left(UpstreamErrorResponse("", 500))))
 
         val result: Future[Result] = sut.getOpen(pptReference).apply(FakeRequest())
 
@@ -205,7 +206,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     "return internal server error response" when {
       "an error is returned from connector" in {
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
-          .thenReturn(Future.successful(Left(500)))
+          .thenReturn(Future.successful(Left(UpstreamErrorResponse("", 500))))
 
         val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
 

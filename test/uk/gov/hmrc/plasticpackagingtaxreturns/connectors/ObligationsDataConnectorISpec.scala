@@ -87,7 +87,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
         val res = await(connector.get(pptReference, fromDate, toDate, status))
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        res.left.get.statusCode mustBe Status.INTERNAL_SERVER_ERROR
         getTimer(getObligationDataTimer).getCount mustBe 1
       }
 

@@ -15,6 +15,7 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
+import com.fasterxml.jackson.core.JsonParseException
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -24,9 +25,9 @@ import play.api.Application
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsArray, JsFalse, JsNumber, JsObject, JsString, JsValue, Json, OWrites}
+import play.api.libs.json.{JsArray, JsFalse, JsNumber, JsObject, JsResultException, JsString, JsValue, Json, OWrites}
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import play.api.test.Helpers.{await, contentAsJson, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -138,6 +139,33 @@ class PPTObligationsISpec
       )
     }
 
+    "should return 200 with empty data" in {
+      withAuthorizedUser()
+      server.stubFor(get(anyUrl())
+        .willReturn(notFound()
+          .withBody("""{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found."}""")
+        )
+      )
+
+      val response = await(wsClient.url(pptOpenUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(PPTObligations(None, None, 0, false, false))
+    }
+
+    "should return 404 if not Found" in {
+      withAuthorizedUser()
+      server.stubFor(get(anyUrl())
+        .willReturn(notFound()
+          .withBody("{}")
+        )
+      )
+
+      val response = await(wsClient.url(pptOpenUrl).get())
+
+      response.status mustBe NOT_FOUND
+    }
+
     "should return Unauthorised" in {
       withUnauthorizedUser(new RuntimeException)
 
@@ -145,20 +173,6 @@ class PPTObligationsISpec
 
       response.status mustBe UNAUTHORIZED
     }
-
-    "should return 404" when {
-      "empty data" in {
-        withAuthorizedUser()
-        server.stubFor(get(anyUrl()).willReturn(notFound().withBody("""{"code": "NOT_FOUND", "reason":"any reason"}""")))
-
-        val response = await(wsClient.url(pptOpenUrl).get())
-
-        println(s"==> ${response.body}")
-        response.status mustBe NOT_FOUND
-
-      }
-    }
-
 
     "should return 500" in {
       withAuthorizedUser()
