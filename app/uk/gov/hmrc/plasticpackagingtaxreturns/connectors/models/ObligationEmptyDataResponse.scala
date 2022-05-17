@@ -18,17 +18,17 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models
 
 import play.api.libs.json.{Json, OFormat}
 
-final case class ObligationEmptyDataResponse private(code: String, reason: String)
+final case class ObligationEmptyDataResponse private (code: String, reason: String)
 
 object ObligationEmptyDataResponse {
-  private def apply(code: String, reason: String): ObligationEmptyDataResponse = {
-    new ObligationEmptyDataResponse("NOT_FOUND", "What eber")
-  }
 
-  def apply(): ObligationEmptyDataResponse = {
-    new ObligationEmptyDataResponse("NOT_FOUND", "What eber")
-  }
+  private def apply(code: String, reason: String): ObligationEmptyDataResponse =
+    ObligationEmptyDataResponse()
+
+  def apply(): ObligationEmptyDataResponse =
+    new ObligationEmptyDataResponse("NOT_FOUND", "Empty data")
 
   implicit val format: OFormat[ObligationEmptyDataResponse] =
     Json.format[ObligationEmptyDataResponse]
+
 }
