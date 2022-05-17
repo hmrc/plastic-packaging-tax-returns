@@ -160,6 +160,16 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       response.status mustBe NOT_FOUND
     }
 
+
+    "should return 404 if not Found with wrong body" in {
+      withAuthorizedUser()
+      stubNotFound("""{"code": "PAN", "reason": "ANDY"}""")
+
+      val response = await(wsClient.url(pptOpenUrl).get())
+
+      response.status mustBe NOT_FOUND
+    }
+
     "should return Unauthorised" in {
       withUnauthorizedUser(new RuntimeException)
 
