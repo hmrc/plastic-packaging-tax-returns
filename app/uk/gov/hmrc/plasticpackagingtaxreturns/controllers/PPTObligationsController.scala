@@ -17,10 +17,9 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.Logging
-import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.http.{HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.http.Upstream4xxResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.ObligationEmptyDataResponse
@@ -34,7 +33,6 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-
 @Singleton
 class PPTObligationsController @Inject() (
   cc: ControllerComponents,
@@ -43,46 +41,33 @@ class PPTObligationsController @Inject() (
   obligationsService: PPTObligationsService,
   appConfig: AppConfig
 )(implicit val executionContext: ExecutionContext)
-    extends BackendController(cc) with Logging{
+    extends BackendController(cc) with Logging {
 
   private val internalServerError = InternalServerError("{}")
 
   // todo dedupe
 
-  def getOpen(pptReference: String): Action[AnyContent] = {
+  def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
-          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message)
-          case Left(_) => internalServerError
-          case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
+          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message, createEmptyOpenResponse)
+          case Left(_)                                     => internalServerError
+          case Right(obligationDataResponse)               => createOpenResponse(obligationDataResponse)
         }
     }
-  }
 
   val pptStartDate: Option[LocalDate] = Some(LocalDate.of(2022, 4, 1))
 
-  def getFulfilled(pptReference: String): Action[AnyContent] = {
+  def getFulfilled(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        val t = obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
-          case Left(HttpResponse(_, body, _)) => {
-            println(s"-1- => $body")
-            createEmptyFulfilledResponse()
-          }
-          case Left(_) => internalServerError
-          case Right(obligationDataResponse) => {
-            println("-2-")
-            createFulfilledResponse(obligationDataResponse)
-          }
+        obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
+          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message, createEmptyFulfilledResponse)
+          case Left(_)                                     => internalServerError
+          case Right(obligationDataResponse)               => createFulfilledResponse(obligationDataResponse)
         }
-
-        t.map(res => {
-          println(s"##### ${res.body}")
-          res
-        })
     }
-  }
 
   private def fulfilledToDate: LocalDate = {
     // If feature flag used by E2E test threads is set, then include test obligations that are in the future
@@ -93,7 +78,7 @@ class PPTObligationsController @Inject() (
       today
   }
 
-  private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) = {
+  private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) =
     obligationsService.constructPPTFulfilled(obligationDataResponse) match {
       case Left(error) =>
         logger.error(s"Error constructing Obligation response: $error.")
@@ -101,9 +86,8 @@ class PPTObligationsController @Inject() (
       case Right(response) =>
         Ok(Json.toJson(response))
     }
-  }
 
-  private def createOpenResponse(obligationDataResponse: ObligationDataResponse) = {
+  private def createOpenResponse(obligationDataResponse: ObligationDataResponse) =
     obligationsService.constructPPTObligations(obligationDataResponse) match {
       case Left(error) =>
         logger.error(s"Error constructing Obligation response: $error.")
@@ -111,7 +95,6 @@ class PPTObligationsController @Inject() (
       case Right(response) =>
         Ok(Json.toJson(response))
     }
-  }
 
   private def createEmptyFulfilledResponse() = {
     val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
@@ -123,14 +106,12 @@ class PPTObligationsController @Inject() (
     createOpenResponse(emptyObligationList)
   }
 
-  private def handleNotFoundResponse(message: String) = {
+  private def handleNotFoundResponse(message: String, createEmptyResponse: () => Result) = {
     val json = message.substring(message.indexOf("{"), message.lastIndexOf("}") + 1)
-
     Try(Json.parse(json).as[ObligationEmptyDataResponse]) match {
-      case Success(_) => createEmptyOpenResponse()
+      case Success(_) => createEmptyResponse()
       case Failure(_) => NotFound("{}")
     }
   }
-
 
 }

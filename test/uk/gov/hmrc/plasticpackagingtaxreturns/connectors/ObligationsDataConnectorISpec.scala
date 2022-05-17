@@ -35,9 +35,9 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   val getObligationDataTimer = "ppt.get.obligation.data.timer"
 
-  val pptReference = "XXPPTP103844123"
-  val fromDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-01"))
-  val toDate: Option[LocalDate] = Some(LocalDate.parse("2021-10-31"))
+  val pptReference                     = "XXPPTP103844123"
+  val fromDate: Option[LocalDate]      = Some(LocalDate.parse("2021-10-01"))
+  val toDate: Option[LocalDate]        = Some(LocalDate.parse("2021-10-31"))
   val status: Option[ObligationStatus] = Some(ObligationStatus.OPEN)
 
   val response: ObligationDataResponse = ObligationDataResponse(obligations =
@@ -46,12 +46,13 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         identification =
           Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq(
-          ObligationDetail(status = ObligationStatus.OPEN,
-                           inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
-                           inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
-                           inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
-                           inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
-                           periodKey = "#001"
+          ObligationDetail(
+            status = ObligationStatus.OPEN,
+            inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
+            inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
+            inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
+            inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
+            periodKey = "#001"
           )
         )
       )
@@ -97,7 +98,6 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
   "ObligationData connector for obligation data" should {
 
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
       "return " + statusCode when {
         statusCode + " is returned from downstream service" in {
 
@@ -105,7 +105,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
           val res = await(connector.get(pptReference, fromDate, toDate, status))
 
-          res.left.get mustBe statusCode
+          res.left.get.statusCode mustBe statusCode
           getTimer(getObligationDataTimer).getCount mustBe 1
         }
       }
@@ -115,12 +115,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   private def stubObligationDataRequest(response: ObligationDataResponse): Unit = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
+    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
     stubFor(
-      get(
-        s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}"
-      )
+      get(s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)

@@ -16,11 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import java.time.LocalDate
-import java.util.UUID
-
 import com.kenshoo.play.metrics.Metrics
-import javax.inject.Inject
 import play.api.Logger
 import play.api.http.Status.INTERNAL_SERVER_ERROR
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -29,11 +25,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 
+import java.time.LocalDate
+import java.util.UUID
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
-  implicit ec: ExecutionContext
-) extends DESConnector {
+class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(implicit ec: ExecutionContext)
+    extends DESConnector {
 
   private val logger = Logger(this.getClass)
 
@@ -44,21 +42,17 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
     val correlationId       = correlationIdHeader._2
 
-    val queryParams = Seq(
-      fromDate.map("from" -> DateFormat.isoFormat(_)),
-      toDate.map("to"   -> DateFormat.isoFormat(_)),
-      status.map("status"   -> _.toString)
-      ).flatten
+    val queryParams =
+      Seq(fromDate.map("from" -> DateFormat.isoFormat(_)), toDate.map("to" -> DateFormat.isoFormat(_)), status.map("status" -> _.toString)).flatten
 
-    httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationDataUrl(pptReference),
-                                           queryParams = queryParams,
-                                           headers = headers :+ correlationIdHeader
+    httpClient.GET[ObligationDataResponse](
+      appConfig.enterpriseObligationDataUrl(pptReference),
+      queryParams = queryParams,
+      headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]"
-        )
+        logger.info(s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
         Right(response)
       }
       .recover {
@@ -69,7 +63,6 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
           )
           Left(httpEx)
         case ex: Exception =>
-          println("%%%%%%%%%%%%%%")
           logger.error(
             s"""Failed when getting enterprise obligation data with correlationId [$correlationId] and """ +
               s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",

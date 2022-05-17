@@ -15,7 +15,6 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.fasterxml.jackson.core.JsonParseException
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -25,9 +24,9 @@ import play.api.Application
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsArray, JsFalse, JsNumber, JsObject, JsResultException, JsString, JsValue, Json, OWrites}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers.{await, contentAsJson, defaultAwaitTimeout}
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -37,24 +36,27 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import java.time.LocalDate
 import scala.language.implicitConversions
 
-class PPTObligationsISpec
-    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
+class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
 
-  implicit def toJsString(s: String): JsString = JsString(s)
+  implicit def toJsString(s: String): JsString  = JsString(s)
   def jsObject(t: (String, JsValue)*): JsObject = JsObject(t)
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
-  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
 
-  val open: ObligationStatus.Value = ObligationStatus.OPEN
+  val open: ObligationStatus.Value      = ObligationStatus.OPEN
   val fulfilled: ObligationStatus.Value = ObligationStatus.FULFILLED
 
-  val pptOpenUrl = s"http://localhost:$port/obligations/open/$pptReference"
+  val pptOpenUrl      = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
 
-  private val noObligations = ObligationDataResponse(obligations = Seq(
-    Obligation(identification = Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
+  private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found."}"""
+
+  private val noObligations = ObligationDataResponse(obligations =
+    Seq(
+      Obligation(
+        identification = Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq.empty
       )
     )
@@ -62,16 +64,19 @@ class PPTObligationsISpec
 
   val oneObligation: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
-      Obligation(identification =
-        Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
-        obligationDetails = Seq(ObligationDetail(
-          status = ObligationStatus.UNKNOWN, // Don't care about this here
-          inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
-          inboundCorrespondenceFromDate = LocalDate.of(2022,4,1),
-          inboundCorrespondenceToDate = LocalDate.of(2022,6,30),
-          inboundCorrespondenceDueDate = LocalDate.of(2022,7,29),
-          periodKey = "22C2"
-        ))
+      Obligation(
+        identification =
+          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
+        obligationDetails = Seq(
+          ObligationDetail(
+            status = ObligationStatus.UNKNOWN,                       // Don't care about this here
+            inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
+            inboundCorrespondenceFromDate = LocalDate.of(2022, 4, 1),
+            inboundCorrespondenceToDate = LocalDate.of(2022, 6, 30),
+            inboundCorrespondenceDueDate = LocalDate.of(2022, 7, 29),
+            periodKey = "22C2"
+          )
+        )
       )
     )
   )
@@ -87,7 +92,7 @@ class PPTObligationsISpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    server.server.resetAll()
+    server.wireMockServer.resetAll()
   }
 
   override protected def beforeAll(): Unit = {
@@ -105,8 +110,10 @@ class PPTObligationsISpec
     "not send dates when fetching open obligations" in {
       withAuthorizedUser()
       stubWillReturn(noObligations)
+
       await(wsClient.url(pptOpenUrl).get())
-      server.server.verify(getRequestedFor(urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
+
+      server.wireMockServer.verify(getRequestedFor(urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
     }
 
     "return 200 with no obligations" in {
@@ -127,25 +134,16 @@ class PPTObligationsISpec
 
       response.status mustBe OK
       response.json mustBe jsObject(
-        "nextObligation" -> jsObject(
-          "periodKey" -> "22C2",
-          "fromDate" -> "2022-04-01",
-          "toDate" -> "2022-06-30",
-          "dueDate" -> "2022-07-29"
-        ),
-        "overdueObligationCount" -> JsNumber(0),
-        "isNextObligationDue" -> JsFalse,
+        "nextObligation"           -> jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "2022-06-30", "dueDate" -> "2022-07-29"),
+        "overdueObligationCount"   -> JsNumber(0),
+        "isNextObligationDue"      -> JsFalse,
         "displaySubmitReturnsLink" -> JsFalse
       )
     }
 
     "should return 200 with empty data" in {
       withAuthorizedUser()
-      server.stubFor(get(anyUrl())
-        .willReturn(notFound()
-          .withBody("""{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found."}""")
-        )
-      )
+      stubNotFound(DESnotFoundResponse)
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -155,11 +153,7 @@ class PPTObligationsISpec
 
     "should return 404 if not Found" in {
       withAuthorizedUser()
-      server.stubFor(get(anyUrl())
-        .willReturn(notFound()
-          .withBody("{}")
-        )
-      )
+      stubNotFound("{}")
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -177,6 +171,7 @@ class PPTObligationsISpec
     "should return 500" in {
       withAuthorizedUser()
       server.stubFor(get(anyUrl()).willReturn(serverError()))
+
       val response = await(wsClient.url(pptOpenUrl).get())
       response.status mustBe INTERNAL_SERVER_ERROR
     }
@@ -189,15 +184,17 @@ class PPTObligationsISpec
       stubWillReturn(noObligations)
       await(wsClient.url(pptFulfilledUrl).get())
 
-      val today = LocalDate.now()
+      val today       = LocalDate.now()
       val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=2022-04-01&to=$today&status=F"
-      server.server.verify(getRequestedFor(urlEqualTo(expectedUrl)))
+      server.wireMockServer.verify(getRequestedFor(urlEqualTo(expectedUrl)))
     }
 
     "return 200 with no obligations" in {
       withAuthorizedUser()
       stubWillReturn(noObligations)
+
       val response = await(wsClient.url(pptFulfilledUrl).get())
+
       response.status mustBe OK
       response.json mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
@@ -209,14 +206,19 @@ class PPTObligationsISpec
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
       response.status mustBe OK
-      response.json mustBe JsArray(Seq(
-        jsObject(
-          "periodKey" -> "22C2",
-          "fromDate" -> "2022-04-01",
-          "toDate" -> "2022-06-30",
-          "dueDate" -> "2022-07-29"
-        )
-      ))
+      response.json mustBe JsArray(
+        Seq(jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "2022-06-30", "dueDate" -> "2022-07-29"))
+      )
+    }
+
+    "should return 200 with empty data" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+
+      val response = await(wsClient.url(pptFulfilledUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
 
     "should return Unauthorised" in {
@@ -226,22 +228,40 @@ class PPTObligationsISpec
 
       response.status mustBe UNAUTHORIZED
     }
+    "should return Not Found" in {
+      withAuthorizedUser()
+      stubNotFound("{}")
+
+      val response = await(wsClient.url(pptFulfilledUrl).get())
+
+      response.status mustBe NOT_FOUND
+    }
 
     "should return 500" in {
       withAuthorizedUser()
       server.stubFor(get(anyUrl()).willReturn(serverError()))
+
       val response = await(wsClient.url(pptFulfilledUrl).get())
+
       response.status mustBe INTERNAL_SERVER_ERROR
     }
   }
 
+  private def stubNotFound(body: String): Any =
+    server.stubFor(
+      get(anyUrl())
+        .willReturn(
+          notFound()
+            .withBody(body)
+        )
+    )
+
   private def stubWillReturn(response: ObligationDataResponse): Unit = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
-    val jsonString = Json.toJson(response)(writes).toString()
-    server.stubFor(get(anyUrl()).willReturn(ok().withBody(jsonString))
-    )
+    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
+    val jsonString                                   = Json.toJson(response)(writes).toString()
+    server.stubFor(get(anyUrl()).willReturn(ok().withBody(jsonString)))
   }
 
 }
