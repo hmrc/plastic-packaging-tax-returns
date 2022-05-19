@@ -67,15 +67,13 @@ class ObligationsDataConnector @Inject()
       }
       .recover {
         case Upstream4xxResponse(message, code, _, _) =>
+          logUpstreamError(pptReference, correlationId, queryParams, message, code)
+
           if(isEmptyObligation(message) && code == NOT_FOUND)
             Right(ObligationDataResponse.empty)
           else Left(code)
-
         case Upstream5xxResponse(message, code, _, _) =>
-          logger.error(
-            s"""Upstream error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
-              s"pptReference [$pptReference], params [$queryParams], status: ${code}, body: ${message}"
-          )
+          logUpstreamError(pptReference, correlationId, queryParams, message, code)
           Left(code)
         case ex: Exception =>
           logger.error(
@@ -85,6 +83,20 @@ class ObligationsDataConnector @Inject()
           )
           Left(INTERNAL_SERVER_ERROR)
       }
+  }
+
+  private def logUpstreamError
+  (
+    pptReference: String,
+    correlationId: String,
+    queryParams: Seq[(String, String)],
+    message: String,
+    code: Int
+  ) = {
+    logger.error(
+      s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
+        s"pptReference [$pptReference], params [$queryParams], status: $code, body: $message"
+    )
   }
 
   def isEmptyObligation(message: String): Boolean =
