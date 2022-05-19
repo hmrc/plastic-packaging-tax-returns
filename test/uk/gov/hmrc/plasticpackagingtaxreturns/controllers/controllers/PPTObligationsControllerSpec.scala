@@ -89,6 +89,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
+      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
       await(sut.getOpen(pptReference).apply(FakeRequest()))
 
@@ -150,7 +151,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
         exactlyEq(Some(LocalDate.now)),
         exactlyEq(Some(ObligationStatus.FULFILLED))
       )(any())
-      contentAsJson(result) mustBe Json.toJson(desResponse)
+      contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
     }
 
     "get future period fulfilled obligation if flag set" in {
