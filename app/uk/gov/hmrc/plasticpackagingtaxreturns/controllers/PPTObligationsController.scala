@@ -17,13 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.Logging
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.http.Upstream4xxResponse
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.ObligationEmptyDataResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -31,7 +28,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success, Try}
 
 @Singleton
 class PPTObligationsController @Inject() (
@@ -51,9 +47,10 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
-          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message, createEmptyOpenResponse)
-          case Left(_)                                     => internalServerError
-          case Right(obligationDataResponse)               => createOpenResponse(obligationDataResponse)
+          case Left(404) => NotFound("{}")
+          case Left(_)                        => internalServerError
+          case Right(obligationDataResponse)  =>
+            obligationsService.createOpenResponse(obligationDataResponse)
         }
     }
 
@@ -63,13 +60,14 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
-          case Left(Upstream4xxResponse(message, _, _, _)) => handleNotFoundResponse(message, createEmptyFulfilledResponse)
-          case Left(_)                                     => internalServerError
-          case Right(obligationDataResponse)               => createFulfilledResponse(obligationDataResponse)
+          case Left(404)                      => NotFound("{}")
+          case Left(_)                        => internalServerError
+          case Right(obligationDataResponse)  => obligationsService.createFulfilledResponse(obligationDataResponse)
         }
     }
 
   private def fulfilledToDate: LocalDate = {
+    // todo see what this is about and still needed
     // If feature flag used by E2E test threads is set, then include test obligations that are in the future
     val today = LocalDate.now()
     if (appConfig.qaTestingInProgress)
@@ -78,40 +76,5 @@ class PPTObligationsController @Inject() (
       today
   }
 
-  private def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) =
-    obligationsService.constructPPTFulfilled(obligationDataResponse) match {
-      case Left(error) =>
-        logger.error(s"Error constructing Obligation response: $error.")
-        internalServerError
-      case Right(response) =>
-        Ok(Json.toJson(response))
-    }
-
-  private def createOpenResponse(obligationDataResponse: ObligationDataResponse) =
-    obligationsService.constructPPTObligations(obligationDataResponse) match {
-      case Left(error) =>
-        logger.error(s"Error constructing Obligation response: $error.")
-        internalServerError
-      case Right(response) =>
-        Ok(Json.toJson(response))
-    }
-
-  private def createEmptyFulfilledResponse() = {
-    val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
-    createFulfilledResponse(emptyObligationList)
-  }
-
-  private def createEmptyOpenResponse() = {
-    val emptyObligationList = ObligationDataResponse(Seq(Obligation(None, Seq())))
-    createOpenResponse(emptyObligationList)
-  }
-
-  private def handleNotFoundResponse(message: String, createEmptyResponse: () => Result) = {
-    val json = message.substring(message.indexOf("{"), message.lastIndexOf("}") + 1)
-    Try(Json.parse(json).as[ObligationEmptyDataResponse]) match {
-      case Success(_) => createEmptyResponse()
-      case Failure(_) => NotFound("{}")
-    }
-  }
 
 }

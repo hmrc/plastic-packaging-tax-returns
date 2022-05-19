@@ -24,7 +24,7 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 class WiremockItServer {
   val wireHost                            = "localhost"
   lazy val wireMockServer: WireMockServer = new WireMockServer(options().dynamicPort())
-  lazy val wirePort: Int                  = port()
+  lazy val wirePort: Int                  = wireMockServer.port()
 
   def stubFor(mappingBuilder: MappingBuilder): StubMapping =
     wireMockServer.stubFor(mappingBuilder)
@@ -47,12 +47,9 @@ class WiremockItServer {
 
   def stop(): Unit = wireMockServer.stop()
 
-  private def port() =
-    if (!wireMockServer.isRunning) { start(); wireMockServer.port() }
-    else wireMockServer.port()
-
+  def reset(): Unit = wireMockServer.resetAll()
 }
 
 object WiremockItServer {
-  def apply() = new WiremockItServer
+  def apply() = new WiremockItServer()
 }

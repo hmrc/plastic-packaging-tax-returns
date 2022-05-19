@@ -136,7 +136,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetObligationData(
     pptReference: String,
     displayResponse: ObligationDataResponse
-  ): OngoingStubbing[Future[Either[UpstreamErrorResponse, ObligationDataResponse]]] =
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
                                       any(),
@@ -148,14 +148,14 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetObligationDataFailure(
     pptReference: String,
     statusCode: Int
-  ): OngoingStubbing[Future[Either[UpstreamErrorResponse, ObligationDataResponse]]] =
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
                                       any(),
                                       any(),
                                       any()
       )(any[HeaderCarrier])
-    ).thenReturn(Future.successful(Left(UpstreamErrorResponse("", statusCode))))
+    ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockGetFinancialData(
     pptReference: String,

@@ -43,6 +43,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
+
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
 
   val open: ObligationStatus.Value      = ObligationStatus.OPEN
@@ -50,6 +51,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
   val pptOpenUrl      = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
+
 
   private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found."}"""
 
@@ -82,6 +84,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   )
 
   override lazy val app: Application = {
+    server.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
@@ -89,10 +92,11 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       .build()
   }
 
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    server.wireMockServer.resetAll()
+    server.reset()
   }
 
   override protected def beforeAll(): Unit = {
@@ -259,11 +263,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
   private def stubNotFound(body: String): Any =
     server.stubFor(
-      get(anyUrl())
-        .willReturn(
-          notFound()
-            .withBody(body)
-        )
+      get(anyUrl()).willReturn(notFound().withBody(body))
     )
 
   private def stubWillReturn(response: ObligationDataResponse): Unit = {

@@ -53,6 +53,7 @@ class PPTFinancialsItSpec extends PlaySpec
   val Url = s"http://localhost:$port/financials/open/$pptReference"
 
   override lazy val app: Application = {
+    server.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)

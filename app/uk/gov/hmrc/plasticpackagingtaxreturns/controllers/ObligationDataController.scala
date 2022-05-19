@@ -39,7 +39,7 @@ class ObligationDataController @Inject() ( // TODO make this controller test-onl
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       obligationDataConnector.get(pptReference, fromDate, toDate, status.map(ObligationStatus.withName)).map {
         case Right(response)       => Ok(response)
-        case Left(errorStatusCode) => new Status(errorStatusCode.statusCode)
+        case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }
 

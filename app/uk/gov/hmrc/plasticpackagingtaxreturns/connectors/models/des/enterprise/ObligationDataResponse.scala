@@ -71,6 +71,8 @@ case class ObligationDataResponse(obligations: Seq[Obligation])
 
 object ObligationDataResponse {
 
+  def empty: ObligationDataResponse = ObligationDataResponse(Seq(Obligation(None, Seq())))
+
   implicit val format: OFormat[ObligationDataResponse] =
     Json.format[ObligationDataResponse]
 

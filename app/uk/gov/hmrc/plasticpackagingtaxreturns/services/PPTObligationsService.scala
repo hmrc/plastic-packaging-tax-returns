@@ -17,6 +17,9 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
+import play.api.libs.json.Json
+import play.api.mvc.Result
+import play.api.mvc.Results.{InternalServerError, Ok}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
@@ -71,4 +74,29 @@ class PPTObligationsService @Inject()(
     )
   }
 
+  def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) =
+    constructPPTFulfilled(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        InternalServerError("{}")
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
+
+  def createOpenResponse(obligationDataResponse: ObligationDataResponse) =
+    constructPPTObligations(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        InternalServerError("{}")
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
+
+  def createEmptyFulfilledResponse: Result = {
+    createFulfilledResponse(ObligationDataResponse.empty)
+  }
+
+  def createEmptyOpenResponse: Result = {
+    createOpenResponse(ObligationDataResponse.empty)
+  }
 }
