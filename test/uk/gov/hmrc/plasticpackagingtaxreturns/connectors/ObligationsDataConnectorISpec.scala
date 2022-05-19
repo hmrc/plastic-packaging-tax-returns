@@ -78,13 +78,15 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         getTimer(getObligationDataTimer).getCount mustBe 1
       }
 
-      "handle a 200 with no obligation data" in {
+      "return a 200 when obligation data not found" in {
 
-        stubFor(get(anyUrl())
-          .willReturn(
-            WireMock
-              .status(NOT_FOUND)
-              .withBody(ObligationsDataConnector.EmptyDataMessage))
+        stubFor(
+          get(anyUrl())
+            .willReturn(
+              WireMock
+                .status(NOT_FOUND)
+                .withBody(ObligationsDataConnector.EmptyDataMessage)
+            )
         )
 
         val res = await(connector.get(pptReference, fromDate, toDate, status))

@@ -17,10 +17,11 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.Logging
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.libs.json.Json
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -47,10 +48,9 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
-          case Left(404) => NotFound("{}")
-          case Left(_)                        => internalServerError
-          case Right(obligationDataResponse)  =>
-            obligationsService.createOpenResponse(obligationDataResponse)
+          case Left(404)                     => NotFound("{}")
+          case Left(_)                       => internalServerError
+          case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
         }
     }
 
@@ -60,9 +60,9 @@ class PPTObligationsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
-          case Left(404)                      => NotFound("{}")
-          case Left(_)                        => internalServerError
-          case Right(obligationDataResponse)  => obligationsService.createFulfilledResponse(obligationDataResponse)
+          case Left(404)                     => NotFound("{}")
+          case Left(_)                       => internalServerError
+          case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
         }
     }
 
@@ -76,5 +76,22 @@ class PPTObligationsController @Inject() (
       today
   }
 
+  def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) =
+    obligationsService.constructPPTFulfilled(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        InternalServerError("{}")
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
+
+  def createOpenResponse(obligationDataResponse: ObligationDataResponse): Result =
+    obligationsService.constructPPTObligations(obligationDataResponse) match {
+      case Left(error) =>
+        logger.error(s"Error constructing Obligation response: $error.")
+        InternalServerError("{}")
+      case Right(response) =>
+        Ok(Json.toJson(response))
+    }
 
 }
