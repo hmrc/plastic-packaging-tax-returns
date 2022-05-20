@@ -22,34 +22,34 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 
 class WiremockItServer {
-  val wireHost = "localhost"
-  lazy val server: WireMockServer = new WireMockServer(options().dynamicPort())
-  lazy val wirePort: Int = port()
+  val wireHost                            = "localhost"
+  lazy val wireMockServer: WireMockServer = new WireMockServer(options().dynamicPort())
+  lazy val wirePort: Int                  = wireMockServer.port()
 
   def stubFor(mappingBuilder: MappingBuilder): StubMapping =
-    server.stubFor(mappingBuilder)
+    wireMockServer.stubFor(mappingBuilder)
 
-  def overrideConfig: Map[String, Any] = {
-    Map("microservice.services.eis.host" -> wireHost,
+  def overrideConfig: Map[String, Any] =
+    Map(
+      "microservice.services.eis.host" -> wireHost,
       "microservice.services.eis.port" -> wirePort,
       "microservice.services.nrs.host" -> wireHost,
       "microservice.services.nrs.port" -> wirePort,
       "microservice.services.des.host" -> wireHost,
       "microservice.services.des.port" -> wirePort
     )
-  }
 
   def start(): Unit = {
-    if(!server.isRunning) server.start()
+    if (!wireMockServer.isRunning) wireMockServer.start()
 
-    WireMock.configureFor(wireHost, server.port())
+    WireMock.configureFor(wireHost, wireMockServer.port())
   }
 
-  def stop(): Unit = server.stop()
+  def stop(): Unit = wireMockServer.stop()
 
-  private def port() =  if(!server.isRunning) {start(); server.port()} else server.port()
+  def reset(): Unit = wireMockServer.resetAll()
 }
 
 object WiremockItServer {
-  def apply() = new WiremockItServer
+  def apply() = new WiremockItServer()
 }

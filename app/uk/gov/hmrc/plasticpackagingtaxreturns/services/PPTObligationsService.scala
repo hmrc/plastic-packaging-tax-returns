@@ -24,16 +24,14 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import java.time.{LocalDate, ZoneOffset}
 import javax.inject.Inject
 
-class PPTObligationsService @Inject()(
-   appConfig: AppConfig
-  ) extends Logging {
+class PPTObligationsService @Inject() (appConfig: AppConfig) extends Logging {
 
   def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
     data.obligations match {
       case Seq(obligation) => Right(obligation.obligationDetails)
       case obligations =>
         Left(s"Error constructing Obligations, expected 1 found ${obligations.size}")
-  }
+    }
 
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
@@ -47,28 +45,19 @@ class PPTObligationsService @Inject()(
   private def construct(obligation: Obligation): PPTObligations = {
     val today: LocalDate = LocalDate.now(ZoneOffset.UTC)
     val nextObligation: Option[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(
-        _.inboundCorrespondenceDueDate
-      ).headOption
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(_.inboundCorrespondenceDueDate).headOption
 
     val overdueObligations: Seq[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(
-        _.inboundCorrespondenceDueDate
-      )
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(_.inboundCorrespondenceDueDate)
 
     val isNextObligationDue: Boolean = {
       appConfig.qaTestingInProgress ||
-        nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
+      nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
     }
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 
-    PPTObligations(nextObligation,
-                   overdueObligations.headOption,
-                   overdueObligations.length,
-                   isNextObligationDue,
-                   displaySubmitReturnsLink
-    )
+    PPTObligations(nextObligation, overdueObligations.headOption, overdueObligations.length, isNextObligationDue, displaySubmitReturnsLink)
   }
 
 }
