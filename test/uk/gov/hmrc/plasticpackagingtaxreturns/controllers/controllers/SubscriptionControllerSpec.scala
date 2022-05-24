@@ -31,17 +31,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
-import play.api.test.FakeRequest
 import play.api.test.Helpers.{route, status, _}
+import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateSuccessfulResponse,
-  SubscriptionUpdateWithNrsFailureResponse,
-  SubscriptionUpdateWithNrsSuccessfulResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
@@ -108,14 +103,22 @@ class SubscriptionControllerSpec
       }
     }
 
-    "return 404" when {
-      "registration not found" in {
+    "pass on status code and payload" when {
+
+      "get registration returns a non-successful status" in {
         withAuthorizedUser()
-        mockGetSubscriptionFailure(pptReference, 404)
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
+        val mockHttpResponse: HttpResponse = mock[HttpResponse]
+        when(mockHttpResponse.status).thenReturn(417)
+        when(mockHttpResponse.body).thenReturn("""{"x": "y"}""")
 
-        status(result) mustBe NOT_FOUND
+        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(
+          Future.successful(Left(mockHttpResponse))
+        )
+
+        val result: Result = await(route(app, getRequest(pptReference)).get)
+        result.header.status mustBe 417
+        Helpers.contentAsString(Future.successful(result)) mustBe """{"x":"y"}"""
       }
     }
 

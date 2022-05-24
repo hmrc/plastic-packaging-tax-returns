@@ -62,7 +62,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    wireMockServer.resetAll()
+    wiremock.resetAll()
   }
 
   "ObligationData connector" when {

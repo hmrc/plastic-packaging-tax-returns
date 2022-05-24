@@ -38,11 +38,11 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     WireMock.configureFor(wireHost, wirePort)
-    wireMockServer.start()
+    wiremock.start()
   }
 
   override protected def afterAll(): Unit = {
-    wireMockServer.stop()
+    wiremock.stop()
     super.afterAll()
   }
 

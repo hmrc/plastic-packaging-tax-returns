@@ -16,18 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateSuccessfulResponse,
-  SubscriptionUpdateWithNrsFailureResponse,
-  SubscriptionUpdateWithNrsSuccessfulResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
@@ -51,7 +47,9 @@ class SubscriptionController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       subscriptionsConnector.getSubscription(pptReference).map {
         case Right(response)  => Ok(response)
-        case Left(eisFailure) => new Status(eisFailure.httpCode)(eisFailure)
+        case Left(errorResponse) =>
+          val bodyAsJson = Json.parse(errorResponse.body)
+          new Status(errorResponse.status)(bodyAsJson)
       }
     }
 
