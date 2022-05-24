@@ -30,9 +30,9 @@ trait WiremockTestServer
   val wireHost = "localhost"
 
   val wirePort       = 20202
-  val wireMockServer = new WireMockServer(wirePort)
+  val wiremock = new WireMockServer(wirePort)
 
   protected def stubFor(mappingBuilder: MappingBuilder): StubMapping =
-    wireMockServer.stubFor(mappingBuilder)
+    wiremock.stubFor(mappingBuilder)
 
 }

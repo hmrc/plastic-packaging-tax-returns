@@ -22,20 +22,15 @@ import play.api.Logger
 import play.api.http.Status
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.EisFailure
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateResponse,
-  SubscriptionUpdateSuccessfulResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateResponse, SubscriptionUpdateSuccessfulResponse}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 @Singleton
 class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
@@ -70,35 +65,21 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
-  def getSubscription(
-    pptReference: String
-  )(implicit hc: HeaderCarrier): Future[Either[EisFailure, SubscriptionDisplayResponse]] = {
+  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[HttpResponse, SubscriptionDisplayResponse]] = {
+
     val timer               = metrics.defaultRegistry.timer("ppt.subscription.display.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
-    httpClient.GET[HttpResponse](appConfig.subscriptionDisplayUrl(pptReference),
-                                 headers = headers :+ correlationIdHeader
-    )
+
+    val url = appConfig.subscriptionDisplayUrl(pptReference)
+    httpClient.GET[HttpResponse](url, headers = headers :+ correlationIdHeader)
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"PPT view subscription with correlationId [$correlationIdHeader._2] and pptReference [$pptReference]"
-        )
+        logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status))
-          Try(response.json.as[SubscriptionDisplayResponse]) match {
-            case Success(successfulGetResponse) => Right(successfulGetResponse)
-            case _ =>
-              throw UpstreamErrorResponse.apply("Failed to parse successful get subscription response",
-                                                Status.INTERNAL_SERVER_ERROR
-              )
-          }
-        else
-          Try(response.json.as[EisFailure]) match {
-            case Success(failedGetResponse) => Left(failedGetResponse)
-            case _ =>
-              throw UpstreamErrorResponse.apply("Failed to parse failed get subscription response",
-                                                Status.INTERNAL_SERVER_ERROR
-              )
-          }
+          Right(response.json.as[SubscriptionDisplayResponse])
+        else {
+          Left(response)
+        }
       }
   }
 

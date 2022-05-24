@@ -179,6 +179,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
         .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+      await(result)
 
       verify(mockObligationDataConnector).get(
         exactlyEq(pptReference),
