@@ -74,7 +74,6 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
     httpClient.GET[HttpResponse](url, headers = headers :+ correlationIdHeader)
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status))
           Right(response.json.as[SubscriptionDisplayResponse])
         else {

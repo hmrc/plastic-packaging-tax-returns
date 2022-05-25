@@ -104,5 +104,5 @@ class ObligationsDataConnector @Inject()
 }
 
 object ObligationsDataConnector {
-  val EmptyDataMessage = "The remote endpoint has indicated that no associated data found"
+  val EmptyDataMessage = """"The remote endpoint has indicated that no data can be found.""""
 }
