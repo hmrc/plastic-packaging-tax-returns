@@ -53,7 +53,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
 
 
-  private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found."}"""
+  private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found"}"""
 
   private val noObligations = ObligationDataResponse(obligations =
     Seq(
