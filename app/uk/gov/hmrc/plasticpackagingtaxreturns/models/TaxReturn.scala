@@ -17,10 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
-
-import java.time.LocalDate
 
 case class TaxReturn(
   id: String,

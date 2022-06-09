@@ -35,5 +35,4 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
     auditConnector.sendExplicitAudit(ChangeSubscriptionEvent.eventType,
                                      ChangeSubscriptionEvent(subscription, pptReference, processingDateTime)
     )
-
 }
