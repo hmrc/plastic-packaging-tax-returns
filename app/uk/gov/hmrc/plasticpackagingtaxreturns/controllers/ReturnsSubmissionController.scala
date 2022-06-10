@@ -22,13 +22,15 @@ import play.api.libs.json.Json.toJson
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -44,7 +46,8 @@ class ReturnsSubmissionController @Inject()(
                                              nonRepudiationService: NonRepudiationService,
                                              override val controllerComponents: ControllerComponents,
                                              returnsConnector: ReturnsConnector,
-                                             appConfig: AppConfig
+                                             appConfig: AppConfig,
+                                             auditor: Auditor,
                                            )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses {
 
@@ -72,7 +75,6 @@ class ReturnsSubmissionController @Inject()(
             case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
             case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
           }
-          //Ok(response)
           handleNrsRequest(request, eisRequest, response)
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
@@ -83,20 +85,44 @@ class ReturnsSubmissionController @Inject()(
                                 returnSubmissionRequest: ReturnsSubmissionRequest,
                                 eisResponse: Return
                               )(implicit hc: HeaderCarrier): Future[Result] = {
+
+    // TODO - implement this if we need to...
+    // NOTE - If we want to audit the user answers as well as EIS submission payload we can get from the cache via;
+    val usrAnswersJson = sessionRepository.get(request.internalId).map { ans =>
+      ans.getOrElse(UserAnswers(request.internalId)).data
+    }
+    // We could then combine this json with the eis payload and audit everything.
+
     submitToNrs(request, returnSubmissionRequest, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-          returnSubmissionRequest = returnSubmissionRequest,
-          nrsFailureResponse = None
+        val dateTime = ZonedDateTime.parse(eisResponse.processingDate)
+
+        auditor.returnSubmitted(
+          updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
+            returnSubmissionRequest = returnSubmissionRequest,
+            nrsFailureResponse = None
+          ),
+          pptReference = Some(request.pptId),
+          processingDateTime = Some(dateTime)
         )
+
         handleNrsSuccess(eisResponse, nrSubmissionId)
+
     }.recoverWith {
       case exception: Exception =>
-        updateNrsDetails(nrsSubmissionId = None,
-          returnSubmissionRequest = returnSubmissionRequest,
-          nrsFailureResponse = Some(exception.getMessage)
+        val dateTime = ZonedDateTime.parse(eisResponse.processingDate)
+
+        auditor.returnSubmitted(
+          updateNrsDetails(nrsSubmissionId = None,
+            returnSubmissionRequest = returnSubmissionRequest,
+            nrsFailureResponse = Some(exception.getMessage)
+          ),
+          pptReference = Some(request.pptId),
+          processingDateTime = Some(dateTime)
         )
+
         handleNrsFailure(eisResponse, exception)
+
     }
   }
 
@@ -111,50 +137,44 @@ class ReturnsSubmissionController @Inject()(
     nonRepudiationService.submitNonRepudiation(toJson(returnSubmissionRequest).toString,
       dateTime,
       eisResponse.idDetails.pptReferenceNumber,
-      Map.empty // TODO - need to get the request headers???
+      request.headers.headers.toMap // TODO - What are the correct headers? All headers or just PPT header?
     )
   }
 
   private def handleNrsFailure(
                                 eisResponse: Return,
                                 exception: Exception
-                              ): Future[Result] = {
+                              ): Future[Result] =
     Future.successful(
-      //      Ok(
-      //        SubscriptionUpdateWithNrsFailureResponse(eisResponse.pptReferenceNumber,
-      //          eisResponse.processingDate,
-      //          eisResponse.formBundleNumber,
-      //          exception.getMessage
-      //        )
-      //      )
-
-      // TODO - create case object for eisFail response with NRS response
-      Ok(eisResponse)
+      Ok(
+        ReturnWithNrsFailureResponse(
+          eisResponse.processingDate,
+          eisResponse.idDetails,
+          eisResponse.chargeDetails,
+          eisResponse.exportChargeDetails,
+          eisResponse.returnDetails,
+          exception.getMessage
+        )
+      )
     )
-  }
 
-  private def handleNrsSuccess(eisResponse: Return, nrSubmissionId: String): Result = {
-    //    Ok(
-    //      SubscriptionUpdateWithNrsSuccessfulResponse(eisResponse.pptReferenceNumber,
-    //        eisResponse.processingDate,
-    //        eisResponse.formBundleNumber,
-    //        nrSubmissionId
-    //      )
-
-    // TODO - create case object for eisResponse success  with NRS response
-    Ok(eisResponse)
-  }
+  private def handleNrsSuccess(eisResponse: Return, nrSubmissionId: String): Result =
+    Ok(
+      ReturnWithNrsSuccessResponse(
+        eisResponse.processingDate,
+        eisResponse.idDetails,
+        eisResponse.chargeDetails,
+        eisResponse.exportChargeDetails,
+        eisResponse.returnDetails,
+        nrSubmissionId)
+    )
 
   private def updateNrsDetails(
                                 nrsSubmissionId: Option[String],
                                 nrsFailureResponse: Option[String],
                                 returnSubmissionRequest: ReturnsSubmissionRequest
-                              ): ReturnsSubmissionRequest = {
-    //    returnSubmissionRequest.copy(nrsDetails =
-    //      Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse))
-    //    )
-    // TODO  - append NRS data to response
-    returnSubmissionRequest
-  }
+                              ): ReturnsSubmissionRequest =
+    returnSubmissionRequest.copy(nrsDetails =
+      Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse)))
 
 }
