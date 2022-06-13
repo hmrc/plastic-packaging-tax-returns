@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
+import play.api.libs.json.JsObject
 import play.api.libs.json.Json.{reads, toJson}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.api.mvc._
@@ -25,10 +26,11 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
@@ -76,29 +78,33 @@ class ReturnsSubmissionController @Inject()(
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg, submissionId = submissionId)
       returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
         case Right(response) =>
-          sessionRepository.clear(request.internalId).andThen {
-            case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
-            case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+          userAnswers(request).flatMap { ans =>
+            sessionRepository.clear(request.internalId).andThen {
+              case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
+              case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+            }
+            handleNrsRequest(request, ans, eisRequest, response)
           }
-          handleNrsRequest(request, eisRequest, response)
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     }
 
+  private def userAnswers(request: AuthorizedRequest[TaxReturn]) = {
+    sessionRepository.get(request.internalId).map { ans =>
+      ans.getOrElse(UserAnswers(request.internalId)).data
+    }
+  }
+
   private def handleNrsRequest(
                                 request: AuthorizedRequest[TaxReturn],
+                                userAnswers: JsObject,
                                 returnSubmissionRequest: ReturnsSubmissionRequest,
                                 eisResponse: Return
                               )(implicit hc: HeaderCarrier): Future[Result] = {
 
-    // TODO - implement this if we need to...
-    // NOTE - If we want to audit the user answers as well as EIS submission payload we can get from the cache via;
-    //val usrAnswersJson = sessionRepository.get(request.internalId).map { ans =>
-    //  ans.getOrElse(UserAnswers(request.internalId)).data
-    //}
-    // We could then combine this json with the eis payload and audit everything.
+    val payload = NrsReturnOrAmendSubmission(userAnswers, returnSubmissionRequest)
 
-    submitToNrs(request, returnSubmissionRequest, eisResponse).map {
+    submitToNrs(request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
         auditor.returnSubmitted(
           updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
@@ -129,10 +135,10 @@ class ReturnsSubmissionController @Inject()(
 
   private def submitToNrs(
                            request: AuthorizedRequest[TaxReturn],
-                           returnSubmissionRequest: ReturnsSubmissionRequest,
+                           payload: NrsReturnOrAmendSubmission,
                            eisResponse: Return
                          )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-    nonRepudiationService.submitNonRepudiation(toJson(returnSubmissionRequest).toString,
+    nonRepudiationService.submitNonRepudiation(toJson(payload).toString,
       parseDate(eisResponse.processingDate),
       eisResponse.idDetails.pptReferenceNumber,
       request.headers.headers.toMap
@@ -164,7 +170,8 @@ class ReturnsSubmissionController @Inject()(
         eisResponse.chargeDetails,
         eisResponse.exportChargeDetails,
         eisResponse.returnDetails,
-        nrSubmissionId)
+        nrSubmissionId
+      )
     )
 
   private def updateNrsDetails(
