@@ -65,7 +65,7 @@ class ReturnsSubmissionController @Inject()(
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey).map {
-        case Right(response) => Ok(response)
+        case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
 
@@ -77,7 +77,7 @@ class ReturnsSubmissionController @Inject()(
       returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
         case Right(response) =>
           sessionRepository.clear(request.internalId).andThen {
-            case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+            case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
             case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
           }
           handleNrsRequest(request, eisRequest, response)

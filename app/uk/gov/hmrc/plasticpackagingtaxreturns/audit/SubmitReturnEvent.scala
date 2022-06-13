@@ -35,7 +35,7 @@ case class SubmitReturnEvent(
 
 object SubmitReturnEvent {
   implicit val format: OFormat[SubmitReturnEvent] = Json.format[SubmitReturnEvent]
-  val eventType: String = "submitPPTReturn"
+  val eventType: String = "submitOrAmendPPTReturn"
 
   def apply(
              submission: ReturnsSubmissionRequest,
