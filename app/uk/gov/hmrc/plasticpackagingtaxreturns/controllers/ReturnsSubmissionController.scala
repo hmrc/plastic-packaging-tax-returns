@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
-import play.api.libs.json.Json.toJson
+import play.api.libs.json.Json.{reads, toJson}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -29,13 +29,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Ret
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -52,6 +52,11 @@ class ReturnsSubmissionController @Inject()(
   extends BackendController(controllerComponents) with JSONResponses {
 
   private val logger = Logger(this.getClass)
+
+  private def parseDate(date: String): ZonedDateTime = {
+    val df = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
+  }
 
   def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
 
@@ -88,37 +93,33 @@ class ReturnsSubmissionController @Inject()(
 
     // TODO - implement this if we need to...
     // NOTE - If we want to audit the user answers as well as EIS submission payload we can get from the cache via;
-    val usrAnswersJson = sessionRepository.get(request.internalId).map { ans =>
-      ans.getOrElse(UserAnswers(request.internalId)).data
-    }
+    //val usrAnswersJson = sessionRepository.get(request.internalId).map { ans =>
+    //  ans.getOrElse(UserAnswers(request.internalId)).data
+    //}
     // We could then combine this json with the eis payload and audit everything.
 
     submitToNrs(request, returnSubmissionRequest, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        val dateTime = ZonedDateTime.parse(eisResponse.processingDate)
-
         auditor.returnSubmitted(
           updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
             returnSubmissionRequest = returnSubmissionRequest,
             nrsFailureResponse = None
           ),
           pptReference = Some(request.pptId),
-          processingDateTime = Some(dateTime)
+          processingDateTime = Some(parseDate(eisResponse.processingDate))
         )
 
         handleNrsSuccess(eisResponse, nrSubmissionId)
 
     }.recoverWith {
       case exception: Exception =>
-        val dateTime = ZonedDateTime.parse(eisResponse.processingDate)
-
         auditor.returnSubmitted(
           updateNrsDetails(nrsSubmissionId = None,
             returnSubmissionRequest = returnSubmissionRequest,
             nrsFailureResponse = Some(exception.getMessage)
           ),
           pptReference = Some(request.pptId),
-          processingDateTime = Some(dateTime)
+          processingDateTime = Some(parseDate(eisResponse.processingDate))
         )
 
         handleNrsFailure(eisResponse, exception)
@@ -131,13 +132,10 @@ class ReturnsSubmissionController @Inject()(
                            returnSubmissionRequest: ReturnsSubmissionRequest,
                            eisResponse: Return
                          )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-
-    val dateTime = ZonedDateTime.parse(eisResponse.processingDate)
-
     nonRepudiationService.submitNonRepudiation(toJson(returnSubmissionRequest).toString,
-      dateTime,
+      parseDate(eisResponse.processingDate),
       eisResponse.idDetails.pptReferenceNumber,
-      request.headers.headers.toMap // TODO - What are the correct headers? All headers or just PPT header?
+      request.headers.headers.toMap
     )
   }
 

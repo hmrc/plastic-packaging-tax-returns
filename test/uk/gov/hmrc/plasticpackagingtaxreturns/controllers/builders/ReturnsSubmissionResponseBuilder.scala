@@ -16,25 +16,55 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse}
 
 import java.time.LocalDate
 
 trait ReturnsSubmissionResponseBuilder {
 
-  private type ReturnsResponseModifier = Return => Return
+  private type ReturnsResponseModifier    = Return                       => Return
+  private type ReturnsResponseModifierNrs = ReturnWithNrsSuccessResponse => ReturnWithNrsSuccessResponse
+  private type ReturnsResponseModifierNrsFailure = ReturnWithNrsFailureResponse => ReturnWithNrsFailureResponse
 
   def aReturn(modifiers: ReturnsResponseModifier*): Return =
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
+  def aReturnWithNrs(modifiers: ReturnsResponseModifierNrs*): ReturnWithNrsSuccessResponse =
+    modifiers.foldLeft(modelWithDefaultsNrs)((current, modifier) => modifier(current))
+
+  def aReturnWithNrsFailure(modifiers: ReturnsResponseModifierNrsFailure*): ReturnWithNrsFailureResponse =
+    modifiers.foldLeft(modelWithDefaultsNrsFailure)((current, modifier) => modifier(current))
+
+  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = LocalDate.now().toString,
+    idDetails = IdDetails(pptReferenceNumber =
+      "7777777",
+      submissionId = "1234567890AA"
+    ),
+    chargeDetails = None,
+    exportChargeDetails = None,
+    returnDetails = None,
+    "Something went wrong"
+  )
+
+  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = LocalDate.now().toString,
+    idDetails = IdDetails(pptReferenceNumber =
+      "7777777",
+      submissionId = "1234567890AA"
+    ),
+    chargeDetails = None,
+    exportChargeDetails = None,
+    returnDetails = None,
+    nrSubmissionId = "nrSubmissionId"
+  )
+
   private val modelWithDefaults = Return(processingDate = LocalDate.now().toString,
-                                         idDetails = IdDetails(pptReferenceNumber =
-                                                                 "XMPPT0000000123",
-                                                               submissionId = "1234567890AA"
-                                         ),
-                                         chargeDetails = None,
-                                         exportChargeDetails = None,
-                                         returnDetails = None
+    idDetails = IdDetails(pptReferenceNumber =
+      "7777777",
+      submissionId = "1234567890AA"
+    ),
+    chargeDetails = None,
+    exportChargeDetails = None,
+    returnDetails = None
   )
 
   def withReturnDetails(returnDetails: Option[EisReturnDetails]): ReturnsResponseModifier =
