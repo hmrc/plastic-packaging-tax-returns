@@ -138,6 +138,11 @@ class ReturnsSubmissionController @Inject()(
                            payload: NrsReturnOrAmendSubmission,
                            eisResponse: Return
                          )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+
+    logger.debug(
+      s"Submitting NRS payload: ${toJson(payload)} with request headers: ${toJson(request.headers.headers)} for PPT Ref: ${eisResponse.idDetails.pptReferenceNumber}"
+    )
+
     nonRepudiationService.submitNonRepudiation(toJson(payload).toString,
       parseDate(eisResponse.processingDate),
       eisResponse.idDetails.pptReferenceNumber,
@@ -148,7 +153,10 @@ class ReturnsSubmissionController @Inject()(
   private def handleNrsFailure(
                                 eisResponse: Return,
                                 exception: Exception
-                              ): Future[Result] =
+                              ): Future[Result] = {
+
+    logger.warn(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
+
     Future.successful(
       Ok(
         ReturnWithNrsFailureResponse(
@@ -161,8 +169,12 @@ class ReturnsSubmissionController @Inject()(
         )
       )
     )
+  }
 
-  private def handleNrsSuccess(eisResponse: Return, nrSubmissionId: String): Result =
+  private def handleNrsSuccess(eisResponse: Return, nrSubmissionId: String): Result = {
+
+    logger.info(s"NRS submission success for PPT Ref: ${eisResponse.idDetails.pptReferenceNumber}")
+
     Ok(
       ReturnWithNrsSuccessResponse(
         eisResponse.processingDate,
@@ -173,6 +185,7 @@ class ReturnsSubmissionController @Inject()(
         nrSubmissionId
       )
     )
+  }
 
   private def updateNrsDetails(
                                 nrsSubmissionId: Option[String],
