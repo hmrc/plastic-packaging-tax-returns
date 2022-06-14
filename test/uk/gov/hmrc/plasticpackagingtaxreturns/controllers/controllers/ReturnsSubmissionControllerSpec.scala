@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import com.codahale.metrics.SharedMetricRegistries
-import org.mockito.ArgumentCaptor
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
@@ -29,32 +29,64 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
+import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight, TaxReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
+import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class ReturnsSubmissionControllerSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with SubscriptionTestData with MockConnectors with MockReturnsRepository with TaxReturnBuilder
+    with AuthTestSupport with MockConnectors with MockReturnsRepository with TaxReturnBuilder
     with ReturnsSubmissionResponseBuilder {
 
   SharedMetricRegistries.clear()
 
-  private val mockAppConfig = mock[AppConfig]
+  protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
+  private val mockAppConfig: AppConfig                           = mock[AppConfig]
+  private val nrSubmissionId: String                             = "nrSubmissionId"
+
+  private val userAnswersData = Json.parse(
+    """{
+      |        "obligation" : {
+      |            "fromDate" : "2021-10-01",
+      |            "toDate" : "2021-12-01",
+      |            "dueDate" : "2022-02-28",
+      |            "periodKey" : "21C4"
+      |        },
+      |        "startYourReturn" : true,
+      |        "manufacturedPlasticPackaging" : true,
+      |        "manufacturedPlasticPackagingWeight" : 100,
+      |        "importedPlasticPackaging" : false,
+      |        "importedPlasticPackagingWeight" : 0,
+      |        "directlyExportedComponents" : false,
+      |        "exportedPlasticPackagingWeight" : 0,
+      |        "nonExportedHumanMedicinesPlasticPackaging" : true,
+      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
+      |        "nonExportRecycledPlasticPackaging" : false,
+      |        "nonExportRecycledPlasticPackagingWeight" : 0
+      |    }""".stripMargin)
+
+  private val userAnswers: UserAnswers = UserAnswers("id").copy(data =
+    Json.obj("data" -> userAnswersData)
+  )
+
   when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal("0.25"))
 
   override def beforeEach(): Unit = {
@@ -62,12 +94,14 @@ class ReturnsSubmissionControllerSpec
     when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     reset(mockAuthConnector)
     reset(mockSessionRepository)
+    reset(mockNonRepudiationService)
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(bind[AuthConnector].to(mockAuthConnector),
                bind[ReturnsConnector].to(mockReturnsConnector),
                bind[SessionRepository].to(mockSessionRepository),
+               bind[NonRepudiationService].to(mockNonRepudiationService),
                bind[AppConfig].to(mockAppConfig)
     )
     .build()
@@ -119,6 +153,32 @@ class ReturnsSubmissionControllerSpec
 
       returnsSubmissionRequestCaptor.getValue.returnDetails.taxDue mustBe 1000 * BigDecimal("0.25")
     }
+
+    "handle NRS fail" in {
+      withAuthorizedUser()
+
+      val nrsErrorMessage = "Something went wrong"
+
+      when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
+      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
+
+      when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+        Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
+      )
+
+      val returnsSubmissionResponse: Return = aReturn()
+      val returnsSubmissionResponseWithNrsFail: ReturnWithNrsFailureResponse = aReturnWithNrsFailure()
+
+      mockReturnsSubmissionConnector(returnsSubmissionResponse)
+
+      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference").withHeaders(newHeaders = ("foo", "bar"))
+
+      val result: Future[Result] = route(app, submitReturnRequest.withJsonBody(toJson(aTaxReturn()))).get
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe toJson(returnsSubmissionResponseWithNrsFail)
+    }
+
 
     "get return to display" should {
       "return OK response" in {
@@ -179,8 +239,6 @@ class ReturnsSubmissionControllerSpec
 
   private def amendSubmittedAsExpected(pptReference: String) = {
 
-    val put = FakeRequest("PUT", s"/returns-amend/$pptReference/submission12")
-
     val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
                                       withImportedPlasticWeight(2000),
                                       withHumanMedicinesPlasticWeight(3000),
@@ -189,32 +247,79 @@ class ReturnsSubmissionControllerSpec
     )
 
     withAuthorizedUser()
-    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
 
-    val returnsSubmissionResponse = aReturn()
+    when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+      Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
+    )
+
+    val returnsSubmissionResponse: Return                              = aReturn()
+    val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
+
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(
+      updatedTaxReturn,
+      mockAppConfig.taxRatePoundsPerKg,
+      Some("submission12")
+    )
+
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
-    val result: Future[Result] = route(app, put.withJsonBody(toJson(updatedTaxReturn))).get
+    val submitAmendRequest     = FakeRequest("PUT", s"/returns-amend/$pptReference/submission12").withHeaders(newHeaders = ("foo", "bar"))
+    val result: Future[Result] = route(app, submitAmendRequest.withJsonBody(toJson(updatedTaxReturn))).get
 
     status(result) mustBe OK
-    contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
+    contentAsJson(result) mustBe toJson(returnsSubmissionResponseWithNrs)
+
+    val contentLength      = toJson(updatedTaxReturn).toString.length.toString
+    val expectedHeaders    = Map("Host" -> "localhost", "foo" -> "bar", "Content-Length" -> contentLength, "Content-Type" -> "application/json")
+    val expectedNrsPayload = NrsReturnOrAmendSubmission(userAnswers.data, eisRequest)
+
+    verify(mockNonRepudiationService).submitNonRepudiation(
+      ArgumentMatchers.eq(Json.toJson(expectedNrsPayload).toString),
+      any[ZonedDateTime],
+      ArgumentMatchers.eq(pptReference),
+      ArgumentMatchers.eq(expectedHeaders)
+    )(any[HeaderCarrier])
 
   }
 
   private def returnSubmittedAsExpected(pptReference: String, taxReturn: TaxReturn) = {
     withAuthorizedUser()
 
+    when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
     when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+      Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
+    )
 
-    val returnsSubmissionResponse = aReturn()
+    val returnsSubmissionResponse: Return = aReturn()
+    val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
+
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(
+      taxReturn,
+      mockAppConfig.taxRatePoundsPerKg,
+      None
+    )
+
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
-    val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
-
+    val submitReturnRequest    = FakeRequest("POST", s"/returns-submission/$pptReference").withHeaders(newHeaders = ("foo", "bar"))
     val result: Future[Result] = route(app, submitReturnRequest.withJsonBody(toJson(taxReturn))).get
 
     status(result) mustBe OK
-    contentAsJson(result) mustBe toJson(returnsSubmissionResponse)
+    contentAsJson(result) mustBe toJson(returnsSubmissionResponseWithNrs)
+
+    val contentLength      = toJson(taxReturn).toString.length.toString
+    val expectedHeaders    = Map("Host" -> "localhost", "foo" -> "bar", "Content-Length" -> contentLength, "Content-Type" -> "application/json")
+    val expectedNrsPayload = NrsReturnOrAmendSubmission(userAnswers.data, eisRequest)
+
+    verify(mockNonRepudiationService).submitNonRepudiation(
+      ArgumentMatchers.eq(Json.toJson(expectedNrsPayload).toString),
+      any[ZonedDateTime],
+      ArgumentMatchers.eq(pptReference),
+      ArgumentMatchers.eq(expectedHeaders)
+    )(any[HeaderCarrier])
   }
 
 }

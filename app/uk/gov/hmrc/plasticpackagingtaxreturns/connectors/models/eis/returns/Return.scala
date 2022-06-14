@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.{NrsFailureResponse, NrsSuccessfulResponse}
 
 case class IdDetails(pptReferenceNumber: String, submissionId: String)
 
@@ -51,4 +52,30 @@ case class Return(
 
 object Return {
   implicit val format: OFormat[Return] = Json.format[Return]
+}
+
+case class ReturnWithNrsFailureResponse(
+                                         processingDate: String,
+                                         idDetails: IdDetails,
+                                         chargeDetails: Option[ChargeDetails],
+                                         exportChargeDetails: Option[ExportChargeDetails],
+                                         returnDetails: Option[EisReturnDetails],
+                                         override val nrsFailureReason: String
+                                       ) extends NrsFailureResponse
+
+object ReturnWithNrsFailureResponse {
+  implicit val format: OFormat[ReturnWithNrsFailureResponse] = Json.format[ReturnWithNrsFailureResponse]
+}
+
+case class ReturnWithNrsSuccessResponse(
+                                         processingDate: String,
+                                         idDetails: IdDetails,
+                                         chargeDetails: Option[ChargeDetails],
+                                         exportChargeDetails: Option[ExportChargeDetails],
+                                         returnDetails: Option[EisReturnDetails],
+                                         override val nrSubmissionId: String
+                                       ) extends NrsSuccessfulResponse
+
+object ReturnWithNrsSuccessResponse {
+  implicit val format: OFormat[ReturnWithNrsSuccessResponse] = Json.format[ReturnWithNrsSuccessResponse]
 }

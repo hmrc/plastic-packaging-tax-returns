@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
 
 import scala.math.BigDecimal.RoundingMode
@@ -70,7 +71,8 @@ case class ReturnsSubmissionRequest(
   returnType: ReturnType,
   submissionId: Option[String] = None,
   periodKey: String,
-  returnDetails: EisReturnDetails
+  returnDetails: EisReturnDetails,
+  nrsDetails: Option[NrsDetails] = None
 )
 
 object ReturnsSubmissionRequest {

@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -33,7 +34,12 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
     processingDateTime: Option[ZonedDateTime] = None
   )(implicit hc: HeaderCarrier, ex: ExecutionContext): Unit =
     auditConnector.sendExplicitAudit(ChangeSubscriptionEvent.eventType,
-                                     ChangeSubscriptionEvent(subscription, pptReference, processingDateTime)
-    )
+                                     ChangeSubscriptionEvent(subscription, pptReference, processingDateTime))
 
+  def returnSubmitted(
+                       submission: ReturnsSubmissionRequest,
+                      pptReference: Option[String] = None,
+                      processingDateTime: Option[ZonedDateTime] = None
+                     )(implicit hc: HeaderCarrier, ex: ExecutionContext): Unit =
+    auditConnector.sendExplicitAudit(SubmitReturnEvent.eventType, SubmitReturnEvent(submission, pptReference, processingDateTime))
 }
