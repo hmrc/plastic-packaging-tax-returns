@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
 
 import scala.math.BigDecimal.RoundingMode
@@ -70,18 +71,25 @@ case class ReturnsSubmissionRequest(
   returnType: ReturnType,
   submissionId: Option[String] = None,
   periodKey: String,
-  returnDetails: EisReturnDetails
+  returnDetails: EisReturnDetails,
+  nrsDetails: Option[NrsDetails] = None
 )
 
 object ReturnsSubmissionRequest {
+
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
-  def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal): ReturnsSubmissionRequest =
-    ReturnsSubmissionRequest(returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
-                             periodKey = taxReturn.obligation.map(_.periodKey).getOrElse(
-                               throw new IllegalStateException("Obligation is absent")
-                             ),
-                             returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
-    )
+  def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal, submissionId: Option[String]): ReturnsSubmissionRequest = {
+
+    if (taxReturn.returnType.contains(ReturnType.AMEND) && submissionId.isEmpty)
+      throw new IllegalStateException("must have a submission id to amend a return")
+
+    ReturnsSubmissionRequest(
+        returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
+        submissionId = submissionId,
+        periodKey = taxReturn.periodKey,
+        returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
+      )
+    }
 
 }

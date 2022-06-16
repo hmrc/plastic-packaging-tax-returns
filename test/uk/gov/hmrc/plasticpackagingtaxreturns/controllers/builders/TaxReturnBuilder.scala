@@ -17,19 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{
-  ConvertedPackagingCredit,
-  ExportedPlasticWeight,
-  HumanMedicinesPlasticWeight,
-  ImportedPlasticWeight,
-  ManufacturedPlasticWeight,
-  MetaData,
-  RecycledPlasticWeight,
-  TaxReturn,
-  TaxReturnObligation
-}
-
-import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
 trait TaxReturnBuilder {
@@ -40,12 +28,7 @@ trait TaxReturnBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturn =
-    TaxReturn(id = "id", obligation = Some(defaultObligation))
-
-  val defaultObligation = TaxReturnObligation(fromDate = LocalDate.parse("2022-04-01"),
-                                              toDate = LocalDate.parse("2022-06-30"),
-                                              dueDate = LocalDate.parse("2022-09-30"),
-                                              periodKey = "22AC"
+    TaxReturn(id = "id", periodKey = "22AC"
   )
 
   def withId(id: String): TaxReturnModifier = _.copy(id = id)
@@ -77,9 +60,6 @@ trait TaxReturnBuilder {
 
   def withRecycledPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(recycledPlasticWeight = Some(RecycledPlasticWeight(totalKg = totalKg)))
-
-  def withMetadata(returnCompleted: Boolean): TaxReturnModifier =
-    _.copy(metaData = MetaData(returnCompleted = returnCompleted))
 
   def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = Some(dateTime))
 }

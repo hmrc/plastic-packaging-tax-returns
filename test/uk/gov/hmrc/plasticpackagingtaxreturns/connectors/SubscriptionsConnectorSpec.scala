@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import java.time.{ZoneOffset, ZonedDateTime}
-import java.util.UUID
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsResultException, Json}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, SubscriptionTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+
+import java.time.{ZoneOffset, ZonedDateTime}
+import java.util.UUID
 
 class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
 
@@ -35,6 +36,11 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
   val displaySubscriptionTimer = "ppt.subscription.display.timer"
   val updateSubscriptionTimer  = "ppt.subscription.update.timer"
+
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    wiremock.resetAll()
+  }
 
   "Subscription connector" when {
     "requesting a subscription" should {
@@ -58,7 +64,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 
-      "handle unexpected exceptions thrown" in {
+      "handle unexpected failure responses" in {
         val pptReference = UUID.randomUUID().toString
 
         stubFor(
@@ -70,9 +76,10 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             )
         )
 
-        val res = await(connector.getSubscription(pptReference))
+        intercept[JsResultException] {
+          await(connector.getSubscription(pptReference))
+        }
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
     }
@@ -142,24 +149,20 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
   }
 
   "Subscription connector for display" should {
-    forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-      "return " + statusCode when {
-        statusCode + " is returned from downstream service" in {
-          val pptReference = UUID.randomUUID().toString
-          val errors =
-            createErrorResponse(code = "INVALID_VALUE",
-                                reason =
-                                  "Some errors occurred"
-            )
 
-          stubSubscriptionDisplayFailure(httpStatus = statusCode, errors = errors, pptReference = pptReference)
+      "pass on status code and payload " when {
+        "not 2xx is returned from downstream service" in {
+          stubFor(get(anyUrl()).willReturn(
+            status(417).withBody("""{"pass":"it-on"}""")
+          ))
 
-          val res = await(connector.getSubscription(pptReference))
+          val result = await(connector.getSubscription("some-ref"))
 
-          res.left.get mustBe statusCode
+          wiremock.verify(getRequestedFor(urlEqualTo("/plastic-packaging-tax/subscriptions/PPT/some-ref/display")))
+          result.left.get.status mustBe 417
+          result.left.get.body mustBe """{"pass":"it-on"}"""
           getTimer(displaySubscriptionTimer).getCount mustBe 1
         }
-      }
     }
   }
 
@@ -180,19 +183,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
       }
     }
   }
-
-  private def createErrorResponse(code: String, reason: String): Seq[EISError] =
-    Seq(EISError(code, reason))
-
-  private def stubSubscriptionDisplayFailure(pptReference: String, httpStatus: Int, errors: Seq[EISError]): Any =
-    stubFor(
-      get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
-        .willReturn(
-          aResponse()
-            .withStatus(httpStatus)
-            .withBody(Json.obj("failures" -> errors).toString)
-        )
-    )
 
   private def stubSubscriptionDisplay(pptReference: String, response: SubscriptionDisplayResponse): Unit =
     stubFor(

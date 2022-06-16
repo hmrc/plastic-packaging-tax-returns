@@ -23,8 +23,8 @@ import org.mockito.{ArgumentMatcher, ArgumentMatchers}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{allEnrolments, internalId}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval, ~}
 import uk.gov.hmrc.auth.core.{AffinityGroup, AuthConnector, Enrolment, Enrolments}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
@@ -46,13 +46,16 @@ trait AuthTestSupport extends MockitoSugar {
       "ppt-auth"
     )
 
-  def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit =
+  val user = newUser(Some(pptEnrolment(pptReference)))
+  val fetch = allEnrolments and internalId
+
+  def withAuthorizedUser(user: SignedInUser = user): Unit =
     when(
       mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
-                                  ArgumentMatchers.eq(allEnrolments)
+        ArgumentMatchers.eq(fetch)
       )(any(), any())
     )
-      .thenReturn(Future.successful(user.enrolments))
+      .thenReturn(Future.successful(new ~(user.enrolments, user.internalId)))
 
   def withUnauthorizedUser(error: Throwable): Unit =
     when(mockAuthConnector.authorise(any(), any())(any(), any())).thenReturn(Future.failed(error))

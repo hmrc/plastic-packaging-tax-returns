@@ -10,6 +10,7 @@ val silencerVersion = "1.7.1"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
+  .disablePlugins(JUnitXmlReportPlugin)
   .settings(majorVersion := 0,
             scalaVersion := "2.12.11",
             libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
@@ -19,11 +20,7 @@ lazy val microservice = Project(appName, file("."))
             libraryDependencies ++= Seq(
               compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
               "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-            ),
-            // ***************
-            // auto format code following .scalafmt.conf
-            scalafmtOnCompile in Compile := true,
-            scalafmtOnCompile in Test := true
+            )
   )
   .settings(publishingSettings: _*)
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")
@@ -41,7 +38,7 @@ lazy val scoverageSettings: Seq[Setting[_]] = Seq(
                                    "metrics\\..*",
                                    ".*(BuildInfo|Routes|Options).*"
   ).mkString(";"),
-  coverageMinimum := 97,
+  coverageMinimum := 95,
   coverageFailOnMinimum := true,
   coverageHighlighting := true,
   parallelExecution in Test := false

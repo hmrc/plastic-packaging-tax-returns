@@ -23,20 +23,14 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.Helpers._
+import play.api.test.Helpers.{status, _}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  Identification,
-  Obligation,
-  ObligationDataResponse,
-  ObligationStatus
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 
 import java.time.LocalDate
@@ -45,33 +39,26 @@ import scala.concurrent.Future
 
 class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  val mockAppConfig: AppConfig                              = mock[AppConfig]
   val mockPPTObligationsService: PPTObligationsService      = mock[PPTObligationsService]
   val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
-  val mockTaxReturnRepository: TaxReturnRepository          = mock[TaxReturnRepository]
+  val appConfig: AppConfig                                  = mock[AppConfig]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockPPTObligationsService, mockObligationDataConnector, mockTaxReturnRepository, mockAppConfig)
-    when(mockAppConfig.pptTaxStartDate).thenReturn(LocalDate.of(2022, 4, 1))
+    reset(appConfig, mockPPTObligationsService, mockObligationDataConnector)
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   val sut =
-    new PPTObligationsController(mockAppConfig,
-                                 cc,
-                                 new FakeAuthenticator(cc),
-                                 mockObligationDataConnector,
-                                 mockPPTObligationsService
-    )
+    new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService, appConfig)
 
-  "get" must {
+  "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
     val rightObligations = Right(obligations)
     val pptReference     = "1234"
 
-    "get PTPObligation from service" in {
+    "get response 200" in {
 
       val desResponse = ObligationDataResponse(Seq.empty)
 
@@ -79,11 +66,9 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
-      val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
+      val result: Future[Result] = sut.getOpen(pptReference).apply(FakeRequest())
 
       status(result) mustBe OK
-      verify(mockPPTObligationsService).constructPPTObligations(ObligationDataResponse(Seq.empty))
-      contentAsJson(result) mustBe Json.toJson(obligations)
     }
 
     "get should call Obligation Connector" in {
@@ -92,26 +77,21 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
-      when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
-      sut.get(pptReference).apply(FakeRequest())
+      sut.getOpen(pptReference).apply(FakeRequest())
 
       verify(mockObligationDataConnector)
-        .get(exactlyEq(pptReference),
-             exactlyEq(LocalDate.of(2022, 4, 1)),
-             exactlyEq(LocalDate.now()),
-             exactlyEq(ObligationStatus.OPEN)
-        )(any())
+        .get(exactlyEq(pptReference), exactlyEq(None), exactlyEq(None), exactlyEq(Some(ObligationStatus.OPEN)))(any())
     }
 
-    "get should call the service" in {
-      val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+    "get should call the service when response is successful" in {
+      val desResponse = ObligationDataResponse(Seq(Obligation(Some(Identification(Some(""), "", "")), Nil)))
 
       when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
       when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
-      await(sut.get(pptReference).apply(FakeRequest()))
+      await(sut.getOpen(pptReference).apply(FakeRequest()))
 
       verify(mockPPTObligationsService).constructPPTObligations(desResponse)
     }
@@ -122,21 +102,137 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Left(500)))
 
-        val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
+        val result: Future[Result] = sut.getOpen(pptReference).apply(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
       "if the controller handles an error" in {
 
-        val desResponse = ObligationDataResponse(Seq(Obligation(Identification("", "", ""), Nil)))
+        val desResponse = ObligationDataResponse(Seq(Obligation(Some(Identification(Some(""), "", "")), Nil)))
         when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Right(desResponse)))
         when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(Left("test error message"))
 
-        val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
+        val result: Future[Result] = sut.getOpen(pptReference).apply(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+    "return not found response" must {
+      "if the connector gives a 404" in {
+        when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Left(NOT_FOUND)))
+
+        val result = sut.getOpen(pptReference).apply(FakeRequest())
+
+        status(result) mustBe NOT_FOUND
+      }
+    }
+  }
+
+  "getFulfilled" must {
+    val serviceResponse = Right(Seq.empty)
+    val pptReference    = "1234"
+    val desResponse     = ObligationDataResponse(Seq.empty)
+
+    "get PTPObligation from construct service" in {
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+
+      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+      status(result) mustBe OK
+      verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq.empty))
+      verify(mockObligationDataConnector).get(
+        exactlyEq(pptReference),
+        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+        exactlyEq(Some(LocalDate.now)),
+        exactlyEq(Some(ObligationStatus.FULFILLED))
+      )(any())
+      contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
+    }
+
+    "get future period fulfilled obligation if flag set" in {
+      when(appConfig.qaTestingInProgress).thenReturn(true)
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+
+      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+      status(result) mustBe OK
+      verify(mockPPTObligationsService).constructPPTFulfilled(desResponse)
+      verify(mockObligationDataConnector).get(
+        exactlyEq(pptReference),
+        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+        exactlyEq(Some(LocalDate.now.plusYears(1))),
+        exactlyEq(Some(ObligationStatus.FULFILLED))
+      )(any())
+    }
+
+    "not get future period fulfilled obligation if flag not set" in {
+      when(appConfig.qaTestingInProgress).thenReturn(false)
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponse)))
+
+      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+      await(result)
+
+      verify(mockObligationDataConnector).get(
+        exactlyEq(pptReference),
+        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+        exactlyEq(Some(LocalDate.now)),
+        exactlyEq(Some(ObligationStatus.FULFILLED))
+      )(any())
+    }
+
+    "call Obligation Connector" in {
+      when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
+
+      sut.getFulfilled(pptReference).apply(FakeRequest())
+
+      verify(mockObligationDataConnector)
+        .get(
+          exactlyEq(pptReference),
+          exactlyEq(Some(LocalDate.of(2022, 4, 1))),
+          exactlyEq(Some(LocalDate.now())),
+          exactlyEq(Some(ObligationStatus.FULFILLED))
+        )(any())
+    }
+
+    "return internal server error response" when {
+      "an error is returned from connector" in {
+        when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Left(500)))
+
+        val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "an error is returned from the construct service" in {
+        when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Right(desResponse)))
+        when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(Left("test error message"))
+
+        val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+    "return not found response" must {
+      "if the connector gives a 404" in {
+        when(mockObligationDataConnector.get(any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Left(NOT_FOUND)))
+
+        val result = sut.getFulfilled(pptReference).apply(FakeRequest())
+
+        status(result) mustBe NOT_FOUND
       }
     }
   }

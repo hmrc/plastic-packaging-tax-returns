@@ -59,7 +59,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     WireMock.configureFor(wireHost, wirePort)
-    wireMockServer.start()
+    wiremock.start()
   }
 
   override protected def beforeEach(): Unit =
@@ -67,7 +67,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    wireMockServer.stop()
+    wiremock.stop()
   }
 
 }

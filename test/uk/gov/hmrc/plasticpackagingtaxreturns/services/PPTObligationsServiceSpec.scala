@@ -16,21 +16,33 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.scalatest.EitherValues
+import org.mockito.Mockito.{reset, verify, when}
+import org.scalatest.{BeforeAndAfterEach, EitherValues}
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 
 import java.time.LocalDate
 
-class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
-  val sut: PPTObligationsService = new PPTObligationsService()
+class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAndAfterEach {
+
+  val appConfig: AppConfig = mock[AppConfig]
+  val sut: PPTObligationsService = new PPTObligationsService(appConfig)
   val today: LocalDate           = LocalDate.now()
+
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(appConfig)
+  }
+
+  override protected def afterEach(): Unit = super.afterEach()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
       Seq(
         Obligation(identification =
-                     Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+                     Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
                    obligationDetails = obligationDetail
         )
       )
@@ -40,7 +52,7 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
     ObligationDetail(status = ObligationStatus.OPEN,
                      inboundCorrespondenceFromDate = fromDate,
                      inboundCorrespondenceToDate = fromDate.plusDays(10),
-                     inboundCorrespondenceDateReceived = fromDate,
+                     inboundCorrespondenceDateReceived = Some(fromDate),
                      inboundCorrespondenceDueDate = fromDate.plusDays(19),
                      periodKey = periodKey
     )
@@ -50,24 +62,71 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
   val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
   val laterObligation: ObligationDetail    = makeDetail(today.plusDays(10), "later")
 
-  "get" must {
-
-    "returns an error message" when {
+  "constructPPTFulfilled" must {
+    "return an error message" when {
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
       }
       "there are multiple obligations in data" in {
         val obligation = Obligation(
           identification =
-            Identification(incomeSourceType = "unused", referenceNumber = "unused", referenceType = "unused"),
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
           ObligationDataResponse(Seq(obligation, obligation))
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("No Obligation found")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
+      }
+    }
+
+    "return a sequence of details" when {
+      "the sequence is empty" in {
+        val obligation = Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+          obligationDetails = Nil
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation))
+
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Right(Seq.empty)
+      }
+      "the sequence is non empty" in {
+        val obligationDetail = ObligationDetail(ObligationStatus.FULFILLED, today, today, Some(today), today, "PKEY")
+        val obligation = Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+          obligationDetails = Seq(obligationDetail)
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation))
+
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Right(Seq(obligationDetail))
+      }
+    }
+  }
+
+  "constructPPTObligations" must {
+
+    "returns an error message" when {
+      "there are no obligations in data" in {
+        val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
+
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
+      }
+      "there are multiple obligations in data" in {
+        val obligation = Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+          obligationDetails = Nil
+        )
+        val obligationDataResponse: ObligationDataResponse =
+          ObligationDataResponse(Seq(obligation, obligation))
+
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
       }
     }
 
@@ -187,22 +246,31 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues {
         }
       }
       "return whether to display the Submit Returns Link" when {
+
         "there are 0 obligations" in {
           val obligationDataResponse = makeDataResponse()
-
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
         }
 
-        "there is 0 overdue and 0 within due period" in {
+        "there is an obligation but it is not yet due" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
-
+          when(appConfig.qaTestingInProgress).thenReturn(false)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
+          verify(appConfig).qaTestingInProgress
         }
+
+        "there is an obligation, it is not yet due, but the bypass flag is set in app conf" in {
+          val obligationDataResponse = makeDataResponse(upcomingObligation)
+          when(appConfig.qaTestingInProgress).thenReturn(true)
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
+          verify(appConfig).qaTestingInProgress
+        }
+
         "there is 0 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(dueObligation)
-
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
+
         "there is 1 overdue and 0 within due period" in {
           val obligationDataResponse = makeDataResponse(overdueObligation)
 

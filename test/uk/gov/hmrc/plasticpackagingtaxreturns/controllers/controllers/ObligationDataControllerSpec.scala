@@ -50,12 +50,12 @@ class ObligationDataControllerSpec
     Seq(
       Obligation(
         identification =
-          Identification(incomeSourceType = "ITR SA", referenceNumber = pptReference, referenceType = "PPT"),
+          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq(
           ObligationDetail(status = ObligationStatus.OPEN,
                            inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
                            inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
-                           inboundCorrespondenceDateReceived = LocalDate.parse("2021-10-01"),
+                           inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
                            inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
                            periodKey = "#001"
           )

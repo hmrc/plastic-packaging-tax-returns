@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise
 
-import play.api.libs.json.{Format, Json, OFormat, Reads, Writes}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import play.api.libs.json.{Format, JsPath, Json, OFormat, Reads, Writes}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 
 import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 
 object ObligationStatus extends Enumeration {
   type ObligationStatus = Value
@@ -32,7 +33,7 @@ object ObligationStatus extends Enumeration {
 
 }
 
-case class Identification(incomeSourceType: String, referenceNumber: String, referenceType: String)
+case class Identification(incomeSourceType: Option[String], referenceNumber: String, referenceType: String)
 
 object Identification {
   implicit val format: OFormat[Identification] = Json.format[Identification]
@@ -42,16 +43,25 @@ case class ObligationDetail(
   status: ObligationStatus,
   inboundCorrespondenceFromDate: LocalDate,
   inboundCorrespondenceToDate: LocalDate,
-  inboundCorrespondenceDateReceived: LocalDate,
+  inboundCorrespondenceDateReceived: Option[LocalDate],
   inboundCorrespondenceDueDate: LocalDate,
   periodKey: String
 )
 
 object ObligationDetail {
-  implicit val format: OFormat[ObligationDetail] = Json.format[ObligationDetail]
+
+  //to keep PPT APIs simple; filter information returned
+  implicit val customWrites: Writes[ObligationDetail] = (
+    (JsPath \ "periodKey").write[String] and
+      (JsPath \ "fromDate").write[LocalDate] and
+      (JsPath \ "toDate").write[LocalDate] and
+      (JsPath \ "dueDate").write[LocalDate]
+    )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
+
+  implicit val format: Reads[ObligationDetail] = Json.reads[ObligationDetail]
 }
 
-case class Obligation(identification: Identification, obligationDetails: Seq[ObligationDetail])
+case class Obligation(identification: Option[Identification], obligationDetails: Seq[ObligationDetail])
 
 object Obligation {
   implicit val format: OFormat[Obligation] = Json.format[Obligation]
@@ -60,6 +70,8 @@ object Obligation {
 case class ObligationDataResponse(obligations: Seq[Obligation])
 
 object ObligationDataResponse {
+
+  def empty: ObligationDataResponse = ObligationDataResponse(Seq(Obligation(None, Seq())))
 
   implicit val format: OFormat[ObligationDataResponse] =
     Json.format[ObligationDataResponse]

@@ -16,28 +16,32 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import java.time.LocalDate
-import java.util.UUID
-
 import com.kenshoo.play.metrics.Metrics
-import javax.inject.Inject
 import play.api.Logger
-import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 
+import java.time.LocalDate
+import java.util.UUID
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
-  implicit ec: ExecutionContext
-) extends DESConnector {
+class ObligationsDataConnector @Inject()
+(
+  httpClient: HttpClient,
+  override val appConfig: AppConfig,
+  metrics: Metrics
+)(implicit ec: ExecutionContext)
+    extends DESConnector {
 
   private val logger = Logger(this.getClass)
 
-  def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, status: ObligationStatus)(implicit
+  def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
@@ -45,29 +49,32 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
     val correlationId       = correlationIdHeader._2
 
     val queryParams =
-      Seq("fromDate" -> DateFormat.isoFormat(fromDate),
-          "toDate"   -> DateFormat.isoFormat(toDate),
-          "status"   -> status.toString
-      )
+      Seq(
+        fromDate.map("from" -> DateFormat.isoFormat(_)),
+        toDate.map("to" -> DateFormat.isoFormat(_)),
+        status.map("status" -> _.toString))
+        .flatten
 
-    httpClient.GET[ObligationDataResponse](appConfig.enterpriseObligationDataUrl(pptReference),
-                                           queryParams = queryParams,
-                                           headers = headers :+ correlationIdHeader
+    httpClient.GET[ObligationDataResponse](
+      appConfig.enterpriseObligationDataUrl(pptReference),
+      queryParams = queryParams,
+      headers = headers :+ correlationIdHeader
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]"
-        )
+        logger.info(s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
         Right(response)
       }
       .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.error(
-            s"""Upstream error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
-              s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
-          )
-          Left(httpEx.statusCode)
+        case Upstream4xxResponse(message, code, _, _) =>
+          logUpstreamError(pptReference, correlationId, queryParams, message, code)
+
+          if(isEmptyObligation(message) && code == NOT_FOUND)
+            Right(ObligationDataResponse.empty)
+          else Left(code)
+        case Upstream5xxResponse(message, code, _, _) =>
+          logUpstreamError(pptReference, correlationId, queryParams, message, code)
+          Left(code)
         case ex: Exception =>
           logger.error(
             s"""Failed when getting enterprise obligation data with correlationId [$correlationId] and """ +
@@ -78,4 +85,24 @@ class ObligationsDataConnector @Inject() (httpClient: HttpClient, override val a
       }
   }
 
+  private def logUpstreamError
+  (
+    pptReference: String,
+    correlationId: String,
+    queryParams: Seq[(String, String)],
+    message: String,
+    code: Int
+  ) = {
+    logger.error(
+      s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
+        s"pptReference [$pptReference], params [$queryParams], status: $code, body: $message"
+    )
+  }
+
+  def isEmptyObligation(message: String): Boolean =
+    message.contains(EmptyDataMessage)
+}
+
+object ObligationsDataConnector {
+  val EmptyDataMessage = "The remote endpoint has indicated that no associated data found"
 }

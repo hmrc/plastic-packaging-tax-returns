@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
-import play.api.libs.json.{Json, OWrites}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDetail
+import com.google.inject.AbstractModule
 
-final case class PPTObligations(
-  nextObligation: Option[ObligationDetail],
-  oldestOverdueObligation: Option[ObligationDetail],
-  overdueObligationCount: Int,
-  isNextObligationDue: Boolean,
-  displaySubmitReturnsLink: Boolean
-)
+import java.time.{Clock, ZoneOffset}
 
-object PPTObligations {
-  implicit val PPTObligationsWrites: OWrites[PPTObligations] = Json.writes[PPTObligations]
+class Module extends AbstractModule {
+
+  override def configure(): Unit = {
+
+    bind(classOf[Clock]).toInstance(Clock.systemDefaultZone.withZone(ZoneOffset.UTC))
+
+  }
+
 }

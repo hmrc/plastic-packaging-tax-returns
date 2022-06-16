@@ -22,27 +22,17 @@ import org.mockito.Mockito.{reset, when}
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  FinancialDataResponse,
-  ObligationDataResponse
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import play.api.libs.json.JsValue
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateResponse,
-  SubscriptionUpdateSuccessfulResponse
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
-import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateResponse, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
@@ -60,18 +50,10 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     reset(mockSubscriptionsConnector, mockNonRepudiationConnector, mockReturnsConnector)
   }
 
-  protected def mockGetSubscriptionFailure(
-    pptReference: String,
-    statusCode: Int
-  ): OngoingStubbing[Future[Either[Int, SubscriptionDisplayResponse]]] =
-    when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
-      Future.successful(Left(statusCode))
-    )
-
   protected def mockGetSubscription(
     pptReference: String,
     displayResponse: SubscriptionDisplayResponse
-  ): OngoingStubbing[Future[Either[Int, SubscriptionDisplayResponse]]] =
+  ): OngoingStubbing[Future[Either[HttpResponse, SubscriptionDisplayResponse]]] =
     when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
       Future.successful(Right(displayResponse))
     )
@@ -136,7 +118,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
     when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
-  protected def mockReturnDisplayConnector(resp: Return) =
+  protected def mockReturnDisplayConnector(resp: JsValue) =
     when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnDisplayConnectorFailure(statusCode: Int) =
@@ -148,9 +130,9 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                      any[LocalDate](),
-                                      any[LocalDate](),
-                                      any[ObligationStatus]()
+                                      any(),
+                                      any(),
+                                      any()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(displayResponse)))
 
@@ -160,9 +142,9 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                      any[LocalDate](),
-                                      any[LocalDate](),
-                                      any[ObligationStatus]()
+                                      any(),
+                                      any(),
+                                      any()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 

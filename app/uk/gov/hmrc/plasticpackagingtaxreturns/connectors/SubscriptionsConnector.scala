@@ -19,17 +19,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
-import play.api.http.Status.INTERNAL_SERVER_ERROR
+import play.api.http.Status
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateResponse,
-  SubscriptionUpdateSuccessfulResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateResponse, SubscriptionUpdateSuccessfulResponse}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -69,34 +65,21 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
-  def getSubscription(
-    pptReference: String
-  )(implicit hc: HeaderCarrier): Future[Either[Int, SubscriptionDisplayResponse]] = {
+  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[HttpResponse, SubscriptionDisplayResponse]] = {
+
     val timer               = metrics.defaultRegistry.timer("ppt.subscription.display.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
-    httpClient.GET[SubscriptionDisplayResponse](appConfig.subscriptionDisplayUrl(pptReference),
-                                                headers = headers :+ correlationIdHeader
-    )
+
+    val url = appConfig.subscriptionDisplayUrl(pptReference)
+    httpClient.GET[HttpResponse](url, headers = headers :+ correlationIdHeader)
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"PPT view subscription with correlationId [$correlationIdHeader._2] and pptReference [$pptReference]"
-        )
-        Right(response)
-      }
-      .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.warn(
-            s"Upstream error returned on viewing subscription with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
-          )
-          Left(httpEx.statusCode)
-        case ex: Exception =>
-          logger.warn(s"Subscription display with correlationId [${correlationIdHeader._2}] and " +
-                        s"pptReference [$pptReference] is currently unavailable due to [${ex.getMessage}]",
-                      ex
-          )
-          Left(INTERNAL_SERVER_ERROR)
+        logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
+        if (Status.isSuccessful(response.status))
+          Right(response.json.as[SubscriptionDisplayResponse])
+        else {
+          Left(response)
+        }
       }
   }
 

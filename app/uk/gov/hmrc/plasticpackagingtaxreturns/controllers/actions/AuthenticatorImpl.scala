@@ -24,22 +24,22 @@ import play.api.libs.json.{JsError, JsSuccess, Json, Reads}
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
-  pptEnrolmentIdentifierName,
-  pptEnrolmentKey
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{pptEnrolmentIdentifierName, pptEnrolmentKey}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.bootstrap.backend.http.ErrorResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
-  ec: ExecutionContext
+class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
+                                                                                                       ec: ExecutionContext
 ) extends BackendController(cc) with AuthorisedFunctions with Authenticator {
 
   private val logger = Logger(this.getClass)
+
+  protected val fetch = allEnrolments and internalId
 
   def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] =
     parse.json.validate { json =>
@@ -68,14 +68,19 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
     }
 
   def authorisedWithPptReference[A](
-    pptReference: String
-  )(implicit hc: HeaderCarrier, request: Request[A]): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
+                                     pptReference: String
+                                   )(implicit hc: HeaderCarrier, request: Request[A]):
+  Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
     authorised(
       Enrolment(pptEnrolmentKey).withDelegatedAuthRule("ppt-auth").withIdentifier(pptEnrolmentIdentifierName,
-                                                                                  pptReference
+        pptReference
       )
-    ).retrieve(allEnrolments) { _ =>
-      Future.successful(Right(AuthorizedRequest(pptReference, request)))
+    ).retrieve(fetch) { retrievals =>
+
+      val internalId = retrievals.b.getOrElse("AuthenticatorImpl::authorisedWithPptReference -  internalId is required")
+
+      Future.successful(Right(AuthorizedRequest(pptReference, request, internalId)))
+
     } recover {
       case error: AuthorisationException =>
         logger.error(s"Unauthorised Exception for ${request.uri} with error ${error.reason}")
@@ -89,11 +94,11 @@ class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc
 }
 
 object AuthAction {
-  val pptEnrolmentKey            = "HMRC-PPT-ORG"
+  val pptEnrolmentKey = "HMRC-PPT-ORG"
   val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
-case class AuthorizedRequest[A](pptId: String, request: Request[A]) extends WrappedRequest[A](request)
+case class AuthorizedRequest[A](pptId: String, request: Request[A], internalId: String) extends WrappedRequest[A](request)
 
 @ImplementedBy(classOf[AuthenticatorImpl])
 trait Authenticator {

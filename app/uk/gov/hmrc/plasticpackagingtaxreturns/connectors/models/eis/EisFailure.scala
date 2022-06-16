@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis
 
-import play.api.libs.json.{Json, OWrites}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDetail
+import play.api.libs.json.{Json, OFormat}
 
-final case class PPTObligations(
-  nextObligation: Option[ObligationDetail],
-  oldestOverdueObligation: Option[ObligationDetail],
-  overdueObligationCount: Int,
-  isNextObligationDue: Boolean,
-  displaySubmitReturnsLink: Boolean
-)
+case class EisError(code: String, reason: String)
 
-object PPTObligations {
-  implicit val PPTObligationsWrites: OWrites[PPTObligations] = Json.writes[PPTObligations]
+object EisError {
+  implicit val format: OFormat[EisError] = Json.format[EisError]
+}
+
+case class EisFailure(failures: Seq[EisError])
+
+object EisFailure {
+  implicit val format: OFormat[EisFailure] = Json.format[EisFailure]
 }

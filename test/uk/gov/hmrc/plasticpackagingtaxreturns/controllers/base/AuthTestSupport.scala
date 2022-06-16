@@ -24,8 +24,8 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Logger
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.allEnrolments
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval}
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{allEnrolments, internalId}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval, ~}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
@@ -46,13 +46,16 @@ trait AuthTestSupport extends MockitoSugar {
       "ppt-auth"
     )
 
-  def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit =
+  def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit = {
+    val fetch = allEnrolments and internalId
+
     when(
       mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
-                                  ArgumentMatchers.eq(allEnrolments)
+                                  ArgumentMatchers.eq(fetch)
       )(any(), any())
     )
-      .thenReturn(Future.successful(user.enrolments))
+      .thenReturn(Future.successful(new ~(user.enrolments, user.internalId)))
+  }
 
   def withUnauthorizedUser(error: Throwable): Unit =
     when(mockAuthConnector.authorise(any(), any())(any(), any())).thenReturn(Future.failed(error))
@@ -66,12 +69,12 @@ trait AuthTestSupport extends MockitoSugar {
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
     SignedInUser(Credentials("123123123", "Plastic Limited"),
-                 Name(Some("Aldo"), Some("Rain")),
-                 Some("amina@hmrc.co.uk"),
-                 "123",
-                 Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
-                 Some(AffinityGroup.Organisation),
-                 enrolments.getOrElse(Enrolments(Set()))
+                 name = Name(Some("Aldo"), Some("Rain")),
+                 email = Some("amina@hmrc.co.uk"),
+                 externalId = "123",
+                 internalId = Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
+                 affinityGroup = Some(AffinityGroup.Organisation),
+                 enrolments = enrolments.getOrElse(Enrolments(Set()))
     )
 
   def pptEnrolment(pptEnrolmentId: String) =

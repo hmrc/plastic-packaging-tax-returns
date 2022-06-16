@@ -32,7 +32,6 @@ import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.TaxReturnRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.{LocalDate, LocalDateTime}
@@ -53,18 +52,18 @@ class PPTFinancialsItSpec extends PlaySpec
 
   val Url = s"http://localhost:$port/financials/open/$pptReference"
 
-  lazy val mockReturnsRepository: TaxReturnRepository = mock[TaxReturnRepository]
   override lazy val app: Application = {
+    server.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[TaxReturnRepository].toInstance(mockReturnsRepository))
+      .overrides(bind[AuthConnector].to(mockAuthConnector))
       .build()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAuthConnector, mockReturnsRepository)
+    reset(mockAuthConnector)
   }
 
   override protected def beforeAll(): Unit = {

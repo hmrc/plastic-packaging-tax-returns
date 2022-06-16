@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsObject, Json, OFormat}
 
-case class MetaData(returnCompleted: Boolean = false)
+case class NrsReturnOrAmendSubmission(userAnswers: JsObject,
+                                      eisRequest: ReturnsSubmissionRequest)
 
-object MetaData {
-  implicit val format: OFormat[MetaData] = Json.format[MetaData]
+object NrsReturnOrAmendSubmission {
+  implicit val format: OFormat[NrsReturnOrAmendSubmission] = Json.format[NrsReturnOrAmendSubmission]
 }
