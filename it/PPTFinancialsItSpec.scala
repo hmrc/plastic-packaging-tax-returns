@@ -31,7 +31,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, PPTFinancials}
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.{LocalDate, LocalDateTime}
@@ -95,7 +95,7 @@ class PPTFinancialsItSpec extends PlaySpec
       val response = await(wsClient.url(Url).get())
 
       response.status mustBe OK
-      response.json mustBe Json.toJson(PPTFinancials(creditAmount = None, debitAmount = Some((1.0, LocalDate.now())), overdueAmount = None))
+      response.json mustBe Json.toJson(PPTFinancials(creditAmount = None, debitAmount = Some(Charge(1.0, LocalDate.now())), overdueAmount = None))
     }
 
     "return Unauthorized" in {
