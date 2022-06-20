@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import org.joda.time.DateTime
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
@@ -31,6 +32,7 @@ trait TaxReturnBuilder {
     TaxReturn(
       id = "id",
       periodKey = "22AC",
+      returnType = ReturnType.NEW,
       manufacturedPlastic = true,
       manufacturedPlasticWeight = ManufacturedPlasticWeight(0),
       importedPlastic = true,
@@ -39,7 +41,7 @@ trait TaxReturnBuilder {
       humanMedicinesPlasticWeight = HumanMedicinesPlasticWeight(0),
       recycledPlasticWeight = RecycledPlasticWeight(0),
       convertedPackagingCredit = ConvertedPackagingCredit(0),
-      lastModifiedDateTime = DateTime.now()
+      lastModifiedDateTime = Some(DateTime)
     )
 
   def withId(id: String): TaxReturnModifier = _.copy(id = id)
@@ -72,5 +74,5 @@ trait TaxReturnBuilder {
   def withRecycledPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(recycledPlasticWeight = RecycledPlasticWeight(totalKg = totalKg))
 
-  def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = dateTime)
+  def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = Some(dateTime))
 }

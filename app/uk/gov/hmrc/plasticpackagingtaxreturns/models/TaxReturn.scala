@@ -19,21 +19,26 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 
+//TODO: Split out what is a tax return and what is user info re: tax return
+//TODO: OR-> Extract userAnswers in the backend so they aren't sent from Frontend (Pan's preferred)
 case class TaxReturn(
   id: String,
   periodKey: String,
-  returnType: ReturnType = ReturnType.NEW,
-  manufacturedPlastic: Boolean,
+  returnType: ReturnType,
+  manufacturedPlastic: Option[Boolean],
   manufacturedPlasticWeight: ManufacturedPlasticWeight,
-  importedPlastic: Boolean,
+  importedPlastic: Option[Boolean],
   importedPlasticWeight: ImportedPlasticWeight,
+  exportedPlastic: Option[Boolean],
   exportedPlasticWeight: ExportedPlasticWeight,
+  humanMedicinesPlastic: Option[Boolean],
   humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight,
+  recycledPlastic: Option[Boolean],
   recycledPlasticWeight: RecycledPlasticWeight,
   convertedPackagingCredit: ConvertedPackagingCredit,
-  lastModifiedDateTime: DateTime
+  lastModifiedDateTime: Option[DateTime]
 ) {
-  def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = (DateTime.now(DateTimeZone.UTC)))
+  def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
 }
 
 object TaxReturn {
