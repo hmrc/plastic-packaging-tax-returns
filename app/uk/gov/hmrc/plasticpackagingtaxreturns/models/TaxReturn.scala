@@ -22,18 +22,18 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 case class TaxReturn(
   id: String,
   periodKey: String,
-  returnType: Option[ReturnType] = Some(ReturnType.NEW),
-  manufacturedPlastic: Option[Boolean] = None,
-  manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
-  importedPlastic: Option[Boolean] = None,
-  importedPlasticWeight: Option[ImportedPlasticWeight] = None,
-  humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
-  exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
-  convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
-  recycledPlasticWeight: Option[RecycledPlasticWeight] = None,
-  lastModifiedDateTime: Option[DateTime] = None
+  returnType: ReturnType = ReturnType.NEW,
+  manufacturedPlastic: Boolean,
+  manufacturedPlasticWeight: ManufacturedPlasticWeight,
+  importedPlastic: Boolean,
+  importedPlasticWeight: ImportedPlasticWeight,
+  exportedPlasticWeight: ExportedPlasticWeight,
+  humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight,
+  recycledPlasticWeight: RecycledPlasticWeight,
+  convertedPackagingCredit: ConvertedPackagingCredit,
+  lastModifiedDateTime: DateTime
 ) {
-  def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
+  def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = (DateTime.now(DateTimeZone.UTC)))
 }
 
 object TaxReturn {
