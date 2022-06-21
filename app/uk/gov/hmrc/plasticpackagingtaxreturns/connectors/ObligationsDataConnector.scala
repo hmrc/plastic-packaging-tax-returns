@@ -63,7 +63,7 @@ class ObligationsDataConnector @Inject()
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
-        Right(response)
+        Right(response.adjustDates) //todo add feature toggle for when we dont want to do this
       }
       .recover {
         case Upstream4xxResponse(message, code, _, _) =>
