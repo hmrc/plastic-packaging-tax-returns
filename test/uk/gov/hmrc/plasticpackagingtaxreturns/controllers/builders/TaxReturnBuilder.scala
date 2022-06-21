@@ -44,7 +44,7 @@ trait TaxReturnBuilder {
       recycledPlastic = Some(true),
       recycledPlasticWeight = RecycledPlasticWeight(0),
       convertedPackagingCredit = ConvertedPackagingCredit(0),
-      lastModifiedDateTime = Some(DateTime)
+      lastModifiedDateTime = Some(DateTime.now())
     )
 
   def withId(id: String): TaxReturnModifier = _.copy(id = id)
