@@ -25,6 +25,7 @@ case class SignedInUser(
   email: Option[String],
   externalId: String,
   internalId: Option[String],
+  cacheId: String,
   affinityGroup: Option[AffinityGroup],
   enrolments: Enrolments
 )

@@ -90,7 +90,7 @@ class ReturnsSubmissionController @Inject()(
     }
 
   private def userAnswers(request: AuthorizedRequest[TaxReturn]) = {
-    sessionRepository.get(request.internalId).map { ans =>
+    sessionRepository.get(request.cacheKey).map { ans =>
       ans.getOrElse(UserAnswers(request.internalId)).data
     }
   }
