@@ -38,6 +38,16 @@ case class TaxReturn(
   convertedPackagingCredit: ConvertedPackagingCredit,
   lastModifiedDateTime: Option[DateTime]
 ) {
+  require(
+    { //TODO: add proper validation
+      val total = manufacturedPlasticWeight.totalKg + importedPlasticWeight.totalKg
+      val deductions =
+        exportedPlasticWeight.totalKg + humanMedicinesPlasticWeight.totalKg + recycledPlasticWeight.totalKg //TODO: Deductions to include Credits
+      total >= deductions
+    },
+    "Deductions were greater than total packaging"
+  )
+
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
 }
 
