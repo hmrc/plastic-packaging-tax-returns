@@ -255,11 +255,11 @@ class ReturnsSubmissionControllerSpec
   private def amendSubmittedAsExpected(pptReference: String) = {
 
     val updatedTaxReturn = aTaxReturn(
-      withManufacturedPlasticWeight(1000),
-      withImportedPlasticWeight(2000),
+      withManufacturedPlasticWeight(5000),
+      withImportedPlasticWeight(4000),
       withHumanMedicinesPlasticWeight(3000),
-      withDirectExportDetails(4000),
-      withRecycledPlasticWeight(5000)
+      withDirectExportDetails(2000),
+      withRecycledPlasticWeight(1000)
     )
 
     withAuthorizedUser()
