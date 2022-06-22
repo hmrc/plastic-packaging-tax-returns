@@ -38,7 +38,6 @@ class CacheController @Inject()(
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { request =>
-      println("ACHI - cache key: " + request.cacheKey)
       sessionRepository.get(request.cacheKey).map {
         case Some(userAnswers) => Ok(userAnswers)
         case None => NotFound
