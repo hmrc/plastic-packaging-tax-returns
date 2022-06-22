@@ -78,4 +78,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
       .getOrElse(false)
   }
 
+  val adjustObligationDates: Boolean = {
+    config.getOptional[Boolean]("features.adjust-obligation-date")
+      .getOrElse(false)
+  }
+
 }
