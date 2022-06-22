@@ -79,7 +79,7 @@ class ReturnsSubmissionController @Inject()(
       returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
         case Right(response) =>
           userAnswers(request).flatMap { ans =>
-            sessionRepository.clear(request.internalId).andThen {
+            sessionRepository.clear(request.cacheKey).andThen {
               case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
               case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
             }
@@ -91,7 +91,7 @@ class ReturnsSubmissionController @Inject()(
 
   private def userAnswers(request: AuthorizedRequest[TaxReturn]) = {
     sessionRepository.get(request.cacheKey).map { ans =>
-      ans.getOrElse(UserAnswers(request.internalId)).data
+      ans.getOrElse(UserAnswers(request.cacheKey)).data
     }
   }
 

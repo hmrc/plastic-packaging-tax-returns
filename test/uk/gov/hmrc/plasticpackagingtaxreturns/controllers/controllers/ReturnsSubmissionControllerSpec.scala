@@ -119,13 +119,13 @@ class ReturnsSubmissionControllerSpec
       val taxReturn = aTaxReturn()
       returnSubmittedAsExpected(pptReference, taxReturn)
 
-      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b")
+      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
     }
 
     "delete a return after successful amend" in {
       amendSubmittedAsExpected(pptReference)
 
-      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b")
+      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
     }
 
     "respond successfully when return submission is successful but the return delete fails" in {
