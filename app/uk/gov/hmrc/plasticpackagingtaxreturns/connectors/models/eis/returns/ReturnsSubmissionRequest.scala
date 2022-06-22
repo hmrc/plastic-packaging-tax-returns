@@ -40,28 +40,29 @@ object EisReturnDetails {
   implicit val format: OFormat[EisReturnDetails] = Json.format[EisReturnDetails]
 
   def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal): EisReturnDetails = {
-    val manufacturedWeightKg = taxReturn.manufacturedPlasticWeight.map(_.totalKg).getOrElse(0L)
-    val importedWeightKg     = taxReturn.importedPlasticWeight.map(_.totalKg).getOrElse(0L)
+    val manufacturedWeightKg = taxReturn.manufacturedPlasticWeight.totalKg
+    val importedWeightKg     = taxReturn.importedPlasticWeight.totalKg
     val liableKg             = manufacturedWeightKg + importedWeightKg
 
-    val humanMedicinesWeightKg = taxReturn.humanMedicinesPlasticWeight.map(_.totalKg).getOrElse(0L)
-    val directExportsWeightKg  = taxReturn.exportedPlasticWeight.map(_.totalKg).getOrElse(0L)
-    val recycledWeightKg       = taxReturn.recycledPlasticWeight.map(_.totalKg).getOrElse(0L)
+    val humanMedicinesWeightKg = taxReturn.humanMedicinesPlasticWeight.totalKg
+    val directExportsWeightKg  = taxReturn.exportedPlasticWeight.totalKg
+    val recycledWeightKg       = taxReturn.recycledPlasticWeight.totalKg
     val notLiableKg            = humanMedicinesWeightKg + directExportsWeightKg + recycledWeightKg
 
     val taxableKg = Math.max(liableKg - notLiableKg, 0)
 
-    val creditClaimed = taxReturn.convertedPackagingCredit.map(_.totalInPounds).getOrElse(BigDecimal(0))
+    val creditClaimed = taxReturn.convertedPackagingCredit.totalInPounds
 
-    returns.EisReturnDetails(manufacturedWeight = manufacturedWeightKg,
-                             importedWeight = importedWeightKg,
-                             totalNotLiable = notLiableKg,
-                             humanMedicines = humanMedicinesWeightKg,
-                             directExports = directExportsWeightKg,
-                             recycledPlastic = recycledWeightKg,
-                             creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
-                             totalWeight = taxableKg,
-                             taxDue = (BigDecimal(taxableKg) * taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
+    returns.EisReturnDetails(
+      manufacturedWeight = manufacturedWeightKg,
+      importedWeight = importedWeightKg,
+      totalNotLiable = notLiableKg,
+      humanMedicines = humanMedicinesWeightKg,
+      directExports = directExportsWeightKg,
+      recycledPlastic = recycledWeightKg,
+      creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
+      totalWeight = taxableKg,
+      taxDue = (BigDecimal(taxableKg) * taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
     )
   }
 
@@ -81,15 +82,15 @@ object ReturnsSubmissionRequest {
 
   def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal, submissionId: Option[String]): ReturnsSubmissionRequest = {
 
-    if (taxReturn.returnType.contains(ReturnType.AMEND) && submissionId.isEmpty)
+    if (taxReturn.returnType == (ReturnType.AMEND) && submissionId.isEmpty)
       throw new IllegalStateException("must have a submission id to amend a return")
 
     ReturnsSubmissionRequest(
-        returnType = taxReturn.returnType.getOrElse(ReturnType.NEW),
-        submissionId = submissionId,
-        periodKey = taxReturn.periodKey,
-        returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
-      )
-    }
+      returnType = taxReturn.returnType,
+      submissionId = submissionId,
+      periodKey = taxReturn.periodKey,
+      returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
+    )
+  }
 
 }

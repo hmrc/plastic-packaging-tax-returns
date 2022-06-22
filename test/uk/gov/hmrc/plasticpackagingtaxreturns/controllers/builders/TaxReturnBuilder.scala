@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import org.joda.time.DateTime
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 //noinspection ScalaStyle
@@ -28,38 +29,53 @@ trait TaxReturnBuilder {
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
   private def modelWithDefaults: TaxReturn =
-    TaxReturn(id = "id", periodKey = "22AC"
-  )
+    TaxReturn(
+      id = "id",
+      periodKey = "22AC",
+      returnType = ReturnType.NEW,
+      manufacturedPlastic = Some(true),
+      manufacturedPlasticWeight = ManufacturedPlasticWeight(0),
+      importedPlastic = Some(true),
+      importedPlasticWeight = ImportedPlasticWeight(0),
+      exportedPlastic = Some(true),
+      exportedPlasticWeight = ExportedPlasticWeight(0),
+      humanMedicinesPlastic = Some(true),
+      humanMedicinesPlasticWeight = HumanMedicinesPlasticWeight(0),
+      recycledPlastic = Some(true),
+      recycledPlasticWeight = RecycledPlasticWeight(0),
+      convertedPackagingCredit = ConvertedPackagingCredit(0),
+      lastModifiedDateTime = Some(DateTime.now())
+    )
 
   def withId(id: String): TaxReturnModifier = _.copy(id = id)
 
   def withManufacturedPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(manufacturedPlasticWeight =
-      Some(ManufacturedPlasticWeight(totalKg = totalKg))
+      ManufacturedPlasticWeight(totalKg = totalKg)
     )
 
   def withImportedPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(importedPlasticWeight =
-      Some(ImportedPlasticWeight(totalKg = totalKg))
+      ImportedPlasticWeight(totalKg = totalKg)
     )
 
   def withHumanMedicinesPlasticWeight(totalKg: Long): TaxReturnModifier =
     _.copy(humanMedicinesPlasticWeight =
-      Some(HumanMedicinesPlasticWeight(totalKg = totalKg))
+      HumanMedicinesPlasticWeight(totalKg = totalKg)
     )
 
   def withDirectExportDetails(totalKg: Long): TaxReturnModifier =
     _.copy(exportedPlasticWeight =
-      Some(ExportedPlasticWeight(totalKg = totalKg))
+      ExportedPlasticWeight(totalKg = totalKg)
     )
 
   def withConvertedPlasticPackagingCredit(totalPence: Long): TaxReturnModifier =
     _.copy(convertedPackagingCredit =
-      Some(ConvertedPackagingCredit(totalPence))
+      ConvertedPackagingCredit(totalPence)
     )
 
   def withRecycledPlasticWeight(totalKg: Long): TaxReturnModifier =
-    _.copy(recycledPlasticWeight = Some(RecycledPlasticWeight(totalKg = totalKg)))
+    _.copy(recycledPlasticWeight = RecycledPlasticWeight(totalKg = totalKg))
 
   def withTimestamp(dateTime: DateTime): TaxReturnModifier = _.copy(lastModifiedDateTime = Some(dateTime))
 }

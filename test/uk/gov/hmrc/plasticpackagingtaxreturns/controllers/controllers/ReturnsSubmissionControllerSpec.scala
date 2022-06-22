@@ -33,12 +33,28 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
+import play.api.test.Helpers.{
+  contentAsJson,
+  defaultAwaitTimeout,
+  route,
+  status,
+  writeableOf_AnyContentAsEmpty,
+  writeableOf_AnyContentAsJson,
+  OK,
+  SERVICE_UNAVAILABLE
+}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
+  EisReturnDetails,
+  NrsReturnOrAmendSubmission,
+  Return,
+  ReturnWithNrsFailureResponse,
+  ReturnWithNrsSuccessResponse,
+  ReturnsSubmissionRequest
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
@@ -52,9 +68,8 @@ import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class ReturnsSubmissionControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with MockConnectors with MockReturnsRepository with TaxReturnBuilder
-    with ReturnsSubmissionResponseBuilder {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockConnectors
+    with MockReturnsRepository with TaxReturnBuilder with ReturnsSubmissionResponseBuilder {
 
   SharedMetricRegistries.clear()
 
@@ -62,8 +77,7 @@ class ReturnsSubmissionControllerSpec
   private val mockAppConfig: AppConfig                           = mock[AppConfig]
   private val nrSubmissionId: String                             = "nrSubmissionId"
 
-  private val userAnswersData = Json.parse(
-    """{
+  private val userAnswersData = Json.parse("""{
       |        "obligation" : {
       |            "fromDate" : "2021-10-01",
       |            "toDate" : "2021-12-01",
@@ -98,11 +112,12 @@ class ReturnsSubmissionControllerSpec
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector),
-               bind[ReturnsConnector].to(mockReturnsConnector),
-               bind[SessionRepository].to(mockSessionRepository),
-               bind[NonRepudiationService].to(mockNonRepudiationService),
-               bind[AppConfig].to(mockAppConfig)
+    .overrides(
+      bind[AuthConnector].to(mockAuthConnector),
+      bind[ReturnsConnector].to(mockReturnsConnector),
+      bind[SessionRepository].to(mockSessionRepository),
+      bind[NonRepudiationService].to(mockNonRepudiationService),
+      bind[AppConfig].to(mockAppConfig)
     )
     .build()
 
@@ -142,7 +157,7 @@ class ReturnsSubmissionControllerSpec
     }
 
     "use the tax rate defined in config" in {
-      val taxReturn = aTaxReturn().copy(manufacturedPlasticWeight = Some(ManufacturedPlasticWeight(1000)))
+      val taxReturn = aTaxReturn().copy(manufacturedPlasticWeight = ManufacturedPlasticWeight(1000))
 
       val returnsSubmissionRequestCaptor: ArgumentCaptor[ReturnsSubmissionRequest] =
         ArgumentCaptor.forClass(classOf[ReturnsSubmissionRequest])
@@ -166,7 +181,7 @@ class ReturnsSubmissionControllerSpec
         Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
       )
 
-      val returnsSubmissionResponse: Return = aReturn()
+      val returnsSubmissionResponse: Return                                  = aReturn()
       val returnsSubmissionResponseWithNrsFail: ReturnWithNrsFailureResponse = aReturnWithNrsFailure()
 
       mockReturnsSubmissionConnector(returnsSubmissionResponse)
@@ -179,7 +194,6 @@ class ReturnsSubmissionControllerSpec
       contentAsJson(result) mustBe toJson(returnsSubmissionResponseWithNrsFail)
     }
 
-
     "get return to display" should {
       "return OK response" in {
         withAuthorizedUser()
@@ -187,16 +201,17 @@ class ReturnsSubmissionControllerSpec
         val returnDisplayResponse = aReturn(
           withReturnDetails(returnDetails =
             Some(
-              EisReturnDetails(manufacturedWeight = BigDecimal(256.12),
-                               importedWeight = BigDecimal(352.15),
-                               totalNotLiable = BigDecimal(546.42),
-                               humanMedicines = BigDecimal(1234.15),
-                               directExports = BigDecimal(12121.16),
-                               recycledPlastic = BigDecimal(4345.72),
-                               creditForPeriod =
-                                 BigDecimal(1560000.12),
-                               totalWeight = BigDecimal(16466.88),
-                               taxDue = BigDecimal(4600)
+              EisReturnDetails(
+                manufacturedWeight = BigDecimal(256.12),
+                importedWeight = BigDecimal(352.15),
+                totalNotLiable = BigDecimal(546.42),
+                humanMedicines = BigDecimal(1234.15),
+                directExports = BigDecimal(12121.16),
+                recycledPlastic = BigDecimal(4345.72),
+                creditForPeriod =
+                  BigDecimal(1560000.12),
+                totalWeight = BigDecimal(16466.88),
+                taxDue = BigDecimal(4600)
               )
             )
           )
@@ -239,11 +254,12 @@ class ReturnsSubmissionControllerSpec
 
   private def amendSubmittedAsExpected(pptReference: String) = {
 
-    val updatedTaxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
-                                      withImportedPlasticWeight(2000),
-                                      withHumanMedicinesPlasticWeight(3000),
-                                      withDirectExportDetails(4000),
-                                      withRecycledPlasticWeight(5000)
+    val updatedTaxReturn = aTaxReturn(
+      withManufacturedPlasticWeight(5000),
+      withImportedPlasticWeight(4000),
+      withHumanMedicinesPlasticWeight(3000),
+      withDirectExportDetails(2000),
+      withRecycledPlasticWeight(1000)
     )
 
     withAuthorizedUser()
@@ -257,11 +273,7 @@ class ReturnsSubmissionControllerSpec
     val returnsSubmissionResponse: Return                              = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
 
-    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(
-      updatedTaxReturn,
-      mockAppConfig.taxRatePoundsPerKg,
-      Some("submission12")
-    )
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(updatedTaxReturn, mockAppConfig.taxRatePoundsPerKg, Some("submission12"))
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
@@ -293,14 +305,10 @@ class ReturnsSubmissionControllerSpec
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
 
-    val returnsSubmissionResponse: Return = aReturn()
+    val returnsSubmissionResponse: Return                              = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
 
-    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(
-      taxReturn,
-      mockAppConfig.taxRatePoundsPerKg,
-      None
-    )
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, mockAppConfig.taxRatePoundsPerKg, None)
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
