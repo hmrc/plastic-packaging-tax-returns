@@ -128,7 +128,7 @@ class CacheControllerSpec
 
         status(result) must be(NOT_FOUND)
         contentAsString(result) mustBe empty
-        verify(mockSessionRepository, atLeastOnce()).get(user.internalId.get)
+        verify(mockSessionRepository, atLeastOnce()).get(user.cacheId)
       }
     }
 

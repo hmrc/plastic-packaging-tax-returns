@@ -73,6 +73,7 @@ trait AuthTestSupport extends MockitoSugar {
                  email = Some("amina@hmrc.co.uk"),
                  externalId = "123",
                  internalId = Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
+                 cacheId = "Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-test02",
                  affinityGroup = Some(AffinityGroup.Organisation),
                  enrolments = enrolments.getOrElse(Enrolments(Set()))
     )

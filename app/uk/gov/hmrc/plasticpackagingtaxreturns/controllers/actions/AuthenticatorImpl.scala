@@ -98,7 +98,9 @@ object AuthAction {
   val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
-case class AuthorizedRequest[A](pptId: String, request: Request[A], internalId: String) extends WrappedRequest[A](request)
+case class AuthorizedRequest[A](pptId: String, request: Request[A], internalId: String) extends WrappedRequest[A](request) {
+  def cacheKey = s"$internalId-$pptId"
+}
 
 @ImplementedBy(classOf[AuthenticatorImpl])
 trait Authenticator {
