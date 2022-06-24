@@ -30,11 +30,12 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
   "The EIS Returns Submission Request Object" should {
     "convert a stored Tax Return" when {
       "positive liability" in {
-        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(9001),
-                                   withImportedPlasticWeight(8000),
-                                   withHumanMedicinesPlasticWeight(5000),
-                                   withDirectExportDetails(4000),
-                                   withRecycledPlasticWeight(3000)
+        val taxReturn = aTaxReturn(
+          withManufacturedPlasticWeight(9001),
+          withImportedPlasticWeight(8000),
+          withHumanMedicinesPlasticWeight(5000),
+          withDirectExportDetails(4000),
+          withRecycledPlasticWeight(3000)
         )
 
         val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate, None)
@@ -52,37 +53,23 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
         eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
         eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe (9001 + 8000) - (5000 + 4000 + 3000)
         eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
-        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe (((9001 + 8000) - (5000 + 4000 + 3000)) * taxRate).setScale(
-          2,
-          RoundingMode.HALF_EVEN
-        )
+        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe (((9001 + 8000) - (5000 + 4000 + 3000)) * taxRate).setScale(2, RoundingMode.HALF_EVEN)
       }
 
       "negative liability" in {
-        val taxReturn = aTaxReturn(withManufacturedPlasticWeight(1000),
-                                   withImportedPlasticWeight(2000),
-                                   withHumanMedicinesPlasticWeight(5000),
-                                   withDirectExportDetails(4000),
-                                   withRecycledPlasticWeight(3000)
-        )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate, None)
-
-        eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1000
-        eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2000
-        eisReturnsSubmissionRequest.returnDetails.humanMedicines mustBe 5000
-        eisReturnsSubmissionRequest.returnDetails.directExports mustBe 4000
-        eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 3000
-
-        eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
-        eisReturnsSubmissionRequest.periodKey mustBe taxReturn.periodKey
-        eisReturnsSubmissionRequest.submissionId mustBe None
-
-        eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
-        eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe 0
-        eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
-        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 0
+        val thrown = intercept[IllegalArgumentException] {
+          val taxReturn = aTaxReturn(
+            withManufacturedPlasticWeight(1000),
+            withImportedPlasticWeight(2000),
+            withHumanMedicinesPlasticWeight(5000),
+            withDirectExportDetails(4000),
+            withRecycledPlasticWeight(3000)
+          )
+        }
+        assert(thrown.getMessage === "requirement failed: Deductions were greater than total packaging")
       }
+
     }
   }
 }

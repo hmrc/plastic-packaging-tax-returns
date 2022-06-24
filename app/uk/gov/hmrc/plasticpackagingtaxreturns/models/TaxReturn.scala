@@ -19,20 +19,35 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 import org.joda.time.{DateTime, DateTimeZone}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 
+//TODO: Split out what is a tax return and what is user info re: tax return
+//TODO: OR-> Extract userAnswers in the backend so they aren't sent from Frontend (Pan's preferred)
 case class TaxReturn(
   id: String,
   periodKey: String,
-  returnType: Option[ReturnType] = Some(ReturnType.NEW),
-  manufacturedPlastic: Option[Boolean] = None,
-  manufacturedPlasticWeight: Option[ManufacturedPlasticWeight] = None,
-  importedPlastic: Option[Boolean] = None,
-  importedPlasticWeight: Option[ImportedPlasticWeight] = None,
-  humanMedicinesPlasticWeight: Option[HumanMedicinesPlasticWeight] = None,
-  exportedPlasticWeight: Option[ExportedPlasticWeight] = None,
-  convertedPackagingCredit: Option[ConvertedPackagingCredit] = None,
-  recycledPlasticWeight: Option[RecycledPlasticWeight] = None,
-  lastModifiedDateTime: Option[DateTime] = None
+  returnType: ReturnType,
+  manufacturedPlastic: Option[Boolean],
+  manufacturedPlasticWeight: ManufacturedPlasticWeight,
+  importedPlastic: Option[Boolean],
+  importedPlasticWeight: ImportedPlasticWeight,
+  exportedPlastic: Option[Boolean],
+  exportedPlasticWeight: ExportedPlasticWeight,
+  humanMedicinesPlastic: Option[Boolean],
+  humanMedicinesPlasticWeight: HumanMedicinesPlasticWeight,
+  recycledPlastic: Option[Boolean],
+  recycledPlasticWeight: RecycledPlasticWeight,
+  convertedPackagingCredit: ConvertedPackagingCredit,
+  lastModifiedDateTime: Option[DateTime]
 ) {
+  require(
+    { //TODO: add proper validation
+      val total = manufacturedPlasticWeight.totalKg + importedPlasticWeight.totalKg
+      val deductions =
+        exportedPlasticWeight.totalKg + humanMedicinesPlasticWeight.totalKg + recycledPlasticWeight.totalKg //TODO: Deductions to include Credits
+      total >= deductions
+    },
+    "Deductions were greater than total packaging"
+  )
+
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
 }
 
