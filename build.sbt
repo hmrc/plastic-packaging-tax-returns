@@ -11,7 +11,7 @@ val silencerVersion = "1.7.1"
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
-  .settings(majorVersion := 0,
+  .settings(majorVersion := 1,
             scalaVersion := "2.12.11",
             libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
             // ***************
