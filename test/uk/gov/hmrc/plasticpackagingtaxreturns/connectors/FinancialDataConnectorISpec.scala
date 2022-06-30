@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, anyUrl, get, notFound}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
@@ -97,6 +97,15 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
           res.left.get mustBe statusCode
           getTimer(getFinancialDataTimer).getCount mustBe 1
         }
+      }
+    }
+    
+    "it" should {
+      "map special DES 404s to a zero financial records results" in {
+        val desNotFound = Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire") 
+        wiremock.stubFor(get(anyUrl()).willReturn(notFound().withBody(desNotFound.toString)))
+        val result = await(getFinancialData)
+        result mustBe Right(FinancialDataResponse.inferNoTransactions)
       }
     }
   }
