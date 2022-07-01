@@ -38,6 +38,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
+import java.util.Locale
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -56,8 +57,7 @@ class ReturnsSubmissionController @Inject()(
   private val logger = Logger(this.getClass)
 
   private def parseDate(date: String): ZonedDateTime = {
-    val df = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
+    LocalDate.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).atStartOfDay().atZone(ZoneOffset.UTC)
   }
 
   def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
