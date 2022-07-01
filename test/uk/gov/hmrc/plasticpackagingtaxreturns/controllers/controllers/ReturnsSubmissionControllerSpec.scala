@@ -109,9 +109,10 @@ class ReturnsSubmissionControllerSpec
   "parse date" must {
     "work with a real date from etmp" in {
 
-      app.injector.instanceOf[ReturnsSubmissionController].parseDate("2022-07-01T10:36:19Z") mustBe ZonedDateTime.of(2022, 7, 1, 0, 0, 0, 0, ZoneId.systemDefault())
-
-      "2022-07-01T10:36:19Z" //use actual from etmp Text '2022-07-01T10:36:19Z'
+      val actual = app.injector.instanceOf[ReturnsSubmissionController].parseDate("2022-07-01T10:36:19Z") //use actual from etmp Text '2022-07-01T10:36:19Z'
+      actual.getYear mustBe 2022
+      actual.getMonthValue mustBe 7
+      actual.getDayOfMonth mustBe 1
     }
   }
 

@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse}
 
-import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZonedDateTime}
 
 trait ReturnsSubmissionResponseBuilder {
 
@@ -35,7 +36,9 @@ trait ReturnsSubmissionResponseBuilder {
   def aReturnWithNrsFailure(modifiers: ReturnsResponseModifierNrsFailure*): ReturnWithNrsFailureResponse =
     modifiers.foldLeft(modelWithDefaultsNrsFailure)((current, modifier) => modifier(current))
 
-  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = LocalDate.now().toString,
+  val now = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+
+  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = now,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"
@@ -46,7 +49,7 @@ trait ReturnsSubmissionResponseBuilder {
     "Something went wrong"
   )
 
-  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = LocalDate.now().toString,
+  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = now,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"
@@ -57,7 +60,7 @@ trait ReturnsSubmissionResponseBuilder {
     nrSubmissionId = "nrSubmissionId"
   )
 
-  private val modelWithDefaults = Return(processingDate = LocalDate.now().toString,
+  private val modelWithDefaults = Return(processingDate = now,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"
