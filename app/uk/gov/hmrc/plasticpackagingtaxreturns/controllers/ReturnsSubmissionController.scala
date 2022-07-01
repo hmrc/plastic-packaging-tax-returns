@@ -57,7 +57,8 @@ class ReturnsSubmissionController @Inject()(
   private val logger = Logger(this.getClass)
 
   private def parseDate(date: String): ZonedDateTime = {
-    LocalDate.parse(date, DateTimeFormatter.ISO_OFFSET_DATE_TIME).atStartOfDay().atZone(ZoneOffset.UTC)
+    val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
+    LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
   }
 
   def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
