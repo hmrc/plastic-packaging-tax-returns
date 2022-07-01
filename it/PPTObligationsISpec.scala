@@ -74,7 +74,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
             status = ObligationStatus.UNKNOWN,                       // Don't care about this here
             inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
             inboundCorrespondenceFromDate = LocalDate.of(2022, 4, 1),
-            inboundCorrespondenceToDate = LocalDate.of(2022, 6, 30),
+            inboundCorrespondenceToDate = LocalDate.MAX,
             inboundCorrespondenceDueDate = LocalDate.of(2022, 7, 29),
             periodKey = "22C2"
           )
@@ -138,7 +138,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
       response.status mustBe OK
       response.json mustBe jsObject(
-        "nextObligation"           -> jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "2022-06-30", "dueDate" -> "2022-07-29"),
+        "nextObligation"           -> jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "+999999999-12-31", "dueDate" -> "2022-07-29"),
         "overdueObligationCount"   -> JsNumber(0),
         "isNextObligationDue"      -> JsFalse,
         "displaySubmitReturnsLink" -> JsFalse
@@ -221,7 +221,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
       response.status mustBe OK
       response.json mustBe JsArray(
-        Seq(jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "2022-06-30", "dueDate" -> "2022-07-29"))
+        Seq(jsObject("periodKey" -> "22C2", "fromDate" -> "2022-04-01", "toDate" -> "+999999999-12-31", "dueDate" -> "2022-07-29"))
       )
     }
 
