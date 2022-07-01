@@ -30,8 +30,9 @@ case class FinancialDataResponse(
 
 object FinancialDataResponse {
 
-  implicit val format: OFormat[FinancialDataResponse] =
-    Json.format[FinancialDataResponse]
+  implicit val format: OFormat[FinancialDataResponse] = Json.format[FinancialDataResponse]
+  
+  def inferNoTransactions: FinancialDataResponse = FinancialDataResponse(None, None, None, LocalDateTime.MIN, Seq()) 
 
 }
 
