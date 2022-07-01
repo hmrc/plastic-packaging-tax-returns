@@ -33,28 +33,13 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{
-  contentAsJson,
-  defaultAwaitTimeout,
-  route,
-  status,
-  writeableOf_AnyContentAsEmpty,
-  writeableOf_AnyContentAsJson,
-  OK,
-  SERVICE_UNAVAILABLE
-}
+import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
-  EisReturnDetails,
-  NrsReturnOrAmendSubmission,
-  Return,
-  ReturnWithNrsFailureResponse,
-  ReturnWithNrsSuccessResponse,
-  ReturnsSubmissionRequest
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsSubmissionController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}
@@ -64,7 +49,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ManufacturedPlasticWeight,
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
-import java.time.ZonedDateTime
+import java.time.{ZoneId, ZonedDateTime}
 import scala.concurrent.Future
 
 class ReturnsSubmissionControllerSpec
@@ -120,6 +105,15 @@ class ReturnsSubmissionControllerSpec
       bind[AppConfig].to(mockAppConfig)
     )
     .build()
+
+  "parse date" must {
+    "work with a real date from etmp" in {
+
+      app.injector.instanceOf[ReturnsSubmissionController].parseDate("2022-07-01T10:36:19Z") mustBe ZonedDateTime.of(2022, 7, 1, 0, 0, 0, 0, ZoneId.systemDefault())
+
+      "2022-07-01T10:36:19Z" //use actual from etmp Text '2022-07-01T10:36:19Z'
+    }
+  }
 
   "Returns submission controller" should {
     "submit a return via the returns connector" in {

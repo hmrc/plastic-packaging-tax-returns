@@ -37,7 +37,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, ZoneId, ZoneOffset, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -55,8 +55,8 @@ class ReturnsSubmissionController @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  private def parseDate(date: String): ZonedDateTime = {
-    val df = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  def parseDate(date: String): ZonedDateTime = {
+    val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
     LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
   }
 
