@@ -37,7 +37,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneId, ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 import java.util.Locale
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -58,7 +58,7 @@ class ReturnsSubmissionController @Inject()(
 
   private def parseDate(date: String): ZonedDateTime = {
     val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
-    LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
+    ZonedDateTime.parse(date, df)
   }
 
   def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
