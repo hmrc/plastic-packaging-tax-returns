@@ -24,6 +24,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
 
 import scala.math.BigDecimal.RoundingMode
 
+case class Calculations(taxDue: BigDecimal,
+                        chargeableTotal: Long,
+                        deductionsTotal: Long,
+                        packagingTotal: Long,
+                        isSubmittable: Boolean)
+
 case class EisReturnDetails(
   manufacturedWeight: BigDecimal,
   importedWeight: BigDecimal,
@@ -39,30 +45,19 @@ case class EisReturnDetails(
 object EisReturnDetails {
   implicit val format: OFormat[EisReturnDetails] = Json.format[EisReturnDetails]
 
-  def apply(taxReturn: TaxReturn, taxRatePoundsPerKg: BigDecimal): EisReturnDetails = {
-    val manufacturedWeightKg = taxReturn.manufacturedPlasticWeight.totalKg
-    val importedWeightKg     = taxReturn.importedPlasticWeight.totalKg
-    val liableKg             = manufacturedWeightKg + importedWeightKg
-
-    val humanMedicinesWeightKg = taxReturn.humanMedicinesPlasticWeight.totalKg
-    val directExportsWeightKg  = taxReturn.exportedPlasticWeight.totalKg
-    val recycledWeightKg       = taxReturn.recycledPlasticWeight.totalKg
-    val notLiableKg            = humanMedicinesWeightKg + directExportsWeightKg + recycledWeightKg
-
-    val taxableKg = Math.max(liableKg - notLiableKg, 0)
-
+  def apply(taxReturn: TaxReturn, calculations: Calculations): EisReturnDetails = {
     val creditClaimed = taxReturn.convertedPackagingCredit.totalInPounds
 
     returns.EisReturnDetails(
-      manufacturedWeight = manufacturedWeightKg,
-      importedWeight = importedWeightKg,
-      totalNotLiable = notLiableKg,
-      humanMedicines = humanMedicinesWeightKg,
-      directExports = directExportsWeightKg,
-      recycledPlastic = recycledWeightKg,
+      manufacturedWeight = taxReturn.manufacturedPlasticWeight.totalKg,
+      importedWeight = taxReturn.importedPlasticWeight.totalKg,
+      totalNotLiable = calculations.deductionsTotal,
+      humanMedicines = taxReturn.humanMedicinesPlasticWeight.totalKg,
+      directExports = taxReturn.exportedPlasticWeight.totalKg,
+      recycledPlastic =  taxReturn.recycledPlasticWeight.totalKg,
       creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
-      totalWeight = taxableKg,
-      taxDue = (BigDecimal(taxableKg) * taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
+      totalWeight = calculations.chargeableTotal,
+      taxDue = calculations.taxDue
     )
   }
 
@@ -89,7 +84,7 @@ object ReturnsSubmissionRequest {
       returnType = taxReturn.returnType,
       submissionId = submissionId,
       periodKey = taxReturn.periodKey,
-      returnDetails = EisReturnDetails(taxReturn, taxRatePoundsPerKg: BigDecimal)
+      returnDetails = EisReturnDetails(taxReturn, ???)
     )
   }
 
