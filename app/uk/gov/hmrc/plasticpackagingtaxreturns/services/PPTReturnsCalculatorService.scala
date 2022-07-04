@@ -35,14 +35,24 @@ class PPTReturnsCalculatorService(appConfig: AppConfig) {
 
     val chargeableTotal: Long = packagingTotal - deductionsTotal
 
-    val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN)
+    val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN) //todo check this rounding mode feels odd
+
+    val isSubmittable: Boolean = {
+      taxReturn.manufacturedPlasticWeight.totalKg >= 0 &&
+        taxReturn.importedPlasticWeight.totalKg >= 0 &&
+        taxReturn.exportedPlasticWeight.totalKg >= 0 &&
+        taxReturn.recycledPlasticWeight.totalKg >= 0 &&
+        taxReturn.humanMedicinesPlasticWeight.totalKg >= 0 &&
+        packagingTotal >= deductionsTotal &&
+        chargeableTotal >= 0
+    }
 
     Calculations(
       taxDue,
       chargeableTotal,
       deductionsTotal,
       packagingTotal,
-      false)
+      isSubmittable)
   }
 
 
