@@ -50,7 +50,7 @@ class NonRepudiationConnectorISpec
                                                             payloadSha256Checksum =
                                                               testPayloadChecksum,
                                                             userSubmissionTimestamp =
-                                                              testDateTime,
+                                                              testDateTimeString,
                                                             identityData =
                                                               testNonRepudiationIdentityData,
                                                             userAuthToken = testAuthToken,

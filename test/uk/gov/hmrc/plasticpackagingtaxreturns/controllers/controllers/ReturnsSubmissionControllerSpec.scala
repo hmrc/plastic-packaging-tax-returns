@@ -17,9 +17,9 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import com.codahale.metrics.SharedMetricRegistries
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -29,32 +29,16 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{
-  contentAsJson,
-  defaultAwaitTimeout,
-  route,
-  status,
-  writeableOf_AnyContentAsEmpty,
-  writeableOf_AnyContentAsJson,
-  OK,
-  SERVICE_UNAVAILABLE
-}
+import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty, writeableOf_AnyContentAsJson}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
-  EisReturnDetails,
-  NrsReturnOrAmendSubmission,
-  Return,
-  ReturnWithNrsFailureResponse,
-  ReturnWithNrsSuccessResponse,
-  ReturnsSubmissionRequest
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.{ReturnsSubmissionResponseBuilder, TaxReturnBuilder}

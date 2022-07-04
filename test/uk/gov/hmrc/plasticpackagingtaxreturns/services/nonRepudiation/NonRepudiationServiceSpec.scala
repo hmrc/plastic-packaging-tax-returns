@@ -70,7 +70,7 @@ class NonRepudiationServiceSpec
                                                     notableEvent = "ppt-subscription",
                                                     payloadContentType = "application/json",
                                                     payloadSha256Checksum = testPayloadChecksum,
-                                                    userSubmissionTimestamp = testDateTime,
+                                                    userSubmissionTimestamp = testDateTimeString,
                                                     identityData = testNonRepudiationIdentityData,
                                                     userAuthToken = testAuthToken,
                                                     headerData = testUserHeaders,

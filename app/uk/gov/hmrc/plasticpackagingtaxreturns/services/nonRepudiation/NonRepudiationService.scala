@@ -16,34 +16,22 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
-import org.joda.time.LocalDate
+import org.joda.time.{DateTime, LocalDate}
+import org.joda.time.format.ISODateTimeFormat
 import play.api.Logger
 import uk.gov.hmrc.auth.core.{AffinityGroup, AuthConnector, AuthorisedFunctions, ConfidenceLevel, CredentialRole}
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.{
-  ~,
-  AgentInformation,
-  Credentials,
-  ItmpAddress,
-  ItmpName,
-  LoginTimes,
-  MdtpInformation,
-  Name,
-  Retrieval
-}
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ItmpAddress, ItmpName, LoginTimes, MdtpInformation, Name, Retrieval, ~}
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalServerException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  IdentityData,
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -62,7 +50,10 @@ case class NonRepudiationService @Inject() (
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
     userHeaders: Map[String, String]
-  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
+  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+
+    val submissionTimestampAsString: String = submissionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
     for {
       identityData <- retrieveIdentityData()
       payloadChecksum = retrievePayloadChecksum(payloadString)
@@ -71,7 +62,7 @@ case class NonRepudiationService @Inject() (
                                                       "ppt-subscription",
                                                       "application/json",
                                                       payloadChecksum,
-                                                      submissionTimestamp,
+                                                      submissionTimestampAsString,
                                                       identityData,
                                                       userAuthToken,
                                                       userHeaders,
@@ -80,6 +71,7 @@ case class NonRepudiationService @Inject() (
       encodedPayloadString = encodePayload(payloadString)
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
+  }
 
   private def encodePayload(payloadString: String): String =
     Base64.getEncoder.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8))
