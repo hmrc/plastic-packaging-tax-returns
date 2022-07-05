@@ -26,13 +26,14 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Calculations, NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnValues, TaxReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTReturnsCalculatorService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -43,7 +44,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ReturnsSubmissionController @Inject()(
+class ReturnsController @Inject()(
                                              authenticator: Authenticator,
                                              sessionRepository: SessionRepository,
                                              nonRepudiationService: NonRepudiationService,
@@ -51,6 +52,7 @@ class ReturnsSubmissionController @Inject()(
                                              returnsConnector: ReturnsConnector,
                                              appConfig: AppConfig,
                                              auditor: Auditor,
+                                             calculationsService: PPTReturnsCalculatorService
                                            )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses {
 
@@ -76,7 +78,9 @@ class ReturnsSubmissionController @Inject()(
 
   private def doSubmission(pptReference: String, submissionId: Option[String]): Action[TaxReturn] =
     authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
-      val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg, submissionId = submissionId)
+      val calculations: Calculations           = calculationsService.calculate(ReturnValues(request.body))
+      val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(request.body, calculations, submissionId = submissionId)
+
       returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
         case Right(response) =>
           userAnswers(request).flatMap { ans =>

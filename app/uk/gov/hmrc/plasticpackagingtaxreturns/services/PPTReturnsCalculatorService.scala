@@ -18,31 +18,33 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Calculations
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
 
+import javax.inject.Inject
 import scala.math.BigDecimal.RoundingMode
 
-class PPTReturnsCalculatorService(appConfig: AppConfig) {
+class PPTReturnsCalculatorService @Inject() (appConfig: AppConfig) {
 
-  def calculate(taxReturn: TaxReturn): Calculations = {
+  def calculate(returnValues: ReturnValues): Calculations = {
 
-    val packagingTotal: Long = taxReturn.importedPlasticWeight.totalKg +
-      taxReturn.manufacturedPlasticWeight.totalKg
+    val packagingTotal: Long = returnValues.importedPlasticWeight +
+      returnValues.manufacturedPlasticWeight
 
-    val deductionsTotal: Long = taxReturn.exportedPlasticWeight.totalKg +
-      taxReturn.humanMedicinesPlasticWeight.totalKg +
-      taxReturn.recycledPlasticWeight.totalKg
+    val deductionsTotal: Long = returnValues.exportedPlasticWeight +
+      returnValues.humanMedicinesPlasticWeight +
+      returnValues.recycledPlasticWeight
 
-    val chargeableTotal: Long = packagingTotal - deductionsTotal
+    val chargeableTotal: Long = packagingTotal - deductionsTotal // TODO - credits!
 
-    val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.HALF_EVEN) //todo check this rounding mode feels odd
+    // Round in favour of the customer (DOWN)
+    val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.DOWN) // Verify with BA!
 
     val isSubmittable: Boolean = {
-      taxReturn.manufacturedPlasticWeight.totalKg >= 0 &&
-        taxReturn.importedPlasticWeight.totalKg >= 0 &&
-        taxReturn.exportedPlasticWeight.totalKg >= 0 &&
-        taxReturn.recycledPlasticWeight.totalKg >= 0 &&
-        taxReturn.humanMedicinesPlasticWeight.totalKg >= 0 &&
+      returnValues.manufacturedPlasticWeight >= 0 &&
+        returnValues.importedPlasticWeight >= 0 &&
+        returnValues.exportedPlasticWeight >= 0 &&
+        returnValues.recycledPlasticWeight >= 0 &&
+        returnValues.humanMedicinesPlasticWeight >= 0 &&
         packagingTotal >= deductionsTotal &&
         chargeableTotal >= 0
     }
