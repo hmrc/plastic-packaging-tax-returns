@@ -246,6 +246,8 @@ class ReturnsControllerSpec
       withRecycledPlasticWeight(1000)
     )
 
+    val calculations = Calculations(taxDue = 750, chargeableTotal = 3000, deductionsTotal = 6000, packagingTotal = 9000, true)
+
     withAuthorizedUser()
 
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
@@ -257,7 +259,7 @@ class ReturnsControllerSpec
     val returnsSubmissionResponse: Return                              = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
 
-    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(updatedTaxReturn, Calculations(0, 0, 0, 0, true), Some("submission12"))
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(updatedTaxReturn, calculations, Some("submission12"))
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
@@ -291,8 +293,9 @@ class ReturnsControllerSpec
 
     val returnsSubmissionResponse: Return                              = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
+    val calculations: Calculations = Calculations(0, 0, 0, 0, true)
 
-    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, Calculations(0, 0, 0, 0, true), None)
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, calculations, None)
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 

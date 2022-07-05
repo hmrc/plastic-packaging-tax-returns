@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues, TaxReturn}
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -49,16 +49,16 @@ case class EisReturnDetails(
 object EisReturnDetails {
   implicit val format: OFormat[EisReturnDetails] = Json.format[EisReturnDetails]
 
-  def apply(taxReturn: TaxReturn, calculations: Calculations): EisReturnDetails = {
-    val creditClaimed = taxReturn.convertedPackagingCredit.totalInPounds
+  def apply(returnValues: ReturnValues, calculations: Calculations): EisReturnDetails = {
+    val creditClaimed = returnValues.convertedPackagingCredit
 
     returns.EisReturnDetails(
-      manufacturedWeight = taxReturn.manufacturedPlasticWeight.totalKg,
-      importedWeight = taxReturn.importedPlasticWeight.totalKg,
+      manufacturedWeight = returnValues.manufacturedPlasticWeight,
+      importedWeight = returnValues.importedPlasticWeight,
       totalNotLiable = calculations.deductionsTotal,
-      humanMedicines = taxReturn.humanMedicinesPlasticWeight.totalKg,
-      directExports = taxReturn.exportedPlasticWeight.totalKg,
-      recycledPlastic =  taxReturn.recycledPlasticWeight.totalKg,
+      humanMedicines = returnValues.humanMedicinesPlasticWeight,
+      directExports = returnValues.exportedPlasticWeight,
+      recycledPlastic =  returnValues.recycledPlasticWeight,
       creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
       totalWeight = calculations.chargeableTotal,
       taxDue = calculations.taxDue
@@ -79,16 +79,16 @@ object ReturnsSubmissionRequest {
 
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
-  def apply(taxReturn: TaxReturn, calculations: Calculations, submissionId: Option[String]): ReturnsSubmissionRequest = {
+  def apply(returnValues: ReturnValues, calculations: Calculations, submissionId: Option[String], returnType: ReturnType): ReturnsSubmissionRequest = {
 
-    if (taxReturn.returnType == (ReturnType.AMEND) && submissionId.isEmpty)
+    if (returnType == (ReturnType.AMEND) && submissionId.isEmpty)
       throw new IllegalStateException("must have a submission id to amend a return")
 
     ReturnsSubmissionRequest(
-      returnType = taxReturn.returnType,
+      returnType = returnType,
       submissionId = submissionId,
       periodKey = taxReturn.periodKey,
-      returnDetails = EisReturnDetails(taxReturn, calculations)
+      returnDetails = EisReturnDetails(returnValues, calculations)
     )
   }
 

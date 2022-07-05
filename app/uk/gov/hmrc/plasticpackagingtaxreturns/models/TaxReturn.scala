@@ -21,6 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 
 //TODO: Split out what is a tax return and what is user info re: tax return
 //TODO: OR-> Extract userAnswers in the backend so they aren't sent from Frontend (Pan's preferred)
+@deprecated
 case class TaxReturn(
   id: String,
   periodKey: String,
@@ -41,6 +42,7 @@ case class TaxReturn(
   def updateLastModified(): TaxReturn = this.copy(lastModifiedDateTime = Some(DateTime.now(DateTimeZone.UTC)))
 }
 
+@deprecated
 object TaxReturn {
   import play.api.libs.json._
 
