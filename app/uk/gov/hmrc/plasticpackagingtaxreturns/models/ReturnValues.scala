@@ -19,30 +19,21 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables._
 
-case class ReturnValues(
-                         manufacturedPlasticWeight: Long,
-                         importedPlasticWeight: Long,
-                         exportedPlasticWeight: Long,
-                         humanMedicinesPlasticWeight: Long,
-                         recycledPlasticWeight: Long,
-                         convertedPackagingCredit: BigDecimal // TODO - need to factor credits into the calculations
+case class ReturnValues(periodKey: String,
+                        manufacturedPlasticWeight: Long,
+                        importedPlasticWeight: Long,
+                        exportedPlasticWeight: Long,
+                        humanMedicinesPlasticWeight: Long,
+                        recycledPlasticWeight: Long,
+                        convertedPackagingCredit: BigDecimal // TODO - need to factor credits into the calculations
                        )
 
 object ReturnValues {
 
-  def apply(taxReturn: TaxReturn): ReturnValues = {
-    ReturnValues(taxReturn.manufacturedPlasticWeight.totalKg,
-      taxReturn.importedPlasticWeight.totalKg,
-      taxReturn.exportedPlasticWeight.totalKg,
-      taxReturn.humanMedicinesPlasticWeight.totalKg,
-      taxReturn.recycledPlasticWeight.totalKg,
-      taxReturn.convertedPackagingCredit.totalInPounds
-    )
-  }
-
   def apply(userAnswers: UserAnswers): Option[ReturnValues] = {
 
     for {
+      periodKey <- userAnswers.get(PeriodKeyGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
@@ -51,6 +42,7 @@ object ReturnValues {
       credits <- userAnswers.get(ConvertedPackagingCreditGettable)
     } yield
       ReturnValues(
+        periodKey,
         manufactured,
         imported,
         exported,

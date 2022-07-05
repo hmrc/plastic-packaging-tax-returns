@@ -18,12 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
 
-import scala.math.BigDecimal.RoundingMode
-
-class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
+class ReturnsSubmissionRequestSpec extends AnyWordSpec {
 
   "The EIS Returns Submission Request Object" should {
 
@@ -31,18 +28,19 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
 
       "positive liability" in {
 
-        val taxReturn = aTaxReturn(
-          withManufacturedPlasticWeight(1),
-          withImportedPlasticWeight(2),
-          withHumanMedicinesPlasticWeight(3),
-          withDirectExportDetails(4),
-          withRecycledPlasticWeight(5),
-          withConvertedPlasticPackagingCredit(0)
+        val returnValues: ReturnValues = ReturnValues(
+          periodKey = "somekey",
+          manufacturedPlasticWeight = 1,
+          importedPlasticWeight = 2,
+          humanMedicinesPlasticWeight = 3,
+          exportedPlasticWeight = 4,
+          recycledPlasticWeight = 5,
+          convertedPackagingCredit = 0
         )
 
         val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, isSubmittable = true)
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, calc, None)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc, None, ReturnType.NEW)
 
         eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1
@@ -52,7 +50,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
         eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 5
 
         eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
-        eisReturnsSubmissionRequest.periodKey mustBe taxReturn.periodKey
+        eisReturnsSubmissionRequest.periodKey mustBe "somekey"
         eisReturnsSubmissionRequest.submissionId mustBe None
 
         eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 6

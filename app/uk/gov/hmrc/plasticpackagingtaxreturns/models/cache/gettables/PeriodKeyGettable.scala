@@ -19,9 +19,10 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object ManufacturedPlasticPackagingWeightGettable extends Gettable[Long] {
+case object PeriodKeyGettable extends Gettable[String] {
 
-  override def path: JsPath = JsPath \ toString
+  override def path: JsPath = JsPath \ "obligation" \ toString
 
-  override def toString: String = "manufacturedPlasticPackagingWeight"
+  override def toString: String = "periodKey"
+
 }

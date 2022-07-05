@@ -20,15 +20,14 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ExportedPlasticWeight, HumanMedicinesPlasticWeight, ImportedPlasticWeight, ManufacturedPlasticWeight, RecycledPlasticWeight, ReturnValues, TaxReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
 
 class PPTReturnsCalculatorServiceSpec
-    extends PlaySpec with MockitoSugar with TaxReturnBuilder {
+    extends PlaySpec with MockitoSugar {
 
   val mockAppConfig: AppConfig = mock[AppConfig]
   val calculator: PPTReturnsCalculatorService = new PPTReturnsCalculatorService(mockAppConfig)
-  val allZeroReturn = ReturnValues(0, 0, 0, 0, 0, 0)
+  val allZeroReturn = ReturnValues("", 0, 0, 0, 0, 0, 0)
 
   "calculate" must {
 

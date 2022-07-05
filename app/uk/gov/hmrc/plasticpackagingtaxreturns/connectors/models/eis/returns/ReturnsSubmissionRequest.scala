@@ -20,7 +20,7 @@ import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues, TaxReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -87,7 +87,7 @@ object ReturnsSubmissionRequest {
     ReturnsSubmissionRequest(
       returnType = returnType,
       submissionId = submissionId,
-      periodKey = taxReturn.periodKey,
+      periodKey = returnValues.periodKey,
       returnDetails = EisReturnDetails(returnValues, calculations)
     )
   }

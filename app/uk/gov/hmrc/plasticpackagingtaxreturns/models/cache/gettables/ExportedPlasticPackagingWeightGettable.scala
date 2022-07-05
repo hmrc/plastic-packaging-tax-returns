@@ -17,9 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables
 
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
-
-import scala.util.Try
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 case object ExportedPlasticPackagingWeightGettable extends Gettable[Long] {
 

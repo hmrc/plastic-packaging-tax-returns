@@ -19,8 +19,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-import scala.util.Try
-
 case object ImportedPlasticPackagingWeightGettable extends Gettable[Long] {
 
   override def path: JsPath = JsPath \ toString
