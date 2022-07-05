@@ -23,7 +23,7 @@ import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.IdentityData
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NonRepudiationIdentityRetrievals
 
-import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, ZoneId, ZonedDateTime}
 
 trait NrsTestData {
 
@@ -39,7 +39,8 @@ trait NrsTestData {
   val testNino                             = "NB686868C"
 
   val testDate: LocalDate         = LocalDate.of(2017, 1, 1)
-  val testDateTime: ZonedDateTime = ZonedDateTime.now(ZoneOffset.UTC)
+  val testDateTime: ZonedDateTime = ZonedDateTime.of(2022, 7, 1, 12, 34, 37, 0, ZoneId.of("Z"))
+  val testDateTimeString: String = "2022-07-01T12:34:37Z" // <-- this is an actual date string taken from production 
 
   val testAuthName: Name =
     uk.gov.hmrc.auth.core.retrieve.Name(Some("testFirstName"), Some("testLastName"))

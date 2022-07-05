@@ -19,14 +19,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.JsObject
-import play.api.libs.json.Json.{reads, toJson}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
@@ -37,8 +36,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
-import java.util.Locale
+import java.time.{ZoneId, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
