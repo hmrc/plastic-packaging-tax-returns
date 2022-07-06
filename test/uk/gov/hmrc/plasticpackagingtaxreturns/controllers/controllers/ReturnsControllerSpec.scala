@@ -194,7 +194,7 @@ class ReturnsControllerSpec
       setupMocks
       mockReturnsSubmissionConnectorFailure(BAD_REQUEST)
 
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
+      val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference")
 
       val result: Future[Result] = route(app, submitReturnRequest).get
 
@@ -207,7 +207,7 @@ class ReturnsControllerSpec
 
       when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidUserAnswers)))
 
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
+      val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference")
 
       val result: Future[Result] = route(app, submitReturnRequest).get
 
@@ -220,7 +220,7 @@ class ReturnsControllerSpec
 
       when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidDeductionsUserAnswers)))
 
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
+      val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference")
 
       val result: Future[Result] = route(app, submitReturnRequest).get
 
@@ -275,7 +275,7 @@ class ReturnsControllerSpec
 
       mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
-      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference").withHeaders(newHeaders = ("foo", "bar"))
+      val submitReturnRequest = FakeRequest("GET", s"/returns-submission/$pptReference").withHeaders(newHeaders = ("foo", "bar"))
 
       val result: Future[Result] = route(app, submitReturnRequest).get
 
@@ -286,10 +286,10 @@ class ReturnsControllerSpec
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("PUT", s"/returns-amend/$pptReference/submission12", pptReference, returnValues, ReturnType.AMEND, Some("submission12"))
+    submissionSuccess("GET", s"/returns-amend/$pptReference/submission12", pptReference, returnValues, ReturnType.AMEND, Some("submission12"))
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("POST", s"/returns-submission/$pptReference", pptReference, returnValues, ReturnType.NEW)
+    submissionSuccess("GET", s"/returns-submission/$pptReference", pptReference, returnValues, ReturnType.NEW)
 
   private def submissionSuccess(action: String, url: String, pptReference: String, returnValues: ReturnValues,
                                 returnType: ReturnType, submissionId: Option[String] = None): Future[NonRepudiationSubmissionAccepted] = {
