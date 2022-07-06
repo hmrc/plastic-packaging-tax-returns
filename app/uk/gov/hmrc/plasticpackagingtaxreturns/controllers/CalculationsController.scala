@@ -20,6 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
@@ -42,8 +43,15 @@ class CalculationsController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
       sessionRepository.get(request.cacheKey).map {
-        _.flatMap(ReturnValues(_)).fold(BadRequest("No user answers")) { returnValues =>
-          Ok(Json.toJson(calculationsService.calculate(returnValues)))
+        _.flatMap(ReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
+          val calculations: Calculations = calculationsService.calculate(returnValues)
+
+          if (calculations.isSubmittable) {
+            Ok(Json.toJson(calculationsService.calculate(returnValues)))
+          } else {
+            UnprocessableEntity("The calculation is not submittable")
+          }
+
         }
       }
     }
