@@ -19,20 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 import scala.math.BigDecimal.RoundingMode
-
-case class Calculations(taxDue: BigDecimal,
-                        chargeableTotal: Long,
-                        deductionsTotal: Long,
-                        packagingTotal: Long,
-                        isSubmittable: Boolean)
-
-object Calculations {
-  implicit val format: OFormat[Calculations] = Json.format[Calculations]
-}
 
 case class EisReturnDetails(
   manufacturedWeight: BigDecimal,

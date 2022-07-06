@@ -20,10 +20,9 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTReturnsCalculatorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController

@@ -20,7 +20,7 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.ReturnValues
 
 class PPTReturnsCalculatorServiceSpec
     extends PlaySpec with MockitoSugar {

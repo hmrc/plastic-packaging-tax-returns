@@ -45,8 +45,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnecto
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 

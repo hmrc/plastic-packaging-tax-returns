@@ -17,8 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Calculations
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
 
 import javax.inject.Inject
 import scala.math.BigDecimal.RoundingMode

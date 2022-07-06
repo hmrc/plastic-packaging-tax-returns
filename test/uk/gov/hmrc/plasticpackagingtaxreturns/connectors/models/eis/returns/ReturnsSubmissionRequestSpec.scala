@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 class ReturnsSubmissionRequestSpec extends AnyWordSpec {
 
