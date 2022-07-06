@@ -39,8 +39,10 @@ object ReturnValues {
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
       humanMedicines <- userAnswers.get(NonExportedHumanMedicinesPlasticPackagingWeightGettable)
       recycled <- userAnswers.get(NonExportedRecycledPlasticPackagingWeightGettable)
-      credits <- userAnswers.get(ConvertedPackagingCreditGettable)
-    } yield
+    } yield {
+
+      val credits = userAnswers.get(ConvertedPackagingCreditGettable).getOrElse(BigDecimal(0))
+
       ReturnValues(
         periodKey,
         manufactured,
@@ -50,6 +52,7 @@ object ReturnValues {
         recycled,
         credits
       )
+    }
   }
 
 }

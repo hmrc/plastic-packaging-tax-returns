@@ -26,7 +26,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
-import play.api.http.Status.{BAD_REQUEST, NOT_FOUND}
+import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
@@ -40,7 +40,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.{MockConnectors, MockReturnsRepository}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -53,41 +53,80 @@ import java.time.{Instant, ZonedDateTime}
 import scala.concurrent.Future
 
 class ReturnsControllerSpecNew
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockConnectors
-    with MockReturnsRepository with ReturnsSubmissionResponseBuilder {
+  extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures
+    with Matchers with AuthTestSupport with MockConnectors with ReturnsSubmissionResponseBuilder {
 
   SharedMetricRegistries.clear()
 
-  private val userAnswers = UserAnswers("id", Json.obj("foo" -> "bar"), Instant.ofEpochSecond(1))
+  private val userAnswersData = Json.parse(
+    """{
+      |        "obligation" : {
+      |            "periodKey" : "21C4"
+      |        },
+      |        "manufacturedPlasticPackagingWeight" : 100,
+      |        "importedPlasticPackagingWeight" : 0,
+      |        "exportedPlasticPackagingWeight" : 0,
+      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
+      |        "nonExportRecycledPlasticPackagingWeight" : 5
+      |    }""".stripMargin)
 
-  val returnValues: ReturnValues = ReturnValues(
-    periodKey = "somekey",
-    manufacturedPlasticWeight = 1,
-    importedPlasticWeight = 2,
-    exportedPlasticWeight = 3,
-    humanMedicinesPlasticWeight = 4,
+  private val invalidUserAnswersData = Json.parse(
+    """{
+      |        "obligation" : {
+      |            "periodKey" : "21C4"
+      |        },
+      |        "manufacturedPlasticPackagingWeight" : 100,
+      |        "importedPlasticPackagingWeight" : 0,
+      |        "exportedPlasticPackagingWeight" : 0,
+      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10
+      |    }""".stripMargin)
+
+  private val invalidDeductionsAnswersData = Json.parse(
+    """{
+      |        "obligation" : {
+      |            "periodKey" : "21C4"
+      |        },
+      |        "manufacturedPlasticPackagingWeight" : 10,
+      |        "importedPlasticPackagingWeight" : 0,
+      |        "exportedPlasticPackagingWeight" : 0,
+      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
+      |        "nonExportRecycledPlasticPackagingWeight" : 5
+      |    }""".stripMargin)
+
+  private val userAnswers: UserAnswers = UserAnswers("id").copy(data =
+    Json.obj("data" -> userAnswersData)
+  )
+
+  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data =
+    Json.obj("data" -> invalidUserAnswersData)
+  )
+
+  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data =
+    Json.obj("data" -> invalidDeductionsAnswersData)
+  )
+
+  private val expectedReturnValues: ReturnValues = ReturnValues(
+    periodKey = "21C4",
+    manufacturedPlasticWeight = 100,
+    importedPlasticWeight = 0,
+    exportedPlasticWeight = 0,
+    humanMedicinesPlasticWeight = 10,
     recycledPlasticWeight = 5,
     convertedPackagingCredit = 0
   )
 
-  protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
-  private val mockAppConfig: AppConfig                           = mock[AppConfig]
-  private val nrSubmissionId: String                             = "nrSubmissionId"
+  private val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
+  private val mockAppConfig: AppConfig = mock[AppConfig]
+  private val nrSubmissionId: String = "nrSubmissionId"
+  private val mockSessionRepository: SessionRepository = mock[SessionRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
+    reset(mockAppConfig)
     reset(mockAuthConnector)
     reset(mockSessionRepository)
     reset(mockNonRepudiationService)
-
-    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
-    when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
-    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
-    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
-      Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
-    )
   }
-
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(
@@ -98,7 +137,6 @@ class ReturnsControllerSpecNew
       bind[AppConfig].to(mockAppConfig)
     )
     .build()
-
 
   "Returns submission controller" should {
 
@@ -152,6 +190,7 @@ class ReturnsControllerSpecNew
 
     "propagate status code when failure occurs" in {
       withAuthorizedUser()
+      setupMocks
       mockReturnsSubmissionConnectorFailure(BAD_REQUEST)
 
       val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
@@ -161,23 +200,49 @@ class ReturnsControllerSpecNew
       status(result) mustBe BAD_REQUEST
     }
 
+    "propagate un-processable entity when cache incomplete" in {
+      withAuthorizedUser()
+      setupMocks
+
+      when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidUserAnswers)))
+
+      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
+
+      val result: Future[Result] = route(app, submitReturnRequest).get
+
+      status(result) mustBe UNPROCESSABLE_ENTITY
+    }
+
+    "propagate un-processable entity when invalid deductions" in {
+      withAuthorizedUser()
+      setupMocks
+
+      when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidDeductionsUserAnswers)))
+
+      val submitReturnRequest = FakeRequest("POST", s"/returns-submission/$pptReference")
+
+      val result: Future[Result] = route(app, submitReturnRequest).get
+
+      status(result) mustBe UNPROCESSABLE_ENTITY
+    }
+
     "submit a return via the returns connector" in {
-      returnSubmittedAsExpected(pptReference, returnValues)
+      returnSubmittedAsExpected(pptReference, expectedReturnValues)
     }
 
     "submit an amendment via the returns controller" in {
-      amendSubmittedAsExpected(pptReference, returnValues)
+      amendSubmittedAsExpected(pptReference, expectedReturnValues)
     }
 
     "delete a return after successful submission" in {
 
-      returnSubmittedAsExpected(pptReference, returnValues)
+      returnSubmittedAsExpected(pptReference, expectedReturnValues)
 
       verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
     }
 
     "delete a return after successful amend" in {
-      amendSubmittedAsExpected(pptReference, returnValues)
+      amendSubmittedAsExpected(pptReference, expectedReturnValues)
 
       verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
     }
@@ -185,17 +250,18 @@ class ReturnsControllerSpecNew
     "respond successfully when return submission is successful but the return delete fails" in {
       when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
-      returnSubmittedAsExpected(pptReference, returnValues)
+      returnSubmittedAsExpected(pptReference, expectedReturnValues)
     }
 
     "respond successfully when return amend is successful but the return delete fails" in {
       when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
-      amendSubmittedAsExpected(pptReference, returnValues)
+      amendSubmittedAsExpected(pptReference, expectedReturnValues)
     }
 
     "handle NRS fail" in {
       withAuthorizedUser()
+      setupMocks
 
       val nrsErrorMessage = "Something went wrong"
 
@@ -203,7 +269,7 @@ class ReturnsControllerSpecNew
         Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
       )
 
-      val returnsSubmissionResponse: Return                                  = aReturn()
+      val returnsSubmissionResponse: Return = aReturn()
       val returnsSubmissionResponseWithNrsFail: ReturnWithNrsFailureResponse = aReturnWithNrsFailure()
 
       mockReturnsSubmissionConnector(returnsSubmissionResponse)
@@ -219,30 +285,30 @@ class ReturnsControllerSpecNew
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues) =
-    submissionSuccess("PUT",s"/returns-amend/$pptReference/submission12", pptReference, returnValues, ReturnType.AMEND, Some("submission12"))
+    submissionSuccess("PUT", s"/returns-amend/$pptReference/submission12", pptReference, returnValues, ReturnType.AMEND, Some("submission12"))
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues) =
     submissionSuccess("POST", s"/returns-submission/$pptReference", pptReference, returnValues, ReturnType.NEW)
 
-
   private def submissionSuccess(action: String, url: String, pptReference: String, returnValues: ReturnValues, returnType: ReturnType, submissionId: Option[String] = None) = {
     withAuthorizedUser()
+    setupMocks
 
-    val calculations: Calculations           = Calculations(taxDue = 0, chargeableTotal = 0, deductionsTotal = 0, packagingTotal = 0, isSubmittable = true)
+    val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true)
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations, submissionId, returnType)
 
-    val returnsSubmissionResponse: Return                              = aReturn()
+    val returnsSubmissionResponse: Return = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
-    val submitReturnRequest    = FakeRequest(action, url).withHeaders(newHeaders = ("foo", "bar"))
+    val submitReturnRequest = FakeRequest(action, url).withHeaders(newHeaders = ("foo", "bar"))
     val result: Future[Result] = route(app, submitReturnRequest).get
 
     status(result) mustBe OK
     contentAsJson(result) mustBe toJson(returnsSubmissionResponseWithNrs)
 
-    val expectedHeaders    = Map("Host" -> "localhost", "foo" -> "bar", "Content-Length" -> "0", "Content-Type" -> "application/json")
+    val expectedHeaders = Map("Host" -> "localhost", "foo" -> "bar", "Content-Length" -> "0")
     val expectedNrsPayload = NrsReturnOrAmendSubmission(userAnswers.data, eisRequest)
 
     verify(mockNonRepudiationService).submitNonRepudiation(
@@ -251,6 +317,15 @@ class ReturnsControllerSpecNew
       ArgumentMatchers.eq(pptReference),
       ArgumentMatchers.eq(expectedHeaders)
     )(any[HeaderCarrier])
+  }
+
+  private def setupMocks = {
+    when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
+    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
+    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+      Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
+    )
   }
 
 }

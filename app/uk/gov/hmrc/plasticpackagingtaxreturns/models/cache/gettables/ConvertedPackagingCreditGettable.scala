@@ -21,7 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 case object ConvertedPackagingCreditGettable extends Gettable[BigDecimal] {
 
-  override def path: JsPath = JsPath \ toString
+  override def path: JsPath = JsPath \ "data" \ toString
 
   override def toString: String = "convertedPackagingCredit"
 }

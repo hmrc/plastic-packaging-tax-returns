@@ -21,7 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 case object ManufacturedPlasticPackagingWeightGettable extends Gettable[Long] {
 
-  override def path: JsPath = JsPath \ toString
+  override def path: JsPath = JsPath \ "data" \ toString
 
   override def toString: String = "manufacturedPlasticPackagingWeight"
 }
