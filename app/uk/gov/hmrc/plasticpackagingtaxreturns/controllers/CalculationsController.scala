@@ -47,7 +47,7 @@ class CalculationsController @Inject()(
           val calculations: Calculations = calculationsService.calculate(returnValues)
 
           if (calculations.isSubmittable) {
-            Ok(Json.toJson(calculationsService.calculate(returnValues)))
+            Ok(Json.toJson(calculations))
           } else {
             UnprocessableEntity("The calculation is not submittable")
           }
