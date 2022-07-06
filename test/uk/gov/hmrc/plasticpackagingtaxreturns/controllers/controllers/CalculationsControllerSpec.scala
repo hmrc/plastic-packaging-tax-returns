@@ -30,7 +30,7 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -70,7 +70,7 @@ class CalculationsControllerSpec
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
       |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
   private val invalidUserAnswersData = Json.parse(
     """{
@@ -81,7 +81,7 @@ class CalculationsControllerSpec
       |        "importedPlasticPackagingWeight" : 0,
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
   private val invalidDeductionsAnswersData = Json.parse(
     """{
@@ -93,19 +93,11 @@ class CalculationsControllerSpec
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
       |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
-  private val userAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> userAnswersData)
-  )
-
-  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> invalidUserAnswersData)
-  )
-
-  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> invalidDeductionsAnswersData)
-  )
+  private val userAnswers: UserAnswers                  = UserAnswers("id").copy(data = userAnswersData)
+  private val invalidUserAnswers: UserAnswers           = UserAnswers("id").copy(data = invalidUserAnswersData)
+  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data = invalidDeductionsAnswersData)
 
   private val mockAppConfig: AppConfig                         = mock[AppConfig]
   private val mockSessionRepository: SessionRepository         = mock[SessionRepository]

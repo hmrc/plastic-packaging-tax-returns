@@ -41,6 +41,8 @@ class CalculationsController @Inject()(
   def calculate(pptReference: String): Action[AnyContent] = {
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
+      println("ACHI: " + request.cacheKey)
+
       sessionRepository.get(request.cacheKey).map {
         _.flatMap(ReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)

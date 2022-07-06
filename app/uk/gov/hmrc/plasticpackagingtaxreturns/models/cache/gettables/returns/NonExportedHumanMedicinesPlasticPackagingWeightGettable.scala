@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object NonExportedRecycledPlasticPackagingWeightGettable extends Gettable[Long] {
+case object NonExportedHumanMedicinesPlasticPackagingWeightGettable extends Gettable[Long] {
 
-  override def path: JsPath = JsPath \ "data" \ toString
+  override def path: JsPath = JsPath \ toString
 
-  override def toString: String = "nonExportRecycledPlasticPackagingWeight"
-
+  override def toString: String = "nonExportedHumanMedicinesPlasticPackagingWeight"
 }

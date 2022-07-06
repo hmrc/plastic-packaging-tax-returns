@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables._
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedPackagingCreditGettable, ExportedPlasticPackagingWeightGettable, ImportedPlasticPackagingWeightGettable, ManufacturedPlasticPackagingWeightGettable, NonExportedHumanMedicinesPlasticPackagingWeightGettable, NonExportedRecycledPlasticPackagingWeightGettable}
 
 case class ReturnValues(periodKey: String,
                         manufacturedPlasticWeight: Long,

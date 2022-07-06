@@ -29,7 +29,7 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
 import play.api.test.FakeRequest
@@ -59,7 +59,7 @@ class ReturnsControllerSpec
 
   SharedMetricRegistries.clear()
 
-  private val userAnswersData = Json.parse(
+  private val userAnswersData: JsObject = Json.parse(
     """{
       |        "obligation" : {
       |            "periodKey" : "21C4"
@@ -69,9 +69,9 @@ class ReturnsControllerSpec
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
       |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
-  private val invalidUserAnswersData = Json.parse(
+  private val invalidUserAnswersData: JsObject = Json.parse(
     """{
       |        "obligation" : {
       |            "periodKey" : "21C4"
@@ -80,9 +80,9 @@ class ReturnsControllerSpec
       |        "importedPlasticPackagingWeight" : 0,
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
-  private val invalidDeductionsAnswersData = Json.parse(
+  private val invalidDeductionsAnswersData: JsObject = Json.parse(
     """{
       |        "obligation" : {
       |            "periodKey" : "21C4"
@@ -92,19 +92,11 @@ class ReturnsControllerSpec
       |        "exportedPlasticPackagingWeight" : 0,
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
       |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin)
+      |    }""".stripMargin).asInstanceOf[JsObject]
 
-  private val userAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> userAnswersData)
-  )
-
-  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> invalidUserAnswersData)
-  )
-
-  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data =
-    Json.obj("data" -> invalidDeductionsAnswersData)
-  )
+  private val userAnswers: UserAnswers                  = UserAnswers("id").copy(data = userAnswersData)
+  private val invalidUserAnswers: UserAnswers           = UserAnswers("id").copy(data = invalidUserAnswersData)
+  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data = invalidDeductionsAnswersData)
 
   private val expectedReturnValues: ReturnValues = ReturnValues(
     periodKey = "21C4",

@@ -21,7 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 case object PeriodKeyGettable extends Gettable[String] {
 
-  override def path: JsPath = JsPath \ "data" \ "obligation" \ toString
+  override def path: JsPath = JsPath \ "obligation" \ toString
 
   override def toString: String = "periodKey"
 
