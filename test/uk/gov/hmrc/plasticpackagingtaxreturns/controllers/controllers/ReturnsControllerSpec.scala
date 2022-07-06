@@ -20,7 +20,6 @@ import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, verify, when}
-import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -50,7 +49,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
-import java.time.{Instant, ZonedDateTime}
+import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class ReturnsControllerSpec

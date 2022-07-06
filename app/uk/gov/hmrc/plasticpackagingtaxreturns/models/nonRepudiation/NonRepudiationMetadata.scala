@@ -18,14 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation
 
 import play.api.libs.json._
 
-import java.time.ZonedDateTime
-
 case class NonRepudiationMetadata(
   businessId: String,
   notableEvent: String,
   payloadContentType: String,
   payloadSha256Checksum: String,
-  userSubmissionTimestamp: ZonedDateTime,
+  userSubmissionTimestamp: String,
   identityData: IdentityData,
   userAuthToken: String,
   headerData: Map[String, String],
