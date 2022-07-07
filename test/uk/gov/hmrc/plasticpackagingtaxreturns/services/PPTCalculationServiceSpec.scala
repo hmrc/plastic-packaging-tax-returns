@@ -132,6 +132,14 @@ class PPTCalculationServiceSpec
 
       }
 
+      "deductions greater than (manufactured + imported)" in {
+
+        val expected = 0L
+
+        calculator.calculate(allZeroReturn.copy(exportedPlasticWeight = 10)).chargeableTotal mustBe expected
+
+      }
+
       "when has a non zero packaging total" in {
 
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3)

@@ -125,7 +125,7 @@ class ReturnsController @Inject()(
     returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
       case Right(response) =>
         sessionRepository.clear(request.cacheKey).andThen {
-          case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+          case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
           case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
         }
         handleNrsRequest(request, userAnswers.data, eisRequest, response)
@@ -194,7 +194,7 @@ class ReturnsController @Inject()(
                                 exception: Exception
                               ): Future[Result] = {
 
-    logger.warn(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
+    logger.error(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
 
     Future.successful(
       Ok(

@@ -65,7 +65,7 @@ class PPTCalculationService @Inject()(appConfig: AppConfig) {
       humanMedicinesPlasticWeight +
       recycledPlasticWeight
 
-    val chargeableTotal: Long = packagingTotal - deductionsTotal // TODO - credits!
+    val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal) // TODO - credits!
 
     // Round in favour of the customer (DOWN)
     val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.DOWN) // Verify with BA!
