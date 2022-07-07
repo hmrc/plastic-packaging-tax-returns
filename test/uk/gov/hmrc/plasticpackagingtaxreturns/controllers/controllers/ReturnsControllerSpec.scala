@@ -29,8 +29,8 @@ import play.api.Application
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty}
@@ -42,12 +42,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
@@ -139,7 +137,7 @@ class ReturnsControllerSpec
   private val invalidUserAnswersAmends: UserAnswers            = UserAnswers("id").copy(data = invalidUserAnswersDataAmends)
   private val invalidDeductionsUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = invalidDeductionsAnswersDataAmends)
 
-  private val expectedReturnValues: ReturnValues = ReturnValues(
+  private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
     manufacturedPlasticWeight = 100,
     importedPlasticWeight = 0,
@@ -147,6 +145,16 @@ class ReturnsControllerSpec
     humanMedicinesPlasticWeight = 10,
     recycledPlasticWeight = 5,
     convertedPackagingCredit = 0
+  )
+
+  private val expectedAmendReturnValues: ReturnValues = AmendReturnValues(
+    periodKey = "21C4",
+    manufacturedPlasticWeight = 100,
+    importedPlasticWeight = 0,
+    exportedPlasticWeight = 0,
+    humanMedicinesPlasticWeight = 10,
+    recycledPlasticWeight = 5,
+    submission = "submission12"
   )
 
   private val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
@@ -292,26 +300,26 @@ class ReturnsControllerSpec
 
     "submit a return via the returns connector" in {
 
-      returnSubmittedAsExpected(pptReference, expectedReturnValues)
+      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
     }
 
     "submit an amendment via the returns controller" in {
 
-      amendSubmittedAsExpected(pptReference, expectedReturnValues)
+      amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
     }
 
     "delete a return after successful submission" in {
 
-      returnSubmittedAsExpected(pptReference, expectedReturnValues)
+      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
       verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
 
     }
 
     "delete a return after successful amend" in {
-      amendSubmittedAsExpected(pptReference, expectedReturnValues)
+      amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
       verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
 
@@ -321,7 +329,7 @@ class ReturnsControllerSpec
 
       when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
-      returnSubmittedAsExpected(pptReference, expectedReturnValues)
+      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
     }
 
@@ -329,7 +337,7 @@ class ReturnsControllerSpec
 
       when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
-      amendSubmittedAsExpected(pptReference, expectedReturnValues)
+      amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
     }
 
@@ -361,26 +369,25 @@ class ReturnsControllerSpec
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("GET", s"/returns-amend/$pptReference/submission12", pptReference, returnValues, ReturnType.AMEND, userAnswersAmends, Some("submission12"))
+    submissionSuccess(s"/returns-amend/$pptReference/submission12", pptReference, returnValues, userAnswersAmends)
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("GET", s"/returns-submission/$pptReference", pptReference, returnValues, ReturnType.NEW, userAnswersReturns)
+    submissionSuccess(s"/returns-submission/$pptReference", pptReference, returnValues, userAnswersReturns)
 
-  private def submissionSuccess(action: String, url: String, pptReference: String, returnValues: ReturnValues,
-                                returnType: ReturnType, userAnswers: UserAnswers, submissionId: Option[String] = None): Future[NonRepudiationSubmissionAccepted] = {
+  private def submissionSuccess(url: String, pptReference: String, returnValues: ReturnValues, userAnswers: UserAnswers): Future[NonRepudiationSubmissionAccepted] = {
 
     withAuthorizedUser()
     setupMocks(userAnswers)
 
     val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true)
-    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations, submissionId, returnType)
+    val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
 
     val returnsSubmissionResponse: Return = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
 
     mockReturnsSubmissionConnector(returnsSubmissionResponse)
 
-    val submitReturnRequest = FakeRequest(action, url).withHeaders(newHeaders = ("foo", "bar"))
+    val submitReturnRequest = FakeRequest("GET", url).withHeaders(newHeaders = ("foo", "bar"))
     val result: Future[Result] = route(app, submitReturnRequest).get
 
     status(result) mustBe OK

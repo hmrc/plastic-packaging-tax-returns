@@ -21,9 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.amends.AmendValues
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -59,23 +57,6 @@ object EisReturnDetails {
     )
   }
 
-  def apply(amendValues: AmendValues, calculations: Calculations): EisReturnDetails = {
-
-    val creditClaimed = amendValues.convertedPackagingCredit
-
-    returns.EisReturnDetails(
-      manufacturedWeight = amendValues.manufacturedPlasticWeight,
-      importedWeight = amendValues.importedPlasticWeight,
-      totalNotLiable = calculations.deductionsTotal,
-      humanMedicines = amendValues.humanMedicinesPlasticWeight,
-      directExports = amendValues.exportedPlasticWeight,
-      recycledPlastic =  amendValues.recycledPlasticWeight,
-      creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
-      totalWeight = calculations.chargeableTotal,
-      taxDue = calculations.taxDue
-    )
-  }
-
 }
 
 case class ReturnsSubmissionRequest(
@@ -90,27 +71,12 @@ object ReturnsSubmissionRequest {
 
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
-  def apply(returnValues: ReturnValues, calculations: Calculations, submissionId: Option[String], returnType: ReturnType): ReturnsSubmissionRequest = {
-
-    if (returnType == (ReturnType.AMEND) && submissionId.isEmpty)
-      throw new IllegalStateException("must have a submission id to amend a return")
-
+  def apply(returnValues: ReturnValues, calculations: Calculations): ReturnsSubmissionRequest = {
     ReturnsSubmissionRequest(
-      returnType = returnType,
-      submissionId = submissionId,
+      returnType = returnValues.returnType,
+      submissionId = returnValues.submissionId,
       periodKey = returnValues.periodKey,
       returnDetails = EisReturnDetails(returnValues, calculations)
     )
   }
-
-  def apply(amendValues: AmendValues, calculations: Calculations, submissionId: String, returnType: ReturnType): ReturnsSubmissionRequest = {
-
-    ReturnsSubmissionRequest(
-      returnType = returnType,
-      submissionId = Some(submissionId),
-      periodKey = amendValues.periodKey,
-      returnDetails = EisReturnDetails(amendValues, calculations)
-    )
-  }
-
 }

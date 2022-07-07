@@ -23,7 +23,7 @@ import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.NewReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -43,7 +43,7 @@ class CalculationsController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
       sessionRepository.get(request.cacheKey).map {
-        _.flatMap(ReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
+        _.flatMap(NewReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
             Ok(Json.toJson(calculations))
         }

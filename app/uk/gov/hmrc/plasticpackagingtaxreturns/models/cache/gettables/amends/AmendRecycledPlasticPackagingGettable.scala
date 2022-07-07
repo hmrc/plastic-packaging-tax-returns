@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object AmendRecycledPlasticPackagingPage extends Gettable[Long] {
+case object AmendRecycledPlasticPackagingGettable extends Gettable[Long] {
 
   override def path: JsPath = JsPath \ "amend" \ toString
 

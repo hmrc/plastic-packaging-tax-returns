@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
+import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.NewReturnValues
 
-class ReturnsSubmissionRequestSpec extends AnyWordSpec {
+class ReturnsSubmissionRequestSpec extends PlaySpec {
 
   "The EIS Returns Submission Request Object" should {
 
@@ -30,7 +29,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec {
 
       "positive liability" in {
 
-        val returnValues: ReturnValues = ReturnValues(
+        val returnValues: NewReturnValues = NewReturnValues(
           periodKey = "somekey",
           manufacturedPlasticWeight = 1,
           importedPlasticWeight = 2,
@@ -42,7 +41,7 @@ class ReturnsSubmissionRequestSpec extends AnyWordSpec {
 
         val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, isSubmittable = true)
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc, None, ReturnType.NEW)
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc)
 
         eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1

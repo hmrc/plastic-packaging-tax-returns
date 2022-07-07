@@ -20,14 +20,14 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
 
 class PPTCalculationServiceSpec
     extends PlaySpec with MockitoSugar {
 
   val mockAppConfig: AppConfig = mock[AppConfig]
   val calculator: PPTCalculationService = new PPTCalculationService(mockAppConfig)
-  val allZeroReturn = ReturnValues("", 0, 0, 0, 0, 0, 0)
+  val allZeroReturn = NewReturnValues("", 0, 0, 0, 0, 0, 0)
 
   "calculate" must {
 
@@ -267,7 +267,7 @@ class PPTCalculationServiceSpec
       }
 
       "any value is less than 0" in {
-        Seq[ReturnValues => ReturnValues](
+        Seq[NewReturnValues => ReturnValues](
           _.copy(manufacturedPlasticWeight = -1),
           _.copy(importedPlasticWeight = -1),
           _.copy(exportedPlasticWeight = -1),

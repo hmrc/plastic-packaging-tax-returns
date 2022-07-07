@@ -18,44 +18,30 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.amends.AmendValues
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
 import javax.inject.Inject
 import scala.math.BigDecimal.RoundingMode
 
 class PPTCalculationService @Inject()(appConfig: AppConfig) {
 
-  def calculate(returnValues: ReturnValues): Calculations = {
-
+  def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
       returnValues.importedPlasticWeight,
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
       returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight
+      returnValues.exportedPlasticWeight,
+      returnValues.convertedPackagingCredit
     )
 
-  }
-
-  def calculateAmend(amendValues: AmendValues): Calculations = {
-
-    doCalculation(
-      amendValues.importedPlasticWeight,
-      amendValues.manufacturedPlasticWeight,
-      amendValues.humanMedicinesPlasticWeight,
-      amendValues.recycledPlasticWeight,
-      amendValues.exportedPlasticWeight
-    )
-
-  }
-  
   private def doCalculation(
                             importedPlasticWeight: Long,
                             manufacturedPlasticWeight: Long,
                             humanMedicinesPlasticWeight: Long,
                             recycledPlasticWeight: Long,
-                            exportedPlasticWeight: Long
+                            exportedPlasticWeight: Long,
+                            convertedPackagingCredit: BigDecimal,
                           ): Calculations = {
 
     val packagingTotal: Long = importedPlasticWeight +
