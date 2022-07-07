@@ -29,11 +29,14 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.amends.AmendValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTReturnsCalculatorService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -51,7 +54,7 @@ class ReturnsController @Inject()(
                                              returnsConnector: ReturnsConnector,
                                              appConfig: AppConfig,
                                              auditor: Auditor,
-                                             calculationsService: PPTReturnsCalculatorService
+                                             calculationsService: PPTCalculationService
                                            )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses {
 
@@ -62,12 +65,6 @@ class ReturnsController @Inject()(
     ZonedDateTime.parse(date, df)
   }
 
-  def submit(pptReference: String): Action[AnyContent] =
-    doSubmission(pptReference, None, returnType = ReturnType.NEW)
-
-  def amend(pptReference: String, submissionId: String): Action[AnyContent] =
-    doSubmission(pptReference, Some(submissionId), returnType = ReturnType.AMEND)
-
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey).map {
@@ -77,7 +74,7 @@ class ReturnsController @Inject()(
 
     }
 
-  private def doSubmission(pptReference: String, submissionId: Option[String], returnType: ReturnType): Action[AnyContent] =
+  def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
       sessionRepository.get(request.cacheKey).flatMap {
@@ -88,24 +85,54 @@ class ReturnsController @Inject()(
             val calculations: Calculations = calculationsService.calculate(returnValues)
 
             if (calculations.isSubmittable) {
-              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations, submissionId, returnType)
+              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations, None, ReturnType.NEW)
 
-              returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
-                case Right(response) =>
-                  sessionRepository.clear(request.cacheKey).andThen {
-                    case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
-                    case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
-                  }
-                  handleNrsRequest(request, userAnswers.data, eisRequest, response)
-                case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
-              }
+              submit(request, pptReference, eisRequest, userAnswers)
             } else {
               Future.successful(UnprocessableEntity("The calculation is not submittable"))
             }
+
+          }
+      }
+    }
+
+  def amend(pptReference: String, submissionId: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
+
+      sessionRepository.get(request.cacheKey).flatMap {
+        _.flatMap(uA => AmendValues(uA).map(_ -> uA))
+          .fold {
+            Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
+          } { case (amendValues, userAnswers) =>
+            val calculations: Calculations = calculationsService.calculateAmend(amendValues)
+
+            if (calculations.isSubmittable) {
+
+              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(amendValues, calculations, submissionId, ReturnType.AMEND)
+              submit(request, pptReference, eisRequest, userAnswers)
+            } else {
+              Future.successful(UnprocessableEntity("The calculation is not submittable"))
+            }
+
           }
       }
 
     }
+
+  private def submit(request: AuthorizedRequest[AnyContent], pptReference: String, eisRequest: ReturnsSubmissionRequest, userAnswers: UserAnswers)
+            (implicit hc: HeaderCarrier) = {
+
+    returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
+      case Right(response) =>
+        sessionRepository.clear(request.cacheKey).andThen {
+          case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+          case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+        }
+        handleNrsRequest(request, userAnswers.data, eisRequest, response)
+      case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
+    }
+
+  }
 
   private def handleNrsRequest(
                                 request: AuthorizedRequest[AnyContent],

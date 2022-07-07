@@ -19,9 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.amends.AmendValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -41,6 +43,7 @@ object EisReturnDetails {
   implicit val format: OFormat[EisReturnDetails] = Json.format[EisReturnDetails]
 
   def apply(returnValues: ReturnValues, calculations: Calculations): EisReturnDetails = {
+
     val creditClaimed = returnValues.convertedPackagingCredit
 
     returns.EisReturnDetails(
@@ -50,6 +53,23 @@ object EisReturnDetails {
       humanMedicines = returnValues.humanMedicinesPlasticWeight,
       directExports = returnValues.exportedPlasticWeight,
       recycledPlastic =  returnValues.recycledPlasticWeight,
+      creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
+      totalWeight = calculations.chargeableTotal,
+      taxDue = calculations.taxDue
+    )
+  }
+
+  def apply(amendValues: AmendValues, calculations: Calculations): EisReturnDetails = {
+
+    val creditClaimed = amendValues.convertedPackagingCredit
+
+    returns.EisReturnDetails(
+      manufacturedWeight = amendValues.manufacturedPlasticWeight,
+      importedWeight = amendValues.importedPlasticWeight,
+      totalNotLiable = calculations.deductionsTotal,
+      humanMedicines = amendValues.humanMedicinesPlasticWeight,
+      directExports = amendValues.exportedPlasticWeight,
+      recycledPlastic =  amendValues.recycledPlasticWeight,
       creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
       totalWeight = calculations.chargeableTotal,
       taxDue = calculations.taxDue
@@ -80,6 +100,16 @@ object ReturnsSubmissionRequest {
       submissionId = submissionId,
       periodKey = returnValues.periodKey,
       returnDetails = EisReturnDetails(returnValues, calculations)
+    )
+  }
+
+  def apply(amendValues: AmendValues, calculations: Calculations, submissionId: String, returnType: ReturnType): ReturnsSubmissionRequest = {
+
+    ReturnsSubmissionRequest(
+      returnType = returnType,
+      submissionId = Some(submissionId),
+      periodKey = amendValues.periodKey,
+      returnDetails = EisReturnDetails(amendValues, calculations)
     )
   }
 

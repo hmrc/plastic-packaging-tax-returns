@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedPackagingCreditGettable, ExportedPlasticPackagingWeightGettable, ImportedPlasticPackagingWeightGettable, ManufacturedPlasticPackagingWeightGettable, NonExportedHumanMedicinesPlasticPackagingWeightGettable, NonExportedRecycledPlasticPackagingWeightGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
 
 case class ReturnValues(periodKey: String,
                         manufacturedPlasticWeight: Long,

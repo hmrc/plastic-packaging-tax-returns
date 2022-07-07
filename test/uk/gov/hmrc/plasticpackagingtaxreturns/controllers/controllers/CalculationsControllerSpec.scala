@@ -45,9 +45,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnecto
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{Calculations, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
@@ -83,24 +84,11 @@ class CalculationsControllerSpec
       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10
       |    }""".stripMargin).asInstanceOf[JsObject]
 
-  private val invalidDeductionsAnswersData = Json.parse(
-    """{
-      |        "obligation" : {
-      |            "periodKey" : "21C4"
-      |        },
-      |        "manufacturedPlasticPackagingWeight" : 10,
-      |        "importedPlasticPackagingWeight" : 0,
-      |        "exportedPlasticPackagingWeight" : 0,
-      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
-      |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin).asInstanceOf[JsObject]
+  private val userAnswers: UserAnswers        = UserAnswers("id").copy(data = userAnswersData)
+  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data = invalidUserAnswersData)
 
-  private val userAnswers: UserAnswers                  = UserAnswers("id").copy(data = userAnswersData)
-  private val invalidUserAnswers: UserAnswers           = UserAnswers("id").copy(data = invalidUserAnswersData)
-  private val invalidDeductionsUserAnswers: UserAnswers = UserAnswers("id").copy(data = invalidDeductionsAnswersData)
-
-  private val mockAppConfig: AppConfig                         = mock[AppConfig]
-  private val mockSessionRepository: SessionRepository         = mock[SessionRepository]
+  private val mockAppConfig: AppConfig                 = mock[AppConfig]
+  private val mockSessionRepository: SessionRepository = mock[SessionRepository]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -145,24 +133,6 @@ class CalculationsControllerSpec
         withAuthorizedUser()
 
         setupMocks(invalidUserAnswers)
-
-        val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
-
-        val result: Future[Result] = route(app, submitReturnRequest).get
-
-        status(result) mustBe UNPROCESSABLE_ENTITY
-
-      }
-
-    }
-
-    "has invalid deductions" should {
-
-      "return un-processable entity" in {
-
-        withAuthorizedUser()
-
-        setupMocks(invalidDeductionsUserAnswers)
 
         val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
 

@@ -20,13 +20,13 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.returns.ReturnValues
 
-class PPTReturnsCalculatorServiceSpec
+class PPTCalculationServiceSpec
     extends PlaySpec with MockitoSugar {
 
   val mockAppConfig: AppConfig = mock[AppConfig]
-  val calculator: PPTReturnsCalculatorService = new PPTReturnsCalculatorService(mockAppConfig)
+  val calculator: PPTCalculationService = new PPTCalculationService(mockAppConfig)
   val allZeroReturn = ReturnValues("", 0, 0, 0, 0, 0, 0)
 
   "calculate" must {
@@ -200,19 +200,19 @@ class PPTReturnsCalculatorServiceSpec
         calculator.calculate(taxReturn).taxDue mustBe expected
       }
 
-      "the amount calculated has more than 2 decimal places (round up)" in {
+      "the amount calculated has more than 2 decimal places above (round down)" in {
         when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.005))
 
         val taxReturn = allZeroReturn.copy(
           importedPlasticWeight = 1
         )
 
-        val expected = BigDecimal(0.01) // 0.005 rounds to 0.01 2dp
+        val expected = BigDecimal(0) // 0.005 rounds to 0.01 2dp
 
-        // TODO - is this correct? calculator.calculate(taxReturn).taxDue mustBe expected
+        calculator.calculate(taxReturn).taxDue mustBe expected
       }
 
-      "the amount calculated has more than 2 decimal places (round down)" in {
+      "the amount calculated has more than 2 decimal places below (round down)" in {
         when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.004))
 
         val taxReturn = allZeroReturn.copy(
