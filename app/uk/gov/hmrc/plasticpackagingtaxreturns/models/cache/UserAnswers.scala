@@ -18,13 +18,18 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache
 
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+
 import java.time.Instant
 
 final case class UserAnswers(
                               id: String,
                               data: JsObject = Json.obj(),
                               lastUpdated: Instant = Instant.now
-                            )
+                            ) {
+
+  def get[A](page: Gettable[A])(implicit rds: Reads[A]): Option[A] =
+    Reads.optionNoError(Reads.at(page.path)).reads(data).getOrElse(None)
+}
 
 object UserAnswers {
 
