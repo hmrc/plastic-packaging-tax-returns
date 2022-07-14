@@ -56,13 +56,13 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
         auditor.subscriptionUpdated(subscriptionUpdate, pptReference = Some("pptReference"))
 
         eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, subscriptionUpdate) mustBe true
+          eventSendToAudit(auditUrl, ChangeSubscriptionEvent.eventType, Subscription.format.writes(subscriptionUpdate).toString()) mustBe true
         }
       }
     }
 
     "not throw exception" when {
-      "submit registration audit event fails" in {
+      "an audit event fails" in {
         givenAuditReturns(Status.BAD_REQUEST)
         val subscriptionUpdate: Subscription =
           createSubscriptionUpdateRequest(ukLimitedCompanySubscription).toSubscription
@@ -70,7 +70,7 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
         auditor.subscriptionUpdated(subscriptionUpdate)
 
         eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, subscriptionUpdate) mustBe true
+          eventSendToAudit(auditUrl, ChangeSubscriptionEvent.eventType, Subscription.format.writes(subscriptionUpdate).toString()) mustBe true
         }
       }
     }
@@ -85,9 +85,6 @@ class AuditorSpec extends ConnectorISpec with Injector with ScalaFutures with Su
             .withStatus(statusCode)
         )
     )
-
-  private def eventSendToAudit(url: String, subscriptionUpdate: Subscription): Boolean =
-    eventSendToAudit(url, ChangeSubscriptionEvent.eventType, Subscription.format.writes(subscriptionUpdate).toString())
 
   private def eventSendToAudit(url: String, eventType: String, body: String): Boolean =
     try {
