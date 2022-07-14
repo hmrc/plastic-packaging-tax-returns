@@ -112,7 +112,7 @@ class ReturnsController @Inject()(
 
     submitToNrs(request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        auditor.returnSubmitted(
+        auditor.nrsReturnSubmitted(
           updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
             returnSubmissionRequest = returnSubmissionRequest,
             nrsFailureResponse = None
@@ -125,7 +125,7 @@ class ReturnsController @Inject()(
 
     }.recoverWith {
       case exception: Exception =>
-        auditor.returnSubmitted(
+        auditor.nrsReturnSubmitted(
           updateNrsDetails(nrsSubmissionId = None,
             returnSubmissionRequest = returnSubmissionRequest,
             nrsFailureResponse = Some(exception.getMessage)

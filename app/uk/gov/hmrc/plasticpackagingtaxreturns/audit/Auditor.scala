@@ -16,17 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit
 
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import java.time.ZonedDateTime
+import java.time.{LocalDate, ZonedDateTime}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class Auditor @Inject() (auditConnector: AuditConnector) {
+
+  object Result extends Enumeration {
+    type Result = Value
+
+    val Success, Failure = Value.toString
+  }
 
   def subscriptionUpdated(
     subscription: Subscription,
@@ -36,10 +47,128 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
     auditConnector.sendExplicitAudit(ChangeSubscriptionEvent.eventType,
                                      ChangeSubscriptionEvent(subscription, pptReference, processingDateTime))
 
-  def returnSubmitted(
-                       submission: ReturnsSubmissionRequest,
-                      pptReference: Option[String] = None,
-                      processingDateTime: Option[ZonedDateTime] = None
-                     )(implicit hc: HeaderCarrier, ex: ExecutionContext): Unit =
-    auditConnector.sendExplicitAudit(SubmitReturnEvent.eventType, SubmitReturnEvent(submission, pptReference, processingDateTime))
+  def nrsReturnSubmitted(submission: ReturnsSubmissionRequest,
+                         pptReference: Option[String] = None,
+                         processingDateTime: Option[ZonedDateTime] = None)
+                        (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit =
+    auditConnector.sendExplicitAudit(NrsSubmitReturnEvent.eventType, NrsSubmitReturnEvent(submission, pptReference, processingDateTime))
+
+  def getExportCreditsSuccess(internalId: String,
+                              pptReference: String,
+                              fromDate: LocalDate,
+                              toDate: LocalDate,
+                              response: ExportCreditBalanceDisplayResponse,
+                              headers: Seq[(String, String)])
+                             (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, Result.Success, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(GetExportCredits.eventType, payload)
+  }
+
+  def getExportCreditsFailure(internalId: String,
+                              pptReference: String,
+                              fromDate: LocalDate,
+                              toDate: LocalDate,
+                              error: String,
+                              headers: Seq[(String, String)])
+                             (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, Result.Failure, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(GetExportCredits.eventType, payload)
+  }
+
+  def getObligationsSuccess(obligationType: String,
+                            internalId: String,
+                            pptReference: String,
+                            response: Seq[ObligationDataResponse],
+                            headers: Seq[(String, String)])
+                           (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetObligations(obligationType, internalId, pptReference, Result.Success, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(GetObligations.eventType, payload)
+  }
+
+  def getObligationsFailure(obligationType: String,
+                            internalId: String,
+                            pptReference: String,
+                            error: String,
+                            headers: Seq[(String, String)])
+                           (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetObligations(obligationType, internalId, pptReference, Result.Failure, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(GetObligations.eventType, payload)
+  }
+
+  def getPaymentStatementSuccess(internalId: String,
+                                 pptReference: String,
+                                 response: PPTFinancials,
+                                 headers: Seq[(String, String)])
+                                (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetPaymentStatement(internalId, pptReference, Result.Success, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, payload)
+  }
+
+  def getPaymentStatementFailure(internalId: String,
+                                 pptReference: String,
+                                 error: String,
+                                 headers: Seq[(String, String)])
+                                (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetPaymentStatement(internalId, pptReference, Result.Failure, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, payload)
+  }
+
+  def getReturnSuccess(internalId: String,
+                       periodKey: String,
+                       response: JsValue,
+                       headers: Seq[(String, String)])
+                      (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetReturn(internalId, periodKey, Result.Success, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(GetReturn.eventType, payload)
+  }
+
+  def getReturnFailure(internalId: String,
+                       periodKey: String,
+                       error: String,
+                       headers: Seq[(String, String)])
+                      (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = GetReturn(internalId, periodKey, Result.Failure, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(GetReturn.eventType, payload)
+  }
+
+  def submitAmendSuccess(internalId: String,
+                         pptReference: String,
+                         request: ReturnsSubmissionRequest,
+                         response: JsValue,
+                         headers: Seq[(String, String)])
+                        (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = SubmitAmend(internalId, pptReference, Result.Success, request, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(SubmitAmend.eventType, payload)
+  }
+
+  def submitAmendFailure(internalId: String,
+                         pptReference: String,
+                         request: ReturnsSubmissionRequest,
+                         error: String,
+                         headers: Seq[(String, String)])
+                        (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = SubmitAmend(internalId, pptReference, Result.Failure, request, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(SubmitAmend.eventType, payload)
+  }
+
+  def submitReturnSuccess(internalId: String,
+                          pptReference: String,
+                          request: ReturnsSubmissionRequest,
+                          response: JsValue,
+                          headers: Seq[(String, String)])
+                         (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = SubmitReturn(internalId, pptReference, Result.Success, request, Some(response), None, headers)
+    auditConnector.sendExplicitAudit(SubmitReturn.eventType, payload)
+  }
+
+  def submitReturnFailure(internalId: String,
+                          pptReference: String,
+                          request: ReturnsSubmissionRequest,
+                          error: String,
+                          headers: Seq[(String, String)])
+                         (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
+    val payload = SubmitReturn(internalId, pptReference, Result.Failure, request, None, Some(error), headers)
+    auditConnector.sendExplicitAudit(SubmitReturn.eventType, payload)
+  }
+
 }
