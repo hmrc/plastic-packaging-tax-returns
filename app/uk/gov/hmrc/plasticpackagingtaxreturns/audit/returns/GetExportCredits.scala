@@ -19,12 +19,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 
-import java.time.LocalDate
+import java.time.ZonedDateTime
 
 case class GetExportCredits(internalId: String,
                             pptReference: String,
-                            fromDate: LocalDate,
-                            toDate: LocalDate,
+                            fromDate: ZonedDateTime,
+                            toDate: ZonedDateTime,
                             result: String,
                             response: Option[ExportCreditBalanceDisplayResponse],
                             error: Option[String],

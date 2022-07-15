@@ -16,18 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{ChargeDetails, EisReturnDetails, IdDetails, Return}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{
-  GroupPartnershipDetails,
-  GroupPartnershipSubscription
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
-  ChangeOfCircumstanceDetails,
-  SubscriptionDisplayResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 
+import java.time.LocalDate
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime.now
 import java.time.format.DateTimeFormatter
@@ -35,6 +31,8 @@ import java.time.format.DateTimeFormatter
 trait SubscriptionTestData {
 
   protected val pptUserHeaders: Map[String, String] = Map("testHeaderKey" -> "testHeaderValue")
+
+  private val pptReference = "XMPPT0000000123"
 
   protected val ukLimitedCompanySubscription: Subscription = Subscription(
     legalEntityDetails =

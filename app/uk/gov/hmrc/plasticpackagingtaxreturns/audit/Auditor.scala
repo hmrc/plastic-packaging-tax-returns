@@ -26,18 +26,18 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import java.time.{LocalDate, ZonedDateTime}
+import java.time.ZonedDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+object Result extends Enumeration {
+  type Result = Value
+
+  val Success, Failure = Value.toString
+}
+
 @Singleton
 class Auditor @Inject() (auditConnector: AuditConnector) {
-
-  object Result extends Enumeration {
-    type Result = Value
-
-    val Success, Failure = Value.toString
-  }
 
   def subscriptionUpdated(
     subscription: Subscription,
@@ -55,8 +55,8 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
 
   def getExportCreditsSuccess(internalId: String,
                               pptReference: String,
-                              fromDate: LocalDate,
-                              toDate: LocalDate,
+                              fromDate: ZonedDateTime,
+                              toDate: ZonedDateTime,
                               response: ExportCreditBalanceDisplayResponse,
                               headers: Seq[(String, String)])
                              (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
@@ -66,8 +66,8 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
 
   def getExportCreditsFailure(internalId: String,
                               pptReference: String,
-                              fromDate: LocalDate,
-                              toDate: LocalDate,
+                              fromDate: ZonedDateTime,
+                              toDate: ZonedDateTime,
                               error: String,
                               headers: Seq[(String, String)])
                              (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
