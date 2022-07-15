@@ -17,11 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.auditor
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{times, verify}
 import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.Json
-import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.{Auditor, ChangeSubscriptionEvent, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
@@ -134,6 +133,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe Some(exportCreditBalanceDisplayResponse)
           capturedEvent.error mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -158,6 +158,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -181,6 +182,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe Some(obligationDataResponse)
           capturedEvent.error mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -201,6 +203,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -224,6 +227,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Success
           capturedEvent.response mustBe Some(financials)
           capturedEvent.error mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -244,6 +248,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Failure
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -267,6 +272,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Success
           capturedEvent.error mustBe None
           capturedEvent.response mustBe Some(Json.toJson(aReturn()))
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -287,6 +293,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Failure
           capturedEvent.error mustBe Some("Something went wrong")
           capturedEvent.response mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -310,6 +317,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Success
           capturedEvent.response mustBe Some(Json.toJson(aReturn()))
           capturedEvent.error mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -330,6 +338,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Failure
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -353,6 +362,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Success
           capturedEvent.response mustBe Some(Json.toJson(aReturn()))
           capturedEvent.error mustBe None
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -373,6 +383,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe Result.Failure
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
+          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
