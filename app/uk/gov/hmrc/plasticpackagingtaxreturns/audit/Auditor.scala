@@ -53,10 +53,9 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
                               pptReference: String,
                               fromDate: LocalDate,
                               toDate: LocalDate,
-                              response: ExportCreditBalanceDisplayResponse,
-                              headers: Seq[(String, String)])
+                              response: ExportCreditBalanceDisplayResponse)
                              (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(response), None, headers)
+    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(response), None)
     auditConnector.sendExplicitAudit(GetExportCredits.eventType, payload)
   }
 
@@ -64,10 +63,9 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
                               pptReference: String,
                               fromDate: LocalDate,
                               toDate: LocalDate,
-                              error: String,
-                              headers: Seq[(String, String)])
+                              error: String)
                              (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(error), headers)
+    val payload = GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(error))
     auditConnector.sendExplicitAudit(GetExportCredits.eventType, payload)
   }
 

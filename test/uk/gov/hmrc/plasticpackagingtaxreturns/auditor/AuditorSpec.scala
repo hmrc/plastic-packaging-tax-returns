@@ -119,7 +119,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           val captor = ArgumentCaptor.forClass(classOf[GetExportCredits])
 
           auditor.getExportCreditsSuccess(
-            "testId", pptReference, fromDate, toDate, exportCreditBalanceDisplayResponse, pptUserHeaders.toSeq
+            "testId", pptReference, fromDate, toDate, exportCreditBalanceDisplayResponse
           )
 
           verify(auditConnector, times(1)).
@@ -133,7 +133,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe Some(exportCreditBalanceDisplayResponse)
           capturedEvent.error mustBe None
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -144,7 +143,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           val captor = ArgumentCaptor.forClass(classOf[GetExportCredits])
 
           auditor.getExportCreditsFailure(
-            "testId", pptReference, fromDate, toDate, "Something went wrong", pptUserHeaders.toSeq
+            "testId", pptReference, fromDate, toDate, "Something went wrong"
           )
 
           verify(auditConnector, times(1)).
@@ -158,7 +157,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }

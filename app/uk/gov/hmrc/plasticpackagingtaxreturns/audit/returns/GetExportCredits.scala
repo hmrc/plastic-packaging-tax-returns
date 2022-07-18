@@ -27,8 +27,7 @@ case class GetExportCredits(internalId: String,
                             toDate: LocalDate,
                             result: String,
                             response: Option[ExportCreditBalanceDisplayResponse],
-                            error: Option[String],
-                            headers: Seq[(String, String)])
+                            error: Option[String])
 
 object GetExportCredits {
   implicit val format: OFormat[GetExportCredits] = Json.format[GetExportCredits]

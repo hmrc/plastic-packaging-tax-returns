@@ -63,7 +63,7 @@ class ExportCreditBalanceConnector @Inject() (
           s"PPT view export credit balance with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
         )
 
-        auditor.getExportCreditsSuccess(internalId, pptReference, fromDate, toDate, response, requestHeaders)
+        auditor.getExportCreditsSuccess(internalId, pptReference, fromDate, toDate, response)
         Right(response)
       }
       .recover {
@@ -73,7 +73,7 @@ class ExportCreditBalanceConnector @Inject() (
               s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
           )
 
-          auditor.getExportCreditsFailure(internalId, pptReference, fromDate, toDate, httpEx.getMessage, requestHeaders)
+          auditor.getExportCreditsFailure(internalId, pptReference, fromDate, toDate, httpEx.getMessage)
           Left(httpEx.statusCode)
         case ex: Exception =>
           logger.warn(
@@ -82,7 +82,7 @@ class ExportCreditBalanceConnector @Inject() (
             ex
           )
 
-          auditor.getExportCreditsFailure(internalId, pptReference, fromDate, toDate, ex.getMessage, requestHeaders)
+          auditor.getExportCreditsFailure(internalId, pptReference, fromDate, toDate, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }
