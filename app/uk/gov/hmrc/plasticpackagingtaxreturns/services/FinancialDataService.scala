@@ -33,26 +33,31 @@ class FinancialDataService @Inject() (connector: FinancialDataConnector) {
     onlyOpenItems: Option[Boolean],
     includeLocks: Option[Boolean],
     calculateAccruedInterest: Option[Boolean],
-    customerPaymentInformation: Option[Boolean]
-  )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] =
+    customerPaymentInformation: Option[Boolean],
+    internalId: String
+  )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     connector
       .get(pptReference,
-           Some(fromDate),
-           Some(toDate),
-           onlyOpenItems,
-           includeLocks,
-           calculateAccruedInterest,
-           customerPaymentInformation
+        Some(fromDate),
+        Some(toDate),
+        onlyOpenItems,
+        includeLocks,
+        calculateAccruedInterest,
+        customerPaymentInformation,
+        internalId
       )
+  }
 
-  def getFinancials(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] =
+  def getFinancials(pptReference: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     connector.get(pptReference = pptReference,
-                  fromDate = None,
-                  toDate = None,
-                  onlyOpenItems = Some(true),
-                  includeLocks = Some(true),
-                  calculateAccruedInterest = Some(true),
-                  customerPaymentInformation = None
+      fromDate = None,
+      toDate = None,
+      onlyOpenItems = Some(true),
+      includeLocks = Some(true),
+      calculateAccruedInterest = Some(true),
+      customerPaymentInformation = None,
+      internalId
     )
+  }
 
 }

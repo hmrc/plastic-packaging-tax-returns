@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction, Identification, Obligation, ObligationDataResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{ChargeDetails, EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
@@ -27,7 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, PPTFinancials, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime.now
 import java.time.format.DateTimeFormatter
@@ -79,10 +79,40 @@ trait ReturnsTestData {
       Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
     obligationDetails = Nil
   )
-  val obligationDataResponse: Seq[ObligationDataResponse] =
-    Seq(ObligationDataResponse(Seq(obligation, obligation)))
+  val obligationDataResponse: ObligationDataResponse =
+    ObligationDataResponse(Seq(obligation, obligation))
 
-  val financials = PPTFinancials(creditAmount = None, debitAmount = Some(Charge(1.0, LocalDate.now())), overdueAmount = None)
+  val financials = FinancialDataResponse(idType = Some("idType"),
+    idNumber = Some("idNumber"),
+    regimeType = Some("regimeType"),
+    processingDate = LocalDateTime.now(),
+    financialTransactions = Seq(
+      FinancialTransaction(
+        chargeType = Some("chargeType"),
+        mainType = Some("mainType"),
+        periodKey = Some("periodKey"),
+        periodKeyDescription =
+          Some("periodKeyDescription"),
+        taxPeriodFrom = Some(LocalDate.now()),
+        taxPeriodTo = Some(LocalDate.now()),
+        outstandingAmount =
+          Some(BigDecimal(1000)),
+        items = Seq(
+          FinancialItem(
+            subItem = Some("subItem"),
+            dueDate =
+              Some(LocalDate.now()),
+            amount =
+              Some(BigDecimal(1000)),
+            clearingDate =
+              Some(LocalDate.now()),
+            clearingReason =
+              Some("clearingReason")
+          )
+        )
+      )
+    )
+  )
 
   def aReturn(modifiers: ReturnsResponseModifier*): Return =
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))

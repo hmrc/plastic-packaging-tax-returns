@@ -62,7 +62,7 @@ class ReturnsController @Inject()(
 
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      returnsConnector.get(pptReference = pptReference, periodKey = periodKey).map {
+      returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
@@ -85,7 +85,7 @@ class ReturnsController @Inject()(
 
             if (calculations.isSubmittable) {
               val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(amendValues, calculations)
-              returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
+              returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
                 case Right(response) =>
                   sessionRepository.clear(request.cacheKey).andThen {
                     case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")

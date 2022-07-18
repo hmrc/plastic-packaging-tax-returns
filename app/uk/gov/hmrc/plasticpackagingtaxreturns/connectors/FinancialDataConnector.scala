@@ -24,6 +24,7 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 
@@ -32,7 +33,7 @@ import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class FinancialDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
+class FinancialDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditor: Auditor)(
   implicit ec: ExecutionContext
 ) extends DESConnector {
 
@@ -45,7 +46,8 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
     onlyOpenItems: Option[Boolean],
     includeLocks: Option[Boolean],
     calculateAccruedInterest: Option[Boolean],
-    customerPaymentInformation: Option[Boolean]
+    customerPaymentInformation: Option[Boolean],
+    internalId: String
   )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.financial.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
@@ -58,15 +60,19 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
                                                                      "customerPaymentInformation" -> customerPaymentInformation
     )
 
+    val requestHeaders: Seq[(String, String)] = headers :+ correlationIdHeader
+
     httpClient.GET[FinancialDataResponse](appConfig.enterpriseFinancialDataUrl(pptReference),
                                           queryParams = queryParams,
-                                          headers = headers :+ correlationIdHeader
+                                          headers = requestHeaders
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(
           s"Get enterprise financial data with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
         )
+
+        auditor.getPaymentStatementSuccess(internalId, pptReference, response, requestHeaders)
         Right(response)
       }
       .recover {
@@ -76,9 +82,15 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
               s"Upstream error returned when getting enterprise financial data correlationId [${correlationIdHeader._2}] and " +
                 s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
             )
+
+            auditor.getPaymentStatementFailure(internalId, pptReference, s"${httpEx.statusCode}-${httpEx.getMessage}", requestHeaders)
             Left(httpEx.statusCode)
           })({
-            inferredResponse => Right(inferredResponse)
+            inferredResponse => {
+              auditor.getPaymentStatementSuccess(internalId, pptReference, inferredResponse, requestHeaders)
+              Right(inferredResponse)
+            }
+
           })
         case ex: Exception =>
           logger.warn(
@@ -86,6 +98,8 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
               s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
             ex
           )
+
+          auditor.getPaymentStatementFailure(internalId, pptReference, ex.getMessage, requestHeaders)
           Left(INTERNAL_SERVER_ERROR)
       }
   }

@@ -36,6 +36,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
   val getObligationDataTimer = "ppt.get.obligation.data.timer"
 
+  val internalId: String               = "someId"
   val pptReference                     = "XXPPTP103844123"
   val fromDate: Option[LocalDate]      = Some(LocalDate.parse("2021-10-01"))
   val toDate: Option[LocalDate]        = Some(LocalDate.parse("2021-10-31"))
@@ -72,7 +73,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
         stubObligationDataRequest(response)
 
-        val res = await(connector.get(pptReference, fromDate, toDate, status))
+        val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
         res.right.get mustBe response
 
         getTimer(getObligationDataTimer).getCount mustBe 1
@@ -89,7 +90,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
             )
         )
 
-        val res = await(connector.get(pptReference, fromDate, toDate, status))
+        val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
         res.right.get mustBe ObligationDataResponse.empty
 
         getTimer(getObligationDataTimer).getCount mustBe 1
@@ -105,7 +106,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
             )
         )
 
-        val res = await(connector.get(pptReference, fromDate, toDate, status))
+        val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
         getTimer(getObligationDataTimer).getCount mustBe 1
@@ -122,7 +123,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
           stubFor(get(anyUrl()).willReturn(WireMock.status(statusCode)))
 
-          val res = await(connector.get(pptReference, fromDate, toDate, status))
+          val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
 
           res.left.get mustBe statusCode
           getTimer(getObligationDataTimer).getCount mustBe 1

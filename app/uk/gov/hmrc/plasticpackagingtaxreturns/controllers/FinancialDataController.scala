@@ -35,24 +35,25 @@ class FinancialDataController @Inject() (
     extends BackendController(controllerComponents) with JSONResponses {
 
   def get(
-    pptReference: String,
-    fromDate: LocalDate,
-    toDate: LocalDate,
-    onlyOpenItems: Option[Boolean] = None,
-    includeLocks: Option[Boolean] = None,
-    calculateAccruedInterest: Option[Boolean] = None,
-    customerPaymentInformation: Option[Boolean] = None
-  ): Action[AnyContent] =
+           pptReference: String,
+           fromDate: LocalDate,
+           toDate: LocalDate,
+           onlyOpenItems: Option[Boolean] = None,
+           includeLocks: Option[Boolean] = None,
+           calculateAccruedInterest: Option[Boolean] = None,
+           customerPaymentInformation: Option[Boolean] = None
+         ): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       financialDataService.getRaw(pptReference,
-                                  fromDate,
-                                  toDate,
-                                  onlyOpenItems,
-                                  includeLocks,
-                                  calculateAccruedInterest,
-                                  customerPaymentInformation
+        fromDate,
+        toDate,
+        onlyOpenItems,
+        includeLocks,
+        calculateAccruedInterest,
+        customerPaymentInformation,
+        request.internalId
       ).map {
-        case Right(response)       => Ok(response)
+        case Right(response) => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
     }

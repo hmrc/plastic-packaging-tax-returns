@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, post}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
@@ -34,6 +34,7 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
 
   val displayExportCreditBalanceTimer = "ppt.exportcreditbalance.display.timer"
 
+  val internalId: String = "someId"
   val pptReference        = "XXPPTP103844123"
   val fromDate: LocalDate = LocalDate.parse("2021-10-01")
   val toDate: LocalDate   = LocalDate.parse("2021-10-31")
@@ -51,7 +52,9 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
 
         stubExportCreditBalanceDisplay(exportCreditBalanceDisplayResponse)
 
-        val res = await(connector.getBalance(pptReference, fromDate, toDate))
+        givenAuditReturns(Status.NO_CONTENT)
+
+        val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
         res.right.get mustBe exportCreditBalanceDisplayResponse
 
         getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
@@ -67,7 +70,9 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
             )
         )
 
-        val res = await(connector.getBalance(pptReference, fromDate, toDate))
+        givenAuditReturns(Status.NO_CONTENT)
+
+        val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
         getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
@@ -84,7 +89,9 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
                                                 errors = Seq(EISError("Error Code", "Error Reason"))
           )
 
-          val res = await(connector.getBalance(pptReference, fromDate, toDate))
+          givenAuditReturns(Status.NO_CONTENT)
+
+          val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
 
           res.left.get mustBe statusCode
           getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
@@ -112,5 +119,17 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
             .withBody(Json.obj("failures" -> errors).toString)
         )
     )
+
+  private def givenAuditReturns(statusCode: Int): Unit = {
+    val auditUrl = "/write/audit"
+
+    stubFor(
+      post(auditUrl)
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+        )
+    )
+  }
 
 }

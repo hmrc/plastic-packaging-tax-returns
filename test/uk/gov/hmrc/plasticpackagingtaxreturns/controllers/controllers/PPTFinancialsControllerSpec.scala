@@ -57,7 +57,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "get PTPFinancial from service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any())(any()))
+      when(mockFinancialDataService.getFinancials(any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
@@ -70,17 +70,17 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
     "get should call Financial Connector" in {
 
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any())(any()))
+      when(mockFinancialDataService.getFinancials(any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       sut.get(pptReference).apply(FakeRequest())
 
-      verify(mockFinancialDataService).getFinancials(exactlyEq(pptReference))(any())
+      verify(mockFinancialDataService).getFinancials(exactlyEq(pptReference), any())(any())
     }
 
     "get should call the service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any())(any()))
+      when(mockFinancialDataService.getFinancials(any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
 
       await(sut.get(pptReference).apply(FakeRequest()))
@@ -90,7 +90,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "return internal server error response" when {
       "if error return from connector" in {
-        when(mockFinancialDataService.getFinancials(any())(any()))
+        when(mockFinancialDataService.getFinancials(any(), any())(any()))
           .thenReturn(Future.successful(Left(500)))
 
         val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())

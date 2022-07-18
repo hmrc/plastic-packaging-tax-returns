@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 
-import play.api.libs.json.{JsValue, Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.ReturnsSubmissionRequest
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 
 case class SubmitReturn(internalId: String,
                         pptReference: String,
                         result: String,
                         request: ReturnsSubmissionRequest,
-                        response: Option[JsValue],
+                        response: Option[Return],
                         error: Option[String],
                         headers: Seq[(String, String)])
 

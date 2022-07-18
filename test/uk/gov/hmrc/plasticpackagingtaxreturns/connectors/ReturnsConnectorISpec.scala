@@ -32,6 +32,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
   private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
 
+  private val internalId: String = "someId"
   private val pptReference = "XMPPT0000000123"
 
   "Returns Connector" when {
@@ -40,7 +41,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         val returnsSubmissionResponse = aReturn()
         stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
 
-        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
+        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
         res.right.get mustBe returnsSubmissionResponse
       }
@@ -48,7 +49,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       "return error when unexpected response received" in {
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
 
-        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
+        val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
       }
@@ -58,7 +59,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
           s"upstream service fails with $statusCode" in {
             stubFailedReturnsSubmission(pptReference, statusCode, "")
 
-            val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest()))
+            val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
             res.left.get mustBe statusCode
           }
@@ -71,7 +72,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         val returnForDisplay = aReturnWithReturnDetails()
         stubSuccessfulReturnDisplay(pptReference, "22C1", returnForDisplay)
 
-        val res = await(returnsConnector.get(pptReference, "22C1"))
+        val res = await(returnsConnector.get(pptReference, "22C1", internalId))
 
         res.right.get mustBe Json.toJson(returnForDisplay)
       }
@@ -79,7 +80,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       "return error when unexpected response received" in {
         stubFailedReturnDisplay(pptReference, "22C2", Status.OK, "XXX")
 
-        val res = await(returnsConnector.get(pptReference, "22C2"))
+        val res = await(returnsConnector.get(pptReference, "22C2", internalId))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
       }
@@ -89,7 +90,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
           s"upstream service fails with $statusCode" in {
             stubFailedReturnDisplay(pptReference, "22C2", statusCode, "")
 
-            val res = await(returnsConnector.get(pptReference, "22C2"))
+            val res = await(returnsConnector.get(pptReference, "22C2", internalId))
 
             res.left.get mustBe statusCode
           }

@@ -23,7 +23,7 @@ case class GetObligations(obligationType: String,
                           internalId: String,
                           pptReference: String,
                           result: String,
-                          response: Option[Seq[ObligationDataResponse]],
+                          response: Option[ObligationDataResponse],
                           error: Option[String],
                           headers: Seq[(String, String)])
 

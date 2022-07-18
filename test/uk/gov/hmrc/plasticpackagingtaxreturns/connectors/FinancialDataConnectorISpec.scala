@@ -34,6 +34,7 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
 
   val getFinancialDataTimer = "ppt.get.financial.data.timer"
 
+  val internalId: String                          = "someId"
   val pptReference                                = "XXPPTP103844123"
   val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
   val toDate: LocalDate                           = LocalDate.parse("2021-10-31")
@@ -78,12 +79,13 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
 
   private def getFinancialData =
     connector.get(pptReference,
-                  Some(fromDate),
-                  Some(toDate),
-                  onlyOpenItems,
-                  includeLocks,
-                  calculateAccruedInterest,
-                  customerPaymentInformation
+      Some(fromDate),
+      Some(toDate),
+      onlyOpenItems,
+      includeLocks,
+      calculateAccruedInterest,
+      customerPaymentInformation,
+      internalId
     )
 
   "FinancialData connector for obligation data" should {
