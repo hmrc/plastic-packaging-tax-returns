@@ -42,6 +42,7 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
   val fromDate: LocalDate = LocalDate.parse("2021-10-01")
   val toDate: LocalDate   = LocalDate.parse("2021-10-31")
   val auditUrl            = "/write/audit"
+  val implicitAuditUrl    = s"$auditUrl/merged"
 
   val exportCreditBalanceDisplayResponse: ExportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
     processingDate = "2021-11-17T09:32:50.345Z",
@@ -58,7 +59,8 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
 
         stubExportCreditBalanceDisplay(exportCreditBalanceDisplayResponse)
 
-        givenAuditReturns(Status.NO_CONTENT, auditModel)
+        givenAuditReturns(auditUrl, Status.NO_CONTENT, auditModel)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT, auditModel)
 
         val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
         res.right.get mustBe exportCreditBalanceDisplayResponse
@@ -130,9 +132,9 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
         )
     )
 
-  private def givenAuditReturns(statusCode: Int, displayResponse: GetExportCredits): Unit =
+  private def givenAuditReturns(url: String, statusCode: Int, displayResponse: GetExportCredits): Unit =
     stubFor(
-      post(auditUrl)
+      post(url)
         .willReturn(
           aResponse()
             .withStatus(statusCode)
