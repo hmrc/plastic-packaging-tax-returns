@@ -24,8 +24,7 @@ case class SubmitAmend(internalId :String,
                        result: String,
                        request: ReturnsSubmissionRequest,
                        response: Option[JsValue],
-                       error: Option[String],
-                       headers: Seq[(String, String)])
+                       error: Option[String])
 
 object SubmitAmend {
   implicit val format: OFormat[SubmitAmend] = Json.format[SubmitAmend]

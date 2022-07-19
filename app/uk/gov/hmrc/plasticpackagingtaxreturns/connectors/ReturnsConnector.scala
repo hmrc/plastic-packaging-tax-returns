@@ -60,7 +60,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             s"Response contains submissionId [${response.idDetails.submissionId}]"
         )
 
-        auditor.submitReturnSuccess(internalId, pptReference, request, response, requestHeaders)
+        auditor.submitReturnSuccess(internalId, pptReference, request, response)
         Right(response)
       }
       .recover {
@@ -72,7 +72,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             httpEx
           )
 
-          auditor.submitReturnFailure(internalId, pptReference, request,s"${httpEx.statusCode}-${httpEx.message}", requestHeaders)
+          auditor.submitReturnFailure(internalId, pptReference, request,s"${httpEx.message}")
           Left(httpEx.statusCode)
         case ex: Exception =>
           logger.warn(
@@ -81,7 +81,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             ex
           )
 
-          auditor.submitReturnFailure(internalId, pptReference, request, ex.getMessage, requestHeaders)
+          auditor.submitReturnFailure(internalId, pptReference, request, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }
@@ -91,19 +91,17 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
     val requestHeaders                        = headers :+ correlationIdHeader
 
-    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey),
-      headers = headers :+ correlationIdHeader
-    )
+    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
       .andThen { case _ => timer.stop() }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
         if (response.status == OK) {
 
-          auditor.getReturnSuccess(internalId ,periodKey, response.json, requestHeaders)
+          auditor.getReturnSuccess(internalId ,periodKey, response.json)
           Right(response.json)
         }
         else {
-          auditor.getReturnFailure(internalId, periodKey, s"${response.status}-${response.body}", requestHeaders)
+          auditor.getReturnFailure(internalId, periodKey, s"${response.body}")
           Left(response.status)
         }
       }
@@ -111,7 +109,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
         case ex: Exception =>
           logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, s"exception: ${ex.getMessage}"), ex)
 
-          auditor.getReturnFailure(internalId, periodKey, ex.getMessage, requestHeaders)
+          auditor.getReturnFailure(internalId, periodKey, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }

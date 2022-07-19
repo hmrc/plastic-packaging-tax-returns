@@ -70,7 +70,7 @@ class ObligationsDataConnector @Inject()
 
         val adjusted = if (appConfig.adjustObligationDates) response.adjustDates else response
 
-        auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(adjusted), requestHeaders)
+        auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(adjusted))
         Right(adjusted)
       }
       .recover {
@@ -79,17 +79,17 @@ class ObligationsDataConnector @Inject()
 
           if(isEmptyObligation(message) && code == NOT_FOUND) {
 
-            auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(ObligationDataResponse.empty), requestHeaders)
+            auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(ObligationDataResponse.empty))
             Right(ObligationDataResponse.empty)
           }
           else {
-            auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message, requestHeaders)
+            auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message)
             Left(code)
           }
         case Upstream5xxResponse(message, code, _, _) =>
           logUpstreamError(pptReference, correlationId, queryParams, message, code)
 
-          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message, requestHeaders)
+          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message)
           Left(code)
         case ex: Exception =>
           logger.error(
@@ -98,7 +98,7 @@ class ObligationsDataConnector @Inject()
             ex
           )
 
-          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, ex.getMessage, requestHeaders)
+          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }

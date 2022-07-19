@@ -24,12 +24,11 @@ case class GetObligations(obligationType: String,
                           pptReference: String,
                           result: String,
                           response: Option[ObligationDataResponse],
-                          error: Option[String],
-                          headers: Seq[(String, String)])
+                          error: Option[String])
 
 object GetObligations {
   implicit val format: OFormat[GetObligations] = Json.format[GetObligations]
-  val eventType: String                                 = "GetFulfilledObligations"
+  val eventType: String                        = "GetObligations"
 }
 
 

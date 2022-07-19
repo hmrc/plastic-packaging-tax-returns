@@ -35,7 +35,7 @@ case class NrsSubmitReturnEvent(
 
 object NrsSubmitReturnEvent {
   implicit val format: OFormat[NrsSubmitReturnEvent] = Json.format[NrsSubmitReturnEvent]
-  val eventType: String = "nrsSubmitOrAmendReturn"
+  val eventType: String                              = "nrsSubmitOrAmendReturn"
 
   def apply(
              submission: ReturnsSubmissionRequest,

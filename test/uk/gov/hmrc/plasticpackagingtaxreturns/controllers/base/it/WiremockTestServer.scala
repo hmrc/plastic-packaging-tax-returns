@@ -18,8 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.MappingBuilder
-import com.github.tomakehurst.wiremock.client.WireMock.{postRequestedFor, urlEqualTo}
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec

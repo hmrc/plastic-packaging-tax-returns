@@ -169,7 +169,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetObligations])
 
-          auditor.getObligationsSuccess("Open", "testId", pptReference, Some(obligationDataResponse), pptUserHeaders.toSeq)
+          auditor.getObligationsSuccess("Open", "testId", pptReference, Some(obligationDataResponse))
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetObligations.eventType), captor.capture())(any(), any(), any())
@@ -180,7 +180,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe Some(obligationDataResponse)
           capturedEvent.error mustBe None
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -190,7 +189,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetObligations])
 
-          auditor.getObligationsFailure("Open", "testId", pptReference, "Something went wrong", pptUserHeaders.toSeq)
+          auditor.getObligationsFailure("Open", "testId", pptReference, "Something went wrong")
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetObligations.eventType), captor.capture())(any(), any(), any())
@@ -201,7 +200,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.internalId mustBe "testId"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -214,7 +212,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetPaymentStatement])
 
-          auditor.getPaymentStatementSuccess("testId", pptReference, financials, pptUserHeaders.toSeq)
+          auditor.getPaymentStatementSuccess("testId", pptReference, financials)
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetPaymentStatement.eventType), captor.capture())(any(), any(), any())
@@ -225,7 +223,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Success"
           capturedEvent.response mustBe Some(financials)
           capturedEvent.error mustBe None
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -235,7 +232,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetPaymentStatement])
 
-          auditor.getPaymentStatementFailure("testId", pptReference, "Something went wrong", pptUserHeaders.toSeq)
+          auditor.getPaymentStatementFailure("testId", pptReference, "Something went wrong")
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetPaymentStatement.eventType), captor.capture())(any(), any(), any())
@@ -246,7 +243,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Failure"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -259,7 +255,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetReturn])
 
-          auditor.getReturnSuccess("testId", "pkey", Json.toJson(aReturn()), pptUserHeaders.toSeq)
+          auditor.getReturnSuccess("testId", "pkey", Json.toJson(aReturn()))
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetReturn.eventType), captor.capture())(any(), any(), any())
@@ -270,7 +266,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Success"
           capturedEvent.error mustBe None
           capturedEvent.response mustBe Some(Json.toJson(aReturn()))
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -280,7 +275,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[GetReturn])
 
-          auditor.getReturnFailure("testId", "pkey", "Something went wrong", pptUserHeaders.toSeq)
+          auditor.getReturnFailure("testId", "pkey", "Something went wrong")
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(GetReturn.eventType), captor.capture())(any(), any(), any())
@@ -291,7 +286,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Failure"
           capturedEvent.error mustBe Some("Something went wrong")
           capturedEvent.response mustBe None
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }
@@ -304,7 +298,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[SubmitReturn])
 
-          auditor.submitReturnSuccess("testId", pptReference, aReturnsSubmissionRequest, aReturn(), pptUserHeaders.toSeq)
+          auditor.submitReturnSuccess("testId", pptReference, aReturnsSubmissionRequest, aReturn())
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(SubmitReturn.eventType), captor.capture())(any(), any(), any())
@@ -315,7 +309,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Success"
           capturedEvent.response mustBe Some(aReturn())
           capturedEvent.error mustBe None
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
 
@@ -325,7 +318,7 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
 
           val captor = ArgumentCaptor.forClass(classOf[SubmitReturn])
 
-          auditor.submitReturnFailure("testId", pptReference, aReturnsSubmissionRequest, "Something went wrong", pptUserHeaders.toSeq)
+          auditor.submitReturnFailure("testId", pptReference, aReturnsSubmissionRequest, "Something went wrong")
 
           verify(auditConnector, times(1)).
             sendExplicitAudit(eqTo(SubmitReturn.eventType), captor.capture())(any(), any(), any())
@@ -336,7 +329,6 @@ class AuditorSpec extends ConnectorISpec with ScalaFutures with SubscriptionTest
           capturedEvent.result mustBe "Failure"
           capturedEvent.response mustBe None
           capturedEvent.error mustBe Some("Something went wrong")
-          capturedEvent.headers mustBe pptUserHeaders.toSeq
 
         }
       }

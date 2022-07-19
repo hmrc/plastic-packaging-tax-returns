@@ -16,14 +16,18 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put, urlMatching}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Inspectors.forAll
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 import java.time.LocalDate
@@ -32,67 +36,170 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
   private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
 
-  private val internalId: String = "someId"
-  private val pptReference = "XMPPT0000000123"
+  private val internalId: String   = "someId"
+  private val pptReference: String = "XMPPT0000000123"
+  val auditUrl: String             = "/write/audit"
+  val implicitAuditUrl: String     = s"$auditUrl/merged"
+  val periodKey: String            = "22C1"
+
+  val getUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
+  val putUrl = s"http://localhost:20202/plastic-packaging-tax/returns/PPT/$pptReference"
+
+  override def overrideConfig: Map[String, Any] =
+    Map("microservice.services.eis.host" -> wireHost,
+      "microservice.services.eis.port" -> wirePort,
+      "auditing.consumer.baseUri.port" -> wirePort,
+      "auditing.enabled" -> true
+    )
 
   "Returns Connector" when {
+
     "submitting a return" should {
+
       "return expected response" in {
+
         val returnsSubmissionResponse = aReturn()
+
+        val auditModel = SubmitReturn(internalId, pptReference, "Success", aReturnsSubmissionRequest, Some(returnsSubmissionResponse), None)
+
         stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
         res.right.get mustBe returnsSubmissionResponse
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
       }
 
-      "return error when unexpected response received" in {
+      "handle bad json" in {
+
+        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
+          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
+
+        val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
+
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
       }
 
       forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+
         s"return $statusCode" when {
+
           s"upstream service fails with $statusCode" in {
-            stubFailedReturnsSubmission(pptReference, statusCode, "")
+
+            val errors  = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
+            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: $errors"
+
+            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
+
+            stubFailedReturnsSubmission(pptReference, statusCode, errors =
+              Seq(EISError("Error Code", "Error Reason"))
+            )
+
+            givenAuditReturns(auditUrl, Status.NO_CONTENT)
+            givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
             val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
             res.left.get mustBe statusCode
+
+            eventually(timeout(Span(5, Seconds))) {
+              eventSendToAudit(auditUrl, auditModel) mustBe true
+            }
+
           }
         }
       }
     }
 
     "get return " should {
-      "return expected response" in {
-        val returnForDisplay = aReturnWithReturnDetails()
-        stubSuccessfulReturnDisplay(pptReference, "22C1", returnForDisplay)
 
-        val res = await(returnsConnector.get(pptReference, "22C1", internalId))
+      "return expected response" in {
+
+        val returnForDisplay: Return = aReturnWithReturnDetails()
+
+        val auditModel = GetReturn(internalId, periodKey, "Success", Some(Json.toJson(returnForDisplay)), None)
+
+        stubSuccessfulReturnDisplay(pptReference, periodKey, returnForDisplay)
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+        val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
         res.right.get mustBe Json.toJson(returnForDisplay)
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
       }
 
-      "return error when unexpected response received" in {
-        stubFailedReturnDisplay(pptReference, "22C2", Status.OK, "XXX")
+      "handle bad json" in {
 
-        val res = await(returnsConnector.get(pptReference, "22C2", internalId))
+        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
+          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
+
+        val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
+
+        stubFailedReturnDisplay(pptReference, periodKey, Status.OK, "XXX")
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+        val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
       }
 
       forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-        s"return $statusCode" when {
-          s"upstream service fails with $statusCode" in {
-            stubFailedReturnDisplay(pptReference, "22C2", statusCode, "")
 
-            val res = await(returnsConnector.get(pptReference, "22C2", internalId))
+        s"return $statusCode" when {
+
+          s"upstream service fails with $statusCode" in {
+
+            val error   = "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
+
+            val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
+
+            stubFailedReturnDisplay(pptReference, periodKey, statusCode,
+              "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
+            )
+
+            givenAuditReturns(auditUrl, Status.NO_CONTENT)
+            givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+            val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
             res.left.get mustBe statusCode
+
+            eventually(timeout(Span(5, Seconds))) {
+              eventSendToAudit(auditUrl, auditModel) mustBe true
+            }
+
           }
         }
       }
@@ -149,13 +256,23 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         )
     )
 
-  private def stubFailedReturnsSubmission(returnId: String, statusCode: Int, body: String) =
+  private def stubFailedReturnsSubmission(returnId: String, statusCode: Int, errors: String) =
     stubFor(
       put(urlMatching(s"/plastic-packaging-tax/returns/PPT/$returnId"))
         .willReturn(
           aResponse()
             .withStatus(statusCode)
-            .withBody(body)
+            .withBody(errors)
+        )
+    )
+
+  private def stubFailedReturnsSubmission(returnId: String, statusCode: Int, errors: Seq[EISError]) =
+    stubFor(
+      put(urlMatching(s"/plastic-packaging-tax/returns/PPT/$returnId"))
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+            .withBody(Json.obj("failures" -> errors).toString)
         )
     )
 
@@ -194,5 +311,20 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
             .withBody(body)
         )
     )
+
+  private def givenAuditReturns(url: String, statusCode: Int): Unit =
+    stubFor(
+      post(url)
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+        )
+    )
+
+  private def eventSendToAudit(url: String, displayResponse: GetReturn): Boolean =
+    eventSendToAudit(url, GetReturn.eventType, GetReturn.format.writes(displayResponse).toString())
+
+  private def eventSendToAudit(url: String, displayResponse: SubmitReturn): Boolean =
+    eventSendToAudit(url, SubmitReturn.eventType, SubmitReturn.format.writes(displayResponse).toString())
 
 }

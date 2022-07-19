@@ -24,8 +24,7 @@ case class SubmitReturn(internalId: String,
                         result: String,
                         request: ReturnsSubmissionRequest,
                         response: Option[Return],
-                        error: Option[String],
-                        headers: Seq[(String, String)])
+                        error: Option[String])
 
 object SubmitReturn {
   implicit val format: OFormat[SubmitReturn] = Json.format[SubmitReturn]

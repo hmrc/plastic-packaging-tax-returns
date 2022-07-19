@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
-import org.joda.time.{DateTime, LocalDate}
-import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.LocalDate
 import play.api.Logger
-import uk.gov.hmrc.auth.core.{AffinityGroup, AuthConnector, AuthorisedFunctions, ConfidenceLevel, CredentialRole}
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ItmpAddress, ItmpName, LoginTimes, MdtpInformation, Name, Retrieval, ~}
+import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalServerException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}

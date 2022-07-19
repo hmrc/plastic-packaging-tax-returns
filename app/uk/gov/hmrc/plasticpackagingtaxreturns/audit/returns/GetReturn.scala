@@ -22,8 +22,7 @@ case class GetReturn(internalId: String,
                      periodKey: String,
                      result: String,
                      response: Option[JsValue],
-                     error: Option[String],
-                     headers: Seq[(String, String)])
+                     error: Option[String])
 
 object GetReturn {
   implicit val format: OFormat[GetReturn] = Json.format[GetReturn]

@@ -16,21 +16,13 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction, Identification, Obligation, ObligationDataResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{ChargeDetails, EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, PPTFinancials, ReturnType}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
 import java.time.{LocalDate, LocalDateTime}
-import java.time.ZoneOffset.UTC
-import java.time.ZonedDateTime.now
-import java.time.format.DateTimeFormatter
 
 trait ReturnsTestData {
 

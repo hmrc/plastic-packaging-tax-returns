@@ -23,8 +23,7 @@ case class GetPaymentStatement(internalId: String,
                                pptReference: String,
                                result: String,
                                response: Option[FinancialDataResponse],
-                               error: Option[String],
-                               headers: Seq[(String, String)])
+                               error: Option[String])
 
 object GetPaymentStatement {
   implicit val formats: OWrites[GetPaymentStatement] = Json.writes[GetPaymentStatement]

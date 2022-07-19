@@ -72,76 +72,68 @@ class Auditor @Inject() (auditConnector: AuditConnector) {
   def getObligationsSuccess(obligationType: String,
                             internalId: String,
                             pptReference: String,
-                            response: Option[ObligationDataResponse],
-                            headers: Seq[(String, String)])
+                            response: Option[ObligationDataResponse])
                            (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetObligations(obligationType, internalId, pptReference, SUCCESS, response, None, headers)
+    val payload = GetObligations(obligationType, internalId, pptReference, SUCCESS, response, None)
     auditConnector.sendExplicitAudit(GetObligations.eventType, payload)
   }
 
   def getObligationsFailure(obligationType: String,
                             internalId: String,
                             pptReference: String,
-                            error: String,
-                            headers: Seq[(String, String)])
+                            error: String)
                            (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetObligations(obligationType, internalId, pptReference, FAILURE, None, Some(error), headers)
+    val payload = GetObligations(obligationType, internalId, pptReference, FAILURE, None, Some(error))
     auditConnector.sendExplicitAudit(GetObligations.eventType, payload)
   }
 
   def getPaymentStatementSuccess(internalId: String,
                                  pptReference: String,
-                                 response: FinancialDataResponse,
-                                 headers: Seq[(String, String)])
+                                 response: FinancialDataResponse)
                                 (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetPaymentStatement(internalId, pptReference, SUCCESS, Some(response), None, headers)
+    val payload = GetPaymentStatement(internalId, pptReference, SUCCESS, Some(response), None)
     auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, payload)
   }
 
   def getPaymentStatementFailure(internalId: String,
                                  pptReference: String,
-                                 error: String,
-                                 headers: Seq[(String, String)])
+                                 error: String)
                                 (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error), headers)
+    val payload = GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error))
     auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, payload)
   }
 
   def getReturnSuccess(internalId: String,
                        periodKey: String,
-                       response: JsValue,
-                       headers: Seq[(String, String)])
+                       response: JsValue)
                       (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetReturn(internalId, periodKey, SUCCESS, Some(response), None, headers)
+    val payload = GetReturn(internalId, periodKey, SUCCESS, Some(response), None)
     auditConnector.sendExplicitAudit(GetReturn.eventType, payload)
   }
 
   def getReturnFailure(internalId: String,
                        periodKey: String,
-                       error: String,
-                       headers: Seq[(String, String)])
+                       error: String)
                       (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = GetReturn(internalId, periodKey, FAILURE, None, Some(error), headers)
+    val payload = GetReturn(internalId, periodKey, FAILURE, None, Some(error))
     auditConnector.sendExplicitAudit(GetReturn.eventType, payload)
   }
 
   def submitReturnSuccess(internalId: String,
                           pptReference: String,
                           request: ReturnsSubmissionRequest,
-                          response: Return,
-                          headers: Seq[(String, String)])
+                          response: Return)
                          (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = SubmitReturn(internalId, pptReference, SUCCESS, request, Some(response), None, headers)
+    val payload = SubmitReturn(internalId, pptReference, SUCCESS, request, Some(response), None)
     auditConnector.sendExplicitAudit(SubmitReturn.eventType, payload)
   }
 
   def submitReturnFailure(internalId: String,
                           pptReference: String,
                           request: ReturnsSubmissionRequest,
-                          error: String,
-                          headers: Seq[(String, String)])
+                          error: String)
                          (implicit hc: HeaderCarrier, ex: ExecutionContext): Unit = {
-    val payload = SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(error), headers)
+    val payload = SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(error))
     auditConnector.sendExplicitAudit(SubmitReturn.eventType, payload)
   }
 

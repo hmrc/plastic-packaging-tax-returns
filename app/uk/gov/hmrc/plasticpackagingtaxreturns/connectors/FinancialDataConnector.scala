@@ -72,7 +72,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
           s"Get enterprise financial data with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
         )
 
-        auditor.getPaymentStatementSuccess(internalId, pptReference, response, requestHeaders)
+        auditor.getPaymentStatementSuccess(internalId, pptReference, response)
         Right(response)
       }
       .recover {
@@ -83,11 +83,11 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
                 s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
             )
 
-            auditor.getPaymentStatementFailure(internalId, pptReference, s"${httpEx.statusCode}-${httpEx.getMessage}", requestHeaders)
+            auditor.getPaymentStatementFailure(internalId, pptReference, s"${httpEx.getMessage}")
             Left(httpEx.statusCode)
           })({
             inferredResponse => {
-              auditor.getPaymentStatementSuccess(internalId, pptReference, inferredResponse, requestHeaders)
+              auditor.getPaymentStatementSuccess(internalId, pptReference, inferredResponse)
               Right(inferredResponse)
             }
 
@@ -99,7 +99,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
             ex
           )
 
-          auditor.getPaymentStatementFailure(internalId, pptReference, ex.getMessage, requestHeaders)
+          auditor.getPaymentStatementFailure(internalId, pptReference, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }
