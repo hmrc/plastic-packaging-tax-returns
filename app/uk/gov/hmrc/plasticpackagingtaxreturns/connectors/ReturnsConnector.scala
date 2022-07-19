@@ -72,7 +72,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             httpEx
           )
 
-          auditor.submitReturnFailure(internalId, pptReference, request,s"${httpEx.message}")
+          auditor.submitReturnFailure(internalId, pptReference, request,httpEx.message)
           Left(httpEx.statusCode)
         case ex: Exception =>
           logger.warn(
@@ -95,8 +95,8 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
       .andThen { case _ => timer.stop() }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
-        if (response.status == OK) {
 
+        if (response.status == OK) {
           auditor.getReturnSuccess(internalId ,periodKey, response.json)
           Right(response.json)
         }
@@ -104,6 +104,7 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
           auditor.getReturnFailure(internalId, periodKey, s"${response.body}")
           Left(response.status)
         }
+
       }
       .recover {
         case ex: Exception =>

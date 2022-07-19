@@ -30,7 +30,3 @@ object GetObligations {
   implicit val format: OFormat[GetObligations] = Json.format[GetObligations]
   val eventType: String                        = "GetObligations"
 }
-
-
-
-

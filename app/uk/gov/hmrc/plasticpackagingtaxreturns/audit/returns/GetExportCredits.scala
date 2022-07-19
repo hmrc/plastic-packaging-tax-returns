@@ -33,9 +33,3 @@ object GetExportCredits {
   implicit val format: OFormat[GetExportCredits] = Json.format[GetExportCredits]
   val eventType: String                          = "GetExportCredits"
 }
-
-
-
-
-
-

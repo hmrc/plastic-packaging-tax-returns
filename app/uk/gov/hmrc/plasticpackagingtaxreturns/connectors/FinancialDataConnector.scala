@@ -83,7 +83,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
                 s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
             )
 
-            auditor.getPaymentStatementFailure(internalId, pptReference, s"${httpEx.getMessage}")
+            auditor.getPaymentStatementFailure(internalId, pptReference, httpEx.getMessage)
             Left(httpEx.statusCode)
           })({
             inferredResponse => {

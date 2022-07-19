@@ -26,16 +26,15 @@ import scala.concurrent.Future
 
 class FinancialDataService @Inject() (connector: FinancialDataConnector) {
 
-  def getRaw(
-    pptReference: String,
-    fromDate: LocalDate,
-    toDate: LocalDate,
-    onlyOpenItems: Option[Boolean],
-    includeLocks: Option[Boolean],
-    calculateAccruedInterest: Option[Boolean],
-    customerPaymentInformation: Option[Boolean],
-    internalId: String
-  )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
+  def getRaw(pptReference: String,
+             fromDate: LocalDate,
+             toDate: LocalDate,
+             onlyOpenItems: Option[Boolean],
+             includeLocks: Option[Boolean],
+             calculateAccruedInterest: Option[Boolean],
+             customerPaymentInformation: Option[Boolean],
+             internalId: String
+            )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     connector
       .get(pptReference,
         Some(fromDate),
@@ -48,7 +47,8 @@ class FinancialDataService @Inject() (connector: FinancialDataConnector) {
       )
   }
 
-  def getFinancials(pptReference: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
+  def getFinancials(pptReference: String, internalId: String)
+                   (implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     connector.get(pptReference = pptReference,
       fromDate = None,
       toDate = None,

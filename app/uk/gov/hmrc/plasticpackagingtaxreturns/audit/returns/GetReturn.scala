@@ -28,7 +28,3 @@ object GetReturn {
   implicit val format: OFormat[GetReturn] = Json.format[GetReturn]
   val eventType: String                   = "GetReturn"
 }
-
-
-
-

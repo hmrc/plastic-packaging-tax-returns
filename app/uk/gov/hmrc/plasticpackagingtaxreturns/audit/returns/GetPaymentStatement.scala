@@ -29,9 +29,3 @@ object GetPaymentStatement {
   implicit val formats: OWrites[GetPaymentStatement] = Json.writes[GetPaymentStatement]
   val eventType: String                              = "GetPaymentStatement"
 }
-
-
-
-
-
-

@@ -34,14 +34,13 @@ class FinancialDataController @Inject() (
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
-  def get(
-           pptReference: String,
-           fromDate: LocalDate,
-           toDate: LocalDate,
-           onlyOpenItems: Option[Boolean] = None,
-           includeLocks: Option[Boolean] = None,
-           calculateAccruedInterest: Option[Boolean] = None,
-           customerPaymentInformation: Option[Boolean] = None
+  def get(pptReference: String,
+          fromDate: LocalDate,
+          toDate: LocalDate,
+          onlyOpenItems: Option[Boolean] = None,
+          includeLocks: Option[Boolean] = None,
+          calculateAccruedInterest: Option[Boolean] = None,
+          customerPaymentInformation: Option[Boolean] = None
          ): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       financialDataService.getRaw(pptReference,

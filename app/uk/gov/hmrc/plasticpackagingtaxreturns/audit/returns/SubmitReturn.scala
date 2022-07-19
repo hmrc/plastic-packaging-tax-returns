@@ -30,5 +30,3 @@ object SubmitReturn {
   implicit val format: OFormat[SubmitReturn] = Json.format[SubmitReturn]
   val eventType: String                      = "SubmitReturn"
 }
-
-

@@ -26,9 +26,10 @@ import java.time.{LocalDate, LocalDateTime}
 
 trait ReturnsTestData {
 
-  val pptReference = "XMPPT0000000123"
-  val nrsSubmissionId = "someid"
-  private val date = "2020-12-17T09:30:47Z"
+  val pptReference: String    = "XMPPT0000000123"
+  val nrsSubmissionId: String = "someid"
+  private val date: String    = "2020-12-17T09:30:47Z"
+
   private type ReturnsResponseModifier = Return => Return
 
   val aReturnWithReturnDetails =
