@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
+import play.api.Logger
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
@@ -25,14 +26,15 @@ import scala.math.BigDecimal.RoundingMode
 
 class PPTCalculationService @Inject()(appConfig: AppConfig) {
 
+  private[services] val logger = Logger(this.getClass)
+
   def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
       returnValues.importedPlasticWeight,
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
       returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight,
-      returnValues.convertedPackagingCredit
+      returnValues.exportedPlasticWeight
     )
 
   private def doCalculation(
@@ -41,7 +43,6 @@ class PPTCalculationService @Inject()(appConfig: AppConfig) {
                             humanMedicinesPlasticWeight: Long,
                             recycledPlasticWeight: Long,
                             exportedPlasticWeight: Long,
-                            convertedPackagingCredit: BigDecimal,
                           ): Calculations = {
 
     val packagingTotal: Long = importedPlasticWeight +
@@ -64,6 +65,10 @@ class PPTCalculationService @Inject()(appConfig: AppConfig) {
         humanMedicinesPlasticWeight >= 0 &&
         packagingTotal >= deductionsTotal &&
         chargeableTotal >= 0
+    }
+
+    if(!isSubmittable) {
+      logger.info("PPT return not submittable")
     }
 
     Calculations(

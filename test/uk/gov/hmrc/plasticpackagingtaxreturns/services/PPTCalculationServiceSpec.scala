@@ -21,9 +21,9 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.LogCapturing
 
-class PPTCalculationServiceSpec
-    extends PlaySpec with MockitoSugar {
+class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with LogCapturing {
 
   val mockAppConfig: AppConfig = mock[AppConfig]
   val calculator: PPTCalculationService = new PPTCalculationService(mockAppConfig)
@@ -263,7 +263,11 @@ class PPTCalculationServiceSpec
         val taxReturn = allZeroReturn.copy(
           recycledPlasticWeight = 2)
 
-        calculator.calculate(taxReturn).isSubmittable mustBe false
+        withCaptureOfLoggingFrom(calculator.logger) { logs =>
+          calculator.calculate(taxReturn).isSubmittable mustBe false
+          logs.head.getMessage mustBe "PPT return not submittable"
+        }
+
       }
 
       "any value is less than 0" in {
