@@ -17,7 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries, Timer}
-import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.{VerificationException, WireMock}
+import com.github.tomakehurst.wiremock.client.WireMock.{equalToJson, postRequestedFor, urlEqualTo, verify}
 import com.kenshoo.play.metrics.Metrics
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -47,7 +48,9 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
         "microservice.services.nrs.host" -> wireHost,
         "microservice.services.nrs.port" -> wirePort,
         "microservice.services.des.host" -> wireHost,
-        "microservice.services.des.port" -> wirePort
+        "microservice.services.des.port" -> wirePort,
+        "auditing.consumer.baseUri.port" -> wirePort,
+        "auditing.enabled" -> false
     )
 
   def getTimer(name: String): Timer =
@@ -69,5 +72,31 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     super.afterAll()
     wiremock.stop()
   }
+
+  protected def eventSendToAudit(url: String, eventType: String, body: String): Boolean =
+    try {
+      verify(
+        postRequestedFor(urlEqualTo(url))
+          .withRequestBody(equalToJson(s"""{
+                                          |                  "auditSource": "plastic-packaging-tax-returns",
+                                          |                  "auditType": "$eventType",
+                                          |                  "eventId": "$${json-unit.any-string}",
+                                          |                  "tags": {
+                                          |                    "clientIP": "-",
+                                          |                    "path": "-",
+                                          |                    "X-Session-ID": "-",
+                                          |                    "Akamai-Reputation": "-",
+                                          |                    "X-Request-ID": "-",
+                                          |                    "deviceID": "-",
+                                          |                    "clientPort": "-"
+                                          |                  },
+                                          |                  "detail": $body,
+                                          |                  "generatedAt": "$${json-unit.any-string}"
+                                          |                }""".stripMargin, true, true))
+      )
+      true
+    } catch {
+      case _: VerificationException => false
+    }
 
 }

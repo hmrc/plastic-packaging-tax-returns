@@ -23,6 +23,7 @@ import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 
@@ -31,23 +32,24 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(implicit
+class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditor: Auditor)(implicit
   ec: ExecutionContext
 ) extends EISConnector {
 
   private val logger = Logger(this.getClass)
 
-  def submitReturn(pptReference: String, request: ReturnsSubmissionRequest)(implicit
+  def submitReturn(pptReference: String, request: ReturnsSubmissionRequest, internalId: String)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, Return]] = {
     val timer                = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationIdHeader  = correlationIdHeaderName -> UUID.randomUUID().toString
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
+    val requestHeaders       = headers :+ correlationIdHeader
 
     logger.info(s"Submitting PPT return via $returnsSubmissionUrl")
 
     httpClient.PUT[ReturnsSubmissionRequest, Return](url = returnsSubmissionUrl,
-                                                     headers = headers :+ correlationIdHeader,
+                                                     headers = requestHeaders,
                                                      body = request
     )
       .andThen { case _ => timer.stop() }
@@ -57,6 +59,8 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             s"pptReference [$pptReference], and submissionId [${request.submissionId}]. " +
             s"Response contains submissionId [${response.idDetails.submissionId}]"
         )
+
+        auditor.submitReturnSuccess(internalId, pptReference, request, response)
         Right(response)
       }
       .recover {
@@ -67,6 +71,8 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
               s"body: ${httpEx.getMessage()}",
             httpEx
           )
+
+          auditor.submitReturnFailure(internalId, pptReference, request,httpEx.message)
           Left(httpEx.statusCode)
         case ex: Exception =>
           logger.warn(
@@ -74,26 +80,37 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
               s"pptReference [$pptReference], and submissionId [${request.submissionId}, failed due to [${ex.getMessage}]",
             ex
           )
+
+          auditor.submitReturnFailure(internalId, pptReference, request, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }
 
-  def get(pptReference: String, periodKey: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
+  def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
     val timer: Timer.Context = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
+    val requestHeaders                        = headers :+ correlationIdHeader
 
-    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey),
-      headers = headers :+ correlationIdHeader
-    )
+    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
       .andThen { case _ => timer.stop() }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
-        if (response.status == OK) Right(response.json)
-        else Left(response.status)
+
+        if (response.status == OK) {
+          auditor.getReturnSuccess(internalId ,periodKey, response.json)
+          Right(response.json)
+        }
+        else {
+          auditor.getReturnFailure(internalId, periodKey, s"${response.body}")
+          Left(response.status)
+        }
+
       }
       .recover {
         case ex: Exception =>
           logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, s"exception: ${ex.getMessage}"), ex)
+
+          auditor.getReturnFailure(internalId, periodKey, ex.getMessage)
           Left(INTERNAL_SERVER_ERROR)
       }
   }

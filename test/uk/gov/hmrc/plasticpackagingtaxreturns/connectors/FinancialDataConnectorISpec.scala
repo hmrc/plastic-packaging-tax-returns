@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, anyUrl, get, notFound}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Inspectors.forAll
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
@@ -34,30 +37,61 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
 
   val getFinancialDataTimer = "ppt.get.financial.data.timer"
 
-  val pptReference                                = "XXPPTP103844123"
+  val internalId: String                          = "someId"
+  val pptReference: String                        = "XXPPTP103844123"
   val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
   val toDate: LocalDate                           = LocalDate.parse("2021-10-31")
   val onlyOpenItems: Option[Boolean]              = Some(true)
   val includeLocks: Option[Boolean]               = Some(false)
   val calculateAccruedInterest: Option[Boolean]   = Some(true)
   val customerPaymentInformation: Option[Boolean] = Some(false)
+  val auditUrl: String                            = "/write/audit"
+  val implicitAuditUrl: String                    = s"$auditUrl/merged"
 
   val getUrl =
     s"/enterprise/financial-data/ZPPT/$pptReference/PPT?dateFrom=$fromDate&dateTo=$toDate&onlyOpenItems=${onlyOpenItems.get}&includeLocks=${includeLocks.get}&calculateAccruedInterest=${calculateAccruedInterest.get}&customerPaymentInformation=${customerPaymentInformation.get}"
 
+  override def overrideConfig: Map[String, Any] =
+    Map("microservice.services.des.host" -> wireHost,
+      "microservice.services.des.port" -> wirePort,
+      "auditing.consumer.baseUri.port" -> wirePort,
+      "auditing.enabled" -> true
+    )
+
   "FinancialData connector" when {
+
     "get financial data" should {
+
       "handle a 200 with financial data" in {
 
+        val auditModel = GetPaymentStatement(internalId, pptReference, "Success", Some(financialDataResponse), None)
+
         stubFinancialDataRequest(financialDataResponse)
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(getFinancialData)
         res.right.get mustBe financialDataResponse
 
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
         getTimer(getFinancialDataTimer).getCount mustBe 1
       }
 
-      "handle unexpected exceptions thrown" in {
+      "handle bad json" in {
+
+        val url = s"http://localhost:20202$getUrl"
+
+        val error = s"GET of '$url' returned invalid json. Attempting to convert to " +
+          s"uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse gave errors: " +
+          s"List((/financialTransactions,List(JsonValidationError(List(error.path.missing),WrappedArray()))), " +
+          s"(/processingDate,List(JsonValidationError(List(error.path.missing),WrappedArray()))))"
+
+        val auditModel = GetPaymentStatement(internalId, pptReference, "Failure", None, Some(error))
+
         stubFor(
           get(getUrl)
             .willReturn(
@@ -67,10 +101,19 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
             )
         )
 
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
         val res = await(getFinancialData)
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
         getTimer(getFinancialDataTimer).getCount mustBe 1
+
       }
 
     }
@@ -78,24 +121,44 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
 
   private def getFinancialData =
     connector.get(pptReference,
-                  Some(fromDate),
-                  Some(toDate),
-                  onlyOpenItems,
-                  includeLocks,
-                  calculateAccruedInterest,
-                  customerPaymentInformation
+      Some(fromDate),
+      Some(toDate),
+      onlyOpenItems,
+      includeLocks,
+      calculateAccruedInterest,
+      customerPaymentInformation,
+      internalId
     )
 
   "FinancialData connector for obligation data" should {
+
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+
       "return " + statusCode when {
+
         statusCode + " is returned from downstream service" in {
+
+          val url = s"http://localhost:20202$getUrl"
+          val errors = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
+          val error  = s"GET of '$url' returned $statusCode. Response body: $errors"
+
+          val auditModel = GetPaymentStatement(internalId, pptReference, "Failure", None, Some(error))
+
           stubFinancialDataRequestFailure(httpStatus = statusCode, errors = Seq(EISError("Error Code", "Error Reason")))
+
+          givenAuditReturns(auditUrl, Status.NO_CONTENT)
+          givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
           val res = await(getFinancialData)
 
           res.left.get mustBe statusCode
+
+          eventually(timeout(Span(5, Seconds))) {
+            eventSendToAudit(auditUrl, auditModel) mustBe true
+          }
+
           getTimer(getFinancialDataTimer).getCount mustBe 1
+
         }
       }
     }
@@ -129,5 +192,17 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
             .withBody(Json.obj("failures" -> errors).toString)
         )
     )
+
+  private def givenAuditReturns(url: String, statusCode: Int): Unit =
+    stubFor(
+      post(url)
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+        )
+    )
+
+  private def eventSendToAudit(url: String, displayResponse: GetPaymentStatement): Boolean =
+    eventSendToAudit(url, GetPaymentStatement.eventType, GetPaymentStatement.formats.writes(displayResponse).toString())
 
 }

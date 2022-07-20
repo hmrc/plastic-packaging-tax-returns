@@ -18,14 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{
-  GroupPartnershipDetails,
-  GroupPartnershipSubscription
-}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
-  ChangeOfCircumstanceDetails,
-  SubscriptionDisplayResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 
 import java.time.ZoneOffset.UTC

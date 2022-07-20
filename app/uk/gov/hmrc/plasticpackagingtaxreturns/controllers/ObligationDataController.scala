@@ -37,7 +37,7 @@ class ObligationDataController @Inject() ( // TODO make this controller test-onl
 
   def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String]): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      obligationDataConnector.get(pptReference, fromDate, toDate, status.map(ObligationStatus.withName)).map {
+      obligationDataConnector.get(pptReference, request.internalId, fromDate, toDate, status.map(ObligationStatus.withName)).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

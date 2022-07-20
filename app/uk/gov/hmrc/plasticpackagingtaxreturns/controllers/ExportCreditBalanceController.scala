@@ -36,7 +36,7 @@ class ExportCreditBalanceController @Inject() (
 
   def get(pptReference: String, fromDate: LocalDate, toDate: LocalDate): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      exportCreditBalanceConnector.getBalance(pptReference, fromDate, toDate).map {
+      exportCreditBalanceConnector.getBalance(pptReference, fromDate, toDate, request.internalId).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }

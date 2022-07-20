@@ -95,9 +95,11 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     displayResponse: ExportCreditBalanceDisplayResponse
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference),
-                                                  any[LocalDate](),
-                                                  any[LocalDate]()
+      mockExportCreditBalanceConnector.getBalance(
+        ArgumentMatchers.eq(pptReference),
+        any[LocalDate](),
+        any[LocalDate](),
+        any[String]
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(displayResponse)))
 
@@ -106,75 +108,81 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     statusCode: Int
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference),
-                                                  any[LocalDate](),
-                                                  any[LocalDate]()
+      mockExportCreditBalanceConnector.getBalance(
+        ArgumentMatchers.eq(pptReference),
+        any[LocalDate](),
+        any[LocalDate](),
+        any[String]
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockReturnsSubmissionConnector(resp: Return) =
-    when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+    when(mockReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
-    when(mockReturnsConnector.submitReturn(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+    when(mockReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockReturnDisplayConnector(resp: JsValue) =
-    when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+    when(mockReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnDisplayConnectorFailure(statusCode: Int) =
-    when(mockReturnsConnector.get(any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+    when(mockReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockGetObligationData(
-    pptReference: String,
-    displayResponse: ObligationDataResponse
-  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+                                       pptReference: String,
+                                       displayResponse: ObligationDataResponse
+                                     ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                      any(),
-                                      any(),
-                                      any()
+        any(),
+        any(),
+        any(),
+        any()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(displayResponse)))
 
   protected def mockGetObligationDataFailure(
-    pptReference: String,
-    statusCode: Int
-  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+                                              pptReference: String,
+                                              statusCode: Int
+                                            ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
     when(
       mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                      any(),
-                                      any(),
-                                      any()
+        any(),
+        any(),
+        any(),
+        any()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockGetFinancialData(
-    pptReference: String,
-    response: FinancialDataResponse
-  ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+                                      pptReference: String,
+                                      response: FinancialDataResponse
+                                    ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[Option[LocalDate]](),
-                                     any[Option[LocalDate]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]]()
+        any[Option[LocalDate]](),
+        any[Option[LocalDate]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[String]
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(response)))
 
   protected def mockGetFinancialDataFailure(
-    pptReference: String,
-    statusCode: Int
-  ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+                                             pptReference: String,
+                                             statusCode: Int
+                                           ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
       mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
-                                     any[Option[LocalDate]](),
-                                     any[Option[LocalDate]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]](),
-                                     any[Option[Boolean]]()
+        any[Option[LocalDate]](),
+        any[Option[LocalDate]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[Option[Boolean]](),
+        any[String]
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Left(statusCode)))
 

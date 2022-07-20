@@ -47,7 +47,7 @@ class PPTObligationsController @Inject() (
   def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference, None, None, Some(ObligationStatus.OPEN)).map {
+        obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
           case Left(404)                     => NotFound("{}")
           case Left(_)                       => internalServerError
           case Right(obligationDataResponse) => createOpenResponse(obligationDataResponse)
@@ -59,7 +59,7 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
+        obligationsDataConnector.get(pptReference, request.internalId, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
           case Left(404)                     => NotFound("{}")
           case Left(_)                       => internalServerError
           case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
