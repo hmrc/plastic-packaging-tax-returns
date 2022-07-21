@@ -24,16 +24,17 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class FinancialDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditor: Auditor)(
+class FinancialDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditConnector: AuditConnector)(
   implicit ec: ExecutionContext
 ) extends DESConnector {
 
@@ -51,6 +52,8 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
   )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.financial.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
+    val SUCCESS: String     = "Success"
+    val FAILURE: String     = "Failure"
 
     val queryParams: Seq[(String, String)] = QueryParams.fromOptions("dateFrom" -> fromDate.map(DateFormat.isoFormat),
                                                                      "dateTo"                     -> toDate.map(DateFormat.isoFormat),
@@ -72,8 +75,11 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
           s"Get enterprise financial data with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
         )
 
-        auditor.getPaymentStatementSuccess(internalId, pptReference, response)
+        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+          GetPaymentStatement(internalId, pptReference, SUCCESS, Some(response), None))
+
         Right(response)
+
       }
       .recover {
         case httpEx: UpstreamErrorResponse =>
@@ -83,12 +89,19 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
                 s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
             )
 
-            auditor.getPaymentStatementFailure(internalId, pptReference, httpEx.getMessage)
+            auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+              GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(httpEx.getMessage)))
+
             Left(httpEx.statusCode)
+
           })({
             inferredResponse => {
-              auditor.getPaymentStatementSuccess(internalId, pptReference, inferredResponse)
+
+              auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+                GetPaymentStatement(internalId, pptReference, SUCCESS, Some(inferredResponse), None))
+
               Right(inferredResponse)
+
             }
 
           })
@@ -99,8 +112,11 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
             ex
           )
 
-          auditor.getPaymentStatementFailure(internalId, pptReference, ex.getMessage)
+          auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+            GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(ex.getMessage)))
+
           Left(INTERNAL_SERVER_ERROR)
+
       }
   }
 

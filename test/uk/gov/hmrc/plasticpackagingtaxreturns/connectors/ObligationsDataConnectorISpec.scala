@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.client.{VerificationException, WireMock}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures

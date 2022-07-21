@@ -23,20 +23,23 @@ import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditor: Auditor)(implicit
+class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditConnector: AuditConnector)(implicit
   ec: ExecutionContext
 ) extends EISConnector {
 
-  private val logger = Logger(this.getClass)
+  private val logger  = Logger(this.getClass)
+  val SUCCESS: String = "Success"
+  val FAILURE: String = "Failure"
 
   def submitReturn(pptReference: String, request: ReturnsSubmissionRequest, internalId: String)(implicit
     hc: HeaderCarrier
@@ -60,8 +63,11 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             s"Response contains submissionId [${response.idDetails.submissionId}]"
         )
 
-        auditor.submitReturnSuccess(internalId, pptReference, request, response)
+        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+          SubmitReturn(internalId, pptReference, SUCCESS, request, Some(response), None))
+
         Right(response)
+
       }
       .recover {
         case httpEx: UpstreamErrorResponse =>
@@ -72,8 +78,11 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             httpEx
           )
 
-          auditor.submitReturnFailure(internalId, pptReference, request,httpEx.message)
+          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(httpEx.getMessage)))
+
           Left(httpEx.statusCode)
+
         case ex: Exception =>
           logger.warn(
             s"Error on returns submission with correlationId [${correlationIdHeader._2}], " +
@@ -81,8 +90,11 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
             ex
           )
 
-          auditor.submitReturnFailure(internalId, pptReference, request, ex.getMessage)
+          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(ex.getMessage)))
+
           Left(INTERNAL_SERVER_ERROR)
+
       }
   }
 
@@ -97,12 +109,20 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
 
         if (response.status == OK) {
-          auditor.getReturnSuccess(internalId ,periodKey, response.json)
+
+          auditConnector.sendExplicitAudit(GetReturn.eventType,
+            GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None))
+
           Right(response.json)
+
         }
         else {
-          auditor.getReturnFailure(internalId, periodKey, s"${response.body}")
+
+          auditConnector.sendExplicitAudit(GetReturn.eventType,
+            GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
+
           Left(response.status)
+
         }
 
       }
@@ -110,8 +130,11 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
         case ex: Exception =>
           logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, s"exception: ${ex.getMessage}"), ex)
 
-          auditor.getReturnFailure(internalId, periodKey, ex.getMessage)
+          auditConnector.sendExplicitAudit(GetReturn.eventType,
+            GetReturn(internalId, periodKey, FAILURE, None, Some(ex.getMessage)))
+
           Left(INTERNAL_SERVER_ERROR)
+
       }
   }
 
