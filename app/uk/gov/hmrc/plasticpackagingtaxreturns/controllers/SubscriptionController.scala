@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.ChangeSubscriptionEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
@@ -28,6 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -37,7 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubscriptionController @Inject() (
   subscriptionsConnector: SubscriptionsConnector,
   authenticator: Authenticator,
-  auditor: Auditor,
+  auditConnector: AuditConnector,
   nonRepudiationService: NonRepudiationService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
@@ -70,25 +71,35 @@ class SubscriptionController @Inject() (
   )(implicit hc: HeaderCarrier): Future[Result] =
     submitToNrs(request, pptSubscription, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        auditor.subscriptionUpdated(
-          subscription = updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-                                          pptSubscription = pptSubscription,
-                                          nrsFailureResponse = None
-          ),
-          pptReference = Some(eisResponse.pptReferenceNumber),
-          processingDateTime = Some(eisResponse.processingDate)
+        auditConnector.sendExplicitAudit(
+          ChangeSubscriptionEvent.eventType,
+          ChangeSubscriptionEvent(
+            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
+              pptSubscription = pptSubscription,
+              nrsFailureResponse = None
+            ),
+            pptReference = Some(eisResponse.pptReferenceNumber),
+            processingDateTime = Some(eisResponse.processingDate))
         )
+
         handleNrsSuccess(eisResponse, nrSubmissionId)
+
     }.recoverWith {
       case exception: Exception =>
-        auditor.subscriptionUpdated(
-          subscription = updateNrsDetails(nrsSubmissionId = None,
-                                          pptSubscription = pptSubscription,
-                                          nrsFailureResponse = Some(exception.getMessage)
-          ),
-          pptReference = Some(eisResponse.pptReferenceNumber)
+        auditConnector.sendExplicitAudit(
+          ChangeSubscriptionEvent.eventType,
+          ChangeSubscriptionEvent(
+            updateNrsDetails(nrsSubmissionId = None,
+              pptSubscription = pptSubscription,
+              nrsFailureResponse = Some(exception.getMessage)
+            ),
+            pptReference = Some(eisResponse.pptReferenceNumber),
+            None
+          )
         )
+
         handleNrsFailure(eisResponse, exception)
+
     }
 
   private def submitToNrs(

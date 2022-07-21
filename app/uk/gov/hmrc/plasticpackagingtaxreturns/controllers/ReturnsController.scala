@@ -22,7 +22,7 @@ import play.api.libs.json.JsObject
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
@@ -35,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
@@ -50,7 +51,7 @@ class ReturnsController @Inject()(
                                              override val controllerComponents: ControllerComponents,
                                              returnsConnector: ReturnsConnector,
                                              appConfig: AppConfig,
-                                             auditor: Auditor,
+                                             auditConnector: AuditConnector,
                                              calculationsService: PPTCalculationService
                                            )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
@@ -112,26 +113,33 @@ class ReturnsController @Inject()(
 
     submitToNrs(request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        auditor.nrsReturnSubmitted(
-          updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-            returnSubmissionRequest = returnSubmissionRequest,
-            nrsFailureResponse = None
-          ),
-          pptReference = Some(request.pptId),
-          processingDateTime = Some(parseDate(eisResponse.processingDate))
+
+        auditConnector.sendExplicitAudit(
+          NrsSubmitReturnEvent.eventType,
+          NrsSubmitReturnEvent(
+            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
+              returnSubmissionRequest = returnSubmissionRequest,
+              nrsFailureResponse = None
+            ),
+            pptReference = Some(request.pptId),
+            processingDateTime = Some(parseDate(eisResponse.processingDate))
+          )
         )
 
         handleNrsSuccess(eisResponse, nrSubmissionId)
 
     }.recoverWith {
       case exception: Exception =>
-        auditor.nrsReturnSubmitted(
-          updateNrsDetails(nrsSubmissionId = None,
-            returnSubmissionRequest = returnSubmissionRequest,
-            nrsFailureResponse = Some(exception.getMessage)
-          ),
-          pptReference = Some(request.pptId),
-          processingDateTime = Some(parseDate(eisResponse.processingDate))
+        auditConnector.sendExplicitAudit(
+          NrsSubmitReturnEvent.eventType,
+          NrsSubmitReturnEvent(
+            updateNrsDetails(nrsSubmissionId = None,
+              returnSubmissionRequest = returnSubmissionRequest,
+              nrsFailureResponse = Some(exception.getMessage)
+            ),
+            pptReference = Some(request.pptId),
+            processingDateTime = Some(parseDate(eisResponse.processingDate))
+          )
         )
 
         handleNrsFailure(eisResponse, exception)

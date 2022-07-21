@@ -21,11 +21,12 @@ import play.api.Logger
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
 import java.util.UUID
@@ -37,7 +38,7 @@ class ObligationsDataConnector @Inject()
   httpClient: HttpClient,
   override val appConfig: AppConfig,
   metrics: Metrics,
-  auditor: Auditor
+  auditConnector: AuditConnector
 )(implicit ec: ExecutionContext)
     extends DESConnector {
 
@@ -51,6 +52,8 @@ class ObligationsDataConnector @Inject()
     val correlationId       = correlationIdHeader._2
     val obligationStatus    = status.map(x => x.toString).getOrElse("")
     val requestHeaders      =  headers :+ correlationIdHeader
+    val SUCCESS: String     = "Success"
+    val FAILURE: String     = "Failure"
 
     val queryParams =
       Seq(
@@ -70,7 +73,9 @@ class ObligationsDataConnector @Inject()
 
         val adjusted = if (appConfig.adjustObligationDates) response.adjustDates else response
 
-        auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(adjusted))
+        auditConnector.sendExplicitAudit(GetObligations.eventType,
+          GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), None))
+
         Right(adjusted)
       }
       .recover {
@@ -79,17 +84,26 @@ class ObligationsDataConnector @Inject()
 
           if(isEmptyObligation(message) && code == NOT_FOUND) {
 
-            auditor.getObligationsSuccess(obligationStatus, internalId, pptReference, Some(ObligationDataResponse.empty))
+            auditConnector.sendExplicitAudit(GetObligations.eventType,
+              GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), None))
+
             Right(ObligationDataResponse.empty)
+
           }
           else {
-            auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message)
+
+            auditConnector.sendExplicitAudit(GetObligations.eventType,
+              GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
+
             Left(code)
+
           }
         case Upstream5xxResponse(message, code, _, _) =>
           logUpstreamError(pptReference, correlationId, queryParams, message, code)
 
-          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, message)
+          auditConnector.sendExplicitAudit(GetObligations.eventType,
+            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
+
           Left(code)
         case ex: Exception =>
           logger.error(
@@ -98,8 +112,11 @@ class ObligationsDataConnector @Inject()
             ex
           )
 
-          auditor.getObligationsFailure(obligationStatus, internalId, pptReference, ex.getMessage)
+          auditConnector.sendExplicitAudit(GetObligations.eventType,
+            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(ex.getMessage)))
+
           Left(INTERNAL_SERVER_ERROR)
+
       }
   }
 
