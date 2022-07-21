@@ -71,7 +71,6 @@ class SubscriptionController @Inject() (
   )(implicit hc: HeaderCarrier): Future[Result] =
     submitToNrs(request, pptSubscription, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-
         auditConnector.sendExplicitAudit(
           ChangeSubscriptionEvent.eventType,
           ChangeSubscriptionEvent(
@@ -87,7 +86,6 @@ class SubscriptionController @Inject() (
 
     }.recoverWith {
       case exception: Exception =>
-
         auditConnector.sendExplicitAudit(
           ChangeSubscriptionEvent.eventType,
           ChangeSubscriptionEvent(
@@ -95,7 +93,8 @@ class SubscriptionController @Inject() (
               pptSubscription = pptSubscription,
               nrsFailureResponse = Some(exception.getMessage)
             ),
-            pptReference = Some(eisResponse.pptReferenceNumber), None
+            pptReference = Some(eisResponse.pptReferenceNumber),
+            None
           )
         )
 
