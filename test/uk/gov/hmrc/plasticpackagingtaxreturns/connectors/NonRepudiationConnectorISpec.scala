@@ -25,10 +25,7 @@ import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 
 class NonRepudiationConnectorISpec
     extends ConnectorISpec with Injector with AuthTestSupport with NrsTestData with ScalaFutures {
@@ -50,7 +47,7 @@ class NonRepudiationConnectorISpec
                                                             payloadSha256Checksum =
                                                               testPayloadChecksum,
                                                             userSubmissionTimestamp =
-                                                              testDateTime,
+                                                              testDateTimeString,
                                                             identityData =
                                                               testNonRepudiationIdentityData,
                                                             userAuthToken = testAuthToken,

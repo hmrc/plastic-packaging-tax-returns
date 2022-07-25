@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.audit
+package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, ReturnsSubmissionRequest}
@@ -23,7 +23,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 
 import java.time.ZonedDateTime
 
-case class SubmitReturnEvent(
+case class NrsSubmitReturnEvent(
                               returnType: ReturnType,
                               submissionId: Option[String] = None,
                               periodKey: String,
@@ -33,16 +33,16 @@ case class SubmitReturnEvent(
                               nrsDetails: Option[NrsDetails] = None
                             )
 
-object SubmitReturnEvent {
-  implicit val format: OFormat[SubmitReturnEvent] = Json.format[SubmitReturnEvent]
-  val eventType: String = "submitOrAmendPPTReturn"
+object NrsSubmitReturnEvent {
+  implicit val format: OFormat[NrsSubmitReturnEvent] = Json.format[NrsSubmitReturnEvent]
+  val eventType: String                              = "nrsSubmitOrAmendReturn"
 
   def apply(
              submission: ReturnsSubmissionRequest,
              pptReference: Option[String],
              processingDateTime: Option[ZonedDateTime]
-           ): SubmitReturnEvent =
-    SubmitReturnEvent(
+           ): NrsSubmitReturnEvent =
+    NrsSubmitReturnEvent(
       submission.returnType,
       submission.submissionId,
       submission.periodKey,

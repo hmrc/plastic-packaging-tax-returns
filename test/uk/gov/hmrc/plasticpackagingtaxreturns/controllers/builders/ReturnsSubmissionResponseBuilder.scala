@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse}
-
-import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 
 trait ReturnsSubmissionResponseBuilder {
 
+  private val date = "2020-12-17T09:30:47Z"
   private type ReturnsResponseModifier    = Return                       => Return
   private type ReturnsResponseModifierNrs = ReturnWithNrsSuccessResponse => ReturnWithNrsSuccessResponse
   private type ReturnsResponseModifierNrsFailure = ReturnWithNrsFailureResponse => ReturnWithNrsFailureResponse
@@ -35,7 +34,7 @@ trait ReturnsSubmissionResponseBuilder {
   def aReturnWithNrsFailure(modifiers: ReturnsResponseModifierNrsFailure*): ReturnWithNrsFailureResponse =
     modifiers.foldLeft(modelWithDefaultsNrsFailure)((current, modifier) => modifier(current))
 
-  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = LocalDate.now().toString,
+  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = date,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"
@@ -46,7 +45,7 @@ trait ReturnsSubmissionResponseBuilder {
     "Something went wrong"
   )
 
-  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = LocalDate.now().toString,
+  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = date,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"
@@ -57,7 +56,7 @@ trait ReturnsSubmissionResponseBuilder {
     nrSubmissionId = "nrSubmissionId"
   )
 
-  private val modelWithDefaults = Return(processingDate = LocalDate.now().toString,
+  private val modelWithDefaults = Return(processingDate = date,
     idDetails = IdDetails(pptReferenceNumber =
       "7777777",
       submissionId = "1234567890AA"

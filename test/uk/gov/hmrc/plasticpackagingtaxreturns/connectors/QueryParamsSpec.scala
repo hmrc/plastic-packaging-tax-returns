@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import java.time.LocalDate
-
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.time.LocalDate
 
 class QueryParamsSpec extends AnyWordSpec {
 

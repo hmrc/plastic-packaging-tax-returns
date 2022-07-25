@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
-import play.api.libs.json._
+import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-import java.time.ZonedDateTime
+case object ConvertedPackagingCreditGettable extends Gettable[BigDecimal] {
 
-case class NonRepudiationMetadata(
-  businessId: String,
-  notableEvent: String,
-  payloadContentType: String,
-  payloadSha256Checksum: String,
-  userSubmissionTimestamp: ZonedDateTime,
-  identityData: IdentityData,
-  userAuthToken: String,
-  headerData: Map[String, String],
-  searchKeys: Map[String, String]
-)
+  override def path: JsPath = JsPath \ toString
 
-object NonRepudiationMetadata {
-  implicit val format: OFormat[NonRepudiationMetadata] = Json.format[NonRepudiationMetadata]
+  override def toString: String = "convertedPackagingCredit"
 }

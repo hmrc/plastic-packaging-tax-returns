@@ -37,7 +37,7 @@ class PPTFinancialsController @Inject() (
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        financialDataService.getFinancials(pptReference).map {
+        financialDataService.getFinancials(pptReference, request.internalId).map {
           case Left(_) =>
             InternalServerError("{}")
           case Right(financialDataResponse) =>

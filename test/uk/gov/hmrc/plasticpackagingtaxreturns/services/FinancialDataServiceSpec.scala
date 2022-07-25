@@ -34,7 +34,7 @@ class FinancialDataServiceSpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
-    when(mockConnector.get(any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(
+    when(mockConnector.get(any(), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(
       Future.successful(Left(0))
     )
   }
@@ -46,24 +46,25 @@ class FinancialDataServiceSpec
 
   "getRaw" must {
     "just pass through params" in {
-      await(sut.getRaw("pptRef", LocalDate.now(), LocalDate.now(), Some(true), Some(false), Some(true), None)(hc))
+      await(sut.getRaw("pptRef", LocalDate.now(), LocalDate.now(), Some(true), Some(false), Some(true), None, "someId")(hc))
 
       verify(mockConnector).get("pptRef",
-                                Some(LocalDate.now()),
-                                Some(LocalDate.now()),
-                                Some(true),
-                                Some(false),
-                                Some(true),
-                                None
+        Some(LocalDate.now()),
+        Some(LocalDate.now()),
+        Some(true),
+        Some(false),
+        Some(true),
+        None,
+        "someId"
       )(hc)
     }
   }
 
   "getFinancials" must {
     "default params" in {
-      await(sut.getFinancials("pptRef")(hc))
+      await(sut.getFinancials("pptRef", "someId")(hc))
 
-      verify(mockConnector).get("pptRef", None, None, Some(true), Some(true), Some(true), None)(hc)
+      verify(mockConnector).get("pptRef", None, None, Some(true), Some(true), Some(true), None, "someId")(hc)
     }
   }
 

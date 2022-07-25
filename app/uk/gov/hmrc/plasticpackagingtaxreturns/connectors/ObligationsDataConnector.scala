@@ -21,10 +21,12 @@ import play.api.Logger
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
 import java.util.UUID
@@ -35,18 +37,23 @@ class ObligationsDataConnector @Inject()
 (
   httpClient: HttpClient,
   override val appConfig: AppConfig,
-  metrics: Metrics
+  metrics: Metrics,
+  auditConnector: AuditConnector
 )(implicit ec: ExecutionContext)
     extends DESConnector {
 
   private val logger = Logger(this.getClass)
 
-  def get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
+  def get(pptReference: String, internalId: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ObligationDataResponse]] = {
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
     val correlationId       = correlationIdHeader._2
+    val obligationStatus    = status.map(x => x.toString).getOrElse("")
+    val requestHeaders      =  headers :+ correlationIdHeader
+    val SUCCESS: String     = "Success"
+    val FAILURE: String     = "Failure"
 
     val queryParams =
       Seq(
@@ -58,24 +65,45 @@ class ObligationsDataConnector @Inject()
     httpClient.GET[ObligationDataResponse](
       appConfig.enterpriseObligationDataUrl(pptReference),
       queryParams = queryParams,
-      headers = headers :+ correlationIdHeader
+      headers = requestHeaders
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
-        Right(
-          if (appConfig.adjustObligationDates) response.adjustDates else response
-        )
+
+        val adjusted = if (appConfig.adjustObligationDates) response.adjustDates else response
+
+        auditConnector.sendExplicitAudit(GetObligations.eventType,
+          GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), None))
+
+        Right(adjusted)
       }
       .recover {
         case Upstream4xxResponse(message, code, _, _) =>
           logUpstreamError(pptReference, correlationId, queryParams, message, code)
 
-          if(isEmptyObligation(message) && code == NOT_FOUND)
+          if(isEmptyObligation(message) && code == NOT_FOUND) {
+
+            auditConnector.sendExplicitAudit(GetObligations.eventType,
+              GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), None))
+
             Right(ObligationDataResponse.empty)
-          else Left(code)
+
+          }
+          else {
+
+            auditConnector.sendExplicitAudit(GetObligations.eventType,
+              GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
+
+            Left(code)
+
+          }
         case Upstream5xxResponse(message, code, _, _) =>
           logUpstreamError(pptReference, correlationId, queryParams, message, code)
+
+          auditConnector.sendExplicitAudit(GetObligations.eventType,
+            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
+
           Left(code)
         case ex: Exception =>
           logger.error(
@@ -83,7 +111,12 @@ class ObligationsDataConnector @Inject()
               s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
             ex
           )
+
+          auditConnector.sendExplicitAudit(GetObligations.eventType,
+            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(ex.getMessage)))
+
           Left(INTERNAL_SERVER_ERROR)
+
       }
   }
 

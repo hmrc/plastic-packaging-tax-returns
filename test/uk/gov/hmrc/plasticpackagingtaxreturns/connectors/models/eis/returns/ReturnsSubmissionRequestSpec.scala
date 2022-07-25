@@ -16,58 +16,47 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.wordspec.AnyWordSpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.TaxReturnBuilder
+import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.NewReturnValues
 
-import scala.math.BigDecimal.RoundingMode
-
-class ReturnsSubmissionRequestSpec extends AnyWordSpec with TaxReturnBuilder {
-
-  private val taxRate = BigDecimal("0.211") // Use a strange rate to test rounding
+class ReturnsSubmissionRequestSpec extends PlaySpec {
 
   "The EIS Returns Submission Request Object" should {
+
     "convert a stored Tax Return" when {
+
       "positive liability" in {
-        val taxReturn = aTaxReturn(
-          withManufacturedPlasticWeight(9001),
-          withImportedPlasticWeight(8000),
-          withHumanMedicinesPlasticWeight(5000),
-          withDirectExportDetails(4000),
-          withRecycledPlasticWeight(3000)
+
+        val returnValues: NewReturnValues = NewReturnValues(
+          periodKey = "somekey",
+          manufacturedPlasticWeight = 1,
+          importedPlasticWeight = 2,
+          humanMedicinesPlasticWeight = 3,
+          exportedPlasticWeight = 4,
+          recycledPlasticWeight = 5,
+          convertedPackagingCredit = 0
         )
 
-        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(taxReturn, taxRate, None)
+        val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, isSubmittable = true)
 
-        eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 9001
-        eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 8000
-        eisReturnsSubmissionRequest.returnDetails.humanMedicines mustBe 5000
-        eisReturnsSubmissionRequest.returnDetails.directExports mustBe 4000
-        eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 3000
+        val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc)
+
+        eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
+        eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1
+        eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2
+        eisReturnsSubmissionRequest.returnDetails.humanMedicines mustBe 3
+        eisReturnsSubmissionRequest.returnDetails.directExports mustBe 4
+        eisReturnsSubmissionRequest.returnDetails.recycledPlastic mustBe 5
 
         eisReturnsSubmissionRequest.returnType mustBe ReturnType.NEW
-        eisReturnsSubmissionRequest.periodKey mustBe taxReturn.periodKey
+        eisReturnsSubmissionRequest.periodKey mustBe "somekey"
         eisReturnsSubmissionRequest.submissionId mustBe None
 
-        eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 5000 + 4000 + 3000
-        eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe (9001 + 8000) - (5000 + 4000 + 3000)
-        eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
-        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe (((9001 + 8000) - (5000 + 4000 + 3000)) * taxRate).setScale(2, RoundingMode.HALF_EVEN)
-      }
-
-      "negative liability" in {
-
-        val thrown = intercept[IllegalArgumentException] {
-          val taxReturn = aTaxReturn(
-            withManufacturedPlasticWeight(1000),
-            withImportedPlasticWeight(2000),
-            withHumanMedicinesPlasticWeight(5000),
-            withDirectExportDetails(4000),
-            withRecycledPlasticWeight(3000)
-          )
-        }
-        assert(thrown.getMessage === "requirement failed: Deductions were greater than total packaging")
+        eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 6
+        eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe 7
+        eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 8
       }
 
     }

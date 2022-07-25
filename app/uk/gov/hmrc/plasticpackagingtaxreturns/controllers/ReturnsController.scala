@@ -17,86 +17,93 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.JsObject
-import play.api.libs.json.Json.{reads, toJson}
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.Auditor
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{NrsReturnOrAmendSubmission, Return, ReturnWithNrsFailureResponse, ReturnWithNrsSuccessResponse, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, ZoneOffset, ZonedDateTime}
+import java.time.{ZoneId, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ReturnsSubmissionController @Inject()(
+class ReturnsController @Inject()(
                                              authenticator: Authenticator,
                                              sessionRepository: SessionRepository,
                                              nonRepudiationService: NonRepudiationService,
                                              override val controllerComponents: ControllerComponents,
                                              returnsConnector: ReturnsConnector,
                                              appConfig: AppConfig,
-                                             auditor: Auditor,
+                                             auditConnector: AuditConnector,
+                                             calculationsService: PPTCalculationService
                                            )(implicit executionContext: ExecutionContext)
-  extends BackendController(controllerComponents) with JSONResponses {
-
-  private val logger = Logger(this.getClass)
+  extends BackendController(controllerComponents) with JSONResponses with Logging {
 
   private def parseDate(date: String): ZonedDateTime = {
-    val df = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    LocalDate.parse(date, df).atStartOfDay().atZone(ZoneOffset.UTC)
+    val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
+    ZonedDateTime.parse(date, df)
   }
-
-  def submit(pptReference: String): Action[TaxReturn] = doSubmission(pptReference, None)
-
-  def amend(pptReference: String, submissionId: String): Action[TaxReturn] = doSubmission(pptReference, Some(submissionId))
 
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      returnsConnector.get(pptReference = pptReference, periodKey = periodKey).map {
+      returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
         case Right(response)       => Ok(response)
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
 
     }
 
-  private def doSubmission(pptReference: String, submissionId: Option[String]): Action[TaxReturn] =
-    authenticator.authorisedAction(authenticator.parsingJson[TaxReturn], pptReference) { implicit request =>
-      val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(request.body, appConfig.taxRatePoundsPerKg, submissionId = submissionId)
-      returnsConnector.submitReturn(pptReference, eisRequest).flatMap {
-        case Right(response) =>
-          userAnswers(request).flatMap { ans =>
-            sessionRepository.clear(request.cacheKey).andThen {
-              case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
-              case Failure(ex) => logger.warn(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
-            }
-            handleNrsRequest(request, ans, eisRequest, response)
-          }
-        case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
-      }
-    }
+  def amend(pptReference: String, submissionId: String): Action[AnyContent] = doSubmit(pptReference, AmendReturnValues(_, submissionId))
 
-  private def userAnswers(request: AuthorizedRequest[TaxReturn]) = {
-    sessionRepository.get(request.cacheKey).map { ans =>
-      ans.getOrElse(UserAnswers(request.cacheKey)).data
+  def submit(pptReference: String): Action[AnyContent] = doSubmit(pptReference, NewReturnValues(_))
+
+  def doSubmit(pptReference: String, getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues]): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
+
+      sessionRepository.get(request.cacheKey).flatMap {
+        _.flatMap(uA => getValuesOutOfUserAnswers(uA).map(_ -> uA))
+          .fold {
+            Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
+          } { case (amendValues, userAnswers) =>
+            val calculations: Calculations = calculationsService.calculate(amendValues)
+
+            if (calculations.isSubmittable) {
+              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(amendValues, calculations)
+              returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
+                case Right(response) =>
+                  sessionRepository.clear(request.cacheKey).andThen {
+                    case Success(_)  => logger.info(s"Successfully removed tax return for $pptReference from cache")
+                    case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+                  }
+                  handleNrsRequest(request, userAnswers.data, eisRequest, response)
+                case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
+              }
+            } else
+              Future.successful(UnprocessableEntity("The calculation is not submittable"))
+          }
+      }
+
     }
-  }
 
   private def handleNrsRequest(
-                                request: AuthorizedRequest[TaxReturn],
+                                request: AuthorizedRequest[AnyContent],
                                 userAnswers: JsObject,
                                 returnSubmissionRequest: ReturnsSubmissionRequest,
                                 eisResponse: Return
@@ -106,26 +113,33 @@ class ReturnsSubmissionController @Inject()(
 
     submitToNrs(request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-        auditor.returnSubmitted(
-          updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-            returnSubmissionRequest = returnSubmissionRequest,
-            nrsFailureResponse = None
-          ),
-          pptReference = Some(request.pptId),
-          processingDateTime = Some(parseDate(eisResponse.processingDate))
+
+        auditConnector.sendExplicitAudit(
+          NrsSubmitReturnEvent.eventType,
+          NrsSubmitReturnEvent(
+            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
+              returnSubmissionRequest = returnSubmissionRequest,
+              nrsFailureResponse = None
+            ),
+            pptReference = Some(request.pptId),
+            processingDateTime = Some(parseDate(eisResponse.processingDate))
+          )
         )
 
         handleNrsSuccess(eisResponse, nrSubmissionId)
 
     }.recoverWith {
       case exception: Exception =>
-        auditor.returnSubmitted(
-          updateNrsDetails(nrsSubmissionId = None,
-            returnSubmissionRequest = returnSubmissionRequest,
-            nrsFailureResponse = Some(exception.getMessage)
-          ),
-          pptReference = Some(request.pptId),
-          processingDateTime = Some(parseDate(eisResponse.processingDate))
+        auditConnector.sendExplicitAudit(
+          NrsSubmitReturnEvent.eventType,
+          NrsSubmitReturnEvent(
+            updateNrsDetails(nrsSubmissionId = None,
+              returnSubmissionRequest = returnSubmissionRequest,
+              nrsFailureResponse = Some(exception.getMessage)
+            ),
+            pptReference = Some(request.pptId),
+            processingDateTime = Some(parseDate(eisResponse.processingDate))
+          )
         )
 
         handleNrsFailure(eisResponse, exception)
@@ -134,7 +148,7 @@ class ReturnsSubmissionController @Inject()(
   }
 
   private def submitToNrs(
-                           request: AuthorizedRequest[TaxReturn],
+                           request: AuthorizedRequest[AnyContent],
                            payload: NrsReturnOrAmendSubmission,
                            eisResponse: Return
                          )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
@@ -155,7 +169,7 @@ class ReturnsSubmissionController @Inject()(
                                 exception: Exception
                               ): Future[Result] = {
 
-    logger.warn(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
+    logger.error(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
 
     Future.successful(
       Ok(
