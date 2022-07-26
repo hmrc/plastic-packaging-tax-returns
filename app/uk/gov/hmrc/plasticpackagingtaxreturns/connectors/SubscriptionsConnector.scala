@@ -20,6 +20,7 @@ import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
 import play.api.http.Status
+import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
@@ -75,9 +76,10 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
-        if (Status.isSuccessful(response.status))
-          Right(response.json.as[SubscriptionDisplayResponse])
-        else {
+        if (Status.isSuccessful(response.status)) {
+          val json = Json.parse(response.body.replaceAll("\\s", " "))//subscription data can come back un sanitised for json.
+          Right(json.as[SubscriptionDisplayResponse])
+        } else {
           Left(response)
         }
       }

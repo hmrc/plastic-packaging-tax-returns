@@ -64,6 +64,77 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 
+      "handle 200 for body with Illegal unquoted character ((CTRL-CHAR, code 9))" in {
+
+        val pptReference = UUID.randomUUID().toString
+        val illegalData = "test data HQ UC	  " //due to the \t(tabb) on the end not escaped
+        val body =
+          s"""{
+             |  "processingDate" : "2020-05-05",
+             |  "changeOfCircumstanceDetails" : {
+             |    "changeOfCircumstance" : "update"
+             |  },
+             |  "legalEntityDetails" : {
+             |    "dateOfApplication" : "2022-07-25",
+             |    "customerIdentification1" : "123456789",
+             |    "customerIdentification2" : "1234567890",
+             |    "customerDetails" : {
+             |      "customerType" : "Organisation",
+             |      "organisationDetails" : {
+             |        "organisationType" : "UK Limited Company",
+             |        "organisationName" : "$illegalData"
+             |      }
+             |    },
+             |    "groupSubscriptionFlag" : false,
+             |    "partnershipSubscriptionFlag" : false
+             |  },
+             |  "principalPlaceOfBusinessDetails" : {
+             |    "addressDetails" : {
+             |      "addressLine1" : "2-3 Scala Street",
+             |      "addressLine2" : "London",
+             |      "postalCode" : "W1T 2HN",
+             |      "countryCode" : "GB"
+             |    },
+             |    "contactDetails" : {
+             |      "email" : "test@test.com",
+             |      "telephone" : "02034567890"
+             |    }
+             |  },
+             |  "primaryContactDetails" : {
+             |    "name" : "Kevin Durant",
+             |    "contactDetails" : {
+             |      "email" : "test@test.com",
+             |      "telephone" : "02034567890"
+             |    },
+             |    "positionInCompany" : "Director"
+             |  },
+             |  "businessCorrespondenceDetails" : {
+             |    "addressLine1" : "2-3 Scala Street",
+             |    "addressLine2" : "London",
+             |    "postalCode" : "W1T 2HN",
+             |    "countryCode" : "GB"
+             |  },
+             |  "taxObligationStartDate" : "2022-07-25T14:49:18.363Z",
+             |  "last12MonthTotalTonnageAmt" : 15000,
+             |  "declaration" : {
+             |    "declarationBox1" : true
+             |  }
+             |}""".stripMargin
+
+        stubFor(
+          get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
+            .willReturn(
+              aResponse()
+                .withStatus(Status.OK)
+                .withBody(body)
+            )
+        )
+
+        await(connector.getSubscription(pptReference))
+
+        getTimer(displaySubscriptionTimer).getCount mustBe 1
+      }
+
       "handle unexpected failure responses" in {
         val pptReference = UUID.randomUUID().toString
 
