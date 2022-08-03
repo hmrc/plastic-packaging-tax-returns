@@ -70,9 +70,10 @@ class ReturnsController @Inject()(
 
     }
 
-  def amend(pptReference: String, submissionId: String): Action[AnyContent] = doSubmit(pptReference, AmendReturnValues(_, submissionId))
+  //todo submissionId is not needed here we have it in the cache, remove from FE and BE at the same time
+  def amend(pptReference: String, submissionId: String): Action[AnyContent] = doSubmit(pptReference, AmendReturnValues.apply)
 
-  def submit(pptReference: String): Action[AnyContent] = doSubmit(pptReference, NewReturnValues(_))
+  def submit(pptReference: String): Action[AnyContent] = doSubmit(pptReference, NewReturnValues.apply)
 
   def doSubmit(pptReference: String, getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues]): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
@@ -81,11 +82,11 @@ class ReturnsController @Inject()(
         _.flatMap(uA => getValuesOutOfUserAnswers(uA).map(_ -> uA))
           .fold {
             Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
-          } { case (amendValues, userAnswers) =>
-            val calculations: Calculations = calculationsService.calculate(amendValues)
+          } { case (returnValues, userAnswers) =>
+            val calculations: Calculations = calculationsService.calculate(returnValues)
 
             if (calculations.isSubmittable) {
-              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(amendValues, calculations)
+              val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
               returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
                 case Right(response) =>
                   sessionRepository.clear(request.cacheKey).andThen {

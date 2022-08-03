@@ -96,12 +96,58 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "21C4"
       |        },
+      |        "returnDisplayApi" : {
+      |            "idDetails" : {
+      |                "pptReferenceNumber" : "pptref",
+      |                "submissionId" : "submission12"
+      |            },
+      |            "returnDetails" : {
+      |                "manufacturedWeight" : 250,
+      |                "importedWeight" : 0,
+      |                "totalNotLiable" : 0,
+      |                "humanMedicines" : 10,
+      |                "directExports" : 0,
+      |                "recycledPlastic" : 5,
+      |                "creditForPeriod" : 12.13,
+      |                "debitForPeriod" : 0,
+      |                "totalWeight" : 220,
+      |                "taxDue" : 44
+      |            }
+      |        },
       |        "amend": {
       |            "amendManufacturedPlasticPackaging" : 100,
       |            "amendImportedPlasticPackaging" : 0,
       |            "amendDirectExportPlasticPackaging" : 0,
       |            "amendHumanMedicinePlasticPackaging" : 10,
       |            "amendRecycledPlasticPackaging" : 5
+      |        }
+      |    }""".stripMargin).asInstanceOf[JsObject]
+
+  private val userAnswersDataPartialAmends: JsObject = Json.parse(
+    """{
+      |        "obligation" : {
+      |            "periodKey" : "21C4"
+      |        },
+      |        "amend": {
+      |            "amendManufacturedPlasticPackaging" : 100
+      |        },
+      |        "returnDisplayApi" : {
+      |            "idDetails" : {
+      |                "pptReferenceNumber" : "pptref",
+      |                "submissionId" : "submission12"
+      |            },
+      |            "returnDetails" : {
+      |                "manufacturedWeight" : 250,
+      |                "importedWeight" : 0,
+      |                "totalNotLiable" : 0,
+      |                "humanMedicines" : 10,
+      |                "directExports" : 0,
+      |                "recycledPlastic" : 5,
+      |                "creditForPeriod" : 12.13,
+      |                "debitForPeriod" : 0,
+      |                "totalWeight" : 220,
+      |                "taxDue" : 44
+      |            }
       |        }
       |    }""".stripMargin).asInstanceOf[JsObject]
 
@@ -134,6 +180,7 @@ class ReturnsControllerSpec
   private val invalidUserAnswersReturns: UserAnswers           = UserAnswers("id").copy(data = invalidUserAnswersDataReturns)
   private val invalidDeductionsUserAnswersReturns: UserAnswers = UserAnswers("id").copy(data = invalidDeductionsAnswersDataReturns)
   private val userAnswersAmends: UserAnswers                   = UserAnswers("id").copy(data = userAnswersDataAmends)
+  private val userAnswersPartialAmends: UserAnswers            = UserAnswers("id").copy(data = userAnswersDataPartialAmends)
   private val invalidUserAnswersAmends: UserAnswers            = UserAnswers("id").copy(data = invalidUserAnswersDataAmends)
   private val invalidDeductionsUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = invalidDeductionsAnswersDataAmends)
 
@@ -268,6 +315,24 @@ class ReturnsControllerSpec
 
         status(result) mustBe UNPROCESSABLE_ENTITY
       }
+
+      "submit a return via the returns connector" in {
+
+        returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
+
+        withClue("delete a return after successful submission") {
+          verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
+        }
+      }
+
+      "respond successfully when return submission is successful but the return delete fails" in {
+
+        when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+
+        returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
+
+      }
+
     }
 
     "amends" when {
@@ -298,39 +363,18 @@ class ReturnsControllerSpec
       }
     }
 
-    "submit a return via the returns connector" in {
-
-      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
-
-    }
-
     "submit an amendment via the returns controller" in {
 
       amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
+      withClue("delete a return after successful amend") {
+        verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
+      }
     }
 
-    "delete a return after successful submission" in {
+    "submit a partial amendment via the returns controller" in {
 
-      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
-
-      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
-
-    }
-
-    "delete a return after successful amend" in {
-      amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
-
-      verify(mockSessionRepository).clear("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-7777777")
-
-    }
-
-    "respond successfully when return submission is successful but the return delete fails" in {
-
-      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
-
-      returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
-
+      amendSubmittedAsExpected(pptReference, expectedAmendReturnValues, userAnswersPartialAmends)
     }
 
     "respond successfully when return amend is successful but the return delete fails" in {
@@ -368,8 +412,8 @@ class ReturnsControllerSpec
 
   }
 
-  private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess(s"/returns-amend/$pptReference/submission12", pptReference, returnValues, userAnswersAmends)
+  private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues, userAnswers: UserAnswers = userAnswersAmends): Future[NonRepudiationSubmissionAccepted] =
+    submissionSuccess(s"/returns-amend/$pptReference/submission12", pptReference, returnValues, userAnswers)
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
     submissionSuccess(s"/returns-submission/$pptReference", pptReference, returnValues, userAnswersReturns)

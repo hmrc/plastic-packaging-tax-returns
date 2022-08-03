@@ -30,4 +30,5 @@ GET         /cache/get/:pptReference                            uk.gov.hmrc.plas
 POST        /cache/set/:pptReference                            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.set(pptReference: String)
 
 # Calculation
-GET         /returns-calculate/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController.calculate(pptReference)
+GET         /returns-calculate/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController.calculateSubmit(pptReference)
+GET         /amends-calculate/:pptReference                     uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController.calculateAmends(pptReference)

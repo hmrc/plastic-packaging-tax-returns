@@ -93,15 +93,18 @@ final case class AmendReturnValues(
 
 object AmendReturnValues {
 
-  def apply(userAnswers: UserAnswers, submissionID: String): Option[AmendReturnValues] = {
+  def apply(userAnswers: UserAnswers): Option[AmendReturnValues] = {
+
+    val original = userAnswers.get(ReturnDisplayApiGettable)
 
     for {
+      submissionID <- original.map(_.idDetails.submissionId)
       periodKey <- userAnswers.get(PeriodKeyGettable)
-      manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable)
-      imported <- userAnswers.get(AmendImportedPlasticPackagingGettable)
-      exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable)
-      humanMedicines <- userAnswers.get(AmendHumanMedicinePlasticPackagingGettable)
-      recycled <- userAnswers.get(AmendRecycledPlasticPackagingGettable)
+      manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
+      imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
+      exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
+      humanMedicines <- userAnswers.get(AmendHumanMedicinePlasticPackagingGettable).orElse(original.map(_.returnDetails.humanMedicines))
+      recycled <- userAnswers.get(AmendRecycledPlasticPackagingGettable).orElse(original.map(_.returnDetails.recycledPlastic))
     } yield {
       new AmendReturnValues(
         periodKey,
