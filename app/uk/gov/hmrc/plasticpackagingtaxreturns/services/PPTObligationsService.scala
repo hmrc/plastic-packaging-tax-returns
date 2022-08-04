@@ -36,7 +36,6 @@ class PPTObligationsService @Inject() (appConfig: AppConfig) extends Logging {
   def constructPPTObligations(data: ObligationDataResponse): Either[String, PPTObligations] =
     data.obligations match {
       case Seq(obligation) =>
-        logger.info("Constructing Obligations.")
         Right(construct(obligation))
       case obligations =>
         Left(s"Error constructing Obligations, expected 1 found ${obligations.size}")

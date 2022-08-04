@@ -31,8 +31,8 @@ import scala.concurrent.ExecutionContext
 
 class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with DefaultAwaitTimeout {
 
-  protected val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
-  protected val metrics: Metrics              = app.injector.instanceOf[Metrics]
+  protected lazy val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
+  protected lazy val metrics: Metrics              = app.injector.instanceOf[Metrics]
 
   protected implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   protected implicit val hc: HeaderCarrier    = HeaderCarrier()
