@@ -139,7 +139,7 @@ object OriginalReturnForAmendValues {
   def apply(userAnswers: UserAnswers): Option[OriginalReturnForAmendValues] = {
     userAnswers.get(ReturnDisplayApiGettable).map(original =>
       new OriginalReturnForAmendValues(
-        periodKey = "N/A", // todo do we need this?
+        periodKey = "N/A", // todo do we need this? it is available in the ReturnDisplayChargeDetails object.
         original.returnDetails.manufacturedWeight,
         original.returnDetails.importedWeight,
         original.returnDetails.directExports,
