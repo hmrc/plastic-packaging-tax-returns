@@ -23,13 +23,13 @@ import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, OriginalReturnForAmendValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationsController @Inject()(
@@ -40,20 +40,31 @@ class CalculationsController @Inject()(
                                       )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
-  def calculateAmends(pptReference: String): Action[AnyContent] = calculate(pptReference, AmendReturnValues.apply)
+  def calculateAmends(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
+      implicit request =>
+        sessionRepository.get(request.cacheKey).map { optUa => {
+          for {
+            userAnswers <- optUa
+            original <- OriginalReturnForAmendValues(userAnswers)
+            amend <- AmendReturnValues(userAnswers)
+            originalCalc = calculationsService.calculate(original)
+            amendCalc = calculationsService.calculate(amend)
+          } yield
+            Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))
+        }.fold(UnprocessableEntity("No user answers found"))(Ok(_))
+        }
+    }
 
-  def calculateSubmit(pptReference: String): Action[AnyContent] = calculate(pptReference, NewReturnValues.apply)
-
-  private def calculate(pptReference: String, returnValues: UserAnswers => Option[ReturnValues]): Action[AnyContent] = {
+  def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
       sessionRepository.get(request.cacheKey).map {
-        _.flatMap(returnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
+        _.flatMap(NewReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
           Ok(Json.toJson(calculations))
         }
       }
     }
-  }
 
 }
