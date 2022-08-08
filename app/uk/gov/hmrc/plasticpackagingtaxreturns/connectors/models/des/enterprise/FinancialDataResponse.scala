@@ -32,7 +32,14 @@ object FinancialDataResponse {
 
   implicit val format: OFormat[FinancialDataResponse] = Json.format[FinancialDataResponse]
   
-  def inferNoTransactions: FinancialDataResponse = FinancialDataResponse(None, None, None, LocalDateTime.MIN, Seq()) 
+  def inferNoTransactions(pptReference: String, processingDate: LocalDateTime): FinancialDataResponse = 
+    FinancialDataResponse(
+      idType = Some("ZPPT"), 
+      idNumber = Some(pptReference), 
+      regimeType = Some("PPT"), 
+      processingDate = processingDate, 
+      financialTransactions = Seq()
+    ) 
 
 }
 

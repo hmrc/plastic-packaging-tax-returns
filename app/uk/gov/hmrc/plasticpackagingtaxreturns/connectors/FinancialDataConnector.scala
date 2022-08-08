@@ -27,6 +27,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.DateAndTime
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
@@ -34,7 +35,13 @@ import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class FinancialDataConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditConnector: AuditConnector)(
+class FinancialDataConnector @Inject() (
+  httpClient: HttpClient, 
+  override val appConfig: AppConfig,
+  metrics: Metrics, 
+  auditConnector: AuditConnector, 
+  dateAndTime: DateAndTime
+) (
   implicit ec: ExecutionContext
 ) extends DESConnector {
 
@@ -55,12 +62,13 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
     val SUCCESS: String     = "Success"
     val FAILURE: String     = "Failure"
 
-    val queryParams: Seq[(String, String)] = QueryParams.fromOptions("dateFrom" -> fromDate.map(DateFormat.isoFormat),
-                                                                     "dateTo"                     -> toDate.map(DateFormat.isoFormat),
-                                                                     "onlyOpenItems"              -> onlyOpenItems,
-                                                                     "includeLocks"               -> includeLocks,
-                                                                     "calculateAccruedInterest"   -> calculateAccruedInterest,
-                                                                     "customerPaymentInformation" -> customerPaymentInformation
+    val queryParams: Seq[(String, String)] = QueryParams.fromOptions(
+      "dateFrom" -> fromDate.map(DateFormat.isoFormat),
+      "dateTo" -> toDate.map(DateFormat.isoFormat),
+      "onlyOpenItems" -> onlyOpenItems,
+      "includeLocks" -> includeLocks,
+      "calculateAccruedInterest" -> calculateAccruedInterest,
+      "customerPaymentInformation" -> customerPaymentInformation
     )
 
     val requestHeaders: Seq[(String, String)] = headers :+ correlationIdHeader
@@ -83,7 +91,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
       }
       .recover {
         case httpEx: UpstreamErrorResponse =>
-          inferResponse(httpEx).fold[Either[Int, FinancialDataResponse]]({
+          inferResponse(httpEx, pptReference).fold[Either[Int, FinancialDataResponse]]({
             logger.warn(
               s"Upstream error returned when getting enterprise financial data correlationId [${correlationIdHeader._2}] and " +
                 s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
@@ -120,7 +128,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
-  def inferResponse(httpEx: UpstreamErrorResponse): Option[FinancialDataResponse] = {
+  def inferResponse(httpEx: UpstreamErrorResponse, pptReference: String): Option[FinancialDataResponse] = {
     Some(httpEx.statusCode)
       .filter(_ == Status.NOT_FOUND) // only 404s
       .flatMap { _ =>
@@ -130,7 +138,7 @@ class FinancialDataConnector @Inject() (httpClient: HttpClient, override val app
       .map(_.group(1))
       .flatMap(body => (Json.parse(body) \ "code").asOpt[String]) // try get code field
       .filter(_ == "NOT_FOUND") // if DES code is this -> means no financial records found 
-      .map(_ => FinancialDataResponse.inferNoTransactions)
+      .map(_ => FinancialDataResponse.inferNoTransactions(pptReference, dateAndTime.currentTime))
   }
 }
     

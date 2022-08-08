@@ -16,27 +16,35 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.mockito.Mockito
+import org.mockito.Mockito.when
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
+import play.api.Application
 import play.api.http.Status
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.DateAndTime
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
-class FinancialDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EnterpriseTestData {
-
+class FinancialDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures 
+  with EnterpriseTestData with BeforeAndAfterEach {
+  
+  private val dateAndTime = mock[DateAndTime]
   lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
-
   val getFinancialDataTimer = "ppt.get.financial.data.timer"
-
   val internalId: String                          = "someId"
   val pptReference: String                        = "XXPPTP103844123"
   val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
@@ -51,12 +59,25 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
   val getUrl =
     s"/enterprise/financial-data/ZPPT/$pptReference/PPT?dateFrom=$fromDate&dateTo=$toDate&onlyOpenItems=${onlyOpenItems.get}&includeLocks=${includeLocks.get}&calculateAccruedInterest=${calculateAccruedInterest.get}&customerPaymentInformation=${customerPaymentInformation.get}"
 
+  override def fakeApplication(): Application = {
+    SharedMetricRegistries.clear()
+    new GuiceApplicationBuilder()
+      .overrides(bind[DateAndTime].toInstance(dateAndTime))
+      .configure(overrideConfig)
+      .build()
+  }
+
   override def overrideConfig: Map[String, Any] =
     Map("microservice.services.des.host" -> wireHost,
       "microservice.services.des.port" -> wirePort,
       "auditing.consumer.baseUri.port" -> wirePort,
       "auditing.enabled" -> true
     )
+    
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    Mockito.reset(dateAndTime)
+  }
 
   "FinancialData connector" when {
 
@@ -165,10 +186,17 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
     
     "it" should {
       "map special DES 404s to a zero financial records results" in {
+        when(dateAndTime.currentTime).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
         val desNotFound = Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire") 
         wiremock.stubFor(get(anyUrl()).willReturn(notFound().withBody(desNotFound.toString)))
         val result = await(getFinancialData)
-        result mustBe Right(FinancialDataResponse.inferNoTransactions)
+        result mustBe Right(FinancialDataResponse(
+          idType = Some("ZPPT"), 
+          idNumber = Some("XXPPTP103844123"), 
+          regimeType = Some("PPT"), 
+          processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3), 
+          financialTransactions = Seq()
+        ))
       }
     }
   }
