@@ -66,7 +66,8 @@ case class FinancialItem(
   dueDate: Option[LocalDate],
   amount: Option[BigDecimal],
   clearingDate: Option[LocalDate],
-  clearingReason: Option[String]
+  clearingReason: Option[String],
+  DDcollectionInProgress: Option[Boolean] // TODO check this in real payload
 )
 
 object FinancialItem {

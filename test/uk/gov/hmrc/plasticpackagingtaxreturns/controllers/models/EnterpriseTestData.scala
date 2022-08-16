@@ -16,46 +16,40 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
-import java.time.{LocalDate, LocalDateTime}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  FinancialDataResponse,
-  FinancialItem,
-  FinancialTransaction
-}
+import java.time.{LocalDate, LocalDateTime}
 
 trait EnterpriseTestData {
 
-  val financialDataResponse: FinancialDataResponse = FinancialDataResponse(idType = Some("idType"),
-                                                                           idNumber = Some("idNumber"),
-                                                                           regimeType = Some("regimeType"),
-                                                                           processingDate = LocalDateTime.now(),
-                                                                           financialTransactions = Seq(
-                                                                             FinancialTransaction(
-                                                                               chargeType = Some("chargeType"),
-                                                                               mainType = Some("mainType"),
-                                                                               periodKey = Some("periodKey"),
-                                                                               periodKeyDescription =
-                                                                                 Some("periodKeyDescription"),
-                                                                               taxPeriodFrom = Some(LocalDate.now()),
-                                                                               taxPeriodTo = Some(LocalDate.now()),
-                                                                               outstandingAmount =
-                                                                                 Some(BigDecimal(1000)),
-                                                                               items = Seq(
-                                                                                 FinancialItem(
-                                                                                   subItem = Some("subItem"),
-                                                                                   dueDate =
-                                                                                     Some(LocalDate.now()),
-                                                                                   amount =
-                                                                                     Some(BigDecimal(1000)),
-                                                                                   clearingDate =
-                                                                                     Some(LocalDate.now()),
-                                                                                   clearingReason =
-                                                                                     Some("clearingReason")
-                                                                                 )
-                                                                               )
-                                                                             )
-                                                                           )
+  val financialDataResponse: FinancialDataResponse = FinancialDataResponse(
+    idType = Some("idType"),
+    idNumber = Some("idNumber"),
+    regimeType = Some("regimeType"),
+    processingDate = LocalDateTime.now(),
+    financialTransactions = Seq(
+      FinancialTransaction(
+        chargeType = Some("chargeType"),
+        mainType = Some("mainType"),
+        periodKey = Some("periodKey"),
+        periodKeyDescription =
+          Some("periodKeyDescription"),
+        taxPeriodFrom = Some(LocalDate.now()),
+        taxPeriodTo = Some(LocalDate.now()),
+        outstandingAmount =
+          Some(BigDecimal(1000)),
+        items = Seq(
+          FinancialItem(
+            subItem = Some("subItem"),
+            dueDate = Some(LocalDate.now()),
+            amount = Some(BigDecimal(1000)),
+            clearingDate = Some(LocalDate.now()),
+            clearingReason = Some("clearingReason"),
+            DDcollectionInProgress = None
+          )
+        )
+      )
+    )
   )
 
 }
