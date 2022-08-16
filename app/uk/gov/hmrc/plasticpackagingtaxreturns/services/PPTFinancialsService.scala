@@ -16,21 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
-  FinancialDataResponse,
-  FinancialTransaction
-}
+import play.api.Logging
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialTransaction}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService.Charge
 
 import java.time.LocalDate
 
-class PPTFinancialsService {
+class PPTFinancialsService extends Logging {
+
+  private def pretendDirectDebitCheck(data: FinancialDataResponse): Unit = {
+    val strings: Seq[String] = data.financialTransactions.map { transaction =>
+      s"${transaction.periodKey}: " + transaction.items.map(_.DDcollectionInProgress)
+    }
+    logger.info("DD pre-check: " + strings.mkString("\n"))
+  }  
 
   def construct(data: FinancialDataResponse): PPTFinancials = {
     val charges: Seq[Charge] =
       data.financialTransactions.collect { case ft if ft.outstandingAmount.forall(_ != 0) => Charge(ft) }
 
+    pretendDirectDebitCheck(data)
+    
     val totalChargesSum = charges.map(_.amount).sum
 
     if (totalChargesSum == 0) PPTFinancials.NothingOutstanding
