@@ -22,6 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService.Charge
 
 import java.time.LocalDate
+import scala.util.Try
 
 class PPTFinancialsService extends Logging {
 
@@ -36,7 +37,7 @@ class PPTFinancialsService extends Logging {
     val charges: Seq[Charge] =
       data.financialTransactions.collect { case ft if ft.outstandingAmount.forall(_ != 0) => Charge(ft) }
 
-    pretendDirectDebitCheck(data)
+    Try(pretendDirectDebitCheck(data))
     
     val totalChargesSum = charges.map(_.amount).sum
 
