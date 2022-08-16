@@ -93,14 +93,11 @@ trait ReturnsTestData {
         items = Seq(
           FinancialItem(
             subItem = Some("subItem"),
-            dueDate =
-              Some(LocalDate.now()),
-            amount =
-              Some(BigDecimal(1000)),
-            clearingDate =
-              Some(LocalDate.now()),
-            clearingReason =
-              Some("clearingReason")
+            dueDate = Some(LocalDate.now()),
+            amount = Some(BigDecimal(1000)),
+            clearingDate = Some(LocalDate.now()),
+            clearingReason = Some("clearingReason"), 
+            DDcollectionInProgress = None
           )
         )
       )

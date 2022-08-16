@@ -158,7 +158,8 @@ class PPTFinancialsItSpec extends PlaySpec
               dueDate = Some(LocalDate.now()),
               amount = Some(amount),
               clearingDate = None,
-              clearingReason = None
+              clearingReason = None,
+              DDcollectionInProgress = None
             )
           )
         )

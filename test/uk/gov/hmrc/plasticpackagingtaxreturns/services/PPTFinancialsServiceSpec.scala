@@ -37,7 +37,7 @@ class PPTFinancialsServiceSpec extends PlaySpec {
 
   val emptyData        = FinancialDataResponse(None, None, None, LocalDateTime.now(), Nil)
   val emptyTransaction = FinancialTransaction(None, None, None, None, None, None, None, Nil)
-  val emptyItem        = FinancialItem(None, None, None, None, None)
+  val emptyItem        = FinancialItem(None, None, None, None, None, None)
 
   def makeData(charges: (BigDecimal, LocalDate)*): FinancialDataResponse =
     emptyData.copy(financialTransactions =
