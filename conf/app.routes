@@ -16,14 +16,19 @@ GET         /returns-submission/:pptReference/:periodKey        uk.gov.hmrc.plas
 # EIS Return Amend
 GET         /returns-amend/:pptReference/:submissionId          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.amend(pptReference: String, submissionId: String)
 
-# DES obligation data
+# Raw DES obligation data
 GET         /obligation-data/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String])
+
+# PPT obligation APIs
 GET         /obligations/open/:pptReference                     uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getOpen(pptReference)
 GET         /obligations/fulfilled/:pptReference                uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getFulfilled(pptReference)
 
-# DES financial data
+# Raw DES financial data
 GET         /financial-data/:pptReference                       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])
+
+# PPT financial APIs
 GET         /financials/open/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController.get(pptReference)
+GET         /financials/dd-in-progress/:pptReference/:periodKey uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController.isDdInProgress(pptReference: String, periodKey: String)
 
 # User Answers Cache
 GET         /cache/get/:pptReference                            uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CacheController.get(pptReference: String)

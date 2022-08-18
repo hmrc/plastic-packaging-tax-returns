@@ -46,4 +46,20 @@ class PPTFinancialsController @Inject() (
         }
     }
 
+  def isDdInProgress(pptReference: String, periodKey: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
+      implicit request =>
+        financialDataService.getFinancials(pptReference, request.internalId).map {
+          case Left(_) =>
+            InternalServerError("{}")
+          case Right(financialDataResponse) =>
+            val flag = financialsService.tempMethodName(periodKey, financialDataResponse)
+            val thing = Map(
+              "pptReference" -> pptReference,
+              "periodKey" -> periodKey,
+              "isDdCollectionInProgress" -> flag.toString)
+            Ok(Json.toJson(thing))
+        }
+    }
+
 }

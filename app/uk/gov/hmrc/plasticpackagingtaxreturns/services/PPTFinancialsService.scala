@@ -59,6 +59,8 @@ class PPTFinancialsService extends Logging {
     }
   }
 
+  def tempMethodName(periodKey: String, data: FinancialDataResponse) =
+    false
 }
 
 object PPTFinancialsService {
