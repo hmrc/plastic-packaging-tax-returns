@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.DirectDebitDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -53,12 +54,11 @@ class PPTFinancialsController @Inject() (
           case Left(_) =>
             InternalServerError("{}")
           case Right(financialDataResponse) =>
-            val flag = financialsService.tempMethodName(periodKey, financialDataResponse)
-            val thing = Map(
-              "pptReference" -> pptReference,
-              "periodKey" -> periodKey,
-              "isDdCollectionInProgress" -> flag.toString)
-            Ok(Json.toJson(thing))
+            Ok(Json.toJson(DirectDebitDetails(
+              pptReference,
+              periodKey,
+              financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)))
+            )
         }
     }
 

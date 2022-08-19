@@ -26,6 +26,12 @@ import scala.util.Try
 
 class PPTFinancialsService extends Logging {
 
+  def lookUpForDdInProgress(periodKey: String, response: FinancialDataResponse): Boolean = {
+    response.financialTransactions.find(o => o.periodKey == Some(periodKey))
+      .fold(false)(_.items.find(_.DDcollectionInProgress == Some(true)).isDefined)
+  }
+
+
   private def pretendDirectDebitCheck(data: FinancialDataResponse): Unit = {
     val strings: Seq[String] = data.financialTransactions.map { transaction =>
       s"${transaction.periodKey}: " + transaction.items.map(_.DDcollectionInProgress)
@@ -58,9 +64,6 @@ class PPTFinancialsService extends Logging {
       }
     }
   }
-
-  def tempMethodName(periodKey: String, data: FinancialDataResponse) =
-    false
 }
 
 object PPTFinancialsService {

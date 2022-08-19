@@ -31,7 +31,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, PPTFinancials}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.{LocalDate, LocalDateTime}
@@ -116,6 +116,38 @@ class PPTFinancialsItSpec extends PlaySpec
     }
   }
 
+  "isDdInProgress" should {
+    val ddInProgressUrl = s"http://localhost:$port/financials/dd-in-progress/$pptReference/c22"
+
+    "return 200" in {
+      withAuthorizedUser()
+      stubFinancialResponse(createResponseWithDdInProgressFlag("c22"))
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(DirectDebitDetails(pptReference, "c22", true))
+    }
+
+    "return Unauthorized" in {
+      withUnauthorizedUser(new RuntimeException)
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe UNAUTHORIZED
+    }
+
+    "return server error" in {
+      withAuthorizedUser()
+      stubFinancialErrorResponse
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
+
+  }
+
   private def stubFinancialResponse(response: FinancialDataResponse): Unit =
     server.stubFor(
       get(DESUrl)
@@ -137,33 +169,59 @@ class PPTFinancialsItSpec extends PlaySpec
         )
     )
 
+  private def createResponseWithDdInProgressFlag(periodKey: String) = {
+
+    val items = Seq(
+      createDdFinancialItem(),
+      createDdFinancialItem(DDcollectionInProgress = Some(true)),
+      createDdFinancialItem(DDcollectionInProgress = Some(false))
+    )
+    FinancialDataResponse(
+      idType = None,
+      idNumber = None,
+      regimeType = None,
+      processingDate = LocalDateTime.now(),
+      financialTransactions = Seq(createFinancialTransaction(periodKey = periodKey, items = items))
+    )
+  }
   private def createFinancialResponseWithAmount(amount: BigDecimal = BigDecimal(0.0)) = {
     FinancialDataResponse(
       idType = None,
       idNumber = None,
       regimeType = None,
       processingDate = LocalDateTime.now(),
-      financialTransactions = Seq(
-        FinancialTransaction(
-          chargeType = None,
-          mainType = None,
-          periodKey = None,
-          periodKeyDescription = None,
-          taxPeriodFrom = None,
-          taxPeriodTo = None,
-          outstandingAmount = Some(amount),
-          items = Seq(
-            FinancialItem(
-              subItem = None,
-              dueDate = Some(LocalDate.now()),
-              amount = Some(amount),
-              clearingDate = None,
-              clearingReason = None,
-              DDcollectionInProgress = None
-            )
-          )
+      financialTransactions =
+        Seq(
+          createFinancialTransaction(amount = amount, items = Seq(createDdFinancialItem(amount)))
         )
-      )
+    )
+  }
+
+  private def createFinancialTransaction
+  (
+    amount: BigDecimal = BigDecimal(0.0),
+    periodKey: String = "period-key",
+    items: Seq[FinancialItem]) = {
+    FinancialTransaction(
+      chargeType = None,
+      mainType = None,
+      periodKey = Some(periodKey),
+      periodKeyDescription = None,
+      taxPeriodFrom = None,
+      taxPeriodTo = None,
+      outstandingAmount = Some(amount),
+      items = items
+    )
+  }
+
+  private def createDdFinancialItem(amount: BigDecimal = BigDecimal(0.0), DDcollectionInProgress: Option[Boolean] = None) = {
+    FinancialItem(
+      subItem = None,
+      dueDate = Some(LocalDate.now()),
+      amount = Some(amount),
+      clearingDate = None,
+      clearingReason = None,
+      DDcollectionInProgress = DDcollectionInProgress
     )
   }
 }

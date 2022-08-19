@@ -140,4 +140,51 @@ class PPTFinancialsServiceSpec extends PlaySpec {
       }
     }
   }
+
+  "isDDInProgress" must {
+    "return true" when {
+      "financial response DDCollectionInProgress is true" in {
+        val items = Seq(
+          createItem(Some(false)),
+          createItem(Some(true)),
+          createItem(Some(false))
+        )
+
+        sut.lookUpForDdInProgress("123", createFinancialTransaction(Some("123"), items)) mustBe true
+      }
+    }
+
+    "return false" when {
+      "financial response DDCollectionInProgress is false" in {
+        val items = Seq(
+          createItem(Some(false)),
+          createItem(Some(false)),
+          createItem(Some(false))
+        )
+
+        sut.lookUpForDdInProgress("123", createFinancialTransaction(Some("123"), items)) mustBe false
+      }
+
+      "if transaction for period key not found" in {
+        sut.lookUpForDdInProgress(
+          "123",
+          createFinancialTransaction(None, Seq(createItem(Some(true))))
+        ) mustBe false
+      }
+
+      "if DDCollectionInProgress not found" in {
+        sut.lookUpForDdInProgress(
+          "123",
+          createFinancialTransaction(Some("123"), Seq(createItem(None)))) mustBe false
+      }
+    }
+  }
+
+  def createItem(DDCollectionInProgress: Option[Boolean]) = {
+    FinancialItem(None, None, None, None, None, DDCollectionInProgress)
+  }
+  private def createFinancialTransaction(periodKey: Option[String], items: Seq[FinancialItem]) = {
+    val transaction = FinancialTransaction(None, None, periodKey, None, None, None, None, items)
+    FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq(transaction))
+  }
 }

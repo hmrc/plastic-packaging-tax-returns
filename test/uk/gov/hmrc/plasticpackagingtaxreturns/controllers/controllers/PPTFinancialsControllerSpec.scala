@@ -28,7 +28,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 
 import java.time.LocalDateTime
@@ -102,38 +102,28 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
   "isDdInProgress" should {
     
     "respond with false" in {
-      when(mockPPTFinancialsService.tempMethodName(any(), any())).thenReturn(false)
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(false)
       when(mockFinancialDataService.getFinancials(any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
+
       val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
+
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.parse(
-        """
-        {
-          "pptReference": "ppt-ref", 
-          "periodKey": "period-key", 
-          "isDdCollectionInProgress": "false" 
-        }
-        """)
-      verify(mockPPTFinancialsService).tempMethodName(exactlyEq("period-key"), any())
+      contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", false))
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
       verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
     }
 
     "respond with true" in {
-      when(mockPPTFinancialsService.tempMethodName(any(), any())).thenReturn(true)
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(true)
       when(mockFinancialDataService.getFinancials(any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
+
       val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
+
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.parse(
-        """
-        {
-          "pptReference": "ppt-ref", 
-          "periodKey": "period-key", 
-          "isDdCollectionInProgress": "true" 
-        }
-        """)
-      verify(mockPPTFinancialsService).tempMethodName(exactlyEq("period-key"), any())
+      contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", true))
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
       verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
     }
   }
