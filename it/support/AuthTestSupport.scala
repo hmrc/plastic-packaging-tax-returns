@@ -89,12 +89,13 @@ trait AuthTestSupport extends MockitoSugar {
   def mockAuthorization(
     nrsIdentityRetrievals: Retrieval[NonRepudiationIdentityRetrievals],
     authRetrievalsResponse: NonRepudiationIdentityRetrievals
-  )(implicit hc: HeaderCarrier, ec: ExecutionContext): OngoingStubbing[Future[NonRepudiationIdentityRetrievals]] =
+  )(implicit ec: ExecutionContext): OngoingStubbing[Future[NonRepudiationIdentityRetrievals]] = {
+    val t = true
     when(
       mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(
-        ArgumentMatchers.eq(hc),
-        ArgumentMatchers.eq(ec)
+        any(),
+        any()
       )
     ).thenReturn(Future.successful(authRetrievalsResponse))
-
+  }
 }

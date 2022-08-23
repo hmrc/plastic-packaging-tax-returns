@@ -30,11 +30,12 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{AuthTestSupport, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 
 class PPTFinancialsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
@@ -79,7 +80,7 @@ class PPTFinancialsItSpec extends PlaySpec
   "GET" should {
     "return 200" in {
       withAuthorizedUser()
-      stubFinancialResponse(createFinancialResponseWithAmount())
+      stubFinancialResponse(FinancialTransactionHelper.createFinancialResponseWithAmount())
 
       val response = await(wsClient.url(Url).get())
 
@@ -89,7 +90,7 @@ class PPTFinancialsItSpec extends PlaySpec
     "return financial details" in {
       withAuthorizedUser()
 
-      val financialResponse = createFinancialResponseWithAmount(1.0)
+      val financialResponse = FinancialTransactionHelper.createFinancialResponseWithAmount(1.0)
       stubFinancialResponse(financialResponse)
 
       val response = await(wsClient.url(Url).get())
@@ -121,7 +122,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "return 200" in {
       withAuthorizedUser()
-      stubFinancialResponse(createResponseWithDdInProgressFlag("c22"))
+      stubFinancialResponse(FinancialTransactionHelper.createResponseWithDdInProgressFlag("c22"))
 
       val response = await(wsClient.url(ddInProgressUrl).get())
 
@@ -168,61 +169,5 @@ class PPTFinancialsItSpec extends PlaySpec
             .withStatus(Status.BAD_REQUEST)
         )
     )
-
-  private def createResponseWithDdInProgressFlag(periodKey: String) = {
-
-    val items = Seq(
-      createDdFinancialItem(),
-      createDdFinancialItem(DDcollectionInProgress = Some(true)),
-      createDdFinancialItem(DDcollectionInProgress = Some(false))
-    )
-    FinancialDataResponse(
-      idType = None,
-      idNumber = None,
-      regimeType = None,
-      processingDate = LocalDateTime.now(),
-      financialTransactions = Seq(createFinancialTransaction(periodKey = periodKey, items = items))
-    )
-  }
-  private def createFinancialResponseWithAmount(amount: BigDecimal = BigDecimal(0.0)) = {
-    FinancialDataResponse(
-      idType = None,
-      idNumber = None,
-      regimeType = None,
-      processingDate = LocalDateTime.now(),
-      financialTransactions =
-        Seq(
-          createFinancialTransaction(amount = amount, items = Seq(createDdFinancialItem(amount)))
-        )
-    )
-  }
-
-  private def createFinancialTransaction
-  (
-    amount: BigDecimal = BigDecimal(0.0),
-    periodKey: String = "period-key",
-    items: Seq[FinancialItem]) = {
-    FinancialTransaction(
-      chargeType = None,
-      mainType = None,
-      periodKey = Some(periodKey),
-      periodKeyDescription = None,
-      taxPeriodFrom = None,
-      taxPeriodTo = None,
-      outstandingAmount = Some(amount),
-      items = items
-    )
-  }
-
-  private def createDdFinancialItem(amount: BigDecimal = BigDecimal(0.0), DDcollectionInProgress: Option[Boolean] = None) = {
-    FinancialItem(
-      subItem = None,
-      dueDate = Some(LocalDate.now()),
-      amount = Some(amount),
-      clearingDate = None,
-      clearingReason = None,
-      DDcollectionInProgress = DDcollectionInProgress
-    )
-  }
 }
 
