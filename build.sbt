@@ -8,6 +8,8 @@ PlayKeys.devSettings := Seq("play.server.http.port" -> "8504")
 
 val silencerVersion = "1.7.1"
 
+lazy val IntegrationTest = config("it") extend(Test)
+
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)

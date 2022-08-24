@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package support
+package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
-import uk.gov.hmrc.auth.core.{AffinityGroup, Enrolments}
+import play.api.libs.json.{Json, OFormat}
 
-case class SignedInUser(
-  credentials: Credentials,
-  name: Name,
-  email: Option[String],
-  externalId: String,
-  internalId: Option[String],
-  affinityGroup: Option[AffinityGroup],
-  enrolments: Enrolments
-)
+case class DirectDebitDetails(pptReference: String, periodKey: String, isDdCollectionInProgress: Boolean)
+
+object DirectDebitDetails {
+  implicit val DirectDebitWrites: OFormat[DirectDebitDetails] = Json.format[DirectDebitDetails]
+}

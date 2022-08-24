@@ -28,7 +28,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTFinancialsService}
 
 import java.time.LocalDateTime
@@ -37,23 +37,22 @@ import scala.concurrent.Future
 
 class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  val mockPPTFinancialsService: PPTFinancialsService = mock[PPTFinancialsService]
-  val mockFinancialDataService: FinancialDataService = mock[FinancialDataService]
+  private val mockPPTFinancialsService: PPTFinancialsService = mock[PPTFinancialsService]
+  private val mockFinancialDataService: FinancialDataService = mock[FinancialDataService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockPPTFinancialsService, mockFinancialDataService)
   }
 
-  val cc: ControllerComponents = Helpers.stubControllerComponents()
-
-  val sut =
-    new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, mockPPTFinancialsService)
+  private val cc: ControllerComponents = Helpers.stubControllerComponents()
+  private val sut = new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, 
+    mockPPTFinancialsService)
+  private val financials = PPTFinancials(None, None, None)
+  private val desResponse = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
 
   "get" must {
-    val financials   = PPTFinancials(None, None, None)
     val pptReference = "1234"
-    val desResponse  = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
 
     "get PTPFinancial from service" in {
       when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
@@ -97,6 +96,35 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
+    }
+  }
+  
+  "isDdInProgress" should {
+    
+    "respond with false" in {
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(false)
+      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+
+      val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", false))
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
+      verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
+    }
+
+    "respond with true" in {
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(true)
+      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+        .thenReturn(Future.successful(Right(desResponse)))
+
+      val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", true))
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
+      verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
     }
   }
 }

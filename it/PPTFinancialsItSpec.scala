@@ -28,13 +28,15 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.{AuthTestSupport, WiremockItServer}
+import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, PPTFinancials}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 
 class PPTFinancialsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
@@ -79,7 +81,7 @@ class PPTFinancialsItSpec extends PlaySpec
   "GET" should {
     "return 200" in {
       withAuthorizedUser()
-      stubFinancialResponse(createFinancialResponseWithAmount())
+      stubFinancialResponse(FinancialTransactionHelper.createFinancialResponseWithAmount())
 
       val response = await(wsClient.url(Url).get())
 
@@ -89,7 +91,7 @@ class PPTFinancialsItSpec extends PlaySpec
     "return financial details" in {
       withAuthorizedUser()
 
-      val financialResponse = createFinancialResponseWithAmount(1.0)
+      val financialResponse = FinancialTransactionHelper.createFinancialResponseWithAmount(1.0)
       stubFinancialResponse(financialResponse)
 
       val response = await(wsClient.url(Url).get())
@@ -116,6 +118,38 @@ class PPTFinancialsItSpec extends PlaySpec
     }
   }
 
+  "isDdInProgress" should {
+    val ddInProgressUrl = s"http://localhost:$port/financials/dd-in-progress/$pptReference/c22"
+
+    "return 200" in {
+      withAuthorizedUser()
+      stubFinancialResponse(FinancialTransactionHelper.createResponseWithDdInProgressFlag("c22"))
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(DirectDebitDetails(pptReference, "c22", true))
+    }
+
+    "return Unauthorized" in {
+      withUnauthorizedUser(new RuntimeException)
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe UNAUTHORIZED
+    }
+
+    "return server error" in {
+      withAuthorizedUser()
+      stubFinancialErrorResponse
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
+
+  }
+
   private def stubFinancialResponse(response: FinancialDataResponse): Unit =
     server.stubFor(
       get(DESUrl)
@@ -136,35 +170,5 @@ class PPTFinancialsItSpec extends PlaySpec
             .withStatus(Status.BAD_REQUEST)
         )
     )
-
-  private def createFinancialResponseWithAmount(amount: BigDecimal = BigDecimal(0.0)) = {
-    FinancialDataResponse(
-      idType = None,
-      idNumber = None,
-      regimeType = None,
-      processingDate = LocalDateTime.now(),
-      financialTransactions = Seq(
-        FinancialTransaction(
-          chargeType = None,
-          mainType = None,
-          periodKey = None,
-          periodKeyDescription = None,
-          taxPeriodFrom = None,
-          taxPeriodTo = None,
-          outstandingAmount = Some(amount),
-          items = Seq(
-            FinancialItem(
-              subItem = None,
-              dueDate = Some(LocalDate.now()),
-              amount = Some(amount),
-              clearingDate = None,
-              clearingReason = None,
-              DDcollectionInProgress = None
-            )
-          )
-        )
-      )
-    )
-  }
 }
 
