@@ -4,8 +4,8 @@
 GET         /subscriptions/:pptReference                        uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.get(pptReference: String)
 PUT         /subscriptions/:pptReference                        uk.gov.hmrc.plasticpackagingtaxreturns.controllers.SubscriptionController.update(pptReference: String)
 
-# EIS export credit balance
-GET         /export-credits/:pptReference                       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate)
+# EIS export credit balance and calculated credit
+GET         /credits/calculate/:pptReference                       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.get(pptReference: String)
 
 # EIS Return Submission
 GET        /returns-submission/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.submit(pptReference: String)
