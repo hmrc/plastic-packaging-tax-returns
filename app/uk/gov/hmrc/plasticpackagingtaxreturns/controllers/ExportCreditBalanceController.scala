@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.libs.json.{JsValue, Json, OWrites, Writes}
+import play.api.libs.json.{JsString, JsValue, Json, OWrites, Writes}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.CreditsCalculationResponse
@@ -53,7 +53,7 @@ class ExportCreditBalanceController @Inject() (
       } yield {
         Ok(Json.toJson(CreditsCalculationResponse(availableCredit, requestedCredit)))
       }}.recover{
-        case e: Exception => InternalServerError(s"""{"message": "${e.getMessage}"}""")
+        case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
       }
     }
 

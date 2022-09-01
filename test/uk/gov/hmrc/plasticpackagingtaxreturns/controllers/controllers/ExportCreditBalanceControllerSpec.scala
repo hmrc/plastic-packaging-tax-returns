@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, verifyNoInteractions, when}
+import org.mockito.ArgumentMatchers.{any, refEq}
+import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json.toJson
-import play.api.libs.json.Reads
+import play.api.libs.json.{JsString, Json, Reads}
 import play.api.mvc.{Action, BodyParser, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
@@ -73,13 +72,57 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe toJson(CreditsCalculationResponse(200, 20))
+      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(200, 20))
 
       withClue("session repo called with the cache key"){
-
+        verify(mockSessionRepo).get(s"some-internal-id-test-ppt-id")
       }
-      withClue("EIS connector called with correct values"){
 
+      //todo this verify will be simpler when there is a credit service
+      withClue("EIS connector called with correct values"){
+        verify(mockConnector).getBalance(refEq("test-ppt-id"), refEq(now.minusYears(2)), refEq(now.minusDays(1)), refEq("some-internal-id"))(any())
+      }
+    }
+
+    "return 500 internal error" when {
+      "The userAnswers does not exist" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(None))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("UserAnswers is empty"))
+
+        withClue("EIS connector should not have been called"){
+          verify(mockConnector, never()).getBalance(any(), any(), any(), any())(any())
+        }
+      }
+
+      "The userAnswers does contain an obligation" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(UserAnswers("UserAnswers-id"))))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("Obligation not found in user-answers"))
+
+        withClue("EIS connector should not have been called"){
+          verify(mockConnector, never()).getBalance(any(), any(), any(), any())(any())
+        }
+      }
+
+      "getBalance returns an error" in {
+        def now: LocalDate = LocalDate.now
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
+
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(userAnswers)))
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("Error calling EIS export credit, status: 418"))
       }
     }
   }
