@@ -16,15 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.libs.json.{JsString, JsValue, Json, OWrites, Writes}
+import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.CreditsCalculationResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.Obligation
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, Obligation}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -63,29 +62,3 @@ class ExportCreditBalanceController @Inject() (
 
 }
 
-object ExportCreditBalanceController {
-
-  //todo move!
-  //canBeClaimed should have tests
-  //writes should have tests
-  final case class CreditsCalculationResponse(
-                                         availableCreditInPounds: BigDecimal,
-                                         totalRequestedCreditInPounds: BigDecimal
-                                       ){
-    val canBeClaimed: Boolean = totalRequestedCreditInPounds <= totalRequestedCreditInPounds
-  }
-
-  object CreditsCalculationResponse {
-
-    implicit val writes: Writes[CreditsCalculationResponse] = new Writes[CreditsCalculationResponse] {
-      def writes(calc: CreditsCalculationResponse): JsValue = {
-        Json.obj(
-          "availableCreditInPounds" -> calc.availableCreditInPounds,
-          "totalRequestedCreditInPounds" -> calc.totalRequestedCreditInPounds,
-          "canBeClaimed" -> calc.canBeClaimed
-        )
-      }
-    }
-
-  }
-}
