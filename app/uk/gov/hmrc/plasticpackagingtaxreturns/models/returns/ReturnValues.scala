@@ -53,7 +53,7 @@ object NewReturnValues {
 
   def apply(userAnswers: UserAnswers): Option[NewReturnValues] = {
 
-    val credits = userAnswers.get(ConvertedPackagingCreditGettable).getOrElse(BigDecimal(0)) //todo handle credits in frontend.
+    val credits = userAnswers.get(ConvertedPackagingCreditGettable).getOrElse(BigDecimal(0)) //todo get credit from the service
 
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)

@@ -33,6 +33,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, Obligation}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -43,16 +44,18 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
   val mockSessionRepo: SessionRepository = mock[SessionRepository]
   val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  val mockCreditsCalcService = mock[CreditsCalculationService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConnector, mockSessionRepo)
+    reset(mockConnector, mockSessionRepo, mockCreditsCalcService)
   }
 
   val sut = new ExportCreditBalanceController(
     mockConnector,
     FakeAuthenticator,
     mockSessionRepo,
+    mockCreditsCalcService,
     Helpers.stubControllerComponents(),
   )(global)
 
@@ -62,22 +65,30 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
 
-      val creditResponse = ExportCreditBalanceDisplayResponse("date", BigDecimal(0), BigDecimal(0), totalExportCreditAvailable = BigDecimal(200))
+      val available = BigDecimal(200)
+      val requested = BigDecimal(20)
+
+      val creditResponse = ExportCreditBalanceDisplayResponse("date", BigDecimal(0), BigDecimal(0), totalExportCreditAvailable = available)
 
       when(mockSessionRepo.get(any()))
         .thenReturn(Future.successful(Some(userAnswers)))
       when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
+      when(mockCreditsCalcService.totalRequestCreditInPounds(any())).thenReturn(requested)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(200, 20))
+      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(available, requested))
 
       withClue("session repo called with the cache key"){
         verify(mockSessionRepo).get(s"some-internal-id-test-ppt-id")
       }
 
-      //todo this verify will be simpler when there is a credit service
+      withClue("credits calculation service not called"){
+        verify(mockCreditsCalcService).totalRequestCreditInPounds(userAnswers)
+      }
+
+      //todo this verify will be simpler when there is a credit available service
       withClue("EIS connector called with correct values"){
         verify(mockConnector).getBalance(refEq("test-ppt-id"), refEq(now.minusYears(2)), refEq(now.minusDays(1)), refEq("some-internal-id"))(any())
       }

@@ -25,6 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, Obligation}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -35,20 +36,22 @@ class ExportCreditBalanceController @Inject() (
   exportCreditBalanceConnector: ExportCreditBalanceConnector,
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
+  creditService: CreditsCalculationService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      {for { //todo credit service? is this too busy?
-        userAnswers <- sessionRepository.get(request.cacheKey)
-        obligation = getObligation(userAnswers.getOrElse(throw new IllegalStateException("UserAnswers is empty")))
+      {for { //todo available credit service? is this too busy?
+        userAnswersOpt <- sessionRepository.get(request.cacheKey)
+        userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
+        obligation = getObligation(userAnswers)
         fromDate = obligation.fromDate.minusYears(2)
         toDate = obligation.fromDate.minusDays(1)
         creditsEither <- exportCreditBalanceConnector.getBalance(request.pptId, fromDate, toDate, request.internalId)
         availableCredit = creditsEither.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable)
-        requestedCredit = BigDecimal(20)//todo creditsService.calculateRequestedCredit(UserAnswers) when available
+        requestedCredit = creditService.totalRequestCreditInPounds(userAnswers)
       } yield {
         Ok(Json.toJson(CreditsCalculationResponse(availableCredit, requestedCredit)))
       }}.recover{
