@@ -16,17 +16,13 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.Logger
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import play.api.Logging
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
 import javax.inject.Inject
-import scala.math.BigDecimal.RoundingMode
 
-class PPTCalculationService @Inject()(appConfig: AppConfig) {
-
-  private[services] val logger = Logger(this.getClass)
+class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversionService) extends Logging {
 
   def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
@@ -52,10 +48,9 @@ class PPTCalculationService @Inject()(appConfig: AppConfig) {
       humanMedicinesPlasticWeight +
       recycledPlasticWeight
 
-    val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal) // TODO - credits!
+    val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
 
-    // Round in favour of the customer (DOWN)
-    val taxDue: BigDecimal = (BigDecimal(chargeableTotal) * appConfig.taxRatePoundsPerKg).setScale(2, RoundingMode.DOWN) // Verify with BA!
+    val taxDue: BigDecimal = conversionService.weightToDebit(chargeableTotal)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&

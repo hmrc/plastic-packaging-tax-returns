@@ -17,12 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
 import play.api.libs.json.JsPath
+import java.time.LocalDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-@deprecated("This shouldn't be used anymore deleted once exported and converted are used")
-case object ConvertedPackagingCreditGettable extends Gettable[BigDecimal] {
+case object ObligationFromDateGettable extends Gettable[LocalDate] {
 
-  override def path: JsPath = JsPath \ toString
-
-  override def toString: String = "convertedPackagingCredit"
+  override def path: JsPath = JsPath \ "obligation" \ "fromDate"
 }

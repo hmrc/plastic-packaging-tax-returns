@@ -16,109 +16,149 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import java.time.LocalDate
-
-import com.codahale.metrics.SharedMetricRegistries
-import org.mockito.Mockito.{reset, verifyNoInteractions}
+import org.mockito.ArgumentMatchers.{any, refEq}
+import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json.toJson
-import play.api.mvc.Result
-import play.api.test.FakeRequest
-import play.api.test.Helpers.{OK, contentAsJson, route, status, _}
-import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import org.scalatestplus.mockito.MockitoSugar.mock
+import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.{JsString, Json, Reads}
+import play.api.mvc.{Action, BodyParser, Result}
+import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
+import java.time.LocalDate
+import scala.concurrent.ExecutionContext.global
 import scala.concurrent.Future
 
-class ExportCreditBalanceControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with SubscriptionTestData with MockConnectors {
+class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
-  SharedMetricRegistries.clear()
-
-  val getResponse = ExportCreditBalanceDisplayResponse(processingDate = "2021-11-17T09:32:50.345Z",
-                                                       totalPPTCharges = BigDecimal(1000),
-                                                       totalExportCreditClaimed = BigDecimal(100),
-                                                       totalExportCreditAvailable = BigDecimal(200)
-  )
-
-  override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector),
-               bind[ExportCreditBalanceConnector].to(mockExportCreditBalanceConnector)
-    )
-    .build()
+  val mockSessionRepo: SessionRepository = mock[SessionRepository]
+  val mockCreditsCalcService = mock[CreditsCalculationService]
+  val mockAvailableCreditsService = mock[AvailableCreditService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAuthConnector)
-    reset(mockExportCreditBalanceConnector)
+    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService)
   }
 
-  private def getRequest(
-    pptReference: String,
-    fromDate: LocalDate = LocalDate.parse("2021-10-01"),
-    toDate: LocalDate = LocalDate.parse("2021-10-31")
-  ) =
-    FakeRequest("GET", s"/export-credits/$pptReference/?fromDate=$fromDate&toDate=$toDate")
+  val sut = new ExportCreditBalanceController(
+    FakeAuthenticator,
+    mockSessionRepo,
+    mockCreditsCalcService,
+    mockAvailableCreditsService,
+    Helpers.stubControllerComponents(),
+  )(global)
 
-  "GET balance" should {
+  "get" must {
+    def now: LocalDate = LocalDate.now
+    "return 200 response with correct values" in {
+      val userAnswers = UserAnswers("user-answers-id")
+        .setUnsafe(ObligationFromDateGettable, now)
 
-    "return 200" when {
-      "request for export credit balance is valid" in {
-        withAuthorizedUser()
-        mockGetExportCreditBalance(pptReference, getResponse)
+      val available = BigDecimal(200)
+      val requested = BigDecimal(20)
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
+      when(mockSessionRepo.get(any()))
+        .thenReturn(Future.successful(Some(userAnswers)))
+      when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.successful(available))
+      when(mockCreditsCalcService.totalRequestCreditInPounds(any())).thenReturn(requested)
 
-        status(result) must be(OK)
-        contentAsJson(result) mustBe toJson(getResponse)
+      val result = sut.get("url-ppt-ref")(FakeRequest())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(available, requested))
+
+      withClue("session repo called with the cache key"){
+        verify(mockSessionRepo).get(s"some-internal-id-test-ppt-id")
+      }
+
+      withClue("credits calculation service not called"){
+        verify(mockCreditsCalcService).totalRequestCreditInPounds(userAnswers)
+      }
+
+      withClue("EIS connector called with the user answer"){
+        verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any())
       }
     }
 
-    "return 400" when {
-      "request for export credit balance is invalid" in {
-        withAuthorizedUser()
-        mockGetExportCreditBalance(pptReference, getResponse)
+    "return 500 internal error" when {
+      "session repo fails" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.failed(new Exception("boom")))
 
-        val result: Future[Result] =
-          route(app, FakeRequest("GET", s"/export-credits/$pptReference?fromDate=invalid&toDate=invalid")).get
+        val result = sut.get("url-ppt-ref")(FakeRequest())
 
-        status(result) must be(BAD_REQUEST)
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("boom"))
+
+        withClue("available credit should not have been called"){
+          verify(mockAvailableCreditsService, never()).getBalance(any())(any())
+        }
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+        }
+      }
+
+      "session repo is empty" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(None))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("UserAnswers is empty"))
+
+        withClue("available credit should not have been called"){
+          verify(mockAvailableCreditsService, never()).getBalance(any())(any())
+        }
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+        }
+      }
+
+      "The available credits service fails" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(UserAnswers(""))))
+        when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test message")))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("test message"))
+
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+        }
+      }
+
+      "getBalance returns an error" in {
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(ObligationFromDateGettable, now)
+
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(userAnswers)))
+        when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test error")))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
     }
+  }
 
-    "return 404" when {
-      "request for export credit balance fails" in {
-        withAuthorizedUser()
-        mockGetExportCreditBalanceFailure(pptReference, 404)
 
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
-
-        status(result) mustBe NOT_FOUND
+  //todo the world should know this exists
+  object FakeAuthenticator extends Authenticator {
+    override def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
+      Helpers.stubControllerComponents().actionBuilder.async(bodyParser) { implicit request =>
+        body(AuthorizedRequest("test-ppt-id", request, "some-internal-id"))
       }
-    }
 
-    "return 401" when {
-      "unauthorized" in {
-        withUnauthorizedUser(new RuntimeException())
-
-        val result: Future[Result] = route(app, getRequest(pptReference)).get
-
-        status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockExportCreditBalanceConnector)
-      }
-    }
-
+    override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???
   }
 }
