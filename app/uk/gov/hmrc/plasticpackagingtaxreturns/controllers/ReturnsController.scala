@@ -35,7 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiat
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -45,8 +45,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ReturnsController @Inject()
-(
+class ReturnsController @Inject()(
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
   nonRepudiationService: NonRepudiationService,
@@ -56,7 +55,8 @@ class ReturnsController @Inject()
   auditConnector: AuditConnector,
   calculationsService: PPTCalculationService,
   financialDataService: FinancialDataService,
-  financialsService: PPTFinancialsService
+  financialsService: PPTFinancialsService,
+  creditsService: CreditsCalculationService
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -88,24 +88,23 @@ class ReturnsController @Inject()
 
   def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      getUserAnswer(request)(userAnswer => doSubmit(pptReference, NewReturnValues.apply, userAnswer))
+      getUserAnswer(request) { userAnswer =>
+        val requestedCredits = creditsService.totalRequestCreditInPounds(userAnswer)
+        doSubmit(pptReference, NewReturnValues.apply(requestedCredits), userAnswer)
+      }
     }
 
   private def getUserAnswer(request: AuthorizedRequest[AnyContent])(fun: UserAnswers => Future[Result]): Future[Result] = {
     sessionRepository.get(request.cacheKey).flatMap {
-      _.fold(
-        Future.successful(UnprocessableEntity("UserAnswer is empty"))
-      )(
-        fun(_))
+      _.fold(Future.successful(UnprocessableEntity("UserAnswer is empty")))(fun(_))
     }
   }
-  private def doSubmit
-  (
+
+  private def doSubmit(
     pptReference: String,
     getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues],
     userAnswer: UserAnswers
-  )
-  (implicit request: AuthorizedRequest[AnyContent]) : Future[Result] = {
+  )(implicit request: AuthorizedRequest[AnyContent]) : Future[Result] = {
 
     getValuesOutOfUserAnswers(userAnswer).map(_ -> userAnswer)
       .fold {
@@ -116,8 +115,7 @@ class ReturnsController @Inject()
       }
   }
 
-  private def isDirectDebitInProgress
-  (
+  private def isDirectDebitInProgress(
     pptReference: String,
     periodKey: String
   ) (implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {

@@ -21,24 +21,23 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, OriginalReturnForAmendValues, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, OriginalReturnForAmendValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class CalculationsController @Inject()(
                                         authenticator: Authenticator,
                                         sessionRepository: SessionRepository,
                                         override val controllerComponents: ControllerComponents,
-                                        calculationsService: PPTCalculationService
+                                        calculationsService: PPTCalculationService,
+                                        creditsService: CreditsCalculationService
                                       )(implicit executionContext: ExecutionContext)
-  extends BackendController(controllerComponents) with JSONResponses with Logging {
+  extends BackendBaseController with Logging {
 
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
@@ -58,9 +57,11 @@ class CalculationsController @Inject()(
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-
       sessionRepository.get(request.cacheKey).map {
-        _.flatMap(NewReturnValues(_)).fold(UnprocessableEntity("No user answers found")) { returnValues =>
+        _.flatMap{userAnswers =>
+          val requestedCredits = creditsService.totalRequestCreditInPounds(userAnswers)
+          NewReturnValues(requestedCredits)(userAnswers)
+        }.fold(UnprocessableEntity("No user answers found")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
           Ok(Json.toJson(calculations))
         }

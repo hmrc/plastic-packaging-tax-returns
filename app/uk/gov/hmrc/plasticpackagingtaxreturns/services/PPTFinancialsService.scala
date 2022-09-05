@@ -31,20 +31,10 @@ class PPTFinancialsService extends Logging {
       .fold(false)(_.items.find(_.DDcollectionInProgress == Some(true)).isDefined)
   }
 
-
-  private def pretendDirectDebitCheck(data: FinancialDataResponse): Unit = {
-    val strings: Seq[String] = data.financialTransactions.map { transaction =>
-      s"${transaction.periodKey}: " + transaction.items.map(_.DDcollectionInProgress)
-    }
-    logger.info("DD pre-check: " + strings.mkString("\n"))
-  }  
-
   def construct(data: FinancialDataResponse): PPTFinancials = {
     val charges: Seq[Charge] =
       data.financialTransactions.collect { case ft if ft.outstandingAmount.forall(_ != 0) => Charge(ft) }
 
-    Try(pretendDirectDebitCheck(data))
-    
     val totalChargesSum = charges.map(_.amount).sum
 
     if (totalChargesSum == 0) PPTFinancials.NothingOutstanding

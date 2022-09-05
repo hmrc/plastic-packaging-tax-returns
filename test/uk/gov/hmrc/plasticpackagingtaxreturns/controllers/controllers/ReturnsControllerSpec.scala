@@ -45,18 +45,18 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiati
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.{LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
+//todo this spec is a MESS
 class ReturnsControllerSpec
   extends AnyWordSpec with BeforeAndAfterEach with ScalaFutures
     with Matchers with AuthTestSupport with MockConnectors with ReturnsSubmissionResponseBuilder {
-
-  SharedMetricRegistries.clear()
 
   private val periodKey = "21C4"
   private val userAnswersDataReturns: JsObject = Json.parse(
@@ -213,6 +213,8 @@ class ReturnsControllerSpec
   private val mockPptCalculationService = mock[PPTCalculationService]
   private val mockFinancialDataService = mock[FinancialDataService]
   private val mockFinancialsService =  mock[PPTFinancialsService]
+  private val mockCreditCalcService =  mock[CreditsCalculationService]
+
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   val sut = new ReturnsController(
     new FakeAuthenticator(cc),
@@ -224,7 +226,8 @@ class ReturnsControllerSpec
     mockAuditConnector,
     mockPptCalculationService,
     mockFinancialDataService,
-    mockFinancialsService
+    mockFinancialsService,
+    mockCreditCalcService
   )
 
   override def beforeEach(): Unit = {
@@ -492,6 +495,7 @@ class ReturnsControllerSpec
   }
 
   private def setupMocks(userAnswers: UserAnswers) = {
+    when(mockCreditCalcService.totalRequestCreditInPounds(any())).thenReturn(BigDecimal(0))
     when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
     when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

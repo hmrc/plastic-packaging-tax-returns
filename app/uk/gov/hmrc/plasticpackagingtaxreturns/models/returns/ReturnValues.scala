@@ -51,10 +51,7 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(userAnswers: UserAnswers): Option[NewReturnValues] = {
-
-    val credits = userAnswers.get(ConvertedPackagingCreditGettable).getOrElse(BigDecimal(0)) //todo get credit from the service
-
+  def apply(credits: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
@@ -73,7 +70,6 @@ object NewReturnValues {
         credits
       )
     }
-  }
 
 }
 
