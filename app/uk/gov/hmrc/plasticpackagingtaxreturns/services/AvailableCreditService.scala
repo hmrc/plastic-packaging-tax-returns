@@ -17,12 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.Obligation
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,12 +30,12 @@ class AvailableCreditService @Inject()(
 )(implicit executionContext: ExecutionContext) extends BackendHeaderCarrierProvider {
 
   def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[BigDecimal] = {
-    val obligation = userAnswers.get[Obligation](ObligationGettable).getOrElse(
-      throw new IllegalStateException("Obligation not found in user-answers")
+    val obligationFromDate = userAnswers.get(ObligationFromDateGettable).getOrElse(
+      throw new IllegalStateException("Obligation fromDate not found in user-answers")
     )
 
-    val fromDate = obligation.fromDate.minusYears(2)
-    val toDate = obligation.fromDate.minusDays(1)
+    val fromDate = obligationFromDate.minusYears(2)
+    val toDate = obligationFromDate.minusDays(1)
 
     exportCreditBalanceConnector
       .getBalance(request.pptId, fromDate, toDate, request.internalId)

@@ -25,13 +25,11 @@ import play.api.libs.json.{JsString, Json, Reads}
 import play.api.mvc.{Action, BodyParser, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, Obligation}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
@@ -63,7 +61,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
       val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
+        .setUnsafe(ObligationFromDateGettable, now)
 
       val available = BigDecimal(200)
       val requested = BigDecimal(20)
@@ -140,7 +138,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
       "getBalance returns an error" in {
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
+          .setUnsafe(ObligationFromDateGettable, now)
 
         when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(userAnswers)))
         when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test error")))

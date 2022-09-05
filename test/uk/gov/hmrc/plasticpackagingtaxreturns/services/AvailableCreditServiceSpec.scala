@@ -28,8 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.Obligation
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -51,19 +50,15 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
   "getBalance" must {
     "correctly construct the parameters for the connector" in {
       val expected = BigDecimal(200)
-      val creditResponse = ExportCreditBalanceDisplayResponse("date", 0, 0, totalExportCreditAvailable = expected)
+      val unUsedBigDec = mock[BigDecimal]
+      val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
 
       when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
 
       val unUsedDate = mock[LocalDate]
       val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(ObligationGettable,
-          Obligation(
-            fromDate = LocalDate.of(1996, 3, 27),
-            toDate = LocalDate.now(),
-            dueDate = LocalDate.now(),
-            "periodKey"
-          )
+        .setUnsafe(
+          ObligationFromDateGettable, LocalDate.of(1996, 3, 27)
         )
 
      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
@@ -75,7 +70,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
         refEq("request-internal-id")
       )(any())
 
-      verifyNoInteractions(unUsedDate)
+      verifyNoInteractions(unUsedBigDec)
     }
 
     "throw an exception" when {
@@ -84,14 +79,14 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
         val error = intercept[IllegalStateException](await(sut.getBalance(userAnswers)(fakeRequest)))
 
-        error.getMessage mustBe "Obligation not found in user-answers"
+        error.getMessage mustBe "Obligation fromDate not found in user-answers"
       }
       "the connector call fails" in {
         when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
 
 
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ObligationGettable, Obligation(LocalDate.now(),LocalDate.now(),LocalDate.now(),"now"))
+          .setUnsafe(ObligationFromDateGettable, LocalDate.now())
 
         val error = intercept[Exception](await(sut.getBalance(userAnswers)(fakeRequest)))
 

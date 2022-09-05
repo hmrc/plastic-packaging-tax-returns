@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
-import play.api.libs.json.{Json, OFormat}
-
+import play.api.libs.json.JsPath
 import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-//todo this isnt the best name for this as its very vague, UserAnswersObligation?
-final case class Obligation(
-  fromDate: LocalDate,
-  toDate: LocalDate,
-  dueDate: LocalDate,
-  periodKey: String
-)
+case object ObligationFromDateGettable extends Gettable[LocalDate] {
 
-object Obligation {
-  implicit val format: OFormat[Obligation] = Json.format[Obligation]
+  override def path: JsPath = JsPath \ "obligation" \ "fromDate"
 }
