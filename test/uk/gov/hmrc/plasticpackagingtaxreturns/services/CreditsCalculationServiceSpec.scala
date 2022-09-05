@@ -24,6 +24,7 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ExportedCreditWeightGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
@@ -38,42 +39,42 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
     reset(mockConversion)
   }
 
-  def converterReturnsInput() =
-    when(mockConversion.weightToCredit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long]))
+  def converterJustAddsOne() =
+    when(mockConversion.weightToCredit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long] + 1))
 
-  "totalRequestCreditInPounds" must {
+  "totalRequestCredit" must {
     "return 0" when {
       "both fields are empty" in {
-        converterReturnsInput()
+        converterJustAddsOne()
 
         val userAnswers = UserAnswers("user-answers-id")
 
-        sut.totalRequestCreditInPounds(userAnswers) mustBe 0
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
       }
     }
 
     "total the weight" when {
       "converted is supplied" in {
-        converterReturnsInput()
+        converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ConvertedCreditWeightGettable, 5L)
 
-        sut.totalRequestCreditInPounds(userAnswers) mustBe 5L
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(5, 6)
       }
       "exported is supplied" in {
-        converterReturnsInput()
+        converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ExportedCreditWeightGettable, 7L)
 
-        sut.totalRequestCreditInPounds(userAnswers) mustBe 7L
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(7, 8)
       }
       "both are supplied" in {
-        converterReturnsInput()
+        converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ConvertedCreditWeightGettable, 5L)
           .setUnsafe(ExportedCreditWeightGettable, 7L)
 
-        sut.totalRequestCreditInPounds(userAnswers) mustBe 12L
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(12, 13)
       }
     }
 
@@ -84,7 +85,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
         .setUnsafe(ConvertedCreditWeightGettable, 5L)
         .setUnsafe(ExportedCreditWeightGettable, 7L)
 
-      sut.totalRequestCreditInPounds(userAnswers) mustBe expectedPounds
+      sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)
 
       verify(mockConversion).weightToCredit(12L)
       verify(mockConversion, never()).weightToDebit(any())

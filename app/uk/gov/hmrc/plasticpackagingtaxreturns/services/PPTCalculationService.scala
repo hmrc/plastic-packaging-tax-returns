@@ -22,7 +22,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
 import javax.inject.Inject
 
-class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversionService) extends Logging {
+class PPTCalculationService @Inject()(
+                                     creditsCalculationService: CreditsCalculationService,
+                                     conversionService: WeightToPoundsConversionService
+                                     ) extends Logging {
 
   def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
@@ -30,7 +33,9 @@ class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversio
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
       returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight
+      returnValues.exportedPlasticWeight,
+      returnValues.convertedPackagingCredit,
+      returnValues.availableCredit
     )
 
   private def doCalculation(
@@ -39,6 +44,8 @@ class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversio
                             humanMedicinesPlasticWeight: Long,
                             recycledPlasticWeight: Long,
                             exportedPlasticWeight: Long,
+                            convertedPackagingCredit: BigDecimal,
+                            availableCredit: BigDecimal
                           ): Calculations = {
 
     val packagingTotal: Long = importedPlasticWeight +
@@ -59,7 +66,8 @@ class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversio
         recycledPlasticWeight >= 0 &&
         humanMedicinesPlasticWeight >= 0 &&
         packagingTotal >= deductionsTotal &&
-        chargeableTotal >= 0
+        chargeableTotal >= 0 &&
+        convertedPackagingCredit <= availableCredit
     }
 
     if(!isSubmittable) {
@@ -71,6 +79,7 @@ class PPTCalculationService @Inject()(conversionService: WeightToPoundsConversio
       chargeableTotal,
       deductionsTotal,
       packagingTotal,
+      convertedPackagingCredit,
       isSubmittable)
   }
 

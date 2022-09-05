@@ -41,9 +41,9 @@ class ExportCreditBalanceController @Inject() (
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- creditService.getBalance(userAnswers)
-        requestedCredit = calculateService.totalRequestCreditInPounds(userAnswers)
+        requestedCredit = calculateService.totalRequestedCredit(userAnswers)
       } yield
-        Ok(Json.toJson(CreditsCalculationResponse(availableCredit, requestedCredit)))
+        Ok(Json.toJson(CreditsCalculationResponse(availableCredit, requestedCredit.moneyInPounds, requestedCredit.weight)))
       }.recover{
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
       }

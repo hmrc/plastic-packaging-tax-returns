@@ -35,7 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiat
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -56,7 +56,8 @@ class ReturnsController @Inject()(
   calculationsService: PPTCalculationService,
   financialDataService: FinancialDataService,
   financialsService: PPTFinancialsService,
-  creditsService: CreditsCalculationService
+  creditsService: CreditsCalculationService,
+  availableCreditService: AvailableCreditService
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -89,8 +90,10 @@ class ReturnsController @Inject()(
   def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request) { userAnswer =>
-        val requestedCredits = creditsService.totalRequestCreditInPounds(userAnswer)
-        doSubmit(pptReference, NewReturnValues.apply(requestedCredits), userAnswer)
+        availableCreditService.getBalance(userAnswer).flatMap{ availableCredit =>
+          val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
+          doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+        }
       }
     }
 

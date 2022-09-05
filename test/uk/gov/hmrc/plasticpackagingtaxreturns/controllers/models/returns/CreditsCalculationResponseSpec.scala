@@ -27,13 +27,15 @@ class CreditsCalculationResponseSpec extends PlaySpec {
       "requested is smaller than available" in {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
-          totalRequestedCreditInPounds = 1
+          totalRequestedCreditInPounds = 1,
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe true
       }
       "requested is equal to available" in {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
-          totalRequestedCreditInPounds = 2
+          totalRequestedCreditInPounds = 2,
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe true
       }
     }
@@ -42,14 +44,15 @@ class CreditsCalculationResponseSpec extends PlaySpec {
       "requested is larger than available" in {
         CreditsCalculationResponse(
           availableCreditInPounds = 1,
-          totalRequestedCreditInPounds = 2
+          totalRequestedCreditInPounds = 2,
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe false
       }
     }
   }
 
   "json Writes" must {
-    val obj = CreditsCalculationResponse(1 , 2)
+    val obj = CreditsCalculationResponse(1 , 2, 3)
     val jsObject = Json.toJson(obj).as[JsObject]
 
     "contain the availableCreditInPounds field" in {
@@ -58,6 +61,10 @@ class CreditsCalculationResponseSpec extends PlaySpec {
 
     "contain the totalRequestedCreditInPounds field" in {
       jsObject.apply("totalRequestedCreditInPounds") mustBe JsNumber(2)
+    }
+
+    "contain the totalRequestedCreditInKilograms field" in {
+      jsObject.apply("totalRequestedCreditInKilograms") mustBe JsNumber(3)
     }
 
     "contain the canBeClaimed field" in {

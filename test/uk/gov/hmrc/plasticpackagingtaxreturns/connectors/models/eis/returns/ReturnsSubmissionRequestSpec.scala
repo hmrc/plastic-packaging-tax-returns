@@ -36,14 +36,14 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
           humanMedicinesPlasticWeight = 3,
           exportedPlasticWeight = 4,
           recycledPlasticWeight = 5,
-          convertedPackagingCredit = 0
+          convertedPackagingCredit = 11,
+          availableCredit = 12
         )
 
-        val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, isSubmittable = true)
+        val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, totalRequestCreditInPounds = 10, isSubmittable = true)
 
         val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc)
 
-        eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 0
         eisReturnsSubmissionRequest.returnDetails.manufacturedWeight mustBe 1
         eisReturnsSubmissionRequest.returnDetails.importedWeight mustBe 2
         eisReturnsSubmissionRequest.returnDetails.humanMedicines mustBe 3
@@ -57,6 +57,8 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
         eisReturnsSubmissionRequest.returnDetails.taxDue mustBe 6
         eisReturnsSubmissionRequest.returnDetails.totalWeight mustBe 7
         eisReturnsSubmissionRequest.returnDetails.totalNotLiable mustBe 8
+
+        eisReturnsSubmissionRequest.returnDetails.creditForPeriod mustBe 11
       }
 
     }

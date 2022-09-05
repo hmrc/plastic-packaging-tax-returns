@@ -20,7 +20,8 @@ import play.api.libs.json.{JsValue, Json, Writes}
 
 final case class CreditsCalculationResponse(
                                              availableCreditInPounds: BigDecimal,
-                                             totalRequestedCreditInPounds: BigDecimal
+                                             totalRequestedCreditInPounds: BigDecimal,
+                                             totalRequestedCreditInKilograms: Long
                                            ){
   val canBeClaimed: Boolean = totalRequestedCreditInPounds <= availableCreditInPounds
 }
@@ -32,6 +33,7 @@ object CreditsCalculationResponse {
       Json.obj(
         "availableCreditInPounds" -> calc.availableCreditInPounds,
         "totalRequestedCreditInPounds" -> calc.totalRequestedCreditInPounds,
+        "totalRequestedCreditInKilograms" -> calc.totalRequestedCreditInKilograms,
         "canBeClaimed" -> calc.canBeClaimed
       )
     }

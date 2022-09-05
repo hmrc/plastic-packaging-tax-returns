@@ -31,6 +31,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
@@ -64,24 +65,24 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         .setUnsafe(ObligationFromDateGettable, now)
 
       val available = BigDecimal(200)
-      val requested = BigDecimal(20)
+      val requested = Credit(100L, BigDecimal(20))
 
       when(mockSessionRepo.get(any()))
         .thenReturn(Future.successful(Some(userAnswers)))
       when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.successful(available))
-      when(mockCreditsCalcService.totalRequestCreditInPounds(any())).thenReturn(requested)
+      when(mockCreditsCalcService.totalRequestedCredit(any())).thenReturn(requested)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(available, requested))
+      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(available, requested.moneyInPounds, requested.weight))
 
       withClue("session repo called with the cache key"){
         verify(mockSessionRepo).get(s"some-internal-id-test-ppt-id")
       }
 
       withClue("credits calculation service not called"){
-        verify(mockCreditsCalcService).totalRequestCreditInPounds(userAnswers)
+        verify(mockCreditsCalcService).totalRequestedCredit(userAnswers)
       }
 
       withClue("EIS connector called with the user answer"){
@@ -102,7 +103,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
           verify(mockAvailableCreditsService, never()).getBalance(any())(any())
         }
         withClue("calculator should not have been called"){
-          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+          verify(mockCreditsCalcService, never()).totalRequestedCredit(any())
         }
       }
 
@@ -118,7 +119,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
           verify(mockAvailableCreditsService, never()).getBalance(any())(any())
         }
         withClue("calculator should not have been called"){
-          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+          verify(mockCreditsCalcService, never()).totalRequestedCredit(any())
         }
       }
 
@@ -132,7 +133,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         contentAsJson(result) mustBe Json.obj("message" -> JsString("test message"))
 
         withClue("calculator should not have been called"){
-          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+          verify(mockCreditsCalcService, never()).totalRequestedCredit(any())
         }
       }
 

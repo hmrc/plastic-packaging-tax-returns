@@ -19,15 +19,25 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ExportedCreditWeightGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
 class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
 
-  def totalRequestCreditInPounds(userAnswers: UserAnswers): BigDecimal = {
+  def totalRequestedCredit(userAnswers: UserAnswers): Credit = {
     val exportedWeight: Long = userAnswers.get(ExportedCreditWeightGettable).getOrElse(0)
     val convertedWeight: Long = userAnswers.get(ConvertedCreditWeightGettable).getOrElse(0)
     val totalWeight = exportedWeight + convertedWeight
 
-    convert.weightToCredit(totalWeight)
+    Credit(
+      totalWeight,
+      convert.weightToCredit(totalWeight)
+    )
   }
+
+}
+
+object CreditsCalculationService {
+
+  final case class Credit(weight: Long, moneyInPounds: BigDecimal)
 
 }

@@ -24,10 +24,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, OriginalReturnForAmendValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationsController @Inject()(
@@ -35,7 +35,8 @@ class CalculationsController @Inject()(
                                         sessionRepository: SessionRepository,
                                         override val controllerComponents: ControllerComponents,
                                         calculationsService: PPTCalculationService,
-                                        creditsService: CreditsCalculationService
+                                        creditsService: CreditsCalculationService,
+                                        availableCreditService: AvailableCreditService
                                       )(implicit executionContext: ExecutionContext)
   extends BackendBaseController with Logging {
 
@@ -57,15 +58,18 @@ class CalculationsController @Inject()(
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      sessionRepository.get(request.cacheKey).map {
-        _.flatMap{userAnswers =>
-          val requestedCredits = creditsService.totalRequestCreditInPounds(userAnswers)
-          NewReturnValues(requestedCredits)(userAnswers)
-        }.fold(UnprocessableEntity("No user answers found")) { returnValues =>
-          val calculations: Calculations = calculationsService.calculate(returnValues)
-          Ok(Json.toJson(calculations))
+      sessionRepository.get(request.cacheKey).flatMap(
+        _.fold(Future.successful(UnprocessableEntity("No user answers found"))){ userAnswers =>
+          availableCreditService.getBalance(userAnswers).map{ availableCredit =>
+            val requestedCredits = creditsService.totalRequestedCredit(userAnswers)
+            NewReturnValues(requestedCredits, availableCredit)(userAnswers)
+              .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
+                val calculations: Calculations = calculationsService.calculate(returnValues)
+                Ok(Json.toJson(calculations))
+              }
+          }
         }
-      }
+      )
     }
 
 }
