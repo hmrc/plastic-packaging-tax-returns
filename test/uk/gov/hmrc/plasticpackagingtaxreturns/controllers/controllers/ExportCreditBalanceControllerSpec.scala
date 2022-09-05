@@ -33,7 +33,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, Obligation}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -43,36 +43,34 @@ import scala.concurrent.Future
 class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
   val mockSessionRepo: SessionRepository = mock[SessionRepository]
-  val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   val mockCreditsCalcService = mock[CreditsCalculationService]
+  val mockAvailableCreditsService = mock[AvailableCreditService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConnector, mockSessionRepo, mockCreditsCalcService)
+    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService)
   }
 
   val sut = new ExportCreditBalanceController(
-    mockConnector,
     FakeAuthenticator,
     mockSessionRepo,
     mockCreditsCalcService,
+    mockAvailableCreditsService,
     Helpers.stubControllerComponents(),
   )(global)
 
   "get" must {
+    def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
-      def now: LocalDate = LocalDate.now
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
 
       val available = BigDecimal(200)
       val requested = BigDecimal(20)
 
-      val creditResponse = ExportCreditBalanceDisplayResponse("date", BigDecimal(0), BigDecimal(0), totalExportCreditAvailable = available)
-
       when(mockSessionRepo.get(any()))
         .thenReturn(Future.successful(Some(userAnswers)))
-      when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
+      when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.successful(available))
       when(mockCreditsCalcService.totalRequestCreditInPounds(any())).thenReturn(requested)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
@@ -88,14 +86,29 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         verify(mockCreditsCalcService).totalRequestCreditInPounds(userAnswers)
       }
 
-      //todo this verify will be simpler when there is a credit available service
-      withClue("EIS connector called with correct values"){
-        verify(mockConnector).getBalance(refEq("test-ppt-id"), refEq(now.minusYears(2)), refEq(now.minusDays(1)), refEq("some-internal-id"))(any())
+      withClue("EIS connector called with the user answer"){
+        verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any())
       }
     }
 
     "return 500 internal error" when {
-      "The userAnswers does not exist" in {
+      "session repo fails" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.failed(new Exception("boom")))
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("boom"))
+
+        withClue("available credit should not have been called"){
+          verify(mockAvailableCreditsService, never()).getBalance(any())(any())
+        }
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
+        }
+      }
+
+      "session repo is empty" in {
         when(mockSessionRepo.get(any())).thenReturn(Future.successful(None))
 
         val result = sut.get("url-ppt-ref")(FakeRequest())
@@ -103,36 +116,39 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         status(result) mustBe INTERNAL_SERVER_ERROR
         contentAsJson(result) mustBe Json.obj("message" -> JsString("UserAnswers is empty"))
 
-        withClue("EIS connector should not have been called"){
-          verify(mockConnector, never()).getBalance(any(), any(), any(), any())(any())
+        withClue("available credit should not have been called"){
+          verify(mockAvailableCreditsService, never()).getBalance(any())(any())
+        }
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
         }
       }
 
-      "The userAnswers does contain an obligation" in {
-        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(UserAnswers("UserAnswers-id"))))
+      "The available credits service fails" in {
+        when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(UserAnswers(""))))
+        when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test message")))
 
         val result = sut.get("url-ppt-ref")(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) mustBe Json.obj("message" -> JsString("Obligation not found in user-answers"))
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("test message"))
 
-        withClue("EIS connector should not have been called"){
-          verify(mockConnector, never()).getBalance(any(), any(), any(), any())(any())
+        withClue("calculator should not have been called"){
+          verify(mockCreditsCalcService, never()).totalRequestCreditInPounds(any())
         }
       }
 
       "getBalance returns an error" in {
-        def now: LocalDate = LocalDate.now
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ObligationGettable, Obligation(now, now, now, "now"))
 
         when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(userAnswers)))
-        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
+        when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test error")))
 
         val result = sut.get("url-ppt-ref")(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) mustBe Json.obj("message" -> JsString("Error calling EIS export credit, status: 418"))
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
     }
   }
