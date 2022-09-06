@@ -31,6 +31,7 @@ case class Calculations(taxDue: BigDecimal,
                         chargeableTotal: Long,
                         deductionsTotal: Long,
                         packagingTotal: Long,
+                        totalRequestCreditInPounds: BigDecimal,
                         isSubmittable: Boolean)
 
 object Calculations {

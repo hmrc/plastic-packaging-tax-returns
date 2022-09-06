@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, reset, verify, when}
@@ -44,19 +43,20 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.{LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
+//todo this spec is a MESS
 class ReturnsControllerSpec
   extends AnyWordSpec with BeforeAndAfterEach with ScalaFutures
     with Matchers with AuthTestSupport with MockConnectors with ReturnsSubmissionResponseBuilder {
-
-  SharedMetricRegistries.clear()
 
   private val periodKey = "21C4"
   private val userAnswersDataReturns: JsObject = Json.parse(
@@ -192,7 +192,8 @@ class ReturnsControllerSpec
     exportedPlasticWeight = 0,
     humanMedicinesPlasticWeight = 10,
     recycledPlasticWeight = 5,
-    convertedPackagingCredit = 0
+    convertedPackagingCredit = 0,
+    availableCredit = 0
   )
 
   private val expectedAmendReturnValues: ReturnValues = AmendReturnValues(
@@ -213,6 +214,9 @@ class ReturnsControllerSpec
   private val mockPptCalculationService = mock[PPTCalculationService]
   private val mockFinancialDataService = mock[FinancialDataService]
   private val mockFinancialsService =  mock[PPTFinancialsService]
+  private val mockCreditCalcService =  mock[CreditsCalculationService]
+  private val mockAvailableCreditService =  mock[AvailableCreditService]
+
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   val sut = new ReturnsController(
     new FakeAuthenticator(cc),
@@ -224,7 +228,9 @@ class ReturnsControllerSpec
     mockAuditConnector,
     mockPptCalculationService,
     mockFinancialDataService,
-    mockFinancialsService
+    mockFinancialsService,
+    mockCreditCalcService,
+    mockAvailableCreditService
   )
 
   override def beforeEach(): Unit = {
@@ -305,7 +311,7 @@ class ReturnsControllerSpec
       "propagate un-processable entity when invalid deductions" in {
         withAuthorizedUser()
         setupMocks(userAnswersReturns)
-        when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, false))
+        when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, 0, false))
         when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidDeductionsUserAnswersReturns)))
 
         val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
@@ -465,7 +471,7 @@ class ReturnsControllerSpec
     withAuthorizedUser()
     setupMocks(userAnswers)
 
-    val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true)
+    val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
 
     when(mockPptCalculationService.calculate(any())).thenReturn(calculations)
@@ -492,13 +498,15 @@ class ReturnsControllerSpec
   }
 
   private def setupMocks(userAnswers: UserAnswers) = {
+    when(mockCreditCalcService.totalRequestedCredit(any())).thenReturn(Credit(0L, BigDecimal(0)))
+    when(mockAvailableCreditService.getBalance(any())(any())).thenReturn(Future.successful(BigDecimal(10)))
     when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
     when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
     when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
-    when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, true))
+    when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, 0, true))
   }
 
 }

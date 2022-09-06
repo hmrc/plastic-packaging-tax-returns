@@ -23,6 +23,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
 sealed trait ReturnValues {
   val periodKey: String
@@ -34,6 +35,7 @@ sealed trait ReturnValues {
   val convertedPackagingCredit: BigDecimal
   val submissionId: Option[String]
   val returnType: ReturnType
+  val availableCredit: BigDecimal
 }
 
 final case class NewReturnValues(
@@ -43,7 +45,8 @@ final case class NewReturnValues(
                                   exportedPlasticWeight: Long,
                                   humanMedicinesPlasticWeight: Long,
                                   recycledPlasticWeight: Long,
-                                  convertedPackagingCredit: BigDecimal
+                                  convertedPackagingCredit: BigDecimal,
+                                  availableCredit: BigDecimal
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
@@ -51,10 +54,7 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(userAnswers: UserAnswers): Option[NewReturnValues] = {
-
-    val credits = userAnswers.get(ConvertedPackagingCreditGettable).getOrElse(BigDecimal(0)) //todo get credit from the service
-
+  def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
@@ -70,10 +70,10 @@ object NewReturnValues {
         exported,
         humanMedicines,
         recycled,
-        credits
+        credits.moneyInPounds,
+        availableCredit
       )
     }
-  }
 
 }
 
@@ -87,6 +87,7 @@ final case class AmendReturnValues(
                                     submission: String
                                   ) extends ReturnValues {
   val convertedPackagingCredit: BigDecimal = 0
+  val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
 }
@@ -130,6 +131,7 @@ final case class OriginalReturnForAmendValues(
                                                submission: String
                                              ) extends ReturnValues {
   val convertedPackagingCredit: BigDecimal = 0
+  val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
 }

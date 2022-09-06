@@ -29,8 +29,10 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   def converterReturnsInput() =
     when(mockConversion.weightToDebit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long]))
 
-  val calculator: PPTCalculationService = new PPTCalculationService(mockConversion)
-  val allZeroReturn = NewReturnValues("", 0, 0, 0, 0, 0, 0)
+  val mockCalcService = mock[CreditsCalculationService]
+
+  val calculator: PPTCalculationService = new PPTCalculationService(mockCalcService, mockConversion)
+  val allZeroReturn = NewReturnValues("", 0, 0, 0, 0, 0, 0, 0)
 
   override def beforeEach(): Unit = {
     super.beforeEach()

@@ -41,6 +41,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmis
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditService
 
 import scala.concurrent.Future
 
@@ -78,18 +79,20 @@ class CalculationsControllerSpec
 
   private val mockAppConfig: AppConfig                 = mock[AppConfig]
   private val mockSessionRepository: SessionRepository = mock[SessionRepository]
+  private val mockAvailableCreditService: AvailableCreditService = mock[AvailableCreditService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAppConfig)
-    reset(mockSessionRepository)
+    reset(mockSessionRepository, mockAvailableCreditService)
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].to(mockAuthConnector),
       bind[SessionRepository].to(mockSessionRepository),
-      bind[AppConfig].to(mockAppConfig)
+      bind[AppConfig].to(mockAppConfig),
+      bind[AvailableCreditService].to(mockAvailableCreditService),
     )
     .build()
 
@@ -103,7 +106,7 @@ class CalculationsControllerSpec
 
         setupMocks(userAnswers)
 
-        val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true)
+        val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, totalRequestCreditInPounds = 0,  isSubmittable = true)
 
         val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
 
@@ -138,6 +141,7 @@ class CalculationsControllerSpec
   private def setupMocks(uA: UserAnswers) = {
     when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(uA)))
+    when(mockAvailableCreditService.getBalance(any())(any())).thenReturn(Future.successful(BigDecimal(0)))
   }
 
 }
