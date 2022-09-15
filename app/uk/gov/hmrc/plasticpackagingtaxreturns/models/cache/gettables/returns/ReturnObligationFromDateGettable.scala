@@ -20,7 +20,7 @@ import play.api.libs.json.JsPath
 import java.time.LocalDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object ObligationFromDateGettable extends Gettable[LocalDate] {
+case object ReturnObligationFromDateGettable extends Gettable[LocalDate] {
 
   override def path: JsPath = JsPath \ "obligation" \ "fromDate"
 }

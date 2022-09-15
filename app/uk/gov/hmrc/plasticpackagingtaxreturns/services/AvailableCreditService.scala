@@ -20,7 +20,7 @@ import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,7 +30,7 @@ class AvailableCreditService @Inject()(
 )(implicit executionContext: ExecutionContext) extends BackendHeaderCarrierProvider {
 
   def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[BigDecimal] = {
-    val obligationFromDate = userAnswers.get(ObligationFromDateGettable).getOrElse(
+    val obligationFromDate = userAnswers.get(ReturnObligationFromDateGettable).getOrElse(
       throw new IllegalStateException("Obligation fromDate not found in user-answers")
     )
 

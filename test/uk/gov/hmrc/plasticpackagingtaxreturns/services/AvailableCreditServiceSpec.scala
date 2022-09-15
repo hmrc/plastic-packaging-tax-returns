@@ -28,7 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -58,7 +58,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
       val unUsedDate = mock[LocalDate]
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(
-          ObligationFromDateGettable, LocalDate.of(1996, 3, 27)
+          ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
         )
 
      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
@@ -86,7 +86,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
 
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ObligationFromDateGettable, LocalDate.now())
+          .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())
 
         val error = intercept[Exception](await(sut.getBalance(userAnswers)(fakeRequest)))
 
