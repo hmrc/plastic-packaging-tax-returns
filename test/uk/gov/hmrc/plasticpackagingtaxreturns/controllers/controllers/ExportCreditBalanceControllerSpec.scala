@@ -28,7 +28,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
@@ -62,7 +62,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
       val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(ObligationFromDateGettable, now)
+        .setUnsafe(ReturnObligationFromDateGettable, now)
 
       val available = BigDecimal(200)
       val requested = Credit(100L, BigDecimal(20))
@@ -139,7 +139,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
       "getBalance returns an error" in {
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ObligationFromDateGettable, now)
+          .setUnsafe(ReturnObligationFromDateGettable, now)
 
         when(mockSessionRepo.get(any())).thenReturn(Future.successful(Some(userAnswers)))
         when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.failed(new Exception("test error")))
