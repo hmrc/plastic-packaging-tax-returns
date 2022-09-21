@@ -64,6 +64,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "manufacturedPlasticPackagingWeight" : 100,
       |        "importedPlasticPackagingWeight" : 0,
       |        "exportedPlasticPackagingWeight" : 0,
@@ -76,6 +77,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "manufacturedPlasticPackagingWeight" : 100,
       |        "exportedPlasticPackagingWeight" : 0
       |    }""".stripMargin).asInstanceOf[JsObject]
@@ -85,6 +87,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "manufacturedPlasticPackagingWeight" : 10,
       |        "importedPlasticPackagingWeight" : 0,
       |        "exportedPlasticPackagingWeight" : 0,
@@ -97,6 +100,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
       |            "idDetails" : {
       |                "pptReferenceNumber" : "pptref",
@@ -129,6 +133,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "amend": {
       |            "amendManufacturedPlasticPackaging" : 100
       |        },
@@ -157,6 +162,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "amend": {
       |            "amendManufacturedPlasticPackaging" : 100,
       |            "amendDirectExportPlasticPackaging" : 0
@@ -168,6 +174,7 @@ class ReturnsControllerSpec
       |        "obligation" : {
       |            "periodKey" : "$periodKey"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "amend": {
       |            "amendManufacturedPlasticPackaging" : 10,
       |            "amendImportedPlasticPackaging" : 0,

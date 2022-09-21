@@ -17,6 +17,7 @@
 //todo rename this package
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
+import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -100,7 +101,7 @@ object AmendReturnValues {
 
     for {
       submissionID <- original.map(_.idDetails.submissionId)
-      periodKey <- userAnswers.get(PeriodKeyGettable)
+      periodKey = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
