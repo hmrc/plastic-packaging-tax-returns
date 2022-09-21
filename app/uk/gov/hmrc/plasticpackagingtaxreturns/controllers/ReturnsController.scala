@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsObject, JsPath}
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -78,7 +78,7 @@ class ReturnsController @Inject()(
   def amend(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request)(userAnswer =>  {
-        isDirectDebitInProgress(pptReference, userAnswer.get(PeriodKeyGettable).getOrElse(throw new Exception("Cannot amend return without period Key")))
+        isDirectDebitInProgress(pptReference, userAnswer.get[String](JsPath \ "amendSelectedPeriodKey").getOrElse(throw new Exception("Cannot amend return without period Key")))
           .flatMap( isDDInProgress =>
             if(isDDInProgress)
               Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))

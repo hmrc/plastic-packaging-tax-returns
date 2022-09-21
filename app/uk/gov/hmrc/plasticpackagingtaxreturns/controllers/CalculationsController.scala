@@ -44,16 +44,13 @@ class CalculationsController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         sessionRepository.get(request.cacheKey).map { optUa => {
-          for {
-            userAnswers <- optUa
-            original <- OriginalReturnForAmendValues(userAnswers)
-            amend <- AmendReturnValues(userAnswers)
-            originalCalc = calculationsService.calculate(original)
-            amendCalc = calculationsService.calculate(amend)
-          } yield
-            Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))
-        }.fold(UnprocessableEntity("No user answers found"))(Ok(_))
-        }
+          val userAnswers = optUa.get
+          val original = OriginalReturnForAmendValues(userAnswers).get
+          val amend = AmendReturnValues(userAnswers).get
+          val originalCalc = calculationsService.calculate(original)
+          val amendCalc = calculationsService.calculate(amend)
+          Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
+        }}
     }
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =

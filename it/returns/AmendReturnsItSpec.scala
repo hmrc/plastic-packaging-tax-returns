@@ -112,6 +112,7 @@ class AmendReturnsItSpec extends PlaySpec
       |        "obligation" : {
       |            "periodKey" : "21C4"
       |        },
+      |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
       |            "idDetails" : {
       |                "pptReferenceNumber" : "pptref",
