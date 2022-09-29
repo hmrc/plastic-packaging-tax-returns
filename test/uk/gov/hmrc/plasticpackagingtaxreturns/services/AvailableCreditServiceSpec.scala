@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers.{any, refEq}
-import org.mockito.Mockito.{reset, verify, verifyNoInteractions, when}
+import org.mockito.Mockito.{reset, verify, verifyNoInteractions, verifyNoMoreInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
@@ -28,7 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ReturnObligationFromDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -48,6 +48,19 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   "getBalance" must {
+    "return 0 and not call connector" when {
+      "no credit is being claimed" in {
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(
+            ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
+          )
+
+        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe BigDecimal(0)
+
+        verifyNoMoreInteractions(mockConnector)
+      }
+    }
+
     "correctly construct the parameters for the connector" in {
       val expected = BigDecimal(200)
       val unUsedBigDec = mock[BigDecimal]
@@ -55,11 +68,10 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
       when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
 
-      val unUsedDate = mock[LocalDate]
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(
           ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
-        )
+        ).setUnsafe(ConvertedCreditWeightGettable, 5L)
 
      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
 
@@ -87,6 +99,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())
+          .setUnsafe(ConvertedCreditWeightGettable, 5L)
 
         val error = intercept[Exception](await(sut.getBalance(userAnswers)(fakeRequest)))
 
