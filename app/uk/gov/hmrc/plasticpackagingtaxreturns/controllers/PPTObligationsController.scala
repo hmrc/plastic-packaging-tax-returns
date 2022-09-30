@@ -20,22 +20,21 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ExportCreditBalanceConnector, ObligationsDataConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class PPTObligationsController @Inject() (
   cc: ControllerComponents,
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
-  exportCreditBalanceConnector: ExportCreditBalanceConnector,
   obligationsService: PPTObligationsService,
   appConfig: AppConfig
 )(implicit val executionContext: ExecutionContext)
@@ -43,21 +42,11 @@ class PPTObligationsController @Inject() (
 
   private val internalServerError = InternalServerError("{}")
 
-  //will trigger calls to EIS in prod so we can see easily if/when this is working
-  def probeExportCreditBalance(pptReference: String)(implicit request: AuthorizedRequest[_]): Unit = {
-    exportCreditBalanceConnector
-      .getBalance(pptReference, LocalDate.now().minusYears(2), LocalDate.now().minusDays(1), request.internalId)
-      .map(_ => logger.info("Export Credit API call was: successful"))
-      .recover {
-        case _ => logger.info("Export Credit API call was: unsuccessful")
-      }
-  }
-
   // todo dedupe
+
   def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        probeExportCreditBalance(pptReference) //only for testing credits error. delete me soon 30/9/2022
         obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
           case Left(404)                     => NotFound("{}")
           case Left(_)                       => internalServerError
