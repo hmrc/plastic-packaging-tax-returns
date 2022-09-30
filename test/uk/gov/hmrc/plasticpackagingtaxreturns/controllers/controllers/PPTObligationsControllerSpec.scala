@@ -26,7 +26,7 @@ import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{status, _}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ExportCreditBalanceConnector, ObligationsDataConnector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
@@ -50,8 +50,12 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
+  //just to keep tests passing, this should be removed asap.
+  val mockExportConnectorTEMP: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  when(mockExportConnectorTEMP.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(1)))
+
   val sut =
-    new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService, appConfig)
+    new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockExportConnectorTEMP, mockPPTObligationsService, appConfig)
 
   "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
