@@ -24,7 +24,8 @@ import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
@@ -51,6 +52,7 @@ class ReturnsController @Inject()(
   nonRepudiationService: NonRepudiationService,
   override val controllerComponents: ControllerComponents,
   returnsConnector: ReturnsConnector,
+  obligationsDataConnector: ObligationsDataConnector,
   appConfig: AppConfig,
   auditConnector: AuditConnector,
   calculationsService: PPTCalculationService,
@@ -90,9 +92,14 @@ class ReturnsController @Inject()(
   def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request) { userAnswer =>
-        availableCreditService.getBalance(userAnswer).flatMap{ availableCredit =>
-          val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
-          doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+        isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
+          if (periodIsOpen)
+            availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
+              val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
+              doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+            }
+          else
+            Future.successful(ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open."))
         }
       }
     }
@@ -116,6 +123,16 @@ class ReturnsController @Inject()(
 
         submitReturnWithNrs(pptReference, userAnswers, returnValues)
       }
+  }
+
+  private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
+    val periodKey = userAnswer.get(PeriodKeyGettable).get
+    obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
+      _.fold(
+        status => throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status"),
+        _.obligations.flatMap(_.obligationDetails.map(_.periodKey)).contains(periodKey)
+      )
+    }
   }
 
   private def isDirectDebitInProgress(
