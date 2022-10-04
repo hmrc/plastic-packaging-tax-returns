@@ -129,7 +129,7 @@ class ReturnsController @Inject()(
     val periodKey = userAnswer.get(PeriodKeyGettable).get
     obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
       _.fold(
-        status => throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status"),
+        status => throw new RuntimeException(s"Could not get Open Obligation details. Server responded with status code: $status"),
         _.obligations.flatMap(_.obligationDetails.map(_.periodKey)).contains(periodKey)
       )
     }
