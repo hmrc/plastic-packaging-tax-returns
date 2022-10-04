@@ -25,7 +25,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, Obligation, ObligationDataResponse, ObligationDetail, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
@@ -140,6 +140,26 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
         any()
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(displayResponse)))
+
+  protected def mockGetObligationDataPeriodKey(
+                                       pptReference: String,
+                                       periodKey: String
+                                     ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(
+      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
+        any(),
+        any(),
+        any(),
+        any()
+      )(any[HeaderCarrier])
+    ).thenReturn(
+      Future.successful(Right(
+          ObligationDataResponse(Seq(
+            Obligation(None, Seq(
+              ObligationDetail(ObligationStatus.OPEN, LocalDate.now(), LocalDate.now(), None, LocalDate.now(), periodKey))
+            )))
+      ))
+    )
 
   protected def mockGetObligationDataFailure(
                                               pptReference: String,

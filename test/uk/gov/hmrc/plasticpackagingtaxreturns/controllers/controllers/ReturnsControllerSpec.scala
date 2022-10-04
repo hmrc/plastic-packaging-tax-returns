@@ -23,7 +23,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{BAD_REQUEST, EXPECTATION_FAILED, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
@@ -31,7 +31,7 @@ import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, await, contentAsJson, def
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
@@ -231,6 +231,7 @@ class ReturnsControllerSpec
     mockNonRepudiationService,
     cc,
     mockReturnsConnector,
+    mockObligationDataConnector,
     mockAppConfig,
     mockAuditConnector,
     mockPptCalculationService,
@@ -245,7 +246,7 @@ class ReturnsControllerSpec
     reset(mockAppConfig)
     reset(mockAuthConnector)
     reset(mockSessionRepository)
-    reset(mockNonRepudiationService)
+    reset(mockNonRepudiationService, mockObligationDataConnector)
   }
 
   "Returns submission controller" should {
@@ -341,6 +342,18 @@ class ReturnsControllerSpec
 
         returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
+      }
+
+      "return expectation failed when obligation is not open" in {
+        withAuthorizedUser()
+        setupMocks(userAnswersReturns)
+        when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
+          .thenReturn(Future.successful(Right(ObligationDataResponse(Nil))))
+
+        val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
+
+        status(result) mustBe EXPECTATION_FAILED
+        verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
       }
 
     }
@@ -505,6 +518,7 @@ class ReturnsControllerSpec
   }
 
   private def setupMocks(userAnswers: UserAnswers) = {
+    mockGetObligationDataPeriodKey(pptReference, periodKey)
     when(mockCreditCalcService.totalRequestedCredit(any())).thenReturn(Credit(0L, BigDecimal(0)))
     when(mockAvailableCreditService.getBalance(any())(any())).thenReturn(Future.successful(BigDecimal(10)))
     when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
