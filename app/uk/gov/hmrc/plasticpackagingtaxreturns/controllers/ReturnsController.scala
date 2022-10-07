@@ -98,8 +98,10 @@ class ReturnsController @Inject()(
               val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
               doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
-          else
+          else {
+            clearUserAnswers(pptReference, request)
             Future.successful(ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open."))
+          }
         }
       }
     }
@@ -120,7 +122,6 @@ class ReturnsController @Inject()(
       .fold {
         Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
       } { case (returnValues, userAnswers) =>
-
         submitReturnWithNrs(pptReference, userAnswers, returnValues)
       }
   }
@@ -158,15 +159,20 @@ class ReturnsController @Inject()(
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
       returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
         case Right(response) =>
-          sessionRepository.clear(request.cacheKey).andThen {
-            case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
-            case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
-          }
+          clearUserAnswers(pptReference, request)
           handleNrsRequest(request, userAnswers.data, eisRequest, response)
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     } else
       Future.successful(UnprocessableEntity("The calculation is not submittable"))
+  }
+
+  private def clearUserAnswers(pptReference: String, request: AuthorizedRequest[AnyContent]) = {
+    // TODO this currently removes all user answers, should perhaps just remove answers for this return
+    sessionRepository.clear(request.cacheKey).andThen {
+      case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+      case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+    }
   }
 
   private def handleNrsRequest(request: AuthorizedRequest[AnyContent],

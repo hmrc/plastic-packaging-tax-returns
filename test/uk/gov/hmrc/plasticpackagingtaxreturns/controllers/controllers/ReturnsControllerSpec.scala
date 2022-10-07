@@ -214,15 +214,15 @@ class ReturnsControllerSpec
   )
 
   private val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
-  private val mockAppConfig: AppConfig                         = mock[AppConfig]
-  private val nrSubmissionId: String                           = "nrSubmissionId"
-  private val mockSessionRepository: SessionRepository         = mock[SessionRepository]
+  private val mockAppConfig: AppConfig = mock[AppConfig]
+  private val nrSubmissionId: String = "nrSubmissionId"
+  private val mockSessionRepository: SessionRepository = mock[SessionRepository]
   private val mockAuditConnector = mock[AuditConnector]
   private val mockPptCalculationService = mock[PPTCalculationService]
   private val mockFinancialDataService = mock[FinancialDataService]
-  private val mockFinancialsService =  mock[PPTFinancialsService]
-  private val mockCreditCalcService =  mock[CreditsCalculationService]
-  private val mockAvailableCreditService =  mock[AvailableCreditService]
+  private val mockFinancialsService = mock[PPTFinancialsService]
+  private val mockCreditCalcService = mock[CreditsCalculationService]
+  private val mockAvailableCreditService = mock[AvailableCreditService]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   val sut = new ReturnsController(
@@ -354,6 +354,7 @@ class ReturnsControllerSpec
 
         status(result) mustBe EXPECTATION_FAILED
         verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
+        verify(mockSessionRepository).clear("someId-uiui")
       }
 
     }
