@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import com.kenshoo.play.metrics.Metrics
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
@@ -38,20 +39,19 @@ class ObligationsDataConnector @Inject()
   httpClient: HttpClient,
   override val appConfig: AppConfig,
   metrics: Metrics,
-  auditConnector: AuditConnector
+  auditConnector: AuditConnector,
+  uuidGenerator: UUIDGenerator
 )(implicit ec: ExecutionContext)
-    extends DESConnector {
+    extends DESConnector with Logging {
 
-  private val logger = Logger(this.getClass)
-
-  def get(pptReference: String, internalId: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
-    hc: HeaderCarrier
-  ): Future[Either[Int, ObligationDataResponse]] = {
+  def get(pptReference: String, internalId: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], 
+    status: Option[ObligationStatus]) (implicit hc: HeaderCarrier): Future[Either[Int, ObligationDataResponse]] = {
+    
     val timer               = metrics.defaultRegistry.timer("ppt.get.obligation.data.timer").time()
-    val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
+    val correlationIdHeader = correlationIdHeaderName -> uuidGenerator.randomUUID
     val correlationId       = correlationIdHeader._2
     val obligationStatus    = status.map(x => x.toString).getOrElse("")
-    val requestHeaders      =  headers :+ correlationIdHeader
+    val requestHeaders: Seq[(String, String)] =  headers :+ correlationIdHeader
     val SUCCESS: String     = "Success"
     val FAILURE: String     = "Failure"
 
