@@ -33,7 +33,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationDetail, ObligationStatus}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,6 +46,41 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
   private val auditConnector = mock[AuditConnector]
   private val testLogger = new Logger(mock[Slf4jLogger])
   private val uuidGenerator = mock[UUIDGenerator]
+
+  val getResponse: ObligationDataResponse = ObligationDataResponse(obligations =
+    Seq(
+      Obligation(
+        identification =
+          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = "123", referenceType = "PPT")),
+        obligationDetails = Seq(
+          ObligationDetail(status = ObligationStatus.OPEN,
+            inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
+            inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
+            inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
+            inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
+            periodKey = "#001"
+          )
+        )
+      )
+    )
+  )
+  val expectedResponse: ObligationDataResponse = ObligationDataResponse(obligations =
+    Seq(
+      Obligation(
+        identification =
+          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = "123", referenceType = "PPT")),
+        obligationDetails = Seq(
+          ObligationDetail(status = ObligationStatus.OPEN,
+            inboundCorrespondenceFromDate = LocalDate.parse("2021-09-01"),
+            inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
+            inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
+            inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
+            periodKey = "#001"
+          )
+        )
+      )
+    )
+  )
 
   implicit val executionContext: ExecutionContext = ExecutionContext.Implicits.global
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
@@ -77,16 +112,16 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
       val expectedParams: Seq[(String, String)] =
         Seq(("from","2022-12-01"), ("to","2023-01-02"), ("status",ObligationStatus.OPEN.toString))
 
-
-      val expectedHeader = Seq(("Environment", "eis"), (HeaderNames.ACCEPT, MimeTypes.JSON), (HeaderNames.AUTHORIZATION, "desBearerToken"), ("CorrelationId", "123"))
       when(appConfig.enterpriseObligationDataUrl(any())).thenReturn("/url")
       when(httpClient.GET[ObligationDataResponse](any(), any(), any()) (any(), any(), any())) thenReturn
         Future.successful(ObligationDataResponse.empty)
+
       await(createConnector.get("ref-id", "int-id", fromDate, toDate, status))
+
       verify(httpClient).GET(
         ArgumentMatchers.eq("/url"),
         ArgumentMatchers.eq(expectedParams),
-        ArgumentMatchers.eq(expectedHeader))(any(), any(), any())
+        ArgumentMatchers.eq(createExpectedHeader))(any(), any(), any())
     }
     
     "log" when {
@@ -124,6 +159,12 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
           + """and pptReference \[ref-id\], params \[List\(\)\], status:"""))
       }
 
+    }
+
+    "return adjust Obligation Date" in {
+      when(appConfig.adjustObligationDates).thenReturn(true)
+      when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(getResponse)
+      await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)
     }
 
     "send explicit audit" when {
@@ -174,5 +215,9 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
       verify(auditConnector).sendExplicitAudit[Any](any(), any())(any(), any(), any())
     }
     
+  }
+
+  private def createExpectedHeader = {
+    Seq(("Environment", "eis"), (HeaderNames.ACCEPT, MimeTypes.JSON), (HeaderNames.AUTHORIZATION, "desBearerToken"), ("CorrelationId", "123"))
   }
 }
