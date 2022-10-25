@@ -19,14 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, matches}
-import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset, verify, when}
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar._
 import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
-import play.api.http.Status.OK
+import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, OK}
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -137,23 +137,32 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
-        verify(testLogger.logger).info(matches("""Get enterprise obligation data with correlationId \[.*\] """
+        verify(testLogger.logger).info(matches("""Success on getting enterprise obligation data with correlationId \[.*\] """
           + """pptReference \[ref-id\] params \[List\(\)\]"""))
       }
       
       "receiving successful 404 no data response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream4xxResponse(
-          "The remote endpoint has indicated that no associated data found", 404, 404))
+        when(httpResponse.status).thenReturn(NOT_FOUND)
+        when(httpResponse.json).thenReturn(Json.parse("""{"code": "NOT_FOUND","message": "any message"}""") )
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
-        // TODO - wrong
-        verify(testLogger.logger).error(matches("""Error returned when getting enterprise obligation data correlationId \[.*\] """
-          + """and pptReference \[ref-id\], params \[List\(\)\], status: 404, body: The remote endpoint has indicated that no associated data found"""))
+        verifyNoInteractions(testLogger.logger)
       }
       
-      "receiving a 4xx failed response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream4xxResponse(
-          "", 400, 400))
+      "receiving a http status 404" in {
+        when(httpResponse.status).thenReturn(NOT_FOUND)
+        when(httpResponse.json).thenReturn(Json.parse("""{"code": "ANY_CODE","message": "any message"}""") )
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
+        await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(404)
+        verify(testLogger.logger).error(matches("""Error returned when getting enterprise obligation data correlationId \[.*\] """
+          + """and pptReference \[ref-id\], params \[List\(\)\], status:"""))
+      }
+
+      "receiving a 400 with no code" in {
+        when(httpResponse.status).thenReturn(BAD_REQUEST)
+        when(httpResponse.json).thenReturn(Json.parse("""{}""") )
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(400)
         verify(testLogger.logger).error(matches("""Error returned when getting enterprise obligation data correlationId \[.*\] """
           + """and pptReference \[ref-id\], params \[List\(\)\], status:"""))
