@@ -17,25 +17,26 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.kenshoo.play.metrics.Metrics
-
-import java.time.LocalDate
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, matches}
-import org.mockito.Mockito.{RETURNS_DEEP_STUBS, framework, reset, verify, when}
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar._
 import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
+import play.api.http.Status.OK
 import play.api.http.{HeaderNames, MimeTypes}
+import play.api.libs.json.Json
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationDetail, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 
 class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
@@ -46,6 +47,7 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
   private val auditConnector = mock[AuditConnector]
   private val testLogger = new Logger(mock[Slf4jLogger])
   private val uuidGenerator = mock[UUIDGenerator]
+  private val httpResponse = mock[HttpResponse]
 
   val getResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
@@ -112,9 +114,11 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
       val expectedParams: Seq[(String, String)] =
         Seq(("from","2022-12-01"), ("to","2023-01-02"), ("status",ObligationStatus.OPEN.toString))
 
+      when(httpResponse.status).thenReturn(OK)
+      when(httpResponse.json).thenReturn(Json.toJson(ObligationDataResponse.empty))
       when(appConfig.enterpriseObligationDataUrl(any())).thenReturn("/url")
-      when(httpClient.GET[ObligationDataResponse](any(), any(), any()) (any(), any(), any())) thenReturn
-        Future.successful(ObligationDataResponse.empty)
+      when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any()))
+        .thenReturn(Future.successful(httpResponse))
 
       await(createConnector.get("ref-id", "int-id", fromDate, toDate, status))
 
@@ -127,9 +131,13 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
     "log" when {
       
       "receiving successful 2xx response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(ObligationDataResponse.empty)
+        when(httpResponse.status).thenReturn(OK)
+        when(httpResponse.json).thenReturn(Json.toJson(ObligationDataResponse.empty))
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
+
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
-        verify(testLogger.logger).info(matches("""Get enterprise obligation data with correlationId \[.*\] """ 
+
+        verify(testLogger.logger).info(matches("""Get enterprise obligation data with correlationId \[.*\] """
           + """pptReference \[ref-id\] params \[List\(\)\]"""))
       }
       

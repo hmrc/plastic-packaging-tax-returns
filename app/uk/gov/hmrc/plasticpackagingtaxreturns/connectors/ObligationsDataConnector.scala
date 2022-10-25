@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
+import play.api.libs.json.{JsString, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
@@ -30,7 +29,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.O
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
-import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,77 +60,64 @@ class ObligationsDataConnector @Inject()
         status.map("status" -> _.toString))
         .flatten
 
-    httpClient.GET[ObligationDataResponse](
+    httpClient.GET[HttpResponse](
       appConfig.enterpriseObligationDataUrl(pptReference),
       queryParams = queryParams,
       headers = requestHeaders
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(s"Get enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
+        if(response.status >= 200 && response.status <= 299) {
 
-        val adjusted = if (appConfig.adjustObligationDates) response.adjustDates else response
-
-        auditConnector.sendExplicitAudit(GetObligations.eventType,
-          GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), None))
-
-        Right(adjusted)
-      }
-      .recover {
-        case Upstream4xxResponse(message, code, _, _) =>
-          logUpstreamError(pptReference, correlationId, queryParams, message, code)
-
-          if(isEmptyObligation(message) && code == NOT_FOUND) {
-
-            auditConnector.sendExplicitAudit(GetObligations.eventType,
-              GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), None))
-
-            Right(ObligationDataResponse.empty)
-
-          }
-          else {
-
-            auditConnector.sendExplicitAudit(GetObligations.eventType,
-              GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
-
-            Left(code)
-
-          }
-        case Upstream5xxResponse(message, code, _, _) =>
-          logUpstreamError(pptReference, correlationId, queryParams, message, code)
+          logger.info(s"Success on getting enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
+          val res = Json.fromJson[ObligationDataResponse](response.json).get.adjustDates
+          val adjusted = if (appConfig.adjustObligationDates)
+            res.adjustDates else res
 
           auditConnector.sendExplicitAudit(GetObligations.eventType,
-            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(message)))
+            GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), None))
 
-          Left(code)
-        case ex: Exception =>
-          logger.error(
-            s"""Failed when getting enterprise obligation data with correlationId [$correlationId] and """ +
-              s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
-            ex
-          )
+          Right(res)
+        } else if(response.status >= 400 && response.status <= 499) {
 
-          auditConnector.sendExplicitAudit(GetObligations.eventType,
-            GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(ex.getMessage)))
-
-          Left(INTERNAL_SERVER_ERROR)
-
+          (response.json \ "code").toOption match {
+            case Some(a) if a.equals(JsString("NOT_FOUND")) => Right(ObligationDataResponse.empty)
+            case _ =>  returnFailure(pptReference, internalId, correlationId, obligationStatus, FAILURE, queryParams, response)
+          }
+        } else {
+          returnFailure(pptReference, internalId, correlationId, obligationStatus, FAILURE, queryParams, response)
+        }
       }
   }
 
-  private def logUpstreamError
+  private def returnFailure
   (
     pptReference: String,
+    internalId: String,
     correlationId: String,
+    obligationStatus: String,
+    FAILURE: String,
     queryParams: Seq[(String, String)],
-    message: String,
-    code: Int
-  ) = {
-    logger.error(
-      s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
-        s"pptReference [$pptReference], params [$queryParams], status: $code, body: $message"
-    )
+    response: HttpResponse
+  )(implicit hc: HeaderCarrier) = {
+    val msg = message(pptReference, correlationId, queryParams, response.json.toString(), response.status)
+
+    logger.error(msg)
+
+    auditConnector.sendExplicitAudit(GetObligations.eventType,
+      GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(msg)))
+
+    Left(response.status)
   }
+
+  private def message(
+                       pptReference: String,
+                       correlationId: String,
+                       queryParams: Seq[(String, String)],
+                       message: String,
+                       code: Int) =
+    s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
+      s"pptReference [$pptReference], params [$queryParams], status: $code, body: $message"
 
   def isEmptyObligation(message: String): Boolean =
     message.contains(EmptyDataMessage)
