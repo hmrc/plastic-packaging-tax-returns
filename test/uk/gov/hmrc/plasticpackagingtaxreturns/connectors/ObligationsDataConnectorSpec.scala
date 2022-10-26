@@ -19,18 +19,18 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, matches}
-import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset, verify, verifyNoInteractions, when}
+import org.mockito.Mockito.{mock => _, _}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar._
 import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
-import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, OK}
-import play.api.http.{HeaderNames, MimeTypes}
-import play.api.libs.json.Json
+import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
+import play.api.http.{HeaderNames, MimeTypes, Status}
+import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -49,6 +49,33 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
   private val uuidGenerator = mock[UUIDGenerator]
   private val httpResponse = mock[HttpResponse]
 
+  val emptyResponse = Json.parse(
+    """
+      |{
+      |   "obligations": []
+      |}
+      |""".stripMargin)
+
+  val jsonResponse = Json.parse(
+    """
+      |{
+      |	"obligations": [{
+      |		"identification": {
+      |			"incomeSourceType": "ITR SA",
+      |			"referenceNumber": "123",
+      |			"referenceType": "PPT"
+      |		},
+      |		"obligationDetails": [{
+      |			"status": "O",
+      |			"periodKey": "#001",
+      |			"inboundCorrespondenceFromDate": "2021-09-01",
+      |			"inboundCorrespondenceToDate": "2021-11-01",
+      |         "inboundCorrespondenceDateReceived": "2021-10-01",
+      |			"inboundCorrespondenceDueDate": "2021-10-31"
+      |		}]
+      |	}]
+      |}
+      |""".stripMargin)
   val getResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(
@@ -79,9 +106,9 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
             inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
             periodKey = "#001"
           )
-        )
+        ).toVector
       )
-    )
+    ).toVector
   )
 
   implicit val executionContext: ExecutionContext = ExecutionContext.Implicits.global
@@ -169,8 +196,10 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
       }
 
       "receiving a 5xx failed response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream5xxResponse(
-          "message",500, 500))
+        when(httpResponse.status).thenReturn(INTERNAL_SERVER_ERROR)
+        when(httpResponse.json).thenReturn(Json.parse("""{}""") )
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any()))
+          .thenReturn(Future.successful(httpResponse))
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(500)
         verify(testLogger.logger).error(matches("""Error returned when getting enterprise obligation data correlationId \[.*\] """
           + """and pptReference \[ref-id\], params \[List\(\)\], status:"""))
@@ -179,57 +208,100 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
     }
 
     "return adjust Obligation Date" in {
+      when(httpResponse.status).thenReturn(OK)
+      when(httpResponse.json).thenReturn(jsonResponse)
       when(appConfig.adjustObligationDates).thenReturn(true)
-      when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(getResponse)
+      when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
+
       await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)
     }
 
     "send explicit audit" when {
 
       "receiving a successful 2xx response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(ObligationDataResponse.empty)
-        await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
-        verify(auditConnector).sendExplicitAudit(GetObligations.eventType ,
-          GetObligations("", "int-id", "ref-id", "Success", Some(ObligationDataResponse.empty), None))
+        when(httpResponse.status).thenReturn(OK)
+        when(httpResponse.json).thenReturn(jsonResponse)
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)
+
+        val expectedAudit = GetObligations("", "int-id", "ref-id", "Success", Some(expectedResponse), Some("""Success on retrieving enterprise obligation data correlationId [123] and """ +
+        s"pptReference [ref-id], params [List()], status: ${Status.OK}, body: $expectedResponse"))
+
+        verify(auditConnector).sendExplicitAudit(GetObligations.eventType, expectedAudit)
       }
 
       "receiving a successful 404 response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream4xxResponse(
-          "The remote endpoint has indicated that no associated data found", 404, 404))
+        when(httpResponse.status).thenReturn(NOT_FOUND)
+        when(httpResponse.json).thenReturn(JsString("{}"))
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(404)
+
+        val expectedAudit = GetObligations("", "int-id", "ref-id", "Failure", None, Some("""Error returned when getting enterprise obligation data correlationId [123] """
+                      + """and pptReference [ref-id], params [List()], status: 404, body: "{}""""))
+        verify(auditConnector).sendExplicitAudit(GetObligations.eventType, expectedAudit)
+
+      }
+
+      "receiving a 404 when obligation available" in {
+        when(httpResponse.status).thenReturn(NOT_FOUND)
+        when(httpResponse.json).thenReturn(Json.parse("""{"code": "NOT_FOUND","message": "any message"}"""))
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
-        verify(auditConnector).sendExplicitAudit(GetObligations.eventType ,
-          GetObligations("", "int-id", "ref-id", "Success", Some(ObligationDataResponse.empty), None))
+
+        val expectedAudit = GetObligations("", "int-id", "ref-id", "Success", Some(ObligationDataResponse.empty), Some("""Success on retrieving enterprise obligation data correlationId [123] """
+          + s"""and pptReference [ref-id], params [List()], status: 200, body: ${ObligationDataResponse.empty}"""))
+        verify(auditConnector).sendExplicitAudit(GetObligations.eventType, expectedAudit)
       }
 
       "receiving a failed 4xx response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream4xxResponse(
-          "", 400, 400))
+        when(httpResponse.status).thenReturn(BAD_REQUEST)
+        when(httpResponse.json).thenReturn(JsString("{}"))
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(400)
-        verify(auditConnector).sendExplicitAudit(GetObligations.eventType ,
-          GetObligations("", "int-id", "ref-id", "Failure", None, Some("")))
+
+        val expectedAudit = GetObligations("", "int-id", "ref-id", "Failure", None, Some("""Error returned when getting enterprise obligation data correlationId [123] """
+          + """and pptReference [ref-id], params [List()], status: 400, body: "{}""""))
+
+        verify(auditConnector).sendExplicitAudit(GetObligations.eventType, expectedAudit)
       }
 
       "receiving a failed 5xx response" in {
-        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.failed(Upstream5xxResponse(
-          "message",500, 500))
+        when(httpResponse.status).thenReturn(INTERNAL_SERVER_ERROR)
+        when(httpResponse.json).thenReturn(JsString("{}"))
+        when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(500)
-        verify(auditConnector).sendExplicitAudit (GetObligations.eventType ,
-          GetObligations("", "int-id", "ref-id", "Failure", None, Some("message")))
+
+        val expectedAudit = GetObligations("", "int-id", "ref-id", "Failure", None, Some("""Error returned when getting enterprise obligation data correlationId [123] """
+          + """and pptReference [ref-id], params [List()], status: 500, body: "{}""""))
+
+        verify(auditConnector).sendExplicitAudit (GetObligations.eventType, expectedAudit)
       }
 
     }
     
     "capture all other exceptions too" in {
+      when(httpResponse.status).thenReturn(OK)
+      when(httpResponse.json).thenReturn(JsString("""{"code": "NOT_FOUND","message": "any message"}"""))
       // 1. http call is successful
       when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(ObligationDataResponse.empty)
 
       // 2. we then fail for some other reason
-      when(appConfig.adjustObligationDates) thenThrow new RuntimeException("rando exception")
+      //when(appConfig.adjustObligationDates) thenThrow new RuntimeException("rando exception")
 
-      await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(500)
-      verify(testLogger.logger).info(matches("Get enterprise obligation data"))
-      verify(testLogger.logger).error(matches("Failed when getting enterprise obligation data"), any[Throwable]())
-      verify(auditConnector).sendExplicitAudit[Any](any(), any())(any(), any(), any())
+      intercept[Exception] {
+        await(
+          createConnector.get("ref-id", "int-id", None, None, None)
+        )
+      }
+
+      verify(testLogger.logger, never()).error(matches("Failed when getting enterprise obligation data"), any[Throwable]())
+      verifyNoInteractions(testLogger.logger)
+      verifyNoInteractions(auditConnector)
     }
     
   }

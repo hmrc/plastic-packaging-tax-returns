@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
-import play.api.libs.json.{JsString, Json}
+import play.api.http.Status
+import play.api.libs.json.JsString
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
@@ -42,6 +43,9 @@ class ObligationsDataConnector @Inject()
 )(implicit ec: ExecutionContext)
     extends DESConnector with Logging {
 
+  val SUCCESS: String     = "Success"
+  val FAILURE: String     = "Failure"
+
   def get(pptReference: String, internalId: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], 
     status: Option[ObligationStatus]) (implicit hc: HeaderCarrier): Future[Either[Int, ObligationDataResponse]] = {
     
@@ -50,8 +54,6 @@ class ObligationsDataConnector @Inject()
     val correlationId       = correlationIdHeader._2
     val obligationStatus    = status.map(x => x.toString).getOrElse("")
     val requestHeaders: Seq[(String, String)] =  headers :+ correlationIdHeader
-    val SUCCESS: String     = "Success"
-    val FAILURE: String     = "Failure"
 
     val queryParams =
       Seq(
@@ -67,40 +69,74 @@ class ObligationsDataConnector @Inject()
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        if(response.status >= 200 && response.status <= 299) {
 
-          logger.info(s"Success on getting enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
-          val res = Json.fromJson[ObligationDataResponse](response.json).get.adjustDates
-          val adjusted = if (appConfig.adjustObligationDates)
-            res.adjustDates else res
-
-          auditConnector.sendExplicitAudit(GetObligations.eventType,
-            GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), None))
-
-          Right(res)
+        if(response.status == 200) {
+          handleSuccess(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
         } else if(response.status >= 400 && response.status <= 499) {
-
-          (response.json \ "code").toOption match {
-            case Some(a) if a.equals(JsString("NOT_FOUND")) => Right(ObligationDataResponse.empty)
-            case _ =>  returnFailure(pptReference, internalId, correlationId, obligationStatus, FAILURE, queryParams, response)
-          }
+          handle4xxResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
         } else {
-          returnFailure(pptReference, internalId, correlationId, obligationStatus, FAILURE, queryParams, response)
+          handleErrorResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
         }
       }
   }
 
-  private def returnFailure
+  private def handle4xxResponse
   (
     pptReference: String,
     internalId: String,
     correlationId: String,
     obligationStatus: String,
-    FAILURE: String,
     queryParams: Seq[(String, String)],
     response: HttpResponse
   )(implicit hc: HeaderCarrier) = {
-    val msg = message(pptReference, correlationId, queryParams, response.json.toString(), response.status)
+
+    (response.json \ "code").toOption match {
+      case Some(a) if a.equals(JsString("NOT_FOUND")) =>
+
+        val msg =  s"""Success on retrieving enterprise obligation data correlationId [$correlationId] and """ +
+          s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: ${ObligationDataResponse.empty}"
+
+        auditConnector.sendExplicitAudit(GetObligations.eventType,
+          GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), Some(msg)))
+
+        Right(ObligationDataResponse.empty)
+      case _ => handleErrorResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
+    }
+  }
+
+  private def handleSuccess
+  (
+    pptReference: String,
+    internalId: String,
+    correlationId: String,
+    obligationStatus: String,
+    queryParams: Seq[(String, String)],
+    response: HttpResponse
+  )(implicit hc: HeaderCarrier) = {
+    logger.info(s"Success on getting enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
+    val res = response.json.as[ObligationDataResponse]
+    val adjusted = if (appConfig.adjustObligationDates) res.adjustDates else res
+
+    val msg =  s"""Success on retrieving enterprise obligation data correlationId [$correlationId] and """ +
+      s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: $adjusted"
+
+    auditConnector.sendExplicitAudit(GetObligations.eventType,
+      GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), Some(msg)))
+
+    Right(res)
+  }
+
+  private def handleErrorResponse
+  (
+    pptReference: String,
+    internalId: String,
+    correlationId: String,
+    obligationStatus: String,
+    queryParams: Seq[(String, String)],
+    response: HttpResponse
+  )(implicit hc: HeaderCarrier) = {
+    val msg =  s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
+      s"pptReference [$pptReference], params [$queryParams], status: ${response.status}, body: ${response.json.toString()}"
 
     logger.error(msg)
 
@@ -110,14 +146,6 @@ class ObligationsDataConnector @Inject()
     Left(response.status)
   }
 
-  private def message(
-                       pptReference: String,
-                       correlationId: String,
-                       queryParams: Seq[(String, String)],
-                       message: String,
-                       code: Int) =
-    s"""Error returned when getting enterprise obligation data correlationId [$correlationId] and """ +
-      s"pptReference [$pptReference], params [$queryParams], status: $code, body: $message"
 
   def isEmptyObligation(message: String): Boolean =
     message.contains(EmptyDataMessage)
