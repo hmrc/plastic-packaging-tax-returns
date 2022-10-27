@@ -24,7 +24,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
 import play.api.http.Status.NOT_FOUND
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{JsResultException, Json, OWrites}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
@@ -109,7 +109,8 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
             .willReturn(
               WireMock
                 .status(NOT_FOUND)
-                .withBody(ObligationsDataConnector.EmptyDataMessage)
+                .withBody("""{"code": "NOT_FOUND","message": "any message"}""")
+
             )
         )
 
@@ -129,14 +130,6 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
       "handle bad json" in {
 
-        val fullUrl = s"http://localhost:20202$url"
-
-        val error = s"GET of '$fullUrl' returned invalid json. Attempting to convert to " +
-          s"uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse gave errors: " +
-          s"List((/obligations,List(JsonValidationError(List(error.path.missing),WrappedArray()))))"
-
-        val auditModel = GetObligations(ObligationStatus.OPEN.toString, internalId, pptReference, "Failure", None, Some(error))
-
         stubFor(
           get(anyUrl())
             .willReturn(
@@ -149,13 +142,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(auditUrl, Status.NO_CONTENT)
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
-        val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
-
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
-
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
-        }
+        intercept[JsResultException](await(connector.get(pptReference, internalId, fromDate, toDate, status)))
 
         getTimer(getObligationDataTimer).getCount mustBe 1
 
@@ -188,10 +175,6 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
           val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
 
           res.left.get mustBe statusCode
-
-          eventually(timeout(Span(5, Seconds))) {
-            eventSendToAudit(auditUrl, auditModel) mustBe true
-          }
 
           getTimer(getObligationDataTimer).getCount mustBe 1
 
