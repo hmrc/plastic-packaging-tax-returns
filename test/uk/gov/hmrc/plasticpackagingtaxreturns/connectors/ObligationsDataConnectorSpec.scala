@@ -76,23 +76,6 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
       |	}]
       |}
       |""".stripMargin)
-  val getResponse: ObligationDataResponse = ObligationDataResponse(obligations =
-    Seq(
-      Obligation(
-        identification =
-          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = "123", referenceType = "PPT")),
-        obligationDetails = Seq(
-          ObligationDetail(status = ObligationStatus.OPEN,
-            inboundCorrespondenceFromDate = LocalDate.parse("2021-10-01"),
-            inboundCorrespondenceToDate = LocalDate.parse("2021-11-01"),
-            inboundCorrespondenceDateReceived = Some(LocalDate.parse("2021-10-01")),
-            inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
-            periodKey = "#001"
-          )
-        )
-      )
-    )
-  )
   val expectedResponse: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(

@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status
-import play.api.libs.json.JsString
+import play.api.libs.json.{JsDefined, JsLookupResult, JsString}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
@@ -69,39 +69,20 @@ class ObligationsDataConnector @Inject()
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
+        response.status match {
+          case Status.OK => handleSuccess(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
+          case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND"))=>
+            val msg =  s"""Success on retrieving enterprise obligation data correlationId [$correlationId] and """ +
+            s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: ${ObligationDataResponse.empty}"
 
-        if(response.status == 200) {
-          handleSuccess(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
-        } else if(response.status >= 400 && response.status <= 499) {
-          handle4xxResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
-        } else {
-          handleErrorResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
+            auditConnector.sendExplicitAudit(GetObligations.eventType,
+              GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), Some(msg)))
+
+            Right(ObligationDataResponse.empty)
+
+          case _ => handleErrorResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
         }
       }
-  }
-
-  private def handle4xxResponse
-  (
-    pptReference: String,
-    internalId: String,
-    correlationId: String,
-    obligationStatus: String,
-    queryParams: Seq[(String, String)],
-    response: HttpResponse
-  )(implicit hc: HeaderCarrier) = {
-
-    (response.json \ "code").toOption match {
-      case Some(a) if a.equals(JsString("NOT_FOUND")) =>
-
-        val msg =  s"""Success on retrieving enterprise obligation data correlationId [$correlationId] and """ +
-          s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: ${ObligationDataResponse.empty}"
-
-        auditConnector.sendExplicitAudit(GetObligations.eventType,
-          GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), Some(msg)))
-
-        Right(ObligationDataResponse.empty)
-      case _ => handleErrorResponse(pptReference, internalId, correlationId, obligationStatus, queryParams, response)
-    }
   }
 
   private def handleSuccess
