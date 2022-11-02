@@ -40,7 +40,7 @@ trait SubscriptionTestData {
                                                            organisationDetails =
                                                              Some(
                                                                subscription.OrganisationDetails(
-                                                                 organisationName = Some("Plastics Ltd"),
+                                                                 organisationName = "Plastics Ltd",
                                                                  organisationType = Some("UK Limited Company")
                                                                )
                                                              )
@@ -78,7 +78,7 @@ trait SubscriptionTestData {
                                                                       customerIdentification2 = Some("def456"),
                                                                       organisationDetails = Some(
                                                                         OrganisationDetails(Some("UK Limited Company"),
-                                                                                            Some("Subsidiary 1")
+                                                                                            "Subsidiary 1"
                                                                         )
                                                                       ),
                                                                       individualDetails = None,
@@ -165,7 +165,7 @@ trait SubscriptionTestData {
                                   subscription.last12MonthTotalTonnageAmt.longValue(),
                                 declaration =
                                   subscription.declaration,
-                                groupOrPartnershipSubscription =
+                                groupPartnershipSubscription =
                                   subscription.groupPartnershipSubscription
     )
 
