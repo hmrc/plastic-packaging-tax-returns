@@ -78,13 +78,7 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
         logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status)) {
           val json = Json.parse(response.body.replaceAll("\\s", " "))//subscription data can come back un sanitised for json.
-          println("*********************************")
-          println(json)
-          println("*********************************")
-          val response1 = json.as[SubscriptionDisplayResponse]
-          println(response1)
-          println("*********************************")
-          Right(response1)
+          Right(json.as[SubscriptionDisplayResponse])
         } else {
           Left(response)
         }
