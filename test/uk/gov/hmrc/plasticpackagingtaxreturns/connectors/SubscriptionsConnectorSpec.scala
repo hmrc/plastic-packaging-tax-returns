@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.scalatest.EitherValues
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status
@@ -30,7 +31,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTes
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
 
-class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures {
+class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures with EitherValues {
 
   lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
 
@@ -135,6 +136,15 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
 
+      "return details of the group members" in {
+        stubFor(get(anyUrl()).willReturn(ok.withBody(subscriptionResponseBodyWithGroupMembers)))
+        val response = await(connector.getSubscription("ppt-ref"))
+        response.right.value.groupPartnershipSubscription.isDefined mustBe true
+        response.right.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length(3)
+        val iterator = response.right.value.groupPartnershipSubscription.get.groupPartnershipDetails.toIterator
+        iterator.next().organisationDetails.get.organisationName mustBe "Test Company Ltd UK"
+      }
+      
       "handle unexpected failure responses" in {
         val pptReference = UUID.randomUUID().toString
 
@@ -292,5 +302,140 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
             .withStatus(httpStatus)
         )
     )
+
+  private val subscriptionResponseBodyWithGroupMembers =
+    """{
+      |  "processingDate": "2022-11-01T14:12:12.981Z",
+      |  "changeOfCircumstanceDetails": {
+      |    "changeOfCircumstance": "Update to details"
+      |  },
+      |  "legalEntityDetails": {
+      |    "dateOfApplication": "2021-10-13",
+      |    "customerIdentification1": "01234567",
+      |    "customerIdentification2": "1234567890",
+      |    "customerDetails": {
+      |      "customerType": "Organisation",
+      |      "organisationDetails": {
+      |        "organisationType": "UkCompany",
+      |        "organisationName": "Test Company Ltd"
+      |      }
+      |    },
+      |    "groupSubscriptionFlag": true,
+      |    "partnershipSubscriptionFlag": false,
+      |    "regWithoutIDFlag": false
+      |  },
+      |  "principalPlaceOfBusinessDetails": {
+      |    "addressDetails": {
+      |      "addressLine1": "Any Street",
+      |      "addressLine2": "Any Town",
+      |      "postalCode": "AA11AA",
+      |      "countryCode": "GB"
+      |    },
+      |    "contactDetails": {
+      |      "email": "ppt@mail.com",
+      |      "telephone": "07712345678"
+      |    }
+      |  },
+      |  "primaryContactDetails": {
+      |    "name": "Tim Tester",
+      |    "contactDetails": {
+      |      "email": "contact@mail.com",
+      |      "telephone": "01234567890"
+      |    },
+      |    "positionInCompany": "Chief Financial Officer"
+      |  },
+      |  "businessCorrespondenceDetails": {
+      |    "addressLine1": "Business address 1",
+      |    "addressLine2": "Business address 2",
+      |    "postalCode": "AB1 1CD",
+      |    "countryCode": "GB"
+      |  },
+      |  "taxObligationStartDate": "2022-04-01",
+      |  "last12MonthTotalTonnageAmt": 0,
+      |  "declaration": {
+      |    "declarationBox1": true
+      |  },
+      |  "groupPartnershipSubscription": {
+      |    "representativeControl": true,
+      |    "allMembersControl": true,
+      |    "groupPartnershipDetails": [
+      |      {
+      |        "relationship": "Representative",
+      |        "customerIdentification1": "29078371",
+      |        "customerIdentification2": "1234567890",
+      |        "organisationDetails": {
+      |          "organisationType": "UkCompany",
+      |          "organisationName": "Test Company Ltd UK"
+      |        },
+      |        "individualDetails": {
+      |          "firstName": "Jack",
+      |          "lastName": "Gatsby"
+      |        },
+      |        "addressDetails": {
+      |          "addressLine1": "2 Other Place",
+      |          "addressLine2": "Some District",
+      |          "addressLine3": "Anytown",
+      |          "postalCode": "ZZ1 1ZZ",
+      |          "countryCode": "GB"
+      |        },
+      |        "contactDetails": {
+      |          "email": "ppt1@gmail.com",
+      |          "telephone": "07719234679"
+      |        },
+      |        "regWithoutIDFlag": false
+      |      },
+      |      {
+      |        "relationship": "Member",
+      |        "customerIdentification1": "16563110",
+      |        "customerIdentification2": "1234567890",
+      |        "organisationDetails": {
+      |          "organisationType": "UkCompany",
+      |          "organisationName": "Test Company Ltd Europe"
+      |        },
+      |        "individualDetails": {
+      |          "firstName": "Jay",
+      |          "lastName": "Bond"
+      |        },
+      |        "addressDetails": {
+      |          "addressLine1": "7 Other Place",
+      |          "addressLine2": "Some District",
+      |          "addressLine3": "Anytown",
+      |          "postalCode": "AA11AA",
+      |          "countryCode": "GB"
+      |        },
+      |        "contactDetails": {
+      |          "email": "ppt1@gmail.com",
+      |          "telephone": "07719234699"
+      |        },
+      |        "regWithoutIDFlag": false
+      |      },
+      |      {
+      |        "relationship": "Member",
+      |        "customerIdentification1": "37950968",
+      |        "customerIdentification2": "1234567890",
+      |        "organisationDetails": {
+      |          "organisationType": "OverseasCompanyUkBranch",
+      |          "organisationName": "Test Company Ltd Asia"
+      |        },
+      |        "individualDetails": {
+      |          "firstName": "James",
+      |          "lastName": "Bond"
+      |        },
+      |        "addressDetails": {
+      |          "addressLine1": "12 Other Place",
+      |          "addressLine2": "Some District",
+      |          "addressLine3": "Anytown",
+      |          "postalCode": "AA11AA",
+      |          "countryCode": "GB"
+      |        },
+      |        "contactDetails": {
+      |          "email": "ppt1@gmail.com",
+      |          "telephone": "07719234799"
+      |        },
+      |        "regWithoutIDFlag": false
+      |      }
+      |    ]
+      |  }
+      |}""".stripMargin
 
 }
