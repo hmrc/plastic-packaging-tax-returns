@@ -1,0 +1,49 @@
+package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
+
+import play.api.Logging
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
+import javax.inject.Inject
+import scala.concurrent.{ExecutionContext, Future}
+
+class ChangeGroupLeadController @Inject()(
+                                           authenticator: Authenticator,
+                                           sessionRepository: SessionRepository,
+                                           cc: ControllerComponents,
+                                           changeGroupLeadService: ChangeGroupLeadService,
+                                           subscriptionsConnector: SubscriptionsConnector
+                                         )(implicit executionContext: ExecutionContext)
+  extends BackendController(cc) with Logging {
+
+  def change(pptReference: String): Action[AnyContent] = authenticator.authorisedAction(parse.default, pptReference) {
+    implicit request =>
+      val getSubF: Future[Either[HttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(request.pptId)
+      val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
+
+      {
+        for {
+          subscriptionEither <- getSubF
+          maybeUserAnswers <- getUAF
+        } yield {
+          (maybeUserAnswers, subscriptionEither) match {
+            case (_, Left(_)) => Future.successful(InternalServerError("Subscription not found for Change Group Lead"))
+            case (None, _) => Future.successful(InternalServerError("User Answers not found for Change Group Lead"))
+            case (Some(userAnswers), Right(subscription)) =>
+              val updatedDisplayResponse = changeGroupLeadService.changeSubscription(subscription, userAnswers)
+                .toUpdateRequest(ChangeOfCircumstanceDetails("ChangeGroupLead", None)) //todo what is this string?
+              subscriptionsConnector.updateSubscription(request.pptId, updatedDisplayResponse)
+                .map(_ => Ok("yep all good"))
+          }
+        }
+      }.flatten
+    }
+
+}

@@ -37,3 +37,7 @@ POST        /cache/set/:pptReference                            uk.gov.hmrc.plas
 # Calculation
 GET         /returns-calculate/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController.calculateSubmit(pptReference)
 GET         /amends-calculate/:pptReference                     uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController.calculateAmends(pptReference)
+
+
+# Amend Reg - Change Group lead
+POST        /change-group-lead/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ChangeGroupLeadController.change(pptReference)

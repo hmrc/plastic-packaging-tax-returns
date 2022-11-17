@@ -26,5 +26,9 @@ case class IndividualDetails(
 )
 
 object IndividualDetails {
+
+  def apply(firstAndLast: (String,String)) =
+   new IndividualDetails(firstName = firstAndLast._1, lastName = firstAndLast._2)
+
   implicit val format: OFormat[IndividualDetails] = Json.format[IndividualDetails]
 }
