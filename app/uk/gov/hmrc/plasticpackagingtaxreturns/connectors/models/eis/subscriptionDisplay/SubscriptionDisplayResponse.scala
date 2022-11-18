@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipSubscription
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 
 case class SubscriptionDisplayResponse(
@@ -34,9 +35,9 @@ case class SubscriptionDisplayResponse(
   groupPartnershipSubscription: Option[GroupPartnershipSubscription]
 ){
 
-  def toUpdateRequest(changeOfCircumstanceDetails: ChangeOfCircumstanceDetails): SubscriptionUpdateRequest =
+  def toUpdateRequest: SubscriptionUpdateRequest =
     SubscriptionUpdateRequest(
-      changeOfCircumstanceDetails = changeOfCircumstanceDetails,
+      changeOfCircumstanceDetails = ChangeOfCircumstanceDetails(Update, None),
       legalEntityDetails = legalEntityDetails,
       principalPlaceOfBusinessDetails = principalPlaceOfBusinessDetails,
       primaryContactDetails = primaryContactDetails,

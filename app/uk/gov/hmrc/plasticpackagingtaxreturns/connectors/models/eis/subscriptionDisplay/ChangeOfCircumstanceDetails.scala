@@ -25,6 +25,10 @@ case class ChangeOfCircumstanceDetails(
 
 object ChangeOfCircumstanceDetails {
 
+  //changeOfCircumstance reasons:
+  val Update = "Update to details"
+  val ManualToOnline = "Manual to Online"
+
   implicit val format: OFormat[ChangeOfCircumstanceDetails] =
     Json.format[ChangeOfCircumstanceDetails]
 

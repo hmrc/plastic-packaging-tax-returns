@@ -1,14 +1,32 @@
+/*
+ * Copyright 2022 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.{CustomerDetails, CustomerType, IndividualDetails, OrganisationDetails, PrimaryContactDetails, PrincipalPlaceOfBusinessDetails, Subscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.{CustomerDetails, CustomerType, IndividualDetails, PrimaryContactDetails, PrincipalPlaceOfBusinessDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
 
 class ChangeGroupLeadService {
 
-  def changeSubscription(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers) = {
+  def changeSubscription(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers): SubscriptionUpdateRequest = {
 
     val oldRepresentativeAsStandardMember = createMemberFromPreviousRepresentative(subscription)
 
@@ -18,15 +36,18 @@ class ChangeGroupLeadService {
       .groupPartnershipDetails
       .filterNot(_.relationship == "Representative") // data cleanse as registration has added Representative member to the member list
 
-    val newRepName = userAnswers.get[String](JsPath \ "changeGroupLead" \ "chooseNewGroupLead")
-      .getOrElse(throw new IllegalStateException("no new representative selected"))
+    val newRepOrganisationName = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
+    val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
+    val newRepContactJobTitle = userAnswers.getOrFail(MainContactJobTitleGettable)
+    val newRepContactAddress = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)
 
-    val newRepMemberDetails = members.find(_.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation")).organisationName == newRepName)
-        .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
+    val newRepOriginalMemberDetails = members
+      .find(_.organisationDetails.exists(_.organisationName == newRepOrganisationName))
+      .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
 
     val otherMembers = members.filterNot(
         _.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
-          .organisationName == newRepName
+          .organisationName == newRepOrganisationName
         )
 
     val newMembersList = oldRepresentativeAsStandardMember :: otherMembers
@@ -36,24 +57,27 @@ class ChangeGroupLeadService {
         customerDetails = CustomerDetails(
           customerType = CustomerType.Organisation,
           individualDetails = None,
-          organisationDetails = newRepMemberDetails.organisationDetails,
-        )
+          organisationDetails = newRepOriginalMemberDetails.organisationDetails,
+        ),
+          customerIdentification1 = newRepOriginalMemberDetails.customerIdentification1,
+          customerIdentification2 = newRepOriginalMemberDetails.customerIdentification2,
+          regWithoutIDFlag = Some(newRepOriginalMemberDetails.regWithoutIDFlag)
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
-        addressDetails = newRepMemberDetails.addressDetails,
-        contactDetails = newRepMemberDetails.contactDetails
+        addressDetails = newRepOriginalMemberDetails.addressDetails,
+        contactDetails = newRepOriginalMemberDetails.contactDetails
       ),
       primaryContactDetails = PrimaryContactDetails(
-        name = ???, //todo from useranswers
-        contactDetails = newRepMemberDetails.contactDetails,
-        positionInCompany = ???, //todo from useranswers
+        name = newRepContactName,
+        contactDetails = newRepOriginalMemberDetails.contactDetails,
+        positionInCompany = newRepContactJobTitle,
       ),
-      businessCorrespondenceDetails = ???, //todo from useranswers
+      businessCorrespondenceDetails = newRepContactAddress,
       groupPartnershipSubscription = subscription.groupPartnershipSubscription.map(
         _.copy(
           groupPartnershipDetails = newMembersList
         ))
-    )
+    ).toUpdateRequest
   }
 
   private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse): GroupPartnershipDetails = {
