@@ -20,7 +20,7 @@ import play.api.Logging
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -55,7 +55,7 @@ class ChangeGroupLeadController @Inject()(
             case (Some(userAnswers), Right(subscription)) =>
               val updatedDisplayResponse = changeGroupLeadService.changeSubscription(subscription, userAnswers)
               subscriptionsConnector.updateSubscription(request.pptId, updatedDisplayResponse)
-                .map(_ => Ok("yep all good"))
+                .map(_ => Ok("Updated Group Lead as per userAnswers"))
           }
         }
       }.flatten
