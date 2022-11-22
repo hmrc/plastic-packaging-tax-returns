@@ -27,10 +27,12 @@ final case class UserAnswers(
                               lastUpdated: Instant = Instant.now
                             ) {
   
-  def getOrFail[A](gettable: Gettable[A])(implicit rds: Reads[A]): A = get(gettable).get
+  def getOrFail[A](gettable: Gettable[A])(implicit rds: Reads[A]): A = get(gettable)
+    .getOrElse(throw new IllegalStateException(s"${gettable.path} is missing from useranswers"))
   
   def getOrFail[A](path: JsPath)(implicit rds: Reads[A]): A =
-    Reads.at(path).reads(data).get
+    Reads.at(path).reads(data)
+      .getOrElse(throw new IllegalStateException(s"$path is missing from useranswers"))
 
   def get[A](page: Gettable[A])(implicit rds: Reads[A]): Option[A] =
     Reads.optionNoError(Reads.at(page.path)).reads(data).getOrElse(None)

@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case class IndividualDetails(
-  title: Option[String] = None,
-  firstName: String,
-  middleName: Option[String] = None,
-  lastName: String
-)
+case object MainContactNameGettable extends Gettable[String] {
 
-object IndividualDetails {
+  override def path: JsPath = JsPath \ "changeGroupLead" \ toString
 
-  def apply(firstAndLast: (String,String)) =
-   new IndividualDetails(firstName = firstAndLast._1, lastName = firstAndLast._2)
-
-  implicit val format: OFormat[IndividualDetails] = Json.format[IndividualDetails]
+  override def toString: String = "mainContactName"
 }

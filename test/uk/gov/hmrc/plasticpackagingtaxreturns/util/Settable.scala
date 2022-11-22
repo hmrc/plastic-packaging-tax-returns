@@ -27,9 +27,11 @@ object Settable {
   implicit class SettableUserAnswers(val userAnswers: UserAnswers) extends AnyVal {
 
     //sets with a Gettable as Settable is not defined in backend
-    def setUnsafe[A](page: Gettable[A], value: A)(implicit writes: Writes[A]): UserAnswers = {
+    def setUnsafe[A](page: Gettable[A], value: A)(implicit writes: Writes[A]): UserAnswers = setUnsafe(page.path, value)
 
-      val updatedData = userAnswers.data.setObject(page.path, Json.toJson(value)) match {
+    def setUnsafe[A](jsPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers = {
+
+      val updatedData = userAnswers.data.setObject(jsPath, Json.toJson(value)) match {
         case JsSuccess(jsValue, _) =>
           Success(jsValue)
         case JsError(errors) =>

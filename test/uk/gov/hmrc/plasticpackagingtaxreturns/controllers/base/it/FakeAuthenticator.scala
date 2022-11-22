@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 import play.api.libs.json.Reads
 import play.api.mvc.{Action, BodyParser, ControllerComponents, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator.{internalID, pptRef}
 
 import javax.inject.Inject
 import scala.concurrent.Future
@@ -29,8 +30,14 @@ class FakeAuthenticator @Inject() (cc: ControllerComponents) extends Authenticat
     body: AuthorizedRequest[A] => Future[Result]
   ): Action[A] =
     cc.actionBuilder.async(bodyParser) { implicit request =>
-      body(AuthorizedRequest("uiui", request, "someId"))
+      body(AuthorizedRequest(pptRef, request, internalID))
     }
 
   override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???
+}
+
+object FakeAuthenticator {
+  val pptRef = "some-ppt-ref"
+  val internalID = "some-internal-ID"
+  def cacheKey = s"$internalID-$pptRef"
 }
