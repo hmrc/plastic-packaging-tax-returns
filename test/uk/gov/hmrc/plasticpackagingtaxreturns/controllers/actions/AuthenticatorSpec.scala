@@ -75,7 +75,7 @@ class AuthenticatorSpec
 
         val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
-        result.value.pptId mustBe "val1"
+        result.value.pptReference mustBe "val1"
       }
     }
   }
