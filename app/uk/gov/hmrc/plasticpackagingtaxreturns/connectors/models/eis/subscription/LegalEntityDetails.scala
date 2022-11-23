@@ -24,7 +24,7 @@ case class LegalEntityDetails(
   customerIdentification2: Option[String] = None,
   customerDetails: CustomerDetails,
   groupSubscriptionFlag: Boolean = false,
-  regWithoutIDFlag: Option[Boolean] = None,
+  regWithoutIDFlag: Boolean,
   partnershipSubscriptionFlag: Boolean = false
 )
 

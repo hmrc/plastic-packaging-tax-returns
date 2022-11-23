@@ -177,7 +177,8 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
               )
             )
           ),
-        groupSubscriptionFlag = true
+        groupSubscriptionFlag = true,
+        regWithoutIDFlag = false
       ),
       principalPlaceOfBusinessDetails =
         PrincipalPlaceOfBusinessDetails(
