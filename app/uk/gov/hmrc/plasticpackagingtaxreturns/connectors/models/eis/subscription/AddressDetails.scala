@@ -29,5 +29,4 @@ case class AddressDetails(
 
 object AddressDetails {
   implicit val format: OFormat[AddressDetails] = Json.format[AddressDetails]
-
 }
