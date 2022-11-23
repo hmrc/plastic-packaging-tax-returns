@@ -31,27 +31,25 @@ trait SubscriptionTestData {
   protected val pptUserHeaders: Map[String, String] = Map("testHeaderKey" -> "testHeaderValue")
 
   protected val ukLimitedCompanySubscription: Subscription = Subscription(
-    legalEntityDetails =
-      LegalEntityDetails(dateOfApplication =
-                           now(UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                         customerIdentification1 = "123456789",
-                         customerIdentification2 = Some("1234567890"),
-                         customerDetails = CustomerDetails(customerType = CustomerType.Organisation,
-                                                           organisationDetails =
-                                                             Some(
-                                                               subscription.OrganisationDetails(
-                                                                 organisationName = "Plastics Ltd",
-                                                                 organisationType = Some("UK Limited Company")
-                                                               )
-                                                             )
-                         )
-      ),
+    legalEntityDetails = LegalEntityDetails(
+      dateOfApplication = now(UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+      customerIdentification1 = "123456789",
+      customerIdentification2 = Some("1234567890"),
+      customerDetails = CustomerDetails(
+        customerType = CustomerType.Organisation,
+        organisationDetails = Some(subscription.OrganisationDetails(
+          organisationName = "Plastics Ltd",
+          organisationType = Some("UK Limited Company")
+        )),
+      ), 
+      regWithoutIDFlag = false
+    ),
     principalPlaceOfBusinessDetails =
       PrincipalPlaceOfBusinessDetails(
         addressDetails = AddressDetails(addressLine1 = "2-3 Scala Street",
-                                        addressLine2 = "London",
-                                        postalCode = Some("W1T 2HN"),
-                                        countryCode = "GB"
+          addressLine2 = "London",
+          postalCode = Some("W1T 2HN"),
+          countryCode = "GB"
         ),
         contactDetails = ContactDetails(email = "test@test.com", telephone = "02034567890")
       ),
@@ -63,9 +61,9 @@ trait SubscriptionTestData {
         positionInCompany = "Director"
       ),
     businessCorrespondenceDetails = BusinessCorrespondenceDetails(addressLine1 = "2-3 Scala Street",
-                                                                  addressLine2 = "London",
-                                                                  postalCode = Some("W1T 2HN"),
-                                                                  countryCode = "GB"
+      addressLine2 = "London",
+      postalCode = Some("W1T 2HN"),
+      countryCode = "GB"
     ),
     taxObligationStartDate = now(UTC).toString,
     last12MonthTotalTonnageAmt = 15000,
@@ -74,70 +72,69 @@ trait SubscriptionTestData {
   )
 
   protected val ukLimitedCompanyGroupMember = GroupPartnershipDetails(relationship = "Representative",
-                                                                      customerIdentification1 = "abc123",
-                                                                      customerIdentification2 = Some("def456"),
-                                                                      organisationDetails = Some(
-                                                                        OrganisationDetails(Some("UK Limited Company"),
-                                                                                            "Subsidiary 1"
-                                                                        )
-                                                                      ),
-                                                                      individualDetails = None,
-                                                                      addressDetails =
-                                                                        AddressDetails(addressLine1 =
-                                                                                         "2-3 Scala Street",
-                                                                                       addressLine2 = "Soho",
-                                                                                       countryCode = "GB"
-                                                                        ),
-                                                                      contactDetails =
-                                                                        ContactDetails(email = "man@firm.com",
-                                                                                       telephone = "01274 873264"
-                                                                        ),
-                                                                      regWithoutIDFlag = false
+    customerIdentification1 = "abc123",
+    customerIdentification2 = Some("def456"),
+    organisationDetails = Some(
+      OrganisationDetails(Some("UK Limited Company"),
+        "Subsidiary 1"
+      )
+    ),
+    individualDetails = None,
+    addressDetails =
+      AddressDetails(addressLine1 =
+        "2-3 Scala Street",
+        addressLine2 = "Soho",
+        countryCode = "GB"
+      ),
+    contactDetails =
+      ContactDetails(email = "man@firm.com",
+        telephone = "01274 873264"
+      ),
+    regWithoutIDFlag = false
   )
 
   protected val soleTraderGroupMember = GroupPartnershipDetails(relationship = "Representative",
-                                                                customerIdentification1 = "abc123",
-                                                                customerIdentification2 = Some("def456"),
-                                                                organisationDetails = None,
-                                                                individualDetails = Some(
-                                                                  IndividualDetails(firstName = "Andrew",
-                                                                                    lastName = "Man"
-                                                                  )
-                                                                ),
-                                                                addressDetails = AddressDetails(addressLine1 =
-                                                                                                  "2-3 Scala Street",
-                                                                                                addressLine2 = "Soho",
-                                                                                                countryCode = "GB"
-                                                                ),
-                                                                contactDetails = ContactDetails(email = "aman@firm.com",
-                                                                                                telephone =
-                                                                                                  "01274 873264"
-                                                                ),
-                                                                regWithoutIDFlag = false
+    customerIdentification1 = "abc123",
+    customerIdentification2 = Some("def456"),
+    organisationDetails = None,
+    individualDetails = Some(
+      IndividualDetails(firstName = "Andrew",
+        lastName = "Man"
+      )
+    ),
+    addressDetails = AddressDetails(addressLine1 =
+      "2-3 Scala Street",
+      addressLine2 = "Soho",
+      countryCode = "GB"
+    ),
+    contactDetails = ContactDetails(email = "aman@firm.com",
+      telephone =
+        "01274 873264"
+    ),
+    regWithoutIDFlag = false
   )
 
   protected val ukLimitedCompanyGroupSubscription: Subscription =
     ukLimitedCompanySubscription.copy(groupPartnershipSubscription =
       Some(
         GroupPartnershipSubscription(representativeControl = true,
-                                     allMembersControl = true,
-                                     groupPartnershipDetails = List(ukLimitedCompanyGroupMember, soleTraderGroupMember)
+          allMembersControl = true,
+          groupPartnershipDetails = List(ukLimitedCompanyGroupMember, soleTraderGroupMember)
         )
       )
     )
 
   protected val soleTraderSubscription: Subscription = {
     val subscription = ukLimitedCompanySubscription.copy(legalEntityDetails =
-      LegalEntityDetails(dateOfApplication =
-                           now(UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                         customerIdentification1 = "123456789",
-                         customerIdentification2 = Some("1234567890"),
-                         customerDetails =
-                           CustomerDetails(
-                             customerType = CustomerType.Individual,
-                             individualDetails =
-                               Some(IndividualDetails(title = Some("MR"), firstName = "James", lastName = "Bond"))
-                           )
+      LegalEntityDetails(
+        dateOfApplication = now(UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+        customerIdentification1 = "123456789",
+        customerIdentification2 = Some("1234567890"),
+        customerDetails = CustomerDetails(
+          customerType = CustomerType.Individual,
+          individualDetails = Some(IndividualDetails(title = Some("MR"), firstName = "James", lastName = "Bond"))
+        ), 
+        regWithoutIDFlag = false
       )
     )
     subscription
@@ -145,28 +142,28 @@ trait SubscriptionTestData {
 
   protected def createSubscriptionDisplayResponse(subscription: Subscription) =
     SubscriptionDisplayResponse(processingDate = "2020-05-05",
-                                changeOfCircumstanceDetails =
-                                  Some(
-                                    ChangeOfCircumstanceDetails(changeOfCircumstance =
-                                      "update"
-                                    )
-                                  ),
-                                legalEntityDetails =
-                                  subscription.legalEntityDetails,
-                                principalPlaceOfBusinessDetails =
-                                  subscription.principalPlaceOfBusinessDetails,
-                                primaryContactDetails =
-                                  subscription.primaryContactDetails,
-                                businessCorrespondenceDetails =
-                                  subscription.businessCorrespondenceDetails,
-                                taxObligationStartDate =
-                                  subscription.taxObligationStartDate,
-                                last12MonthTotalTonnageAmt =
-                                  subscription.last12MonthTotalTonnageAmt.longValue(),
-                                declaration =
-                                  subscription.declaration,
-                                groupPartnershipSubscription =
-                                  subscription.groupPartnershipSubscription
+      changeOfCircumstanceDetails =
+        Some(
+          ChangeOfCircumstanceDetails(changeOfCircumstance =
+            "update"
+          )
+        ),
+      legalEntityDetails =
+        subscription.legalEntityDetails,
+      principalPlaceOfBusinessDetails =
+        subscription.principalPlaceOfBusinessDetails,
+      primaryContactDetails =
+        subscription.primaryContactDetails,
+      businessCorrespondenceDetails =
+        subscription.businessCorrespondenceDetails,
+      taxObligationStartDate =
+        subscription.taxObligationStartDate,
+      last12MonthTotalTonnageAmt =
+        subscription.last12MonthTotalTonnageAmt.longValue(),
+      declaration =
+        subscription.declaration,
+      groupPartnershipSubscription =
+        subscription.groupPartnershipSubscription
     )
 
   protected def createSubscriptionUpdateRequest(subscription: Subscription): SubscriptionUpdateRequest =

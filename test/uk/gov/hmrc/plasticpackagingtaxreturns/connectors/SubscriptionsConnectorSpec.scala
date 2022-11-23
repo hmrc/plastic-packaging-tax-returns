@@ -87,6 +87,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
              |      }
              |    },
              |    "groupSubscriptionFlag" : false,
+             |    "regWithoutIDFlag" : false,
              |    "partnershipSubscriptionFlag" : false
              |  },
              |  "principalPlaceOfBusinessDetails" : {

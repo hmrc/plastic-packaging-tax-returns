@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.{CustomerDetails, CustomerType, IndividualDetails, PrimaryContactDetails, PrincipalPlaceOfBusinessDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
@@ -53,15 +52,15 @@ class ChangeGroupLeadService {
     val newMembersList = oldRepresentativeAsStandardMember :: otherMembers
 
     subscription.copy(
-        legalEntityDetails = subscription.legalEntityDetails.copy(
+      legalEntityDetails = subscription.legalEntityDetails.copy(
         customerDetails = CustomerDetails(
           customerType = CustomerType.Organisation,
           individualDetails = None,
           organisationDetails = newRepOriginalMemberDetails.organisationDetails,
         ),
-          customerIdentification1 = newRepOriginalMemberDetails.customerIdentification1,
-          customerIdentification2 = newRepOriginalMemberDetails.customerIdentification2,
-          regWithoutIDFlag = Some(newRepOriginalMemberDetails.regWithoutIDFlag)
+        customerIdentification1 = newRepOriginalMemberDetails.customerIdentification1,
+        customerIdentification2 = newRepOriginalMemberDetails.customerIdentification2,
+        regWithoutIDFlag = newRepOriginalMemberDetails.regWithoutIDFlag
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
         addressDetails = newRepOriginalMemberDetails.addressDetails,
@@ -91,7 +90,7 @@ class ChangeGroupLeadService {
       )),
       addressDetails = subscription.principalPlaceOfBusinessDetails.addressDetails,
       contactDetails = subscription.principalPlaceOfBusinessDetails.contactDetails,
-      regWithoutIDFlag = subscription.legalEntityDetails.regWithoutIDFlag.getOrElse(false)
+      regWithoutIDFlag = subscription.legalEntityDetails.regWithoutIDFlag
     )
   }
 
