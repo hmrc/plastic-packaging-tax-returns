@@ -65,23 +65,22 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
     reset(mockSessionRepo, mockChangeGroupLeadService, mockSubscriptionsConnector, nonRepudiationService)
 
     when(mockSubscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Right(subscriptionDisplayResponse))
-    when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
+    when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
     when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(mock[SubscriptionUpdateResponse])
   }
 
   "change" must {
     "update the group lead" in {
       val subscriptionUpdateRequest = mock[SubscriptionUpdateRequest]
-      when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-//      when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Right(subscriptionDisplayResponse)))
       when(mockChangeGroupLeadService.changeSubscription(subscriptionDisplayResponse, userAnswers)).thenReturn(subscriptionUpdateRequest)
-      when(mockSubscriptionsConnector.updateSubscription(refEq(FakeAuthenticator.pptRef), refEq(subscriptionUpdateRequest))(any)).thenReturn(Future.successful(mock[SubscriptionUpdateResponse]))
 
       val result = sut.change(pptRef)(FakeRequest())
 
       status(result) mustBe OK
       contentAsString(result) mustBe "Updated Group Lead as per userAnswers"
-      verify(mockSubscriptionsConnector).updateSubscription(refEq(FakeAuthenticator.pptRef), refEq(subscriptionUpdateRequest))(any)
+      verify(mockSubscriptionsConnector).updateSubscription(same("some-ppt-ref"), same(subscriptionUpdateRequest)) (any)
+      verify(mockSubscriptionsConnector).getSubscription(same("some-ppt-ref")) (any)
+      verify(mockSessionRepo).get("some-internal-ID-some-ppt-ref")
     }
 
     "calls the NRS service when update subscription is successful" in {
