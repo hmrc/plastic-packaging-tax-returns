@@ -89,7 +89,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       val processingDate = mock[ZonedDateTime]
       when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(any, same(processingDate), any, any) (any)
+      verify(nonRepudiationService).submitNonRepudiation(any, same(processingDate), eqTo("some-ppt-ref"), any) (any)
     }
 
     "not call the NRS service when update subscription fails" in {

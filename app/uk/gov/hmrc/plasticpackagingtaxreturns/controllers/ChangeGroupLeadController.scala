@@ -71,7 +71,7 @@ class ChangeGroupLeadController @Inject() (
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .map {
         subscriptionUpdateResponse =>
-          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, "", Map.empty[String, String])
+          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, pptReference, Map.empty[String, String])
       }
   }
 }
