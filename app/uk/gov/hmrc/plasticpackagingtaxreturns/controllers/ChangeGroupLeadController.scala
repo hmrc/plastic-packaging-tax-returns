@@ -21,14 +21,13 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.time.ZonedDateTime
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,7 +41,7 @@ class ChangeGroupLeadController @Inject() (
 ) (implicit executionContext: ExecutionContext) extends BackendController(cc) with Logging {
 
   def change(pptReference: String): Action[AnyContent] = authenticator.authorisedAction(parse.default, pptReference) {
-    implicit request =>
+    implicit request: AuthorizedRequest[AnyContent] =>
       val pptReference = request.pptReference
       val getSubF: Future[Either[HttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
       val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
@@ -56,22 +55,23 @@ class ChangeGroupLeadController @Inject() (
             case (_, Left(_)) => Future.successful(InternalServerError("Subscription not found for Change Group Lead"))
             case (None, _) => Future.successful(InternalServerError("User Answers not found for Change Group Lead"))
             case (Some(userAnswers), Right(subscription)) =>
-              changeGroupRep(pptReference, userAnswers, subscription)
+              changeGroupRep(pptReference, userAnswers, subscription, request)
               .map(_ => Ok("Updated Group Lead as per userAnswers"))
           }
         }
       }.flatten
     }
 
-  private def changeGroupRep(pptReference: String, userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse)
-    (implicit hc: HeaderCarrier) = {
+  private def changeGroupRep(pptReference: String, userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse, 
+    request: AuthorizedRequest[_]) (implicit hc: HeaderCarrier) = {
 
     val subscriptionUpdateRequest = changeGroupLeadService.changeSubscription(subscription, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .map {
         subscriptionUpdateResponse =>
-          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, pptReference, Map.empty[String, String])
+          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, pptReference,
+            request.headers.headers.toMap)
       }
   }
 }

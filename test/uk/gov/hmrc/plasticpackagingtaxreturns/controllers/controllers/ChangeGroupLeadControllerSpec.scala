@@ -85,14 +85,20 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       verify(mockSessionRepo).get("some-internal-ID-some-ppt-ref")
     }
 
-    "calls the NRS service when update subscription is successful" in {
+    "pass date and ppt ref to NRS" in {
       val processingDate = mock[ZonedDateTime]
       when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(any, same(processingDate), eqTo("some-ppt-ref"), any) (any)
+      verify(nonRepudiationService).submitNonRepudiation(any, same(processingDate), eqTo("some-ppt-ref"), any) (any)    }
+
+    "pass user header to NRS" in {
+      val request = FakeRequest().withHeaders(("harder", "than it should be"))
+      await(sut.change("ref").apply(request))
+      val headers = Map("Host" -> "localhost", "harder" -> "than it should be")
+      verify(nonRepudiationService).submitNonRepudiation(any, any, any, eqTo(headers)) (any)
     }
 
-    "not call the NRS service when update subscription fails" in {
+    "not call the NRS when update subscription fails" in {
       when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.failed(new Exception)
       an [Exception] must be thrownBy await(sut.change("ref").apply(FakeRequest()))
       verify(nonRepudiationService, never).submitNonRepudiation(any, any, any, any) (any)
