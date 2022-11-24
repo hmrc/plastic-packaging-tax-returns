@@ -25,11 +25,11 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, Obligation, ObligationDataResponse, ObligationDetail, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateResponse, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 
 import java.time.LocalDate
@@ -58,7 +58,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
       Future.successful(Right(displayResponse))
     )
 
-  protected def mockSubscriptionSubmitFailure(ex: Exception): OngoingStubbing[Future[SubscriptionUpdateResponse]] =
+  protected def mockSubscriptionSubmitFailure(ex: Exception): OngoingStubbing[Future[SubscriptionUpdateSuccessfulResponse]] =
     when(mockSubscriptionsConnector.updateSubscription(any(), any())(any()))
       .thenThrow(ex)
 
@@ -66,7 +66,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     pptReference: String,
     request: SubscriptionUpdateRequest,
     subscription: SubscriptionUpdateSuccessfulResponse
-  ): OngoingStubbing[Future[SubscriptionUpdateResponse]] =
+  ): OngoingStubbing[Future[SubscriptionUpdateSuccessfulResponse]] =
     when(
       mockSubscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
         any[HeaderCarrier]

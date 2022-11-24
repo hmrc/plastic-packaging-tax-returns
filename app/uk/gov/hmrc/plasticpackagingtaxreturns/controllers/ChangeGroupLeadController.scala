@@ -32,15 +32,14 @@ import java.time.ZonedDateTime
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class ChangeGroupLeadController @Inject()(
-   authenticator: Authenticator,
-   sessionRepository: SessionRepository,
-   cc: ControllerComponents,
-   changeGroupLeadService: ChangeGroupLeadService,
-   subscriptionsConnector: SubscriptionsConnector,
+class ChangeGroupLeadController @Inject() (
+  authenticator: Authenticator,
+  sessionRepository: SessionRepository,
+  cc: ControllerComponents,
+  changeGroupLeadService: ChangeGroupLeadService,
+  subscriptionsConnector: SubscriptionsConnector,
   nonRepudiationService: NonRepudiationService
- ) 
-  (implicit executionContext: ExecutionContext) extends BackendController(cc) with Logging {
+) (implicit executionContext: ExecutionContext) extends BackendController(cc) with Logging {
 
   def change(pptReference: String): Action[AnyContent] = authenticator.authorisedAction(parse.default, pptReference) {
     implicit request =>
@@ -71,8 +70,8 @@ class ChangeGroupLeadController @Inject()(
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .map {
-        _ =>
-          nonRepudiationService.submitNonRepudiation("", ZonedDateTime.now(), "", Map.empty[String, String])
+        subscriptionUpdateResponse =>
+          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, "", Map.empty[String, String])
       }
   }
 }

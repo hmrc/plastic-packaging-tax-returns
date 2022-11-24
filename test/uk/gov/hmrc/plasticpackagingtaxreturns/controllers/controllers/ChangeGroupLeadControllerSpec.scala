@@ -17,9 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar.{never, reset, verify, when}
+import org.mockito.MockitoSugar.{mock, never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{IM_A_TEAPOT, INTERNAL_SERVER_ERROR, OK}
 import play.api.mvc.ControllerComponents
@@ -28,7 +27,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ChangeGroupLeadController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -36,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
+import java.time.ZonedDateTime
 import scala.concurrent.ExecutionContext.global
 import scala.concurrent.Future
 
@@ -48,6 +48,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
   private val nonRepudiationService = mock[NonRepudiationService]
   private val subscriptionDisplayResponse = mock[SubscriptionDisplayResponse]
   private val userAnswers = UserAnswers("user-answers-id")
+  private val subscriptionUpdateResponse = mock[SubscriptionUpdateSuccessfulResponse]
 
   val pptRef = "some-ppt-ref"
 
@@ -62,11 +63,12 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockSessionRepo, mockChangeGroupLeadService, mockSubscriptionsConnector, nonRepudiationService)
+    reset(mockSessionRepo, mockChangeGroupLeadService, mockSubscriptionsConnector, nonRepudiationService,
+      subscriptionUpdateResponse)
 
     when(mockSubscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Right(subscriptionDisplayResponse))
     when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
-    when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(mock[SubscriptionUpdateResponse])
+    when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(subscriptionUpdateResponse)
   }
 
   "change" must {
@@ -84,8 +86,10 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "calls the NRS service when update subscription is successful" in {
+      val processingDate = mock[ZonedDateTime]
+      when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(any, any, any, any) (any)
+      verify(nonRepudiationService).submitNonRepudiation(any, same(processingDate), any, any) (any)
     }
 
     "not call the NRS service when update subscription fails" in {
