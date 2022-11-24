@@ -21,6 +21,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.NrsSubscriptionUpdateSubmission
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -65,13 +66,17 @@ class ChangeGroupLeadController @Inject() (
   private def changeGroupRep(pptReference: String, userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse, 
     request: AuthorizedRequest[_]) (implicit hc: HeaderCarrier) = {
 
-    val subscriptionUpdateRequest = changeGroupLeadService.changeSubscription(subscription, userAnswers)
+    val subscriptionUpdateRequest = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
+    val nrsSubscriptionUpdateSubmission = changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .map {
-        subscriptionUpdateResponse =>
-          nonRepudiationService.submitNonRepudiation("", subscriptionUpdateResponse.processingDate, pptReference,
-            request.headers.headers.toMap)
+        subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
+            nrsSubscriptionUpdateSubmission.toJsonString, 
+            subscriptionUpdateResponse.processingDate, 
+            pptReference,
+            request.headers.headers.toMap
+          )
       }
   }
 }

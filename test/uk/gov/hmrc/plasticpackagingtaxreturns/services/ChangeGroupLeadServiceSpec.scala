@@ -41,7 +41,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
           createMember("Hooks Pirates Ltd").copy(relationship = "Representative")
         )
 
-        val result = sut.changeSubscription(sub, defaultUserAnswers)
+        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
@@ -50,7 +50,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "it is not there" in {
         val sub = createSubscription(defaultMember)
 
-        val result = sut.changeSubscription(sub, defaultUserAnswers)
+        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
@@ -60,7 +60,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "put the old representative member in to the members list as just a standard member" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) mustBe List("original-rep-organisationName")
     }
@@ -68,7 +68,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "remove the New Representative member from the normal members list" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
     }
@@ -76,7 +76,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "fill all the details of the representative member with the selected member details and user answers" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.legalEntityDetails.customerDetails.organisationDetails.get.organisationName mustBe "Lost Boys Ltd-organisationName"
       result.legalEntityDetails.customerDetails.organisationDetails.get.organisationType mustBe Some("Lost Boys Ltd-organisationType")
@@ -100,7 +100,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "convert the subscription in to an update subscription request" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.changeOfCircumstanceDetails.changeOfCircumstance mustBe Update
       result.changeOfCircumstanceDetails.deregistrationDetails mustBe None
@@ -120,7 +120,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
           val sub = createSubscription(defaultMember)
 
-          val ex = intercept[IllegalStateException](sut.changeSubscription(sub, userAnswers))
+          val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
           ex.getMessage mustBe s"${gettable.path} is missing from useranswers"
         }
       }
@@ -128,14 +128,14 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "the subscription is not a group" in {
         val sub = createSubscription().copy(groupPartnershipSubscription = None)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "Change group lead not a group"
       }
 
       "Selected New Representative member is not part of the group" in {
         val sub = createSubscription(Seq.empty: _*)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
       }
 
@@ -144,7 +144,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
         val sub = createSubscription(defaultMember, brokenMember)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "member of group missing organisation"
 
       }
