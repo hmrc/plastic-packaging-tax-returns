@@ -17,14 +17,17 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsNull
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
+import play.api.libs.json
+import play.api.libs.json.{JsNull, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.NrsSubscriptionUpdateSubmission
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
 
@@ -149,7 +152,34 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       }
     }
+
   }
+
+  "createNrsSubscriptionUpdateSubmission" in {
+    val userAnswers: UserAnswers = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
+    val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, userAnswers)
+    val expectedJson = Json.parse(
+      """
+        |{"userAnswers":{"biscuits":"chocolate"},"subscriptionUpdateRequest":{"changeOfCircumstanceDetails":{"changeOfCircumstance":""},
+        |"legalEntityDetails":{"dateOfApplication":"","customerIdentification1":"","customerIdentification2":"","customerDetails":
+        |{"customerType":"Organisation","organisationDetails":{"organisationType":"","organisationName":""}},"groupSubscriptionFlag":true,
+        |"regWithoutIDFlag":false,"partnershipSubscriptionFlag":false},"principalPlaceOfBusinessDetails":{"addressDetails":
+        |{"addressLine1":"","addressLine2":"","addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},
+        |"contactDetails":{"email":"","telephone":"","mobileNumber":""}},"primaryContactDetails":{"name":"","contactDetails":
+        |{"email":"","telephone":"","mobileNumber":""},"positionInCompany":""},"businessCorrespondenceDetails":{"addressLine1":"",
+        |"addressLine2":"","addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},"taxObligationStartDate":"",
+        |"last12MonthTotalTonnageAmt":0,"declaration":{"declarationBox1":true},"groupPartnershipSubscription":{"representativeControl":
+        |false,"allMembersControl":false,"groupPartnershipDetails":[{"relationship":"","customerIdentification1":"",
+        |"customerIdentification2":"","organisationDetails":{"organisationType":"","organisationName":""},"individualDetails":
+        |{"title":"","firstName":"","middleName":"","lastName":""},"addressDetails":{"addressLine1":"","addressLine2":"",
+        |"addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},"contactDetails":{"email":"","telephone":"",
+        |"mobileNumber":""},"regWithoutIDFlag":false}]}}}
+        |""".stripMargin
+    )
+    
+    Json.toJson(nrsSubscriptionUpdateSubmission) mustBe expectedJson
+  }
+  
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
@@ -210,8 +240,8 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       last12MonthTotalTonnageAmt = 123,
       groupPartnershipSubscription = Some(
         GroupPartnershipSubscription(
-          representativeControl = true,
-          allMembersControl = true,
+          representativeControl = Some(true),
+          allMembersControl = Some(true),
           groupPartnershipDetails = members.toList
         )
       ),
@@ -241,5 +271,89 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       ),
       regWithoutIDFlag = false
     )
+    
+  private def cookOneUp: SubscriptionUpdateRequest = {
 
+    new SubscriptionUpdateRequest(
+      changeOfCircumstanceDetails = ChangeOfCircumstanceDetails(
+        changeOfCircumstance = "", // some enum from docs - eg DEREGISTER but not that!
+        deregistrationDetails = None // as we're not de-reg here
+      ),
+      legalEntityDetails = LegalEntityDetails(
+        dateOfApplication = "", // stay as is
+        customerIdentification1 = "",  // copy from member details
+        customerIdentification2 = Some(""),  // copy from member details
+        customerDetails = CustomerDetails( // <-- largely copied from member details below  
+          customerType = CustomerType.Organisation, // Always this value?
+          individualDetails = None, // Always none as always organisation type?
+          organisationDetails = Some(OrganisationDetails(
+            organisationType = Some(""), // copy from member details
+            organisationName = "" // copy from member details
+          ))
+        ),
+        groupSubscriptionFlag = true, // stay as is - would be funny if false
+        regWithoutIDFlag = false, // stay as is
+        partnershipSubscriptionFlag = false // stay as is
+      ),
+      principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
+        addressDetails = someAddressDetails, // copy from member details 
+        contactDetails = someContactDetails // copy from member details
+      ),
+      primaryContactDetails = PrimaryContactDetails(
+        name = "", // from form
+        contactDetails = someContactDetails, // copied from member details? Do we need a 2nd set of email, phone and mobile?
+        positionInCompany = "" // from form, job title
+      ),
+      businessCorrespondenceDetails = someAddressDetails2, // from form for contact address
+      taxObligationStartDate = "", // stay as is
+      last12MonthTotalTonnageAmt = BigDecimal(0), // stay as is
+      declaration = Declaration(true), // stay as is
+      groupPartnershipSubscription = Some(GroupPartnershipSubscription(
+        representativeControl = Some(false), // stay as is
+        allMembersControl = Some(false), // stay as is
+        groupPartnershipDetails = List(GroupPartnershipDetails( // <------------- list of members starts here ------>
+          relationship = "", // "Member"
+          customerIdentification1 = "", // for previous rep, copy from legalEntityDetails
+          customerIdentification2 = Some(""), // for previous rep, copy from legalEntityDetails
+          organisationDetails = Some(OrganisationDetails( // for previous rep, copy from legalEntityDetails
+            organisationType = Some(""),
+            organisationName = ""
+          )),
+          individualDetails = Some(IndividualDetails(
+            title = Some(""),
+            firstName = "",
+            middleName = Some(""),
+            lastName = ""
+          )),
+          addressDetails = someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+          contactDetails = someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+          regWithoutIDFlag = false
+        ))
+      ))
+    )
+  }
+
+  private def someAddressDetails2 = BusinessCorrespondenceDetails( // todo de-dupe
+    addressLine1 = "",
+    addressLine2 = "",
+    addressLine3 = Some(""), // these should be shunted up 
+    addressLine4 = Some(""), // ^  ^  ^
+    postalCode = Some(""),
+    countryCode = ""
+  )
+
+  private def someAddressDetails = AddressDetails(
+    addressLine1 = "",
+    addressLine2 = "",
+    addressLine3 = Some(""), // these should be shunted up 
+    addressLine4 = Some(""), // ^  ^  ^
+    postalCode = Some(""),
+    countryCode = ""
+  )
+
+  private def someContactDetails = ContactDetails(
+    email = "",
+    telephone = "",
+    mobileNumber = Some("")
+  )
 }

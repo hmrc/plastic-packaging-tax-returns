@@ -27,7 +27,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroup
 class ChangeGroupLeadService {
 
   def createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest: SubscriptionUpdateRequest, 
-    userAnswers: UserAnswers): NrsSubscriptionUpdateSubmission = ???
+    userAnswers: UserAnswers): NrsSubscriptionUpdateSubmission = {
+    
+    new NrsSubscriptionUpdateSubmission(userAnswers, subscriptionUpdateRequest)
+  }
   
   def createSubscriptionUpdateRequest(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers): SubscriptionUpdateRequest = {
 

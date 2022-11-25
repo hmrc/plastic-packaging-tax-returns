@@ -19,9 +19,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 import play.api.libs.json.{Json, OFormat}
 
 case class GroupPartnershipSubscription(
-  representativeControl: Boolean,
-  allMembersControl: Boolean,
-  groupPartnershipDetails: List[GroupPartnershipDetails]
+  representativeControl: Option[Boolean],
+  allMembersControl: Option[Boolean],
+  groupPartnershipDetails: List[GroupPartnershipDetails] // todo does Seq vs List matter?
 )
 
 object GroupPartnershipSubscription {

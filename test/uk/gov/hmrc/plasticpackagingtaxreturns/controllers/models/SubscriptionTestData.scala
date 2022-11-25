@@ -117,8 +117,8 @@ trait SubscriptionTestData {
   protected val ukLimitedCompanyGroupSubscription: Subscription =
     ukLimitedCompanySubscription.copy(groupPartnershipSubscription =
       Some(
-        GroupPartnershipSubscription(representativeControl = true,
-          allMembersControl = true,
+        GroupPartnershipSubscription(representativeControl = Some(true),
+          allMembersControl = Some(true),
           groupPartnershipDetails = List(ukLimitedCompanyGroupMember, soleTraderGroupMember)
         )
       )

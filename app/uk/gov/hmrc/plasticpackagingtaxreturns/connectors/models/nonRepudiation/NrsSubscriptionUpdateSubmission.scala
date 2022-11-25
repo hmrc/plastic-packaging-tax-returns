@@ -16,14 +16,17 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{JsObject, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
-case class NrsSubscriptionUpdateSubmission(
-  userAnswers: UserAnswers,
+case class NrsSubscriptionUpdateSubmission (
+  userAnswers: JsObject,
   subscriptionUpdateRequest: SubscriptionUpdateRequest
 ) {
+  def this(userAnswers: UserAnswers, subscriptionUpdateRequest: SubscriptionUpdateRequest) = 
+    this(userAnswers.data, subscriptionUpdateRequest)
+    
   def toJsonString: String = Json.toJson(this).toString()
 }
 
