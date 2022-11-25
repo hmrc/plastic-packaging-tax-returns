@@ -71,7 +71,7 @@ trait SubscriptionTestData {
     groupPartnershipSubscription = None
   )
 
-  protected val ukLimitedCompanyGroupMember = GroupPartnershipDetails(relationship = "Representative",
+  protected val ukLimitedCompanyGroupMember = GroupPartnershipDetails(relationship = "member",
     customerIdentification1 = "abc123",
     customerIdentification2 = Some("def456"),
     organisationDetails = Some(

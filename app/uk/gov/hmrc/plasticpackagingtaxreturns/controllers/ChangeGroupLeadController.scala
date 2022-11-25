@@ -21,7 +21,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
@@ -29,6 +29,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class ChangeGroupLeadController @Inject()(
                                            authenticator: Authenticator,
@@ -55,10 +56,21 @@ class ChangeGroupLeadController @Inject()(
             case (Some(userAnswers), Right(subscription)) =>
               val updatedDisplayResponse = changeGroupLeadService.changeSubscription(subscription, userAnswers)
               subscriptionsConnector.updateSubscription(request.pptId, updatedDisplayResponse)
-                .map(_ => Ok("Updated Group Lead as per userAnswers"))
+                .map(_ => {
+                  clearUserAnswers(request)
+                  Ok("Updated Group Lead as per userAnswers")
+                })
           }
         }
       }.flatten
     }
 
+  private def clearUserAnswers(request: AuthorizedRequest[AnyContent]) = {
+    // TODO this currently removes all user answers, should perhaps just remove answers for this return
+    val pptReference = request.pptId
+    sessionRepository.clear(request.cacheKey).andThen {
+      case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+      case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+    }
+  }
 }
