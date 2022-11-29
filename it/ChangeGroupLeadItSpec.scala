@@ -16,7 +16,7 @@
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
@@ -30,10 +30,11 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
-import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.{AuthConnector, Enrolments}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{SignedInUser, SubscriptionTestData}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
@@ -78,10 +79,16 @@ class ChangeGroupLeadItSpec extends PlaySpec
   }
 
   "service" should {
-    "return 200" ignore { // todo needs fixing
-      when(repository.get(any())).thenReturn(Future.successful(Some(userAnswer)))
-      when(repository.clear(any())).thenReturn(Future.successful(true))
-      withAuthorizedUser()
+    "return 200" in { // todo needs fixing
+      when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
+      when(repository.clear(any)).thenReturn(Future.successful(true))
+
+      // withAuthorizedUser() <-- when clause in here doesn't match call used by NonRepudiationService
+      val signedInUser: SignedInUser = newUser(Some(pptEnrolment(pptReference)))
+      val enrolments: Enrolments ~ Option[String] = new ~(signedInUser.enrolments, signedInUser.internalId)
+      when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any, any)(any, any)) thenReturn Future.successful(
+        enrolments)
+
       stubSubscriptionDisplayRequest(
         Status.OK,
         Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()
@@ -95,7 +102,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
 
     "return error" when {
       "when no subscription available" in {
-        when(repository.get(any())).thenReturn(Future.successful(Some(userAnswer)))
+        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(Status.NOT_FOUND)
         stubSubscriptionUpdateRequest(Status.OK, createUpdateSubscriptionResponseBody)
@@ -106,8 +113,8 @@ class ChangeGroupLeadItSpec extends PlaySpec
       }
 
       "when no user available" in {
-        when(repository.get(any())).thenReturn(Future.successful(Some(userAnswer)))
-        when(repository.clear(any())).thenReturn(Future.successful(false))
+        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
+        when(repository.clear(any)).thenReturn(Future.successful(false))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(Status.OK)
         stubSubscriptionUpdateRequest(Status.OK, createUpdateSubscriptionResponseBody)
@@ -118,8 +125,8 @@ class ChangeGroupLeadItSpec extends PlaySpec
       }
 
       "when cannot update subscription" in {
-        when(repository.get(any())).thenReturn(Future.successful(Some(userAnswer)))
-        when(repository.clear(any())).thenReturn(Future.successful(true))
+        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
+        when(repository.clear(any)).thenReturn(Future.successful(true))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(
           Status.OK,
