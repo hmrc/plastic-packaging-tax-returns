@@ -17,14 +17,16 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsNull
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
+import play.api.libs.json
+import play.api.libs.json.{JsDefined, JsNull, JsObject, JsUndefined, JsValue, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
 
@@ -41,7 +43,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
           createMember("Hooks Pirates Ltd").copy(relationship = "Representative")
         )
 
-        val result = sut.changeSubscription(sub, defaultUserAnswers)
+        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
@@ -50,7 +52,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "it is not there" in {
         val sub = createSubscription(defaultMember)
 
-        val result = sut.changeSubscription(sub, defaultUserAnswers)
+        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
         result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
@@ -60,7 +62,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "put the old representative member in to the members list as just a standard member" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) mustBe List("original-rep-organisationName")
     }
@@ -68,7 +70,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "remove the New Representative member from the normal members list" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
     }
@@ -76,7 +78,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "fill all the details of the representative member with the selected member details and user answers" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.legalEntityDetails.customerDetails.organisationDetails.get.organisationName mustBe "Lost Boys Ltd-organisationName"
       result.legalEntityDetails.customerDetails.organisationDetails.get.organisationType mustBe Some("Lost Boys Ltd-organisationType")
@@ -100,7 +102,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     "convert the subscription in to an update subscription request" in {
       val sub = createSubscription(defaultMember)
 
-      val result = sut.changeSubscription(sub, defaultUserAnswers)
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.changeOfCircumstanceDetails.changeOfCircumstance mustBe Update
       result.changeOfCircumstanceDetails.deregistrationDetails mustBe None
@@ -120,7 +122,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
           val sub = createSubscription(defaultMember)
 
-          val ex = intercept[IllegalStateException](sut.changeSubscription(sub, userAnswers))
+          val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
           ex.getMessage mustBe s"${gettable.path} is missing from useranswers"
         }
       }
@@ -128,14 +130,14 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "the subscription is not a group" in {
         val sub = createSubscription().copy(groupPartnershipSubscription = None)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "Change group lead not a group"
       }
 
       "Selected New Representative member is not part of the group" in {
         val sub = createSubscription(Seq.empty: _*)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
       }
 
@@ -144,12 +146,37 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
         val sub = createSubscription(defaultMember, brokenMember)
 
-        val ex = intercept[IllegalStateException](sut.changeSubscription(sub, defaultUserAnswers))
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers))
         ex.getMessage mustBe "member of group missing organisation"
 
       }
     }
+
   }
+
+  "createNrsSubscriptionUpdateSubmission" must {
+    
+    "include UserAnswers" in  {
+      val userAnswers: UserAnswers = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
+      val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, userAnswers)
+      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
+      (asJson \ "userAnswers") mustBe JsDefined(Json.parse("""{"biscuits":"chocolate"}"""))
+    }
+    
+    "include subscription update payload" in {
+      val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, UserAnswers("id"))
+      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
+      val maybeJsObject = (asJson \ "subscriptionUpdateRequest").asOpt[JsObject]
+      maybeJsObject must not be None
+
+      val jsObject = maybeJsObject.get
+      jsObject.value.keys must contain("changeOfCircumstanceDetails") 
+      jsObject.value.keys must contain("legalEntityDetails") 
+      jsObject.value.keys must contain("groupPartnershipSubscription") 
+      jsObject.value.keys must contain("businessCorrespondenceDetails") 
+    }
+    
+  }  
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
@@ -210,8 +237,8 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       last12MonthTotalTonnageAmt = 123,
       groupPartnershipSubscription = Some(
         GroupPartnershipSubscription(
-          representativeControl = true,
-          allMembersControl = true,
+          representativeControl = Some(true),
+          allMembersControl = Some(true),
           groupPartnershipDetails = members.toList
         )
       ),
@@ -241,5 +268,89 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       ),
       regWithoutIDFlag = false
     )
+    
+  private def cookOneUp: SubscriptionUpdateRequest = {
 
+    new SubscriptionUpdateRequest(
+      changeOfCircumstanceDetails = ChangeOfCircumstanceDetails(
+        changeOfCircumstance = "", // some enum from docs - eg DEREGISTER but not that!
+        deregistrationDetails = None // as we're not de-reg here
+      ),
+      legalEntityDetails = LegalEntityDetails(
+        dateOfApplication = "", // stay as is
+        customerIdentification1 = "",  // copy from member details
+        customerIdentification2 = Some(""),  // copy from member details
+        customerDetails = CustomerDetails( // <-- largely copied from member details below  
+          customerType = CustomerType.Organisation, // Always this value?
+          individualDetails = None, // Always none as always organisation type?
+          organisationDetails = Some(OrganisationDetails(
+            organisationType = Some(""), // copy from member details
+            organisationName = "" // copy from member details
+          ))
+        ),
+        groupSubscriptionFlag = true, // stay as is - would be funny if false
+        regWithoutIDFlag = false, // stay as is
+        partnershipSubscriptionFlag = false // stay as is
+      ),
+      principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
+        addressDetails = someAddressDetails, // copy from member details 
+        contactDetails = someContactDetails // copy from member details
+      ),
+      primaryContactDetails = PrimaryContactDetails(
+        name = "", // from form
+        contactDetails = someContactDetails, // copied from member details? Do we need a 2nd set of email, phone and mobile?
+        positionInCompany = "" // from form, job title
+      ),
+      businessCorrespondenceDetails = someAddressDetails2, // from form for contact address
+      taxObligationStartDate = "", // stay as is
+      last12MonthTotalTonnageAmt = BigDecimal(0), // stay as is
+      declaration = Declaration(true), // stay as is
+      groupPartnershipSubscription = Some(GroupPartnershipSubscription(
+        representativeControl = Some(false), // stay as is
+        allMembersControl = Some(false), // stay as is
+        groupPartnershipDetails = List(GroupPartnershipDetails( // <------------- list of members starts here ------>
+          relationship = "", // "Member"
+          customerIdentification1 = "", // for previous rep, copy from legalEntityDetails
+          customerIdentification2 = Some(""), // for previous rep, copy from legalEntityDetails
+          organisationDetails = Some(OrganisationDetails( // for previous rep, copy from legalEntityDetails
+            organisationType = Some(""),
+            organisationName = ""
+          )),
+          individualDetails = Some(IndividualDetails(
+            title = Some(""),
+            firstName = "",
+            middleName = Some(""),
+            lastName = ""
+          )),
+          addressDetails = someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+          contactDetails = someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+          regWithoutIDFlag = false
+        ))
+      ))
+    )
+  }
+
+  private def someAddressDetails2 = BusinessCorrespondenceDetails( // todo de-dupe
+    addressLine1 = "",
+    addressLine2 = "",
+    addressLine3 = Some(""), // these should be shunted up 
+    addressLine4 = Some(""), // ^  ^  ^
+    postalCode = Some(""),
+    countryCode = ""
+  )
+
+  private def someAddressDetails = AddressDetails(
+    addressLine1 = "",
+    addressLine2 = "",
+    addressLine3 = Some(""), // these should be shunted up 
+    addressLine4 = Some(""), // ^  ^  ^
+    postalCode = Some(""),
+    countryCode = ""
+  )
+
+  private def someContactDetails = ContactDetails(
+    email = "",
+    telephone = "",
+    mobileNumber = Some("")
+  )
 }

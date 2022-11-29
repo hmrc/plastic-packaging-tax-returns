@@ -193,7 +193,7 @@ class ReturnsController @Inject()(
               returnSubmissionRequest = returnSubmissionRequest,
               nrsFailureResponse = None
             ),
-            pptReference = Some(request.pptId),
+            pptReference = Some(request.pptReference),
             processingDateTime = Some(parseDate(eisResponse.processingDate))
           )
         )
@@ -209,7 +209,7 @@ class ReturnsController @Inject()(
               returnSubmissionRequest = returnSubmissionRequest,
               nrsFailureResponse = Some(exception.getMessage)
             ),
-            pptReference = Some(request.pptId),
+            pptReference = Some(request.pptReference),
             processingDateTime = Some(parseDate(eisResponse.processingDate))
           )
         )

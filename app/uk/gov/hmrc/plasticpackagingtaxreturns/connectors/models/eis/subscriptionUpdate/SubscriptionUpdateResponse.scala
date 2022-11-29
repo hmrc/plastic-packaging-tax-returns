@@ -16,4 +16,4 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate
 
-trait SubscriptionUpdateResponse
+trait SubscriptionUpdateResponse // todo is there a need for this to exist?

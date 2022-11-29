@@ -58,7 +58,7 @@ case class NonRepudiationService @Inject() (
       payloadChecksum = retrievePayloadChecksum(payloadString)
       userAuthToken   = retrieveUserAuthToken(hc)
       nonRepudiationMetadata = NonRepudiationMetadata("ppt",
-                                                      "ppt-subscription",
+                                                      "ppt-subscription", // todo extract as param - bug in submit-return
                                                       "application/json",
                                                       payloadChecksum,
                                                       submissionTimestampAsString,

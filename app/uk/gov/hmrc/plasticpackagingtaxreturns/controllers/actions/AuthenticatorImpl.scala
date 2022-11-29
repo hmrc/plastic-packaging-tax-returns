@@ -57,7 +57,7 @@ class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc:
     Action.async(bodyParser) { implicit request =>
       authorisedWithPptReference(pptReference).flatMap {
         case Right(authorisedRequest) =>
-          logger.info(s"Authorised request for ${authorisedRequest.pptId}")
+          logger.info(s"Authorised request for ${authorisedRequest.pptReference}")
           body(authorisedRequest)
         case Left(error) =>
           logger.error(s"Problems with Authorisation: ${error.message}")
@@ -96,8 +96,8 @@ object AuthAction {
   val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
-case class AuthorizedRequest[A](pptId: String, request: Request[A], internalId: String) extends WrappedRequest[A](request) {
-  def cacheKey = s"$internalId-$pptId"
+case class AuthorizedRequest[A](pptReference: String, request: Request[A], internalId: String) extends WrappedRequest[A](request) {
+  def cacheKey = s"$internalId-$pptReference"
 }
 
 @ImplementedBy(classOf[AuthenticatorImpl])

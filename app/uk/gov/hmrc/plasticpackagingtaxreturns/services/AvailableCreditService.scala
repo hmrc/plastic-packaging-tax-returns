@@ -41,7 +41,7 @@ class AvailableCreditService @Inject()(
       Future.successful(BigDecimal(0))
     else
       exportCreditBalanceConnector
-        .getBalance(request.pptId, fromDate, toDate, request.internalId)
+        .getBalance(request.pptReference, fromDate, toDate, request.internalId)
         .map(
           _.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable)
         )

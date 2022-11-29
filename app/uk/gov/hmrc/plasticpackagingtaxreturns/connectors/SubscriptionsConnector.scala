@@ -42,7 +42,7 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
 
   def updateSubscription(pptReference: String, subscriptionUpdateDetails: SubscriptionUpdateRequest)(implicit
     hc: HeaderCarrier
-  ): Future[SubscriptionUpdateResponse] = {
+  ): Future[SubscriptionUpdateSuccessfulResponse] = {
     val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.subscription.update.timer").time()
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
     httpClient.PUT[SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse](
