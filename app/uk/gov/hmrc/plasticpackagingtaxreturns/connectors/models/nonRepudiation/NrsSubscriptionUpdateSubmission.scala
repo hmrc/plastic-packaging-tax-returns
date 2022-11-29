@@ -24,12 +24,12 @@ case class NrsSubscriptionUpdateSubmission (
   userAnswers: JsObject,
   subscriptionUpdateRequest: SubscriptionUpdateRequest
 ) {
-  def this(userAnswers: UserAnswers, subscriptionUpdateRequest: SubscriptionUpdateRequest) = 
-    this(userAnswers.data, subscriptionUpdateRequest)
-    
   def toJsonString: String = Json.toJson(this).toString()
 }
 
 object NrsSubscriptionUpdateSubmission {
   implicit val format: OFormat[NrsSubscriptionUpdateSubmission] = Json.format[NrsSubscriptionUpdateSubmission]
+
+  def apply(userAnswers: UserAnswers, subscriptionUpdateRequest: SubscriptionUpdateRequest): NrsSubscriptionUpdateSubmission =
+    this(userAnswers.data, subscriptionUpdateRequest)
 }

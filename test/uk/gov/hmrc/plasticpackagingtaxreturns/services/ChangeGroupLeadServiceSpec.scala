@@ -18,13 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json
-import play.api.libs.json.{JsNull, Json}
+import play.api.libs.json.{JsDefined, JsNull, JsObject, JsUndefined, JsValue, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.NrsSubscriptionUpdateSubmission
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
@@ -155,31 +154,29 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
   }
 
-  "createNrsSubscriptionUpdateSubmission" in {
-    val userAnswers: UserAnswers = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
-    val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, userAnswers)
-    val expectedJson = Json.parse(
-      """
-        |{"userAnswers":{"biscuits":"chocolate"},"subscriptionUpdateRequest":{"changeOfCircumstanceDetails":{"changeOfCircumstance":""},
-        |"legalEntityDetails":{"dateOfApplication":"","customerIdentification1":"","customerIdentification2":"","customerDetails":
-        |{"customerType":"Organisation","organisationDetails":{"organisationType":"","organisationName":""}},"groupSubscriptionFlag":true,
-        |"regWithoutIDFlag":false,"partnershipSubscriptionFlag":false},"principalPlaceOfBusinessDetails":{"addressDetails":
-        |{"addressLine1":"","addressLine2":"","addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},
-        |"contactDetails":{"email":"","telephone":"","mobileNumber":""}},"primaryContactDetails":{"name":"","contactDetails":
-        |{"email":"","telephone":"","mobileNumber":""},"positionInCompany":""},"businessCorrespondenceDetails":{"addressLine1":"",
-        |"addressLine2":"","addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},"taxObligationStartDate":"",
-        |"last12MonthTotalTonnageAmt":0,"declaration":{"declarationBox1":true},"groupPartnershipSubscription":{"representativeControl":
-        |false,"allMembersControl":false,"groupPartnershipDetails":[{"relationship":"","customerIdentification1":"",
-        |"customerIdentification2":"","organisationDetails":{"organisationType":"","organisationName":""},"individualDetails":
-        |{"title":"","firstName":"","middleName":"","lastName":""},"addressDetails":{"addressLine1":"","addressLine2":"",
-        |"addressLine3":"","addressLine4":"","postalCode":"","countryCode":""},"contactDetails":{"email":"","telephone":"",
-        |"mobileNumber":""},"regWithoutIDFlag":false}]}}}
-        |""".stripMargin
-    )
+  "createNrsSubscriptionUpdateSubmission" must {
     
-    Json.toJson(nrsSubscriptionUpdateSubmission) mustBe expectedJson
-  }
-  
+    "include UserAnswers" in  {
+      val userAnswers: UserAnswers = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
+      val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, userAnswers)
+      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
+      (asJson \ "userAnswers") mustBe JsDefined(Json.parse("""{"biscuits":"chocolate"}"""))
+    }
+    
+    "include subscription update payload" in {
+      val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, UserAnswers("id"))
+      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
+      val maybeJsObject = (asJson \ "subscriptionUpdateRequest").asOpt[JsObject]
+      maybeJsObject must not be None
+
+      val jsObject = maybeJsObject.get
+      jsObject.value.keys must contain("changeOfCircumstanceDetails") 
+      jsObject.value.keys must contain("legalEntityDetails") 
+      jsObject.value.keys must contain("groupPartnershipSubscription") 
+      jsObject.value.keys must contain("businessCorrespondenceDetails") 
+    }
+    
+  }  
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
