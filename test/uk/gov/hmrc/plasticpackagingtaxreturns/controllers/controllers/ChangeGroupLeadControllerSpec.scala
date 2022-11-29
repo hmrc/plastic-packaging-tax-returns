@@ -51,8 +51,9 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
   private val userAnswers = UserAnswers("user-answers-id")
   private val subscriptionUpdateResponse = mock[SubscriptionUpdateSuccessfulResponse]
   private val nrsSubscriptionUpdateSubmission = mock[NrsSubscriptionUpdateSubmission]
+  private val subscriptionUpdateRequest = mock[SubscriptionUpdateRequest]
 
-  val pptRef = "some-ppt-ref"
+  object TestException extends Exception("boom!")
 
   val sut = new ChangeGroupLeadController(
     new FakeAuthenticator(cc),
@@ -66,20 +67,22 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockSessionRepo, mockChangeGroupLeadService, mockSubscriptionsConnector, nonRepudiationService,
-      subscriptionUpdateResponse)
+      subscriptionUpdateResponse, subscriptionUpdateRequest)
 
     when(mockSubscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Right(subscriptionDisplayResponse))
-    when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
     when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(subscriptionUpdateResponse)
+    
+    when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)).thenReturn(subscriptionUpdateRequest)
     when(mockChangeGroupLeadService.createNrsSubscriptionUpdateSubmission(any, any)) thenReturn nrsSubscriptionUpdateSubmission
+    
+    when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
+    when(mockSessionRepo.clear(any)) thenReturn Future.successful(true)
   }
 
   "change" must {
-    "update the group lead" in {
-      val subscriptionUpdateRequest = mock[SubscriptionUpdateRequest]
-      when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)).thenReturn(subscriptionUpdateRequest)
 
-      val result = sut.change(pptRef)(FakeRequest())
+    "update the group lead" in {
+      val result = sut.change("some-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
       contentAsString(result) mustBe "Updated Group Lead as per userAnswers"
@@ -114,69 +117,60 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       verify(nonRepudiationService, never).submitNonRepudiation(any, any, any, any) (any)
     }
 
-    "error" when {
-      
-      object TestException extends Exception("boom!")
-      
-      "get user answers are not there" in {
-        val subscriptionDisplayResponse = mock[SubscriptionDisplayResponse]
-        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Right(subscriptionDisplayResponse)))
+    "must clear userAnswers when subscription update successful" in {
+      await(sut.change("some-ppt-ref")(FakeRequest()))
+      verify(mockSessionRepo).clear(FakeAuthenticator.cacheKey)
+    }
 
-        val result = sut.change(pptRef)(FakeRequest())
+    "must not clear userAnswers shen subscription update fails" in {
+      when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.failed(TestException)
+      an[Exception] mustBe thrownBy {
+        await(sut.change("some-ppt-ref")(FakeRequest()))
+      }
+      verify(mockSessionRepo, never).clear(any)
+    }
+
+    "error" when {
+     
+      "get user answers are not there" in {
+        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
+
+        val result = sut.change("some-ppt-ref")(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) mustBe "User Answers not found for Change Group Lead"
       }
       
       "get subscription does not return a subscription" in {
-        val userAnswers = UserAnswers("user-answers-id")
-        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
         when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Left(HttpResponse(IM_A_TEAPOT, "test"))))
 
-        val result = sut.change(pptRef)(FakeRequest())
+        val result = sut.change("some-ppt-ref")(FakeRequest())
 
         status(result) mustBe INTERNAL_SERVER_ERROR
         contentAsString(result) mustBe "Subscription not found for Change Group Lead"
       }
       
       "get user answers fails" in {
-        val subscriptionDisplayResponse = mock[SubscriptionDisplayResponse]
         when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.failed(TestException))
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Right(subscriptionDisplayResponse)))
-
-        intercept[TestException.type](await(sut.change(pptRef)(FakeRequest())))
+        intercept[TestException.type](await(sut.change("some-ppt-ref")(FakeRequest())))
       }
       
       "get subscription fails" in {
-        val userAnswers = UserAnswers("user-answers-id")
-        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.failed(TestException))
-
-        intercept[TestException.type](await(sut.change(pptRef)(FakeRequest())))
+        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any))
+          .thenReturn(Future.failed(TestException))
+        intercept[TestException.type](await(sut.change("some-ppt-ref")(FakeRequest())))
       }
       
       "change service fails" in {
-        val userAnswers = UserAnswers("user-answers-id")
-        val subscriptionDisplayResponse = mock[SubscriptionDisplayResponse]
-
-        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Right(subscriptionDisplayResponse)))
-        when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)).thenThrow(new IllegalStateException("checked exception"))
-
-        intercept[IllegalStateException](await(sut.change(pptRef)(FakeRequest())))
+        when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers))
+          .thenThrow(new IllegalStateException("checked exception"))
+        intercept[IllegalStateException](await(sut.change("some-ppt-ref")(FakeRequest())))
       }
       
       "update subscription fails" in {
-        val userAnswers = UserAnswers("user-answers-id")
-        val subscriptionDisplayResponse = mock[SubscriptionDisplayResponse]
-        val subscriptionUpdateRequest = mock[SubscriptionUpdateRequest]
-        when(mockSessionRepo.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Right(subscriptionDisplayResponse)))
-        when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)).thenReturn(subscriptionUpdateRequest)
-        when(mockSubscriptionsConnector.updateSubscription(refEq(FakeAuthenticator.pptRef), refEq(subscriptionUpdateRequest))(any)).thenReturn(Future.failed(TestException))
-
-        intercept[TestException.type](await(sut.change(pptRef)(FakeRequest())))
+        when(mockSubscriptionsConnector.updateSubscription(refEq(FakeAuthenticator.pptRef), refEq(subscriptionUpdateRequest))(any))
+          .thenReturn(Future.failed(TestException))
+        intercept[TestException.type](await(sut.change("some-ppt-ref")(FakeRequest())))
       }
     }
   }

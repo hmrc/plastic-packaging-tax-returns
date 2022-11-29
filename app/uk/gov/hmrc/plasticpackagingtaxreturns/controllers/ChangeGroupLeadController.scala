@@ -30,6 +30,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class ChangeGroupLeadController @Inject() (
   authenticator: Authenticator,
@@ -69,6 +70,7 @@ class ChangeGroupLeadController @Inject() (
     val nrsSubscriptionUpdateSubmission = changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
+      .andThen {case Success(_) => clearUserAnswers(request)}
       .map {
         subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
             nrsSubscriptionUpdateSubmission.toJsonString, 
@@ -77,5 +79,13 @@ class ChangeGroupLeadController @Inject() (
             request.headers.headers.toMap
           )
       }
+  }
+  private def clearUserAnswers(request: AuthorizedRequest[_]) = {
+    // TODO this currently removes all user answers, should perhaps just remove answers for this return
+    val pptReference = request.pptReference
+    sessionRepository.clear(request.cacheKey).andThen {
+      case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
+      case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
+    }
   }
 }
