@@ -17,25 +17,22 @@
 package returns
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, put, serverError}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.WiremockItServer
+import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -47,19 +44,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AmendReturnsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
+  with ReturnWireMockServerSpec
   with AuthTestSupport
-  with ReturnsSubmissionResponseBuilder
   with NrsTestData
-  with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private val periodKey = "22C2"
-  private val DesSubmitReturnUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference"
   private val amendUrl = s"http://localhost:$port/returns-amend/$pptReference"
   private lazy val cacheRepository = mock[SessionRepository]
   private lazy val mockFinancialDataConnector = mock[FinancialDataConnector]
@@ -84,16 +78,6 @@ class AmendReturnsItSpec extends PlaySpec
       cacheRepository,
       mockFinancialDataConnector
     )
-  }
-
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    server.start()
-  }
-
-  override protected def afterAll(): Unit = {
-    super.afterAll()
-    server.stop()
   }
 
   private val userAnswersDataAmends: JsObject = Json.parse(
@@ -135,7 +119,7 @@ class AmendReturnsItSpec extends PlaySpec
     "return 200" in {
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
       setUpMockForAmend
 
       val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
@@ -147,7 +131,7 @@ class AmendReturnsItSpec extends PlaySpec
 
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
       stubNrsRequest
       setUpMockForAmend
 
@@ -160,7 +144,7 @@ class AmendReturnsItSpec extends PlaySpec
     "return with NRS fail response" in {
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
       stubNrsFailingRequest
       setUpMockForAmend
 
@@ -187,29 +171,5 @@ class AmendReturnsItSpec extends PlaySpec
       .thenReturn(Future.successful(
         Right(FinancialTransactionHelper.createFinancialResponseWithAmount(periodKey)))
       )
-  }
-  private def createReturnAmendDesResponse: Unit = {
-    server.stubFor(
-      put(DesSubmitReturnUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(Json.toJson(aReturn()).toString())
-        )
-    )
-  }
-
-  private def stubNrsRequest: Any = {
-    server.stubFor(post(s"/submission")
-      .willReturn(
-        aResponse()
-          .withStatus(Status.ACCEPTED)
-          .withBody("""{"nrSubmissionId": "nrSubmissionId"}""")
-      )
-    )
-  }
-
-  private def stubNrsFailingRequest(): Any = {
-    server.stubFor(post(s"/submission").willReturn(serverError().withBody("exception")))
   }
 }

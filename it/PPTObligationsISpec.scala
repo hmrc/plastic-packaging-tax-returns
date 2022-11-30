@@ -27,7 +27,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.WiremockItServer
+import support.{ObligationSpecHelper, WiremockItServer}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
@@ -61,25 +61,6 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       Obligation(
         identification = Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
         obligationDetails = Seq.empty
-      )
-    )
-  )
-
-  val oneObligation: ObligationDataResponse = ObligationDataResponse(obligations =
-    Seq(
-      Obligation(
-        identification =
-          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
-        obligationDetails = Seq(
-          ObligationDetail(
-            status = ObligationStatus.UNKNOWN,                       // Don't care about this here
-            inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
-            inboundCorrespondenceFromDate = LocalDate.now(),
-            inboundCorrespondenceToDate = LocalDate.MAX,
-            inboundCorrespondenceDueDate = LocalDate.now().plusMonths(1),
-            periodKey = "22C2"
-          )
-        )
       )
     )
   )
@@ -133,7 +114,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubWillReturn(oneObligation)
+      stubWillReturn(ObligationSpecHelper.createOneObligation(pptReference))
 
       val response = await(wsClient.url(pptOpenUrl).get())
 
@@ -216,7 +197,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
     "return 200 with obligationDetails" in {
       withAuthorizedUser()
-      stubWillReturn(oneObligation)
+      stubWillReturn(ObligationSpecHelper.createOneObligation(pptReference))
 
       val response = await(wsClient.url(pptFulfilledUrl).get())
 

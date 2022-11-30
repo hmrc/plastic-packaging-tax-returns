@@ -20,7 +20,7 @@ import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
@@ -31,15 +31,14 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json, OWrites}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.WiremockItServer
+import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.{ReturnDisplayApi, ReturnDisplayDetails, IdDetails => AmendDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.{IdDetails, ReturnDisplayApi, ReturnDisplayDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
@@ -49,24 +48,20 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
+  with ReturnWireMockServerSpec
   with AuthTestSupport
   with NrsTestData
-  with ReturnsSubmissionResponseBuilder
-  with BeforeAndAfterAll
   with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private val periodKey = "22C2"
   private val DesUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
   private val submitReturnUrl = s"http://localhost:$port/returns-submission/$pptReference"
-  private val submitReturnEISUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference"
   private val obligationDesRequest = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
   private val balanceEISURL = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
-  private val nrsUrl = "/submission"
   private lazy val cacheRepository = mock[SessionRepository]
 
 
@@ -102,16 +97,6 @@ class ReturnsItSpec extends PlaySpec
       mockAuthConnector,
       cacheRepository
     )
-  }
-
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    server.start()
-  }
-
-  override protected def afterAll(): Unit = {
-    super.afterAll()
-    server.stop()
   }
 
   "return 200 when getting return details" in {
@@ -207,7 +192,7 @@ class ReturnsItSpec extends PlaySpec
   private def setUpStub = {
     stubObligationDesRequest()
     stubGetBalanceEISRequest
-    stubSubmitReturnEISRequest
+    stubSubmitReturnEISRequest(pptReference)
     stubNrsRequest
   }
 
@@ -220,18 +205,12 @@ class ReturnsItSpec extends PlaySpec
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
     implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
-    val jsonString                                   = Json.toJson(oneObligation)(writes).toString()
     server.stubFor(get(obligationDesRequest)
       .willReturn(aResponse
         .withStatus(status)
-        .withBody(jsonString))
-    )
-  }
-
-  private def stubSubmitReturnEISRequest = {
-    server.stubFor(put(submitReturnEISUrl)
-      .willReturn(
-        ok().withBody(Json.toJson(aReturn()).toString()))
+        .withBody(Json.toJson(
+          ObligationSpecHelper.createOneObligation(pptReference)
+        )(writes).toString()))
     )
   }
 
@@ -264,48 +243,14 @@ class ReturnsItSpec extends PlaySpec
     )
   }
 
-  private def stubNrsRequest: Any = {
-    server.stubFor(post(nrsUrl)
-      .willReturn(
-        aResponse()
-          .withStatus(Status.ACCEPTED)
-          .withBody("""{"nrSubmissionId": "nrSubmissionId"}""")
-      )
-    )
-  }
-
-  private def stubNrsFailingRequest(): Any = {
-    server.stubFor(post(nrsUrl).willReturn(serverError().withBody("exception")))
-  }
-
   private def createCreditBalanceDisplayResponse = {
-    val exportCreditBalanceDisplayResponse: ExportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
+    ExportCreditBalanceDisplayResponse(
       processingDate = "2021-11-17T09:32:50.345Z",
       totalPPTCharges = BigDecimal(1000),
       totalExportCreditClaimed = BigDecimal(100),
       totalExportCreditAvailable = BigDecimal(200)
     )
-    exportCreditBalanceDisplayResponse
   }
-
-  private def oneObligation: ObligationDataResponse = ObligationDataResponse(obligations =
-    Seq(
-      Obligation(
-        identification =
-          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
-        obligationDetails = Seq(
-          ObligationDetail(
-            status = ObligationStatus.UNKNOWN,                       // Don't care about this here
-            inboundCorrespondenceDateReceived = Some(LocalDate.MIN), // Don't care about this here
-            inboundCorrespondenceFromDate = LocalDate.now(),
-            inboundCorrespondenceToDate = LocalDate.MAX,
-            inboundCorrespondenceDueDate = LocalDate.now().plusMonths(1),
-            periodKey = "22C2"
-          )
-        )
-      )
-    )
-  )
 
   private def createDisplayApiResponse: ReturnDisplayApi = {
     ReturnDisplayApi(
@@ -321,7 +266,7 @@ class ReturnsItSpec extends PlaySpec
         totalWeight = 220L,
         taxDue = BigDecimal(44)
       ),
-      idDetails = AmendDetails(pptReferenceNumber = pptReference, submissionId = "123456789012")
+      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "123456789012")
     )
   }
 }
