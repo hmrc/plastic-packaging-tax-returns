@@ -36,7 +36,7 @@ object FinancialTransactionHelper {
       financialTransactions = Seq(createFinancialTransaction(periodKey = periodKey, items = items))
     )
   }
-  def createFinancialResponseWithAmount(amount: BigDecimal = BigDecimal(0.0)) = {
+  def createFinancialResponseWithAmount(periodKey: String = "period-key", amount: BigDecimal = BigDecimal(0.0)) = {
     FinancialDataResponse(
       idType = None,
       idNumber = None,
@@ -44,7 +44,10 @@ object FinancialTransactionHelper {
       processingDate = LocalDateTime.now(),
       financialTransactions =
         Seq(
-          createFinancialTransaction(amount = amount, items = Seq(createDdFinancialItem(amount)))
+          createFinancialTransaction(
+            periodKey = periodKey,
+            amount = amount,
+            items = Seq(createDdFinancialItem(amount)))
         )
     )
   }
