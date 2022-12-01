@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.repositories
 
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import play.api.Logger
 import play.api.libs.json.Format
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -29,6 +30,7 @@ import java.time.{Clock, Instant}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class SessionRepository @Inject()(
@@ -86,5 +88,15 @@ class SessionRepository @Inject()(
       .deleteOne(byId(id))
       .toFuture
       .map(_ => true)
+
+  private val logger = Logger(this.getClass)
+
+  def clearUserAnswers(pptReference: String, cacheKey: String): Future[Boolean] = {
+    // TODO this currently removes all user answers, should perhaps just remove answers for this return
+    clear(cacheKey).andThen {
+      case Success(_) => logger.info(s"Successfully removed user-answers for $pptReference from cache")
+      case Failure(ex) => logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)
+    }
+  }
 
 }

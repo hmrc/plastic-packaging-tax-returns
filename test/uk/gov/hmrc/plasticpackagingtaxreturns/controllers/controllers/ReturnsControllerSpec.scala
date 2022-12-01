@@ -332,7 +332,7 @@ class ReturnsControllerSpec
         returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
         withClue("delete a return after successful submission") {
-          verify(mockSessionRepository).clear(FakeAuthenticator.cacheKey)
+          verify(mockSessionRepository).clearUserAnswers("7777777", FakeAuthenticator.cacheKey)
         }
       }
 
@@ -354,7 +354,7 @@ class ReturnsControllerSpec
 
         status(result) mustBe EXPECTATION_FAILED
         verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
-        verify(mockSessionRepository).clear(FakeAuthenticator.cacheKey)
+        verify(mockSessionRepository).clearUserAnswers("7777777", FakeAuthenticator.cacheKey)
       }
 
     }
@@ -390,7 +390,7 @@ class ReturnsControllerSpec
       amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
       withClue("delete a return after successful amend") {
-        verify(mockSessionRepository).clear(FakeAuthenticator.cacheKey)
+        verify(mockSessionRepository).clearUserAnswers("7777777", FakeAuthenticator.cacheKey)
       }
     }
 

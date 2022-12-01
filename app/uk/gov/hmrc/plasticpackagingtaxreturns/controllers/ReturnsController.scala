@@ -18,15 +18,15 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
-import play.api.libs.json.{JsObject, JsPath}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsObject, JsPath}
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -43,7 +43,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 @Singleton
 class ReturnsController @Inject()(
@@ -99,7 +98,7 @@ class ReturnsController @Inject()(
               doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
-            clearUserAnswers(pptReference, request)
+            sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
             Future.successful(ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open."))
           }
         }
@@ -159,20 +158,12 @@ class ReturnsController @Inject()(
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
       returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
         case Right(response) =>
-          clearUserAnswers(pptReference, request)
+          sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
           handleNrsRequest(request, userAnswers.data, eisRequest, response)
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     } else
       Future.successful(UnprocessableEntity("The calculation is not submittable"))
-  }
-
-  private def clearUserAnswers(pptReference: String, request: AuthorizedRequest[AnyContent]) = {
-    // TODO this currently removes all user answers, should perhaps just remove answers for this return
-    sessionRepository.clear(request.cacheKey).andThen {
-      case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
-      case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
-    }
   }
 
   private def handleNrsRequest(request: AuthorizedRequest[AnyContent],

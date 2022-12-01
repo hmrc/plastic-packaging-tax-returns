@@ -119,7 +119,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
     "must clear userAnswers when subscription update successful" in {
       await(sut.change("some-ppt-ref")(FakeRequest()))
-      verify(mockSessionRepo).clear(FakeAuthenticator.cacheKey)
+      verify(mockSessionRepo).clearUserAnswers("some-ppt-ref", FakeAuthenticator.cacheKey)
     }
 
     "must not clear userAnswers shen subscription update fails" in {
