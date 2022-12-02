@@ -114,7 +114,6 @@ class CacheControllerSpec
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(OK)
-        println(contentAsJson(result))
         contentAsJson(result) mustBe toJson(userAnswers)
         verify(mockSessionRepository, atLeastOnce()).get(any())
       }
