@@ -70,7 +70,7 @@ class ChangeGroupLeadController @Inject() (
     val nrsSubscriptionUpdateSubmission = changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
-      .andThen {case Success(_) => clearUserAnswers(request)}
+      .andThen {case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey)}
       .map {
         subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
             nrsSubscriptionUpdateSubmission.toJsonString, 
@@ -80,12 +80,5 @@ class ChangeGroupLeadController @Inject() (
           )
       }
   }
-  private def clearUserAnswers(request: AuthorizedRequest[_]) = {
-    // TODO this currently removes all user answers, should perhaps just remove answers for this return
-    val pptReference = request.pptReference
-    sessionRepository.clear(request.cacheKey).andThen {
-      case Success(_) => logger.info(s"Successfully removed tax return for $pptReference from cache")
-      case Failure(ex) => logger.error(s"Failed to remove tax return for $pptReference from cache- ${ex.getMessage}", ex)
-    }
-  }
+
 }
