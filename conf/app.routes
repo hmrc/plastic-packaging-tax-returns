@@ -8,13 +8,13 @@ PUT         /subscriptions/:pptReference                        uk.gov.hmrc.plas
 GET         /credits/calculate/:pptReference                       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController.get(pptReference: String)
 
 # EIS Return Submission
-GET        /returns-submission/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.submit(pptReference: String)
+POST        /returns-submission/:pptReference                    uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.submit(pptReference: String)
 
 # Return Display API
 GET         /returns-submission/:pptReference/:periodKey        uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.get(pptReference: String, periodKey: String)
 
 # EIS Return Amend
-GET         /returns-amend/:pptReference          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.amend(pptReference: String)
+POST         /returns-amend/:pptReference          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.amend(pptReference: String)
 
 # Raw DES obligation data
 GET         /obligation-data/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String])

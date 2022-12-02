@@ -91,7 +91,7 @@ class PPTFinancialsItSpec extends PlaySpec
     "return financial details" in {
       withAuthorizedUser()
 
-      val financialResponse = FinancialTransactionHelper.createFinancialResponseWithAmount(1.0)
+      val financialResponse = FinancialTransactionHelper.createFinancialResponseWithAmount(amount = 1.0)
       stubFinancialResponse(financialResponse)
 
       val response = await(wsClient.url(Url).get())

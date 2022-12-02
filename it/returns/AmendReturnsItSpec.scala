@@ -17,30 +17,25 @@
 package returns
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
+import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import support.WiremockItServer
+import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{FinancialDataConnector, NonRepudiationConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.{IdDetails, ReturnDisplayApi, ReturnDisplayDetails}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
@@ -49,28 +44,18 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AmendReturnsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
+  with ReturnWireMockServerSpec
   with AuthTestSupport
-  with ReturnsSubmissionResponseBuilder
   with NrsTestData
-  with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private val periodKey = "22C2"
-
-  private val DesUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
-  private val DesSubmitReturnUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference"
-
-
-  private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
   private val amendUrl = s"http://localhost:$port/returns-amend/$pptReference"
-
   private lazy val cacheRepository = mock[SessionRepository]
-  private lazy val mockNonRepudiationConnector = mock[NonRepudiationConnector]
   private lazy val mockFinancialDataConnector = mock[FinancialDataConnector]
 
   override lazy val app: Application = {
@@ -81,7 +66,6 @@ class AmendReturnsItSpec extends PlaySpec
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(cacheRepository),
-        bind[NonRepudiationConnector].to(mockNonRepudiationConnector),
         bind[FinancialDataConnector].to(mockFinancialDataConnector)
       )
       .build()
@@ -92,25 +76,15 @@ class AmendReturnsItSpec extends PlaySpec
     reset(
       mockAuthConnector,
       cacheRepository,
-      mockNonRepudiationConnector,
       mockFinancialDataConnector
     )
   }
 
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    server.start()
-  }
-
-  override protected def afterAll(): Unit = {
-    super.afterAll()
-    server.stop()
-  }
-
   private val userAnswersDataAmends: JsObject = Json.parse(
-    """{
+
+    s"""{
       |        "obligation" : {
-      |            "periodKey" : "21C4"
+      |            "periodKey" : "$periodKey"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
@@ -140,52 +114,15 @@ class AmendReturnsItSpec extends PlaySpec
       |        }
       |    }""".stripMargin).asInstanceOf[JsObject]
 
-  "GET" should {
-    "return 200" in {
-      withAuthorizedUser()
-      stubReturnDisplayResponse
-
-      val response = await(wsClient.url(validGetReturnDisplayUrl).get())
-
-      response.status mustBe OK
-    }
-
-    "return display details" in {
-      withAuthorizedUser()
-      stubReturnDisplayResponse
-
-      val response = await(wsClient.url(validGetReturnDisplayUrl).get())
-
-      response.json mustBe Json.toJson(createDisplayApiResponse)
-    }
-
-    "return an error if DES API fails" in {
-      withAuthorizedUser()
-      stubReturnDisplayErrorResponse
-
-      val response = await(wsClient.url(validGetReturnDisplayUrl).get())
-
-      response.status mustBe INTERNAL_SERVER_ERROR
-    }
-
-    "return Unauthorized" in {
-      withUnauthorizedUser(new RuntimeException)
-
-      val response = await(wsClient.url(validGetReturnDisplayUrl).get())
-
-      response.status mustBe UNAUTHORIZED
-    }
-  }
-
 
   "amend" should {
     "return 200" in {
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
       setUpMockForAmend
 
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").get())
+      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
       response.status mustBe OK
     }
@@ -194,27 +131,24 @@ class AmendReturnsItSpec extends PlaySpec
 
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
+      stubNrsRequest
       setUpMockForAmend
-      when(mockNonRepudiationConnector.submitNonRepudiation(any(), any())(any()))
-        .thenReturn(Future.successful(NonRepudiationSubmissionAccepted("nrSubmissionId")))
 
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").get())
+      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
       response.status mustBe OK
       response.json mustBe Json.toJson(aReturnWithNrs())
     }
 
     "return with NRS fail response" in {
-
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      createReturnAmendDesResponse
+      stubSubmitReturnEISRequest(pptReference)
+      stubNrsFailingRequest
       setUpMockForAmend
-      when(mockNonRepudiationConnector.submitNonRepudiation(any(), any())(any()))
-        .thenThrow(new RuntimeException("exception"))
 
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").get())
+      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
       response.status mustBe OK
       response.json mustBe Json.toJson(aReturnWithNrsFailure().copy(nrsFailureReason = "exception"))
@@ -223,7 +157,7 @@ class AmendReturnsItSpec extends PlaySpec
     "return Unauthorized" in {
       withUnauthorizedUser(new RuntimeException)
 
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").get())
+      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
       response.status mustBe UNAUTHORIZED
     }
@@ -235,55 +169,7 @@ class AmendReturnsItSpec extends PlaySpec
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(mockFinancialDataConnector.get(any(),any(),any(),any(),any(),any(),any(),any())(any()))
       .thenReturn(Future.successful(
-        Right(FinancialTransactionHelper.createResponseWithDdInProgressFlag(periodKey)))
+        Right(FinancialTransactionHelper.createFinancialResponseWithAmount(periodKey)))
       )
-  }
-  private def createReturnAmendDesResponse: Unit = {
-    server.stubFor(
-      put(DesSubmitReturnUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(Json.toJson(aReturn()).toString())
-        )
-    )
-  }
-  private def stubReturnDisplayResponse: Unit = {
-
-    server.stubFor(
-      get(DesUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(Json.toJson(createDisplayApiResponse).toString())
-        )
-    )
-  }
-
-  private def stubReturnDisplayErrorResponse: Unit = {
-    server.stubFor(
-      get(DesUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(Status.INTERNAL_SERVER_ERROR)
-        )
-    )
-  }
-  private def createDisplayApiResponse: ReturnDisplayApi = {
-    ReturnDisplayApi(
-      ReturnDisplayDetails(
-        manufacturedWeight = 250L,
-        importedWeight = 150L,
-        totalNotLiable = 180L,
-        humanMedicines = 50L,
-        directExports = 60L,
-        recycledPlastic = 70L,
-        creditForPeriod = BigDecimal(12.13),
-        debitForPeriod = BigDecimal(0),
-        totalWeight = 220L,
-        taxDue = BigDecimal(44)
-      ),
-      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "123456789012")
-    )
   }
 }

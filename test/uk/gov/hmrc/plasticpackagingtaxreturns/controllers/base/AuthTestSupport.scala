@@ -26,13 +26,12 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{allEnrolments, internalId}
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval, ~}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NonRepudiationIdentityRetrievals
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 trait AuthTestSupport extends MockitoSugar {
 

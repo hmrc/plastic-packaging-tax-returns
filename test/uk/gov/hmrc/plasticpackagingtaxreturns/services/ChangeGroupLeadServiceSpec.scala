@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json
-import play.api.libs.json.{JsDefined, JsNull, JsObject, JsUndefined, JsValue, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
