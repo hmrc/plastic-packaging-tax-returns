@@ -40,6 +40,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockReturnsR
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
+import java.time.Instant
 import scala.concurrent.Future
 
 class CacheControllerSpec
@@ -105,14 +106,15 @@ class CacheControllerSpec
       "request is valid" in {
         withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
 
-        val request     = UserAnswers("id")
-        val userAnswers = UserAnswers("id")
+        val request     = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
+        val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
         given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
 
         val result: Future[Result] = route(app, get).get
 
         status(result) must be(OK)
+        println(contentAsJson(result))
         contentAsJson(result) mustBe toJson(userAnswers)
         verify(mockSessionRepository, atLeastOnce()).get(any())
       }
