@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 class ChangeGroupLeadController @Inject() (
   authenticator: Authenticator,
@@ -73,11 +73,12 @@ class ChangeGroupLeadController @Inject() (
       .andThen {case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey)}
       .map {
         subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
-            nrsSubscriptionUpdateSubmission.toJsonString, 
-            subscriptionUpdateResponse.processingDate, 
-            pptReference,
-            request.headers.headers.toMap
-          )
+          "change-group-representative", 
+          nrsSubscriptionUpdateSubmission.toJsonString, 
+          subscriptionUpdateResponse.processingDate, 
+          pptReference,
+          request.headers.headers.toMap
+        )
       }
   }
 

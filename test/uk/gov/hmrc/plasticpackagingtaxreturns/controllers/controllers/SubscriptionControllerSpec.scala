@@ -144,7 +144,7 @@ class SubscriptionControllerSpec
           val request: SubscriptionUpdateRequest =
             createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
-          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
             Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
           )
 
@@ -157,6 +157,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq("subscription-update"),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -170,7 +171,7 @@ class SubscriptionControllerSpec
           val request: SubscriptionUpdateRequest =
             createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
-          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
             Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
           )
 
@@ -184,6 +185,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq("subscription-update"), 
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -203,7 +205,7 @@ class SubscriptionControllerSpec
             createSubscriptionUpdateRequest(soleTraderSubscription)
 
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
-          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
             Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
           )
 
@@ -216,6 +218,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq("subscription-update"),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString()),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -229,7 +232,7 @@ class SubscriptionControllerSpec
           val request: SubscriptionUpdateRequest =
             createSubscriptionUpdateRequest(soleTraderSubscription)
           mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
-          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+          when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
             Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
           )
 
@@ -243,6 +246,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
+            ArgumentMatchers.eq("subscription-update"), 
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -259,7 +263,7 @@ class SubscriptionControllerSpec
         val request: SubscriptionUpdateRequest =
           createSubscriptionUpdateRequest(ukLimitedCompanyGroupSubscription)
         mockSubscriptionUpdate(pptReference, request, subscriptionUpdateResponse)
-        when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+        when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
           Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
         )
 
@@ -272,6 +276,7 @@ class SubscriptionControllerSpec
         response.processingDate mustBe subscriptionUpdateResponse.processingDate
         response.nrSubmissionId mustBe nrSubmissionId
         verify(mockNonRepudiationService).submitNonRepudiation(
+          ArgumentMatchers.eq("subscription-update"),
           ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
           any[ZonedDateTime],
           ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),

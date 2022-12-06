@@ -107,10 +107,12 @@ class SubscriptionController @Inject() (
     pptSubscription: Subscription,
     eisResponse: SubscriptionUpdateSuccessfulResponse
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
-    nonRepudiationService.submitNonRepudiation(toJson(pptSubscription).toString,
-                                               eisResponse.processingDate,
-                                               eisResponse.pptReferenceNumber,
-                                               request.body.userHeaders.getOrElse(Map.empty)
+    nonRepudiationService.submitNonRepudiation(
+      "subscription-update", 
+      toJson(pptSubscription).toString,
+      eisResponse.processingDate,
+      eisResponse.pptReferenceNumber,
+      request.body.userHeaders.getOrElse(Map.empty)
     )
 
   private def handleNrsFailure(

@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.Mockito.when
+import org.mockito.MockitoSugar.verify
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -28,16 +31,13 @@ import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{NrsTestData, SubscriptionTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Base64
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class NonRepudiationServiceSpec
     extends AnyWordSpec with GuiceOneAppPerSuite with AuthTestSupport with NrsTestData with BeforeAndAfterEach
@@ -57,36 +57,24 @@ class NonRepudiationServiceSpec
     val testPayloadString = "testPayloadString"
 
     "call the nonRepudiationConnector with the correctly formatted metadata" in {
-      val testSubmissionId = "testSubmissionId"
-
       val testPayloadChecksum = MessageDigest.getInstance("SHA-256")
         .digest(testPayloadString.getBytes(StandardCharsets.UTF_8))
         .map("%02x".format(_)).mkString
-
-      val testEncodedPayload =
-        Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
-
-      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt",
-                                                    notableEvent = "ppt-subscription",
-                                                    payloadContentType = "application/json",
-                                                    payloadSha256Checksum = testPayloadChecksum,
-                                                    userSubmissionTimestamp = testDateTimeString,
-                                                    identityData = testNonRepudiationIdentityData,
-                                                    userAuthToken = testAuthToken,
-                                                    headerData = testUserHeaders,
-                                                    searchKeys =
-                                                      Map("pptReference" -> testPPTReference)
-      )
+      
       mockAuthorization(nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      mockNonRepudiationSubmission(testEncodedPayload,
-                                   expectedMetadata,
-                                   NonRepudiationSubmissionAccepted(testSubmissionId)
+      when(mockNonRepudiationConnector.submitNonRepudiation(any, any) (any)) thenReturn Future.successful(
+        NonRepudiationSubmissionAccepted("testSubmissionId"))
+
+      val res = nonRepudiationService.submitNonRepudiation("an-event", testPayloadString, testDateTime, testPPTReference, 
+        testUserHeaders)
+      await(res) mustBe NonRepudiationSubmissionAccepted("testSubmissionId")
+
+      val testEncodedPayload = Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
+      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = "an-event",
+        "application/json", testPayloadChecksum, testDateTimeString, testNonRepudiationIdentityData, testAuthToken, 
+        testUserHeaders, searchKeys = Map("pptReference" -> testPPTReference)
       )
-
-      val res =
-        nonRepudiationService.submitNonRepudiation(testPayloadString, testDateTime, testPPTReference, testUserHeaders)
-
-      await(res) mustBe NonRepudiationSubmissionAccepted(testSubmissionId)
+      verify(mockNonRepudiationConnector).submitNonRepudiation(testEncodedPayload, expectedMetadata)(hc)
     }
 
     "throw an exception when the NRS call fails" in {
@@ -96,7 +84,7 @@ class NonRepudiationServiceSpec
       mockNonRepudiationSubmissionFailure(new RuntimeException(testExceptionMessage))
 
       val res =
-        nonRepudiationService.submitNonRepudiation(testPayloadString, testDateTime, testPPTReference, testUserHeaders)
+        nonRepudiationService.submitNonRepudiation("an-event", testPayloadString, testDateTime, testPPTReference, testUserHeaders)
 
       intercept[RuntimeException](await(res))
     }

@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers
+import org.mockito.{ArgumentMatchers, ArgumentMatchersSugar}
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -412,7 +413,7 @@ class ReturnsControllerSpec
       setupMocks(userAnswersReturns)
       val nrsErrorMessage = "Something went wrong"
 
-      when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+      when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
         Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
       )
 
@@ -477,12 +478,12 @@ class ReturnsControllerSpec
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues, userAnswers: UserAnswers = userAnswersAmends): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess(sut.amend, pptReference, returnValues, userAnswers)
+    submissionSuccess("amend-return")(sut.amend, pptReference, returnValues, userAnswers)
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess(sut.submit, pptReference, returnValues, userAnswersReturns)
+    submissionSuccess("submit-return")(sut.submit, pptReference, returnValues, userAnswersReturns)
 
-  private def submissionSuccess
+  private def submissionSuccess(expectedEventName: String)
   (
     fun: String => Action[AnyContent],
     pptReference: String,
@@ -511,6 +512,7 @@ class ReturnsControllerSpec
     val expectedNrsPayload = NrsReturnOrAmendSubmission(userAnswers.data, eisRequest)
 
     verify(mockNonRepudiationService).submitNonRepudiation(
+      ArgumentMatchersSugar.eqTo(expectedEventName), 
       ArgumentMatchers.eq(Json.toJson(expectedNrsPayload).toString),
       any[ZonedDateTime],
       ArgumentMatchers.eq(pptReference),
@@ -525,7 +527,7 @@ class ReturnsControllerSpec
     when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
     when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
-    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any())(any())).thenReturn(
+    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
     when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, 0, true))
