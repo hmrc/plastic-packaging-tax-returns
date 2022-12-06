@@ -81,9 +81,7 @@ case class NonRepudiationService @Inject() (
     nonRepudiationMetadata: NonRepudiationMetadata,
     encodedPayloadString: String
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-    println(nonRepudiationConnector)
     val eventualAccepted = nonRepudiationConnector.submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
-    println(eventualAccepted)
     eventualAccepted.map {
       case response@NonRepudiationSubmissionAccepted(_) =>
         logger.info(s"Successfully called NRS and got submissionId ${response.submissionId}")
