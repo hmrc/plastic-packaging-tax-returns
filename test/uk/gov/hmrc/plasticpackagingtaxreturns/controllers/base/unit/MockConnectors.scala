@@ -73,17 +73,6 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
       )
     ).thenReturn(Future.successful(subscription))
 
-  protected def mockNonRepudiationSubmission(
-    testEncodedPayload: String,
-    expectedMetadata: NonRepudiationMetadata,
-    response: NonRepudiationSubmissionAccepted
-  )(implicit hc: HeaderCarrier): OngoingStubbing[Future[NonRepudiationSubmissionAccepted]] =
-    when(
-      mockNonRepudiationConnector.submitNonRepudiation(ArgumentMatchers.eq(testEncodedPayload),
-                                                       ArgumentMatchers.eq(expectedMetadata)
-      )(ArgumentMatchers.eq(hc))
-    ).thenReturn(Future.successful(response))
-
   protected def mockNonRepudiationSubmissionFailure(
     ex: Exception
   ): OngoingStubbing[Future[NonRepudiationSubmissionAccepted]] =

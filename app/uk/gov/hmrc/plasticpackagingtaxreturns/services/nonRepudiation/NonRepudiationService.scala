@@ -45,6 +45,7 @@ case class NonRepudiationService @Inject() (
   private val logger = Logger(this.getClass)
 
   def submitNonRepudiation(
+    notableEvent: String,
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
@@ -57,15 +58,16 @@ case class NonRepudiationService @Inject() (
       identityData <- retrieveIdentityData()
       payloadChecksum = retrievePayloadChecksum(payloadString)
       userAuthToken   = retrieveUserAuthToken(hc)
-      nonRepudiationMetadata = NonRepudiationMetadata("ppt",
-                                                      "ppt-subscription", // todo extract as param - bug in submit-return
-                                                      "application/json",
-                                                      payloadChecksum,
-                                                      submissionTimestampAsString,
-                                                      identityData,
-                                                      userAuthToken,
-                                                      userHeaders,
-                                                      Map("pptReference" -> pptReference)
+      nonRepudiationMetadata = NonRepudiationMetadata(
+        businessId = "ppt",
+        notableEvent, 
+        payloadContentType = "application/json",
+        payloadSha256Checksum = payloadChecksum,
+        userSubmissionTimestamp = submissionTimestampAsString,
+        identityData = identityData,
+        userAuthToken = userAuthToken,
+        headerData = userHeaders,
+        searchKeys = Map("pptReference" -> pptReference)
       )
       encodedPayloadString = encodePayload(payloadString)
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
@@ -78,9 +80,12 @@ case class NonRepudiationService @Inject() (
   private def retrieveNonRepudiationResponse(
     nonRepudiationMetadata: NonRepudiationMetadata,
     encodedPayloadString: String
-  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
-    nonRepudiationConnector.submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata).map {
-      case response @ NonRepudiationSubmissionAccepted(_) =>
+  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+    println(nonRepudiationConnector)
+    val eventualAccepted = nonRepudiationConnector.submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
+    println(eventualAccepted)
+    eventualAccepted.map {
+      case response@NonRepudiationSubmissionAccepted(_) =>
         logger.info(s"Successfully called NRS and got submissionId ${response.submissionId}")
         response
     }.recoverWith {
@@ -88,6 +93,7 @@ case class NonRepudiationService @Inject() (
         logger.warn(s"Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
         Future.failed(exception)
     }
+  }
 
   private def retrieveUserAuthToken(hc: HeaderCarrier): String =
     hc.authorization match {

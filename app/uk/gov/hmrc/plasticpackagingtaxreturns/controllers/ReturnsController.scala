@@ -83,7 +83,8 @@ class ReturnsController @Inject()(
           .flatMap( isDDInProgress =>
             if(isDDInProgress)
               Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
-            else doSubmit(pptReference, AmendReturnValues.apply, userAnswer)
+            else 
+              doSubmit("amend-return", pptReference, AmendReturnValues.apply, userAnswer)
         )
       })
     }
@@ -95,7 +96,7 @@ class ReturnsController @Inject()(
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
-              doSubmit(pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+              doSubmit("submit-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
             sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
@@ -112,6 +113,7 @@ class ReturnsController @Inject()(
   }
 
   private def doSubmit(
+    nrsEventType: String, 
     pptReference: String,
     getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues],
     userAnswer: UserAnswers
@@ -121,7 +123,7 @@ class ReturnsController @Inject()(
       .fold {
         Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
       } { case (returnValues, userAnswers) =>
-        submitReturnWithNrs(pptReference, userAnswers, returnValues)
+        submitReturnWithNrs(nrsEventType, pptReference, userAnswers, returnValues)
       }
   }
 
@@ -146,11 +148,11 @@ class ReturnsController @Inject()(
           }
   }
 
-  private def submitReturnWithNrs
-  (
+  private def submitReturnWithNrs(
+    nrsEventType: String, 
     pptReference: String,
-   userAnswers: UserAnswers,
-   returnValues: ReturnValues
+    userAnswers: UserAnswers,
+    returnValues: ReturnValues
   )(implicit request: AuthorizedRequest[AnyContent]): Future[Result] = {
     val calculations: Calculations = calculationsService.calculate(returnValues)
 
@@ -159,22 +161,24 @@ class ReturnsController @Inject()(
       returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
         case Right(response) =>
           sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
-          handleNrsRequest(request, userAnswers.data, eisRequest, response)
+          handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     } else
       Future.successful(UnprocessableEntity("The calculation is not submittable"))
   }
 
-  private def handleNrsRequest(request: AuthorizedRequest[AnyContent],
-                               userAnswers: JsObject,
-                               returnSubmissionRequest: ReturnsSubmissionRequest,
-                               eisResponse: Return
-                              )(implicit hc: HeaderCarrier): Future[Result] = {
+  private def handleNrsRequest(
+    nrsEventType: String, 
+    request: AuthorizedRequest[AnyContent],
+    userAnswers: JsObject,
+    returnSubmissionRequest: ReturnsSubmissionRequest,
+    eisResponse: Return
+  )(implicit hc: HeaderCarrier): Future[Result] = {
 
     val payload = NrsReturnOrAmendSubmission(userAnswers, returnSubmissionRequest)
 
-    submitToNrs(request, payload, eisResponse).map {
+    submitToNrs(nrsEventType, request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
 
         auditConnector.sendExplicitAudit(
@@ -211,16 +215,19 @@ class ReturnsController @Inject()(
   }
 
   private def submitToNrs(
-                           request: AuthorizedRequest[AnyContent],
-                           payload: NrsReturnOrAmendSubmission,
-                           eisResponse: Return
-                         )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+    nrsEventType: String, 
+    request: AuthorizedRequest[AnyContent],
+    payload: NrsReturnOrAmendSubmission,
+    eisResponse: Return
+  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
     logger.debug(
       s"Submitting NRS payload: ${toJson(payload)} with request headers: ${toJson(request.headers.headers)} for PPT Ref: ${eisResponse.idDetails.pptReferenceNumber}"
     )
 
-    nonRepudiationService.submitNonRepudiation(toJson(payload).toString,
+    nonRepudiationService.submitNonRepudiation(
+      nrsEventType, 
+      toJson(payload).toString,
       parseDate(eisResponse.processingDate),
       eisResponse.idDetails.pptReferenceNumber,
       request.headers.headers.toMap
