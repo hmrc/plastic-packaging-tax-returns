@@ -20,25 +20,38 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
+import scala.reflect.runtime.universe.typeOf
+import scala.reflect.runtime.universe.TypeTag
 
 final case class UserAnswers(
-                              id: String,
-                              data: JsObject = Json.obj(),
-                              lastUpdated: Instant = Instant.now
-                            ) {
-  
-  def getOrFail[A](gettable: Gettable[A])(implicit rds: Reads[A]): A = get(gettable)
-    .getOrElse(throw new IllegalStateException(s"${gettable.path} is missing from useranswers"))
-  
-  def getOrFail[A](path: JsPath)(implicit rds: Reads[A]): A =
-    Reads.at(path).reads(data)
-      .getOrElse(throw new IllegalStateException(s"$path is missing from useranswers"))
+  id: String,
+  data: JsObject = Json.obj(),
+  lastUpdated: Instant = Instant.now
+) {
 
-  def get[A](page: Gettable[A])(implicit rds: Reads[A]): Option[A] =
-    Reads.optionNoError(Reads.at(page.path)).reads(data).getOrElse(None)
+  def getOrFail[A](gettable: Gettable[A])(implicit rds: Reads[A], tt: TypeTag[A]): A = 
+    getOrFail(gettable.path)
+  
+  def getOrFail[A](path: JsPath) (implicit rds: Reads[A], tt: TypeTag[A]): A = {
+    Reads
+      .at(path)
+      .reads(data)
+      .recover {
+        case JsError((_, JsonValidationError("error.path.missing" :: Nil) :: _) :: _) =>
+          throw new IllegalStateException(s"$path is missing from user answers")
+        case JsError((_, JsonValidationError(message :: Nil, _*) :: _) :: _) if message.startsWith("error.expected") =>
+          throw new IllegalStateException(s"$path in user answers cannot be read as type ${typeOf[A]}")
+      }
+      .get
+  }
+
+  def get[A](gettable: Gettable[A])(implicit rds: Reads[A]): Option[A] = get(gettable.path)
 
   def get[A](path: JsPath)(implicit rds: Reads[A]): Option[A] =
-    Reads.optionNoError(Reads.at(path)).reads(data).getOrElse(None)
+    Reads
+      .optionNoError(Reads.at(path))
+      .reads(data)
+      .getOrElse(None)
 }
 
 object UserAnswers {

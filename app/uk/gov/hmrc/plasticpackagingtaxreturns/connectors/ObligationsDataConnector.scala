@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status
-import play.api.libs.json.{JsDefined, JsLookupResult, JsString}
+import play.api.libs.json.{JsDefined, JsString}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations

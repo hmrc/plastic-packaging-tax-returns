@@ -122,8 +122,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
           val sub = createSubscription(defaultMember)
 
-          val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
-          ex.getMessage mustBe s"${gettable.path} is missing from useranswers"
+          an [IllegalStateException] must be thrownBy sut.createSubscriptionUpdateRequest(sub, userAnswers) 
         }
       }
 
