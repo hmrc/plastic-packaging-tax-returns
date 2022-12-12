@@ -77,12 +77,4 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     config.getOptional[Boolean]("features.suppress-obligation-date-check")
       .getOrElse(false)
   }
-
-  //fromDates coming back from hod are incorrect, this adjusts them calculated off of the toDate.
-  //this can be removed once EIS have confirmed all dates are corrected.
-  val adjustObligationDates: Boolean = {
-    config.getOptional[Boolean]("features.adjust-obligation-date")
-      .getOrElse(false)
-  }
-
 }

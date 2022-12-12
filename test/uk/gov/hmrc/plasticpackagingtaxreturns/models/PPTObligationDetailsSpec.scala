@@ -46,17 +46,4 @@ class PPTObligationDetailsSpec extends PlaySpec {
       (jsValue \ "dueDate").get mustBe JsString(someObligationDetail.inboundCorrespondenceDueDate.toString)
     }
   }
-
-  "adjustDates" must {
-    "override the from date with a calculated date" in {
-      val originalObligation = someObligationDetail.copy(
-        inboundCorrespondenceFromDate = LocalDate.of(2000, 1, 1),
-        inboundCorrespondenceToDate = LocalDate.of(2022, 6, 30))
-
-      val adjusted = originalObligation.adjustDates
-
-      adjusted.inboundCorrespondenceToDate mustBe originalObligation.inboundCorrespondenceToDate
-      adjusted.inboundCorrespondenceFromDate mustBe LocalDate.of(2022, 4, 1)
-    }
-  }
 }

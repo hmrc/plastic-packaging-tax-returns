@@ -96,13 +96,12 @@ class ObligationsDataConnector @Inject()
   )(implicit hc: HeaderCarrier) = {
     logger.info(s"Success on getting enterprise obligation data with correlationId [$correlationId] pptReference [$pptReference] params [$queryParams]")
     val res = response.json.as[ObligationDataResponse]
-    val adjusted = if (appConfig.adjustObligationDates) res.adjustDates else res
 
     val msg =  s"""Success on retrieving enterprise obligation data correlationId [$correlationId] and """ +
-      s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: $adjusted"
+      s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: $res"
 
     auditConnector.sendExplicitAudit(GetObligations.eventType,
-      GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(adjusted), Some(msg)))
+      GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(res), Some(msg)))
 
     Right(res)
   }
