@@ -84,7 +84,8 @@ class AmendReturnsItSpec extends PlaySpec
 
     s"""{
       |        "obligation" : {
-      |            "periodKey" : "$periodKey"
+      |            "periodKey" : "$periodKey", 
+      |            "toDate" : "2022-06-30"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {

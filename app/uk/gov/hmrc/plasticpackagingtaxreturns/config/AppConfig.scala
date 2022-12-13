@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.config
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
@@ -69,7 +70,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
 
-  val taxRatePoundsPerKg: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
+  val taxRegimeStartDate: LocalDate = LocalDate.of(2022, 4, 1)
+  val taxRateBefore1stApril2022: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
+  val taxRateFrom1stApril2022: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
 
   // TODO change config setting name? (Might be more agro than worth it)
   // Used in QA testing to allow open returns that aren't yet due to be filed anyway
