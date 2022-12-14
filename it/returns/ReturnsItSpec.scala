@@ -69,7 +69,8 @@ class ReturnsItSpec extends PlaySpec
     s"""{
        |        "obligation" : {
        |            "periodKey" : "$periodKey",
-       |            "fromDate" : "${LocalDate.now.minusMonths(1)}"
+       |            "fromDate" : "${LocalDate.now.minusMonths(1)}", 
+       |            "toDate" : "${LocalDate.now}"
        |        },
        |        "amendSelectedPeriodKey": "$periodKey",
        |        "manufacturedPlasticPackagingWeight" : 100,

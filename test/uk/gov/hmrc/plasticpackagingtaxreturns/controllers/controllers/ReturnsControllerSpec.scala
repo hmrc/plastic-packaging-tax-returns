@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.{ArgumentMatchers, ArgumentMatchersSugar}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.Mockito.{never, reset, verify, when}
+import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -310,7 +308,7 @@ class ReturnsControllerSpec
       "propagate un-processable entity when cache incomplete" in {
         withAuthorizedUser()
         setupMocks(userAnswersReturns)
-        when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidUserAnswersReturns)))
+        when(mockSessionRepository.get(any)).thenReturn(Future.successful(Some(invalidUserAnswersReturns)))
 
         val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
 
@@ -320,7 +318,7 @@ class ReturnsControllerSpec
       "propagate un-processable entity when invalid deductions" in {
         withAuthorizedUser()
         setupMocks(userAnswersReturns)
-        when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, 0, false))
+        when(mockPptCalculationService.calculate(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = false))
         when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidDeductionsUserAnswersReturns)))
 
         val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
@@ -339,7 +337,7 @@ class ReturnsControllerSpec
 
       "respond successfully when return submission is successful but the return delete fails" in {
 
-        when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+        when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
         returnSubmittedAsExpected(pptReference, expectedNewReturnValues)
 
@@ -348,13 +346,13 @@ class ReturnsControllerSpec
       "return expectation failed when obligation is not open" in {
         withAuthorizedUser()
         setupMocks(userAnswersReturns)
-        when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
+        when(mockObligationDataConnector.get(any, any, any, any, any)(any))
           .thenReturn(Future.successful(Right(ObligationDataResponse(Nil))))
 
         val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
 
         status(result) mustBe EXPECTATION_FAILED
-        verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
+        verify(mockReturnsConnector, never()).submitReturn(any,any,any)(any)
         verify(mockSessionRepository).clearUserAnswers("7777777", FakeAuthenticator.cacheKey)
       }
 
@@ -402,7 +400,7 @@ class ReturnsControllerSpec
 
     "respond successfully when return amend is successful but the return delete fails" in {
 
-      when(mockSessionRepository.clear(any[String]())).thenReturn(Future.failed(new RuntimeException("BANG!")))
+      when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
 
       amendSubmittedAsExpected(pptReference, expectedAmendReturnValues)
 
@@ -413,7 +411,7 @@ class ReturnsControllerSpec
       setupMocks(userAnswersReturns)
       val nrsErrorMessage = "Something went wrong"
 
-      when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
+      when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
         Future.failed(new HttpException(nrsErrorMessage, SERVICE_UNAVAILABLE))
       )
 
@@ -436,21 +434,21 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
 
       status(result) mustBe UNPROCESSABLE_ENTITY
-      verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
+      verify(mockReturnsConnector, never()).submitReturn(any,any,any)(any)
 
     }
 
     "amend throw an error if financial API error" in {
       withAuthorizedUser()
       setupMocks(userAnswersAmends)
-      when(mockFinancialDataService.getFinancials(any(),any())(any()))
+      when(mockFinancialDataService.getFinancials(any,any)(any))
         .thenReturn(Future.successful(Left(500)))
 
       intercept[RuntimeException] {
         val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
         status(result)
       }
-      verify(mockReturnsConnector, never()).submitReturn(any(),any(),any())(any())
+      verify(mockReturnsConnector, never()).submitReturn(any,any,any)(any)
     }
 
     "amend submit return if Direct debit not in progress" in {
@@ -461,20 +459,19 @@ class ReturnsControllerSpec
 
       await(sut.amend(pptReference).apply(FakeRequest()))
 
-      verify(mockReturnsConnector).submitReturn(any(),any(),any())(any())
+      verify(mockReturnsConnector).submitReturn(any,any,any)(any)
     }
   }
 
   private def setUpFinancialApiMock(isDdInProgress: Boolean): Any = {
-    when(mockFinancialDataService.getFinancials(any(), any())(any()))
+    when(mockFinancialDataService.getFinancials(any, any)(any))
       .thenReturn(
         Future.successful(
           Right(FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty))
         )
       )
 
-    when(mockFinancialsService.lookUpForDdInProgress(ArgumentMatchers.eq(periodKey), any()))
-      .thenReturn(isDdInProgress)
+    when(mockFinancialsService.lookUpForDdInProgress(eqTo(periodKey), any)).thenReturn(isDdInProgress)
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues, userAnswers: UserAnswers = userAnswersAmends): Future[NonRepudiationSubmissionAccepted] =
@@ -496,7 +493,7 @@ class ReturnsControllerSpec
     val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
 
-    when(mockPptCalculationService.calculate(any())).thenReturn(calculations)
+    when(mockPptCalculationService.calculate(any, any)).thenReturn(calculations)
 
     val returnsSubmissionResponse: Return = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
@@ -512,25 +509,25 @@ class ReturnsControllerSpec
     val expectedNrsPayload = NrsReturnOrAmendSubmission(userAnswers.data, eisRequest)
 
     verify(mockNonRepudiationService).submitNonRepudiation(
-      ArgumentMatchersSugar.eqTo(expectedEventName), 
-      ArgumentMatchers.eq(Json.toJson(expectedNrsPayload).toString),
+      eqTo(expectedEventName), 
+      eqTo(Json.toJson(expectedNrsPayload).toString),
       any[ZonedDateTime],
-      ArgumentMatchers.eq(pptReference),
-      ArgumentMatchers.eq(expectedHeaders)
+      eqTo(pptReference),
+      eqTo(expectedHeaders)
     )(any[HeaderCarrier])
   }
 
   private def setupMocks(userAnswers: UserAnswers) = {
     mockGetObligationDataPeriodKey(pptReference, periodKey)
-    when(mockCreditCalcService.totalRequestedCredit(any())).thenReturn(Credit(0L, BigDecimal(0)))
-    when(mockAvailableCreditService.getBalance(any())(any())).thenReturn(Future.successful(BigDecimal(10)))
-    when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
-    when(mockSessionRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(Credit(0L, BigDecimal(0)))
+    when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
+    when(mockAppConfig.taxRateFrom1stApril2022).thenReturn(BigDecimal(0.20))
+    when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
-    when(mockNonRepudiationService.submitNonRepudiation(any(), any(), any(), any(), any())(any())).thenReturn(
+    when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
-    when(mockPptCalculationService.calculate(any())).thenReturn(Calculations(1, 1, 1, 1, 0, true))
+    when(mockPptCalculationService.calculate(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = true))
   }
 
 }

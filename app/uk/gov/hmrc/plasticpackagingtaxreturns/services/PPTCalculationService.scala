@@ -17,18 +17,22 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
+import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
+import java.time.LocalDate
 import javax.inject.Inject
 
 class PPTCalculationService @Inject()(
-                                     creditsCalculationService: CreditsCalculationService,
-                                     conversionService: WeightToPoundsConversionService
-                                     ) extends Logging {
+  creditsCalculationService: CreditsCalculationService,
+  conversionService: WeightToPoundsConversionService
+) extends Logging {
 
-  def calculate(returnValues: ReturnValues): Calculations =
+  def calculate(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations =
     doCalculation(
+      lookupPeriodEndDate(userAnswers),
       returnValues.importedPlasticWeight,
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
@@ -39,25 +43,20 @@ class PPTCalculationService @Inject()(
     )
 
   private def doCalculation(
-                            importedPlasticWeight: Long,
-                            manufacturedPlasticWeight: Long,
-                            humanMedicinesPlasticWeight: Long,
-                            recycledPlasticWeight: Long,
-                            exportedPlasticWeight: Long,
-                            convertedPackagingCredit: BigDecimal,
-                            availableCredit: BigDecimal
-                          ): Calculations = {
+    periodEndDate: LocalDate,
+    importedPlasticWeight: Long,
+    manufacturedPlasticWeight: Long,
+    humanMedicinesPlasticWeight: Long,
+    recycledPlasticWeight: Long,
+    exportedPlasticWeight: Long,
+    convertedPackagingCredit: BigDecimal,
+    availableCredit: BigDecimal
+  ): Calculations = {
 
-    val packagingTotal: Long = importedPlasticWeight +
-      manufacturedPlasticWeight
-
-    val deductionsTotal: Long = exportedPlasticWeight +
-      humanMedicinesPlasticWeight +
-      recycledPlasticWeight
-
+    val packagingTotal: Long = importedPlasticWeight + manufacturedPlasticWeight
+    val deductionsTotal: Long = exportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
-
-    val taxDue: BigDecimal = conversionService.weightToDebit(chargeableTotal)
+    val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&
@@ -70,7 +69,8 @@ class PPTCalculationService @Inject()(
         convertedPackagingCredit <= availableCredit
     }
 
-    if(!isSubmittable) {
+    // TODO do we still want this log?
+    if (!isSubmittable) {
       logger.info("PPT return not submittable")
     }
 
@@ -81,6 +81,10 @@ class PPTCalculationService @Inject()(
       packagingTotal,
       convertedPackagingCredit,
       isSubmittable)
+  }
+
+  private def lookupPeriodEndDate(userAnswers: UserAnswers) = {
+    userAnswers.getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
   }
 
 }

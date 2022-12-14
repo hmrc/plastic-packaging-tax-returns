@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import com.codahale.metrics.SharedMetricRegistries
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -43,6 +43,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditService
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 class CalculationsControllerSpec
@@ -54,7 +55,8 @@ class CalculationsControllerSpec
   private val userAnswersData = Json.parse(
     """{
       |        "obligation" : {
-      |            "periodKey" : "21C4"
+      |            "periodKey": "21C4", 
+      |            "toDate": "2022-04-01"
       |        },
       |        "manufacturedPlasticPackagingWeight" : 100,
       |        "importedPlasticPackagingWeight" : 0,
@@ -66,7 +68,8 @@ class CalculationsControllerSpec
   private val invalidUserAnswersData = Json.parse(
     """{
       |        "obligation" : {
-      |            "periodKey" : "21C4"
+      |            "periodKey" : "21C4", 
+      |            "toDate": "2022-04-01"
       |        },
       |        "manufacturedPlasticPackagingWeight" : 100,
       |        "importedPlasticPackagingWeight" : 0,
@@ -83,8 +86,12 @@ class CalculationsControllerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAppConfig)
-    reset(mockSessionRepository, mockAvailableCreditService)
+    reset(mockAppConfig, mockSessionRepository, mockAvailableCreditService)
+
+    when(mockAppConfig.taxRateFrom1stApril2022) thenReturn BigDecimal(0.20)
+    when(mockAppConfig.taxRegimeStartDate) thenReturn LocalDate.of(2022, 4, 1)
+    when(mockSessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
+    when(mockAvailableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
   }
 
   override lazy val app: Application = GuiceApplicationBuilder()
@@ -101,17 +108,11 @@ class CalculationsControllerSpec
     "has valid user answers" should {
 
       "return OK response" in {
-
         withAuthorizedUser()
-
-        setupMocks(userAnswers)
-
-        val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, totalRequestCreditInPounds = 0,  isSubmittable = true)
-
+        val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, 
+          packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
         val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
-
         val result: Future[Result] = route(app, submitReturnRequest).get
-
         status(result) mustBe OK
         contentAsJson(result) mustBe toJson(expected)
       }
@@ -121,27 +122,14 @@ class CalculationsControllerSpec
     "has an incomplete cache" should {
 
       "return un-processable entity" in {
-
         withAuthorizedUser()
-
-        setupMocks(invalidUserAnswers)
-
+        when(mockSessionRepository.get(any[String])) thenReturn Future.successful(Some(invalidUserAnswers))
         val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
-
         val result: Future[Result] = route(app, submitReturnRequest).get
-
         status(result) mustBe UNPROCESSABLE_ENTITY
-
       }
 
     }
 
   }
-
-  private def setupMocks(uA: UserAnswers) = {
-    when(mockAppConfig.taxRatePoundsPerKg).thenReturn(BigDecimal(0.20))
-    when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(uA)))
-    when(mockAvailableCreditService.getBalance(any())(any())).thenReturn(Future.successful(BigDecimal(0)))
-  }
-
 }

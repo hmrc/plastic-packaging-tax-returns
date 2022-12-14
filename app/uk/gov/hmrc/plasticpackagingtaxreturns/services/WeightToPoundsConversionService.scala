@@ -20,6 +20,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
+import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
 
 class WeightToPoundsConversionService @Inject()(appConfig: AppConfig) {
@@ -34,10 +35,34 @@ class WeightToPoundsConversionService @Inject()(appConfig: AppConfig) {
      important to use the correct conversion method
    */
 
-  def weightToDebit(weight: Long): BigDecimal = convert(weight).setScale(2, RoundingMode.DOWN)
-  def weightToCredit(weight: Long): BigDecimal = convert(weight).setScale(2, RoundingMode.UP)
+  /**
+   * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the
+   * tax rate for that quarter. Tax rates are in £ per kg, and weights are in kg.
+   * @param periodEndDate date tax period period ended, eg for 22C2 the end-date would be 30th June 2022 
+   * @param weightInKg total weight in kg to pay tax on
+   * @return the amount (in £) of tax payable, rounded-down to nearest pence
+   */
+  def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): BigDecimal = {
+    val taxRateForPeriod = lookupTaxRateForPeriod(periodEndDate)
+    val currency = BigDecimal(weightInKg) * taxRateForPeriod // tax rate is £ per kg
+    currency.setScale(2, RoundingMode.DOWN)
+  }
 
-  private def convert(weight: Long): BigDecimal = BigDecimal(weight) * appConfig.taxRatePoundsPerKg
+  // TODO allow for period / rate look up somehow
+  def weightToCredit(weight: Long): BigDecimal = {
+    val currency = BigDecimal(weight) * appConfig.taxRateFrom1stApril2022
+    currency.setScale(2, RoundingMode.UP)
+  }
 
+  /** When the tax rate changes, add another if-test here
+   * @param periodEndDate the last day of the period we are finding the tax-rate for
+   * @return the tax rate for the given period
+   */
+  def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
+    if (periodEndDate.isBefore(appConfig.taxRegimeStartDate))
+      appConfig.taxRateBefore1stApril2022
+    else
+      appConfig.taxRateFrom1stApril2022
+  }
 
 }

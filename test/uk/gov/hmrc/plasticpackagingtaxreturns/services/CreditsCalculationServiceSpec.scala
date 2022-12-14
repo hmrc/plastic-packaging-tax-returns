@@ -27,7 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{Co
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
-class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
+class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   val mockConversion: WeightToPoundsConversionService = mock[WeightToPoundsConversionService]
   val captor: ArgumentCaptor[Long] = ArgumentCaptor.forClass(classOf[Long])
@@ -39,7 +39,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
     reset(mockConversion)
   }
 
-  def converterJustAddsOne() =
+  private def converterJustAddsOne() =
     when(mockConversion.weightToCredit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long] + 1))
 
   "totalRequestCredit" must {
@@ -88,7 +88,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach{
       sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)
 
       verify(mockConversion).weightToCredit(12L)
-      verify(mockConversion, never()).weightToDebit(any())
+      verify(mockConversion, never()).weightToDebit(any(), any())
     }
   }
 

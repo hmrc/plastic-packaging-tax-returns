@@ -59,7 +59,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       configService.graphiteHost mustBe "graphite"
       configService.dbTimeToLiveInSeconds mustBe 100
 
-      configService.taxRatePoundsPerKg mustBe BigDecimal("0.20")
+      configService.taxRateFrom1stApril2022 mustBe BigDecimal("0.20")
     }
   }
 }
