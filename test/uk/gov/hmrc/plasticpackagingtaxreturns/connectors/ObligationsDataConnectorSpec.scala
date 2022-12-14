@@ -193,7 +193,6 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
     "return adjust Obligation Date" in {
       when(httpResponse.status).thenReturn(OK)
       when(httpResponse.json).thenReturn(jsonResponse)
-      when(appConfig.adjustObligationDates).thenReturn(true)
       when(httpClient.GET[Any](any(), any(), any()) (any(), any(), any())) thenReturn Future.successful(httpResponse)
 
       await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)

@@ -46,16 +46,7 @@ case class ObligationDetail(
   inboundCorrespondenceDateReceived: Option[LocalDate],
   inboundCorrespondenceDueDate: LocalDate,
   periodKey: String
-) {
-
-  def adjustDates: ObligationDetail = {
-    this.copy(
-      inboundCorrespondenceFromDate =
-        inboundCorrespondenceToDate.minusMonths(2).withDayOfMonth(1)
-    )
-  }
-
-}
+)
 
 object ObligationDetail {
 
@@ -70,25 +61,13 @@ object ObligationDetail {
   implicit val format: Reads[ObligationDetail] = Json.reads[ObligationDetail]
 }
 
-case class Obligation(identification: Option[Identification], obligationDetails: Seq[ObligationDetail]){
-
-  def adjustDates: Obligation = {
-    this.copy(
-      obligationDetails = obligationDetails.map(_.adjustDates)
-    )
-  }
-}
+case class Obligation(identification: Option[Identification], obligationDetails: Seq[ObligationDetail])
 
 object Obligation {
   implicit val format: OFormat[Obligation] = Json.format[Obligation]
 }
 
-case class ObligationDataResponse(obligations: Seq[Obligation]) {
-
-  def adjustDates: ObligationDataResponse = {
-    this.copy(obligations = obligations.map(_.adjustDates))
-  }
-}
+case class ObligationDataResponse(obligations: Seq[Obligation])
 
 object ObligationDataResponse {
 
