@@ -24,7 +24,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 
 sealed trait ReturnValues {
   val periodKey: String
@@ -37,6 +39,8 @@ sealed trait ReturnValues {
   val submissionId: Option[String]
   val returnType: ReturnType
   val availableCredit: BigDecimal
+  
+  def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations
 }
 
 final case class NewReturnValues(
@@ -47,10 +51,13 @@ final case class NewReturnValues(
                                   humanMedicinesPlasticWeight: Long,
                                   recycledPlasticWeight: Long,
                                   convertedPackagingCredit: BigDecimal,
-                                  availableCredit: BigDecimal
+                                  availableCredit: BigDecimal, 
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
+
+  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations = 
+    pptCalculationService.calculateNewReturn(userAnswers, this)
 }
 
 object NewReturnValues {
@@ -91,6 +98,9 @@ final case class AmendReturnValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
+
+  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
+    pptCalculationService.calculateAmendReturn(userAnswers, this)
 }
 
 object AmendReturnValues {
@@ -135,6 +145,9 @@ final case class OriginalReturnForAmendValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
+
+  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
+    pptCalculationService.calculateAmendReturn(userAnswers, this)
 }
 
 object OriginalReturnForAmendValues {

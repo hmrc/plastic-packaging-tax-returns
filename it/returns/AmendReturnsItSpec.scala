@@ -83,10 +83,6 @@ class AmendReturnsItSpec extends PlaySpec
   private val userAnswersDataAmends: JsObject = Json.parse(
 
     s"""{
-      |        "obligation" : {
-      |            "periodKey" : "$periodKey", 
-      |            "toDate" : "2022-06-30"
-      |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
       |            "idDetails" : {
@@ -107,11 +103,15 @@ class AmendReturnsItSpec extends PlaySpec
       |            }
       |        },
       |        "amend": {
-      |            "amendManufacturedPlasticPackaging" : 100,
-      |            "amendImportedPlasticPackaging" : 0,
-      |            "amendDirectExportPlasticPackaging" : 0,
-      |            "amendHumanMedicinePlasticPackaging" : 10,
-      |            "amendRecycledPlasticPackaging" : 5
+      |           "obligation" : {
+      |              "periodKey" : "$periodKey", 
+      |              "toDate" : "2022-06-30"
+      |           },
+      |           "amendManufacturedPlasticPackaging" : 100,
+      |           "amendImportedPlasticPackaging" : 0,
+      |           "amendDirectExportPlasticPackaging" : 0,
+      |           "amendHumanMedicinePlasticPackaging" : 10,
+      |           "amendRecycledPlasticPackaging" : 5
       |        }
       |    }""".stripMargin).asInstanceOf[JsObject]
 
