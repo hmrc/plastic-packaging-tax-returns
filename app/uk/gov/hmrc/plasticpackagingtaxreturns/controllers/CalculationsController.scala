@@ -47,8 +47,8 @@ class CalculationsController @Inject()(
           val userAnswers = optUa.get
           val original = OriginalReturnForAmendValues(userAnswers).get
           val amend = AmendReturnValues(userAnswers).get
-          val originalCalc = calculationsService.calculateAmendReturn(userAnswers, original)
-          val amendCalc = calculationsService.calculateAmendReturn(userAnswers, amend)
+          val originalCalc = calculationsService.calculate(original)
+          val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}
     }
@@ -61,7 +61,7 @@ class CalculationsController @Inject()(
             val requestedCredits = creditsService.totalRequestedCredit(userAnswers)
             NewReturnValues(requestedCredits, availableCredit)(userAnswers)
               .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
-                val calculations: Calculations = calculationsService.calculateNewReturn(userAnswers, returnValues)
+                val calculations: Calculations = calculationsService.calculate(returnValues)
                 Ok(Json.toJson(calculations))
               }
           }

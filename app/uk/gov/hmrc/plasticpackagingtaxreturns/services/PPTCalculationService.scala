@@ -17,8 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 
@@ -30,9 +28,9 @@ class PPTCalculationService @Inject()(
   conversionService: WeightToPoundsConversionService
 ) extends Logging {
 
-  def calculateNewReturn(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations = {
+  def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
-      lookupReturnPeriodEndDate(userAnswers),
+      returnValues.periodEndDate,
       returnValues.importedPlasticWeight,
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
@@ -41,20 +39,6 @@ class PPTCalculationService @Inject()(
       returnValues.convertedPackagingCredit,
       returnValues.availableCredit
     )
-  }
-
-  def calculateAmendReturn(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations = {
-    doCalculation(
-      lookupAmendPeriodEndDate(userAnswers),
-      returnValues.importedPlasticWeight,
-      returnValues.manufacturedPlasticWeight,
-      returnValues.humanMedicinesPlasticWeight,
-      returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight,
-      returnValues.convertedPackagingCredit,
-      returnValues.availableCredit
-    )
-  }
 
   private def doCalculation(
     periodEndDate: LocalDate,
@@ -97,14 +81,5 @@ class PPTCalculationService @Inject()(
       isSubmittable)
   }
 
-  private def lookupReturnPeriodEndDate(userAnswers: UserAnswers) = {
-    userAnswers
-      .getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
-  }
-
-  private def lookupAmendPeriodEndDate(userAnswers: UserAnswers) = {
-    userAnswers
-      .getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
-  }
 
 }

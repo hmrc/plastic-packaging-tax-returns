@@ -26,8 +26,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
+import java.time.LocalDate
+
 sealed trait ReturnValues {
   val periodKey: String
+  val periodEndDate: LocalDate
   val manufacturedPlasticWeight: Long
   val importedPlasticWeight: Long
   val exportedPlasticWeight: Long
@@ -41,6 +44,7 @@ sealed trait ReturnValues {
 
 final case class NewReturnValues(
                                   periodKey: String,
+                                  periodEndDate: LocalDate,
                                   manufacturedPlasticWeight: Long,
                                   importedPlasticWeight: Long,
                                   exportedPlasticWeight: Long,
@@ -58,6 +62,7 @@ object NewReturnValues {
   def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
+      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate")
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
@@ -66,6 +71,7 @@ object NewReturnValues {
     } yield {
       new NewReturnValues(
         periodKey,
+        periodEndDate,
         manufactured,
         imported,
         exported,
@@ -80,6 +86,7 @@ object NewReturnValues {
 
 final case class AmendReturnValues(
                                     periodKey: String,
+                                    periodEndDate: LocalDate,
                                     manufacturedPlasticWeight: Long,
                                     importedPlasticWeight: Long,
                                     exportedPlasticWeight: Long,
@@ -101,7 +108,8 @@ object AmendReturnValues {
 
     for {
       submissionID <- original.map(_.idDetails.submissionId)
-      periodKey = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
+      periodKey <- userAnswers.get[String](JsPath() \ "amendSelectedPeriodKey")
+      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
@@ -110,6 +118,7 @@ object AmendReturnValues {
     } yield {
       new AmendReturnValues(
         periodKey,
+        periodEndDate,
         manufactured,
         imported,
         exported,
@@ -124,6 +133,7 @@ object AmendReturnValues {
 
 final case class OriginalReturnForAmendValues(
                                                periodKey: String,
+                                               periodEndDate: LocalDate,
                                                manufacturedPlasticWeight: Long,
                                                importedPlasticWeight: Long,
                                                exportedPlasticWeight: Long,
@@ -139,10 +149,12 @@ final case class OriginalReturnForAmendValues(
 
 object OriginalReturnForAmendValues {
 
+  //fixme
   def apply(userAnswers: UserAnswers): Option[OriginalReturnForAmendValues] = {
     userAnswers.get(ReturnDisplayApiGettable).map(original =>
       new OriginalReturnForAmendValues(
         periodKey = "N/A", // todo do we need this? it is available in the ReturnDisplayChargeDetails object.
+        LocalDate.now(), //TODO where to get this date from, is it on the ReturnDisplayChargeDetails too?
         original.returnDetails.manufacturedWeight,
         original.returnDetails.importedWeight,
         original.returnDetails.directExports,
