@@ -149,12 +149,11 @@ final case class OriginalReturnForAmendValues(
 
 object OriginalReturnForAmendValues {
 
-  //fixme
   def apply(userAnswers: UserAnswers): Option[OriginalReturnForAmendValues] = {
     userAnswers.get(ReturnDisplayApiGettable).map(original =>
       new OriginalReturnForAmendValues(
-        periodKey = "N/A", // todo do we need this? it is available in the ReturnDisplayChargeDetails object.
-        LocalDate.now(), //TODO where to get this date from, is it on the ReturnDisplayChargeDetails too?
+        userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey"),
+        userAnswers.getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate"),
         original.returnDetails.manufacturedWeight,
         original.returnDetails.importedWeight,
         original.returnDetails.directExports,
