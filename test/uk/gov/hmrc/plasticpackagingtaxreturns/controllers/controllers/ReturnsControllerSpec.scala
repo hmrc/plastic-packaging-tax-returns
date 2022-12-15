@@ -318,7 +318,7 @@ class ReturnsControllerSpec
       "propagate un-processable entity when invalid deductions" in {
         withAuthorizedUser()
         setupMocks(userAnswersReturns)
-        when(mockPptCalculationService.calculate(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = false))
+        when(mockPptCalculationService.calculateNewReturn(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = false))
         when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(invalidDeductionsUserAnswersReturns)))
 
         val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
@@ -493,7 +493,7 @@ class ReturnsControllerSpec
     val calculations: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
 
-    when(mockPptCalculationService.calculate(any, any)).thenReturn(calculations)
+    when(mockPptCalculationService.calculateNewReturn(any, any)).thenReturn(calculations)
 
     val returnsSubmissionResponse: Return = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()
@@ -527,7 +527,7 @@ class ReturnsControllerSpec
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
-    when(mockPptCalculationService.calculate(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = true))
+    when(mockPptCalculationService.calculateNewReturn(any, any)).thenReturn(Calculations(1, 1, 1, 1, 0, isSubmittable = true))
   }
 
 }

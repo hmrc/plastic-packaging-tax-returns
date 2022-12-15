@@ -30,9 +30,9 @@ class PPTCalculationService @Inject()(
   conversionService: WeightToPoundsConversionService
 ) extends Logging {
 
-  def calculate(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations =
+  def calculateNewReturn(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations = {
     doCalculation(
-      lookupPeriodEndDate(userAnswers),
+      lookupReturnPeriodEndDate(userAnswers),
       returnValues.importedPlasticWeight,
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
@@ -41,6 +41,20 @@ class PPTCalculationService @Inject()(
       returnValues.convertedPackagingCredit,
       returnValues.availableCredit
     )
+  }
+
+  def calculateAmendReturn(userAnswers: UserAnswers, returnValues: ReturnValues): Calculations = {
+    doCalculation(
+      lookupAmendPeriodEndDate(userAnswers),
+      returnValues.importedPlasticWeight,
+      returnValues.manufacturedPlasticWeight,
+      returnValues.humanMedicinesPlasticWeight,
+      returnValues.recycledPlasticWeight,
+      returnValues.exportedPlasticWeight,
+      returnValues.convertedPackagingCredit,
+      returnValues.availableCredit
+    )
+  }
 
   private def doCalculation(
     periodEndDate: LocalDate,
@@ -83,8 +97,14 @@ class PPTCalculationService @Inject()(
       isSubmittable)
   }
 
-  private def lookupPeriodEndDate(userAnswers: UserAnswers) = {
-    userAnswers.getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
+  private def lookupReturnPeriodEndDate(userAnswers: UserAnswers) = {
+    userAnswers
+      .getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
+  }
+
+  private def lookupAmendPeriodEndDate(userAnswers: UserAnswers) = {
+    userAnswers
+      .getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
   }
 
 }
