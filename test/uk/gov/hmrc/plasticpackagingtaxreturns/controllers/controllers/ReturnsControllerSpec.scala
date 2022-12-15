@@ -47,7 +47,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import java.time.{LocalDateTime, ZonedDateTime}
+import java.time.{LocalDate, LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -61,7 +61,8 @@ class ReturnsControllerSpec
   private val userAnswersDataReturns: JsObject = Json.parse(
     s"""{
       |        "obligation" : {
-      |            "periodKey" : "$periodKey"
+      |            "periodKey" : "$periodKey",
+      |            "toDate" : "${LocalDate.now()}"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "manufacturedPlasticPackagingWeight" : 100,
@@ -84,7 +85,8 @@ class ReturnsControllerSpec
   private val invalidDeductionsAnswersDataReturns: JsObject = Json.parse(
     s"""{
       |        "obligation" : {
-      |            "periodKey" : "$periodKey"
+      |            "periodKey" : "$periodKey",
+      |            "toDate" : "${LocalDate.now()}"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "manufacturedPlasticPackagingWeight" : 10,
@@ -97,7 +99,8 @@ class ReturnsControllerSpec
   private val userAnswersDataAmends: JsObject = Json.parse(
     s"""{
       |        "obligation" : {
-      |            "periodKey" : "$periodKey"
+      |            "periodKey" : "$periodKey",
+      |            "toDate" : "${LocalDate.now()}"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
@@ -119,6 +122,10 @@ class ReturnsControllerSpec
       |            }
       |        },
       |        "amend": {
+      |           "obligation" : {
+      |               "periodKey" : "$periodKey",
+      |               "toDate" : "${LocalDate.now()}"
+      |           },
       |            "amendManufacturedPlasticPackaging" : 100,
       |            "amendImportedPlasticPackaging" : 0,
       |            "amendDirectExportPlasticPackaging" : 0,
@@ -130,10 +137,15 @@ class ReturnsControllerSpec
   private val userAnswersDataPartialAmends: JsObject = Json.parse(
     s"""{
       |        "obligation" : {
-      |            "periodKey" : "$periodKey"
+      |            "periodKey" : "$periodKey",
+      |            "toDate" : "${LocalDate.now()}"
       |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "amend": {
+      |            "obligation" : {
+      |               "periodKey" : "$periodKey",
+      |               "toDate" : "${LocalDate.now()}"
+      |           },
       |            "amendManufacturedPlasticPackaging" : 100
       |        },
       |        "returnDisplayApi" : {
@@ -193,6 +205,7 @@ class ReturnsControllerSpec
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = periodKey,
+    periodEndDate = LocalDate.now,
     manufacturedPlasticWeight = 100,
     importedPlasticWeight = 0,
     exportedPlasticWeight = 0,
@@ -204,6 +217,7 @@ class ReturnsControllerSpec
 
   private val expectedAmendReturnValues: ReturnValues = AmendReturnValues(
     periodKey = periodKey,
+    periodEndDate = LocalDate.now,
     manufacturedPlasticWeight = 100,
     importedPlasticWeight = 0,
     exportedPlasticWeight = 0,

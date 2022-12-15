@@ -31,27 +31,25 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
   private val mockConversionService = mock[WeightToPoundsConversionService]
   private val mockCalculationService = mock[CreditsCalculationService]
-  private val userAnswers = mock[UserAnswers]
 
   val calculationService: PPTCalculationService = new PPTCalculationService(mockCalculationService, mockConversionService)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversionService, mockCalculationService, userAnswers)
-    when(userAnswers.getOrFail (any[JsPath]) (any, any)) thenReturn LocalDate.ofEpochDay(1)
+    reset(mockConversionService, mockCalculationService)
     when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
   }
 
-  private val allZeroReturn = NewReturnValues("", 0, 0, 0, 0, 0, 0, 0)
+  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0)
 
 
-  "calculateNewReturn" must {
+  "calculate" must {
 
     "add up liabilities" when {
 
       "all zero" in {
         val expected = 0L
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn).packagingTotal mustBe expected
+        calculationService.calculate(allZeroReturn).packagingTotal mustBe expected
 
         withClue("Credit should not be called for a debit calculator") {
           verify(mockConversionService, never()).weightToCredit(any)
@@ -62,21 +60,21 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 5)
         val expected = 5L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).packagingTotal mustBe expected
+        calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
 
       "has a imported amount" in {
         val taxReturn = allZeroReturn.copy(importedPlasticWeight = 8)
         val expected = 8L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).packagingTotal mustBe expected
+        calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
 
       "has a manufactured and imported amount" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3, importedPlasticWeight = 5)
         val expected = BigDecimal(8)
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).packagingTotal mustBe expected
+        calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
 
     }
@@ -86,28 +84,28 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       "all zero" in {
         val expected = 0L
 
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn).deductionsTotal mustBe expected
+        calculationService.calculate(allZeroReturn).deductionsTotal mustBe expected
       }
 
       "has an exported amount" in {
         val taxReturn = allZeroReturn.copy(exportedPlasticWeight = 10)
         val expected = 10L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).deductionsTotal mustBe expected
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has a human medicines amount" in {
         val taxReturn = allZeroReturn.copy(humanMedicinesPlasticWeight = 10)
         val expected = 10L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).deductionsTotal mustBe expected
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has a recycled plastic amount" in {
         val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 6)
         val expected = 6L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).deductionsTotal mustBe expected
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has all deductions" in {
@@ -117,16 +115,9 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
         val expected = 19L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).deductionsTotal mustBe expected
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
-    }
-    
-    "calculateAmendReturn" must {
-      "look up correct obligation date" in {
-        calculationService.calculateAmendReturn(userAnswers, allZeroReturn)
-        verify(userAnswers).getOrFail(eqTo(JsPath \ "amend" \ "obligation" \ "toDate"))(any, any)
-      }
     }
 
     "sum up chargeable total" when {
@@ -134,20 +125,20 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       "all zero (nil return)" in {
         val expected = 0L
 
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn).chargeableTotal mustBe expected
+        calculationService.calculate(allZeroReturn).chargeableTotal mustBe expected
       }
 
       "deductions greater than (manufactured + imported)" in {
         val expected = 0L
 
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn.copy(exportedPlasticWeight = 10)).chargeableTotal mustBe expected
+        calculationService.calculate(allZeroReturn.copy(exportedPlasticWeight = 10)).chargeableTotal mustBe expected
       }
 
       "when has a non zero packaging total" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3)
         val expected = 3L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).chargeableTotal mustBe expected
+        calculationService.calculate(taxReturn).chargeableTotal mustBe expected
       }
 
       "has non zero packaging total and non zero deductions" in {
@@ -159,27 +150,27 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
         val expected = 6L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).chargeableTotal mustBe expected
+        calculationService.calculate(taxReturn).chargeableTotal mustBe expected
       }
 
     }
 
     "return the tax due amount" in {
       when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(7.17)
-      calculationService.calculateNewReturn(userAnswers, allZeroReturn).taxDue mustBe BigDecimal(7.17)
-      verify(mockConversionService).weightToDebit(eqTo(LocalDate.ofEpochDay(1)), any)
+      calculationService.calculate(allZeroReturn).taxDue mustBe BigDecimal(7.17)
+      verify(mockConversionService).weightToDebit(eqTo(LocalDate.now()), eqTo(0))
     }
     
     "sum up the taxable plastic total" when {
       
       "All zero (nil return)" in {
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn)
+        calculationService.calculate(allZeroReturn)
         verify(mockConversionService).weightToDebit(any, eqTo(0))
       }
 
       "when has a non zero packaging total" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3)
-        calculationService.calculateNewReturn(userAnswers, taxReturn)
+        calculationService.calculate(taxReturn)
         verify(mockConversionService).weightToDebit(any, eqTo(3))
       }
 
@@ -189,7 +180,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           exportedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 1,
           recycledPlasticWeight = 2)
-        calculationService.calculateNewReturn(userAnswers, taxReturn)
+        calculationService.calculate(taxReturn)
         verify(mockConversionService).weightToDebit(any, eqTo(6)) //(8 + 3 - 2 - 1 - 2) = 6
       }
 
@@ -197,7 +188,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
     "evaluate if the return is good to submit" when {
       "all zero" in {
-        calculationService.calculateNewReturn(userAnswers, allZeroReturn).isSubmittable mustBe true
+        calculationService.calculate(allZeroReturn).isSubmittable mustBe true
       }
 
       "the values balance, nil return" in {
@@ -206,7 +197,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           exportedPlasticWeight = 1
         )
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).isSubmittable mustBe true
+        calculationService.calculate(taxReturn).isSubmittable mustBe true
       }
 
       "normal return non zero values" in {
@@ -216,14 +207,14 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           humanMedicinesPlasticWeight = 1,
           recycledPlasticWeight = 2)
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).isSubmittable mustBe true
+        calculationService.calculate(taxReturn).isSubmittable mustBe true
       }
 
       "the deductions are greater than the accretions" in {
         val taxReturn = allZeroReturn.copy(
           recycledPlasticWeight = 2)
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).isSubmittable mustBe false
+        calculationService.calculate(taxReturn).isSubmittable mustBe false
       }
 
       "any value is less than 0" in {
@@ -236,7 +227,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           _.copy(humanMedicinesPlasticWeight = -1)
         ).map(_(allZeroReturn)).foreach{taxReturn =>
 
-          calculationService.calculateNewReturn(userAnswers, taxReturn).isSubmittable mustBe false
+          calculationService.calculate(taxReturn).isSubmittable mustBe false
 
         }
       }

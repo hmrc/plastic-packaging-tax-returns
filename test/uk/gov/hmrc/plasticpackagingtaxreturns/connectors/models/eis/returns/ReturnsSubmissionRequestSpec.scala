@@ -21,6 +21,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.NewReturnValues
 
+import java.time.LocalDate
+
 class ReturnsSubmissionRequestSpec extends PlaySpec {
 
   "The EIS Returns Submission Request Object" should {
@@ -31,6 +33,7 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
 
         val returnValues: NewReturnValues = NewReturnValues(
           periodKey = "somekey",
+          periodEndDate = LocalDate.now,
           manufacturedPlasticWeight = 1,
           importedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 3,
