@@ -73,7 +73,7 @@ class ChangeGroupLeadController @Inject() (
       .andThen {case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey)}
       .map {
         subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
-          "change-group-representative", 
+          "ppt-subscription", 
           nrsSubscriptionUpdateSubmission.toJsonString, 
           subscriptionUpdateResponse.processingDate, 
           pptReference,
