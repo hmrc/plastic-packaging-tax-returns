@@ -475,10 +475,10 @@ class ReturnsControllerSpec
   }
 
   private def amendSubmittedAsExpected(pptReference: String, returnValues: ReturnValues, userAnswers: UserAnswers = userAnswersAmends): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("amend-return")(sut.amend, pptReference, returnValues, userAnswers)
+    submissionSuccess("ppt-return")(sut.amend, pptReference, returnValues, userAnswers)
 
   private def returnSubmittedAsExpected(pptReference: String, returnValues: ReturnValues): Future[NonRepudiationSubmissionAccepted] =
-    submissionSuccess("submit-return")(sut.submit, pptReference, returnValues, userAnswersReturns)
+    submissionSuccess("ppt-return")(sut.submit, pptReference, returnValues, userAnswersReturns)
 
   private def submissionSuccess(expectedEventName: String)
   (

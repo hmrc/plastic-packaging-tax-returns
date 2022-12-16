@@ -108,7 +108,7 @@ class SubscriptionController @Inject() (
     eisResponse: SubscriptionUpdateSuccessfulResponse
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationService.submitNonRepudiation(
-      "subscription-update", 
+      "ppt-subscription", 
       toJson(pptSubscription).toString,
       eisResponse.processingDate,
       eisResponse.pptReferenceNumber,
