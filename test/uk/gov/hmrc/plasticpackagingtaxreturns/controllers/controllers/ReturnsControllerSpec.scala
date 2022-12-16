@@ -494,6 +494,7 @@ class ReturnsControllerSpec
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
 
     when(mockPptCalculationService.calculateNewReturn(any, any)).thenReturn(calculations)
+    when(mockPptCalculationService.calculateAmendReturn(any, any)).thenReturn(calculations)
 
     val returnsSubmissionResponse: Return = aReturn()
     val returnsSubmissionResponseWithNrs: ReturnWithNrsSuccessResponse = aReturnWithNrs()

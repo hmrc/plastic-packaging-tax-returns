@@ -154,7 +154,7 @@ class ReturnsController @Inject()(
     userAnswers: UserAnswers,
     returnValues: ReturnValues
   )(implicit request: AuthorizedRequest[AnyContent]): Future[Result] = {
-    val calculations: Calculations = calculationsService.calculateNewReturn(userAnswers, returnValues)
+    val calculations: Calculations = returnValues.calculate(calculationsService, userAnswers)
 
     if (calculations.isSubmittable) {
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
