@@ -73,7 +73,7 @@ class SessionRepositorySpec
   ".get" - {
 
     "when there is a record for this id" - {
-
+      // TODO: fix this test as it randomly fails because the lastUpdated time is sometimes different -time issue 
       "must update the lastUpdated time and get the record" in {
 
         insert(userAnswers).futureValue
