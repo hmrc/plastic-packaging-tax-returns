@@ -111,15 +111,24 @@ class CalculationsItControllerSpec
       result.status mustBe UNAUTHORIZED
     }
 
-    "return unprocessable entity when cache is invalid" in {
+    "return unprocessable entity when user answers is not found in the cache" in {
       withAuthorizedUser()
-
       when(sessionRepository.get(any)).thenReturn(Future.successful(None))
 
       val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
 
       result.status mustBe UNPROCESSABLE_ENTITY
 
+    }
+
+    "return unprocessable entity when user answer is invalid" in {
+      withAuthorizedUser()
+      when(sessionRepository.get(any)).thenReturn(Future.successful(Some(UserAnswers(pptReference))))
+      stubGetBalanceRequest
+
+      val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
+
+      result.status mustBe UNPROCESSABLE_ENTITY
     }
   }
 
@@ -171,5 +180,19 @@ class CalculationsItControllerSpec
        |        "convertedCredits": {
        |          "weight": "200"
        |        }
+       |    }""".stripMargin).asInstanceOf[JsObject]
+
+  private val userAnswersDataWithInvalidReturns: JsObject = Json.parse(
+    s"""{
+       |        "obligation" : {
+       |            "periodKey" : "22C2",
+       |            "fromDate" : "${LocalDate.now.minusMonths(1)}",
+       |            "toDate" : "${LocalDate.now}"
+       |        },
+       |        "amendSelectedPeriodKey": "22C2",
+       |        "importedPlasticPackagingWeight" : 0,
+       |        "exportedPlasticPackagingWeight" : 0,
+       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
+       |        "nonExportRecycledPlasticPackagingWeight" : 5
        |    }""".stripMargin).asInstanceOf[JsObject]
 }
