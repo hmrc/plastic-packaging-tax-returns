@@ -26,7 +26,6 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 class PPTCalculationService @Inject()(
-  creditsCalculationService: CreditsCalculationService,
   conversionService: WeightToPoundsConversionService
 ) extends Logging {
 
@@ -37,7 +36,7 @@ class PPTCalculationService @Inject()(
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
       returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight,
+      returnValues.totalExportedPlastic,
       returnValues.convertedPackagingCredit,
       returnValues.availableCredit
     )
@@ -50,32 +49,32 @@ class PPTCalculationService @Inject()(
       returnValues.manufacturedPlasticWeight,
       returnValues.humanMedicinesPlasticWeight,
       returnValues.recycledPlasticWeight,
-      returnValues.exportedPlasticWeight,
+      returnValues.totalExportedPlastic,
       returnValues.convertedPackagingCredit,
       returnValues.availableCredit
     )
   }
 
   private def doCalculation(
-    periodEndDate: LocalDate,
-    importedPlasticWeight: Long,
-    manufacturedPlasticWeight: Long,
-    humanMedicinesPlasticWeight: Long,
-    recycledPlasticWeight: Long,
-    exportedPlasticWeight: Long,
-    convertedPackagingCredit: BigDecimal,
-    availableCredit: BigDecimal
+                             periodEndDate: LocalDate,
+                             importedPlasticWeight: Long,
+                             manufacturedPlasticWeight: Long,
+                             humanMedicinesPlasticWeight: Long,
+                             recycledPlasticWeight: Long,
+                             totalExportedPlasticWeight: Long,
+                             convertedPackagingCredit: BigDecimal,
+                             availableCredit: BigDecimal
   ): Calculations = {
 
     val packagingTotal: Long = importedPlasticWeight + manufacturedPlasticWeight
-    val deductionsTotal: Long = exportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
+    val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
     val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&
         importedPlasticWeight >= 0 &&
-        exportedPlasticWeight >= 0 &&
+        totalExportedPlasticWeight >= 0 &&
         recycledPlasticWeight >= 0 &&
         humanMedicinesPlasticWeight >= 0 &&
         packagingTotal >= deductionsTotal &&

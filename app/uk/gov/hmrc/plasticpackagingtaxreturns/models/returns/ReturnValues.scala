@@ -28,11 +28,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
 
-sealed trait ReturnValues {
+sealed trait ReturnValues{
   val periodKey: String
   val manufacturedPlasticWeight: Long
   val importedPlasticWeight: Long
-  val exportedPlasticWeight: Long
   val humanMedicinesPlasticWeight: Long
   val recycledPlasticWeight: Long
   val convertedPackagingCredit: BigDecimal
@@ -41,6 +40,8 @@ sealed trait ReturnValues {
   val availableCredit: BigDecimal
   
   def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations
+
+  def totalExportedPlastic: Long
 }
 
 final case class NewReturnValues(
@@ -48,16 +49,21 @@ final case class NewReturnValues(
                                   manufacturedPlasticWeight: Long,
                                   importedPlasticWeight: Long,
                                   exportedPlasticWeight: Long,
+                                  exportedByAnotherBusinessPlasticWeight: Long,
                                   humanMedicinesPlasticWeight: Long,
                                   recycledPlasticWeight: Long,
                                   convertedPackagingCredit: BigDecimal,
-                                  availableCredit: BigDecimal, 
+                                  availableCredit: BigDecimal,
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
 
-  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations = 
+  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
     pptCalculationService.calculateNewReturn(userAnswers, this)
+
+  override def totalExportedPlastic: Long = {
+    exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
+  }
 }
 
 object NewReturnValues {
@@ -68,6 +74,7 @@ object NewReturnValues {
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
+      exportedByAnotherBusiness <- userAnswers.get(ExportedByAnotherBusinessPlasticPackagingWeightGettable)
       humanMedicines <- userAnswers.get(NonExportedHumanMedicinesPlasticPackagingWeightGettable)
       recycled <- userAnswers.get(NonExportedRecycledPlasticPackagingWeightGettable)
     } yield {
@@ -76,6 +83,7 @@ object NewReturnValues {
         manufactured,
         imported,
         exported,
+        exportedByAnotherBusiness,
         humanMedicines,
         recycled,
         credits.moneyInPounds,
@@ -101,6 +109,9 @@ final case class AmendReturnValues(
 
   override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
     pptCalculationService.calculateAmendReturn(userAnswers, this)
+
+  override def totalExportedPlastic: Long =
+    exportedPlasticWeight
 }
 
 object AmendReturnValues {
@@ -148,6 +159,8 @@ final case class OriginalReturnForAmendValues(
 
   override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
     pptCalculationService.calculateAmendReturn(userAnswers, this)
+
+  override def totalExportedPlastic: Long = exportedPlasticWeight
 }
 
 object OriginalReturnForAmendValues {

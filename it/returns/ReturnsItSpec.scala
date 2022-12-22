@@ -28,7 +28,7 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json, OWrites}
+import play.api.libs.json.{Json, OWrites}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
@@ -41,9 +41,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.{IdDetails, ReturnDisplayApi, ReturnDisplayDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 
 class ReturnsItSpec extends PlaySpec
@@ -64,21 +64,6 @@ class ReturnsItSpec extends PlaySpec
   private val balanceEISURL = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
   private lazy val cacheRepository = mock[SessionRepository]
 
-
-  private val userAnswersDataReturns: JsObject = Json.parse(
-    s"""{
-       |        "obligation" : {
-       |            "periodKey" : "$periodKey",
-       |            "fromDate" : "${LocalDate.now.minusMonths(1)}", 
-       |            "toDate" : "${LocalDate.now}"
-       |        },
-       |        "amendSelectedPeriodKey": "$periodKey",
-       |        "manufacturedPlasticPackagingWeight" : 100,
-       |        "importedPlasticPackagingWeight" : 0,
-       |        "exportedPlasticPackagingWeight" : 0,
-       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
-       |        "nonExportRecycledPlasticPackagingWeight" : 5
-       |    }""".stripMargin).asInstanceOf[JsObject]
 
   override lazy val app: Application = {
     server.start()
@@ -175,7 +160,8 @@ class ReturnsItSpec extends PlaySpec
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
     stubObligationDesRequest(INTERNAL_SERVER_ERROR)
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data = userAnswersDataReturns))))
+    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(
+      data = ReturnTestHelper.returnWithCreditsDataJson))))
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -198,7 +184,8 @@ class ReturnsItSpec extends PlaySpec
   }
 
   private def setUpMocks = {
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data = userAnswersDataReturns))))
+    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(
+      data = ReturnTestHelper.returnsWithNoCreditDataJson))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
   }
 
@@ -239,17 +226,8 @@ class ReturnsItSpec extends PlaySpec
   private def stubGetBalanceEISRequest = {
     server.stubFor(get(balanceEISURL)
       .willReturn(
-        ok().withBody(Json.toJson(createCreditBalanceDisplayResponse).toString())
+        ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
       )
-    )
-  }
-
-  private def createCreditBalanceDisplayResponse = {
-    ExportCreditBalanceDisplayResponse(
-      processingDate = "2021-11-17T09:32:50.345Z",
-      totalPPTCharges = BigDecimal(1000),
-      totalExportCreditClaimed = BigDecimal(100),
-      totalExportCreditAvailable = BigDecimal(200)
     )
   }
 

@@ -22,7 +22,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService.Charge
 
 import java.time.LocalDate
-import scala.util.Try
 
 class PPTFinancialsService extends Logging {
 
