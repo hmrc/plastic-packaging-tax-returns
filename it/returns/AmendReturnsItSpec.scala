@@ -26,7 +26,7 @@ import play.api.Application
 import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
@@ -38,6 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.AmendTestHelper
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -79,42 +80,6 @@ class AmendReturnsItSpec extends PlaySpec
       mockFinancialDataConnector
     )
   }
-
-  private val userAnswersDataAmends: JsObject = Json.parse(
-
-    s"""{
-      |        "amendSelectedPeriodKey": "$periodKey",
-      |        "returnDisplayApi" : {
-      |            "idDetails" : {
-      |                "pptReferenceNumber" : "pptref",
-      |                "submissionId" : "submission12"
-      |            },
-      |            "returnDetails" : {
-      |                "manufacturedWeight" : 250,
-      |                "importedWeight" : 0,
-      |                "totalNotLiable" : 0,
-      |                "humanMedicines" : 10,
-      |                "directExports" : 0,
-      |                "recycledPlastic" : 5,
-      |                "creditForPeriod" : 12.13,
-      |                "debitForPeriod" : 0,
-      |                "totalWeight" : 220,
-      |                "taxDue" : 44
-      |            }
-      |        },
-      |        "amend": {
-      |           "obligation" : {
-      |                "periodKey" : "$periodKey",
-      |                "toDate" : "2022-06-30"
-      |            },
-      |            "amendManufacturedPlasticPackaging" : 100,
-      |           "amendImportedPlasticPackaging" : 0,
-      |           "amendDirectExportPlasticPackaging" : 0,
-      |           "amendHumanMedicinePlasticPackaging" : 10,
-      |           "amendRecycledPlasticPackaging" : 5
-      |        }
-      |    }""".stripMargin).asInstanceOf[JsObject]
-
 
   "amend" should {
     "return 200" in {
@@ -166,7 +131,8 @@ class AmendReturnsItSpec extends PlaySpec
 
 
   private def setUpMockForAmend: Unit = {
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data = userAnswersDataAmends))))
+    when(cacheRepository.get(any()))
+      .thenReturn(Future.successful(Option(UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(mockFinancialDataConnector.get(any(),any(),any(),any(),any(),any(),any(),any())(any()))
       .thenReturn(Future.successful(

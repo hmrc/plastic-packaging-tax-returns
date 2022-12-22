@@ -16,120 +16,148 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import com.codahale.metrics.SharedMetricRegistries
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{reset, when}
+import org.mockito.MockitoSugar.verify
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
+import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.UNPROCESSABLE_ENTITY
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsObject, Json}
-import play.api.mvc.Result
-import play.api.test.FakeRequest
-import play.api.test.Helpers.{OK, contentAsJson, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsEmpty}
-import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import play.api.mvc.{ControllerComponents, Result}
+import play.api.test.Helpers.{OK, await, contentAsJson, defaultAwaitTimeout, status}
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, OriginalReturnForAmendValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
-import java.time.LocalDate
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CalculationsControllerSpec
-  extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures
-    with Matchers with AuthTestSupport with MockConnectors with ReturnsSubmissionResponseBuilder {
+  extends PlaySpec
+    with BeforeAndAfterEach
+    with AuthTestSupport {
 
-  SharedMetricRegistries.clear()
 
-  private val userAnswersData = Json.parse(
-    """{
-      |        "obligation" : {
-      |            "periodKey": "21C4", 
-      |            "toDate": "2022-04-01"
-      |        },
-      |        "manufacturedPlasticPackagingWeight" : 100,
-      |        "importedPlasticPackagingWeight" : 0,
-      |        "exportedPlasticPackagingWeight" : 0,
-      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
-      |        "nonExportRecycledPlasticPackagingWeight" : 5
-      |    }""".stripMargin).asInstanceOf[JsObject]
+  private val userAnswers: UserAnswers        = UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
+  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data = ReturnTestHelper.invalidReturnsDataJson)
 
-  private val invalidUserAnswersData = Json.parse(
-    """{
-      |        "obligation" : {
-      |            "periodKey" : "21C4", 
-      |            "toDate": "2022-04-01"
-      |        },
-      |        "manufacturedPlasticPackagingWeight" : 100,
-      |        "importedPlasticPackagingWeight" : 0,
-      |        "exportedPlasticPackagingWeight" : 0,
-      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10
-      |    }""".stripMargin).asInstanceOf[JsObject]
+  private val sessionRepository: SessionRepository = mock[SessionRepository]
+  private val availableCreditService: AvailableCreditService = mock[AvailableCreditService]
+  private val cc: ControllerComponents = Helpers.stubControllerComponents()
+  private val pptCalculationService = mock[PPTCalculationService]
+  private val creditsCalculationService = mock[CreditsCalculationService]
 
-  private val userAnswers: UserAnswers        = UserAnswers("id").copy(data = userAnswersData)
-  private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data = invalidUserAnswersData)
-
-  private val mockAppConfig: AppConfig                 = mock[AppConfig]
-  private val mockSessionRepository: SessionRepository = mock[SessionRepository]
-  private val mockAvailableCreditService: AvailableCreditService = mock[AvailableCreditService]
+  private val sut = new CalculationsController(
+    new FakeAuthenticator(cc),
+    sessionRepository,
+    cc,
+    pptCalculationService,
+    creditsCalculationService,
+    availableCreditService
+  )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAppConfig, mockSessionRepository, mockAvailableCreditService)
+    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService)
 
-    when(mockAppConfig.taxRateFrom1stApril2022) thenReturn BigDecimal(0.20)
-    when(mockAppConfig.taxRegimeStartDate) thenReturn LocalDate.of(2022, 4, 1)
-    when(mockSessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
-    when(mockAvailableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
+    when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
+    when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
   }
 
-  override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(
-      bind[AuthConnector].to(mockAuthConnector),
-      bind[SessionRepository].to(mockSessionRepository),
-      bind[AppConfig].to(mockAppConfig),
-      bind[AvailableCreditService].to(mockAvailableCreditService),
-    )
-    .build()
+  "calculateSubmit" should {
 
-  "Calculations controller" when {
-
-    "has valid user answers" should {
-
-      "return OK response" in {
-        withAuthorizedUser()
-        val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, 
+    "return OK response and the calculation" in {
+      val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
-        val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
-        val result: Future[Result] = route(app, submitReturnRequest).get
-        status(result) mustBe OK
-        contentAsJson(result) mustBe toJson(expected)
-      }
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(pptCalculationService.calculateNewReturn(any,any)).thenReturn(expected)
 
+      val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe toJson(expected)
     }
 
-    "has an incomplete cache" should {
+    "request credits" in {
+      val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
+        packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(pptCalculationService.calculateNewReturn(any,any)).thenReturn(expected)
 
-      "return un-processable entity" in {
-        withAuthorizedUser()
-        when(mockSessionRepository.get(any[String])) thenReturn Future.successful(Some(invalidUserAnswers))
-        val submitReturnRequest = FakeRequest("GET", s"/returns-calculate/$pptReference")
-        val result: Future[Result] = route(app, submitReturnRequest).get
+      await(sut.calculateSubmit(pptReference)(FakeRequest()))
+
+      verify(availableCreditService).getBalance(ArgumentMatchers.eq(userAnswers))(any)
+      verify(creditsCalculationService).totalRequestedCredit(ArgumentMatchers.eq(userAnswers))
+    }
+
+    "return un-processable entity" when {
+      "has an incomplete cache" in {
+        when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(invalidUserAnswers))
+
+        val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
+
         status(result) mustBe UNPROCESSABLE_ENTITY
       }
 
+      "there is no cache" in {
+        when(sessionRepository.get(any[String])) thenReturn Future.successful(None)
+
+        val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
+      }
+    }
+  }
+
+  "calculateAmends" should {
+    "return OK response and the calculation" in {
+
+      val originalCal = Calculations(1,0,0,10,20, true)
+
+      when(sessionRepository.get(any[String]))
+        .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
+      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(originalCal)
+
+      val result = sut.calculateAmends(pptReference)(FakeRequest())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe toJson(AmendsCalculations(originalCal, originalCal))
     }
 
+    "calculate original return" in {
+      val originalCal = Calculations(1,0,0,10,20, true)
+      val ans = UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)
+
+      when(sessionRepository.get(any[String]))
+        .thenReturn(Future.successful(Some(ans)))
+      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(originalCal)
+
+      await(sut.calculateAmends(pptReference)(FakeRequest()))
+
+      val expected = OriginalReturnForAmendValues(periodKey = "N/A", 250, 0, 0, 10,5, "submission12")
+      verify(pptCalculationService).calculateAmendReturn(ArgumentMatchers.eq(ans), ArgumentMatchers.eq(expected))
+    }
+
+    "calculate amend return" in {
+      val ans = UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)
+
+      when(sessionRepository.get(any[String]))
+        .thenReturn(Future.successful(Some(ans)))
+      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(Calculations(1,0,0,10,20, true))
+
+      await(sut.calculateAmends(pptReference)(FakeRequest()))
+
+      val expected = AmendReturnValues("21C4", 100, 1, 2, 3,5, "submission12")
+      verify(pptCalculationService).calculateAmendReturn(ArgumentMatchers.eq(ans), ArgumentMatchers.eq(expected))
+    }
   }
 }

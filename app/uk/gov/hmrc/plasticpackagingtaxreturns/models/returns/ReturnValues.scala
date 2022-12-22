@@ -28,18 +28,19 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService
 
 import java.time.LocalDate
 
-sealed trait ReturnValues {
+sealed trait ReturnValues{
   val periodKey: String
   val periodEndDate: LocalDate
   val manufacturedPlasticWeight: Long
   val importedPlasticWeight: Long
-  val exportedPlasticWeight: Long
   val humanMedicinesPlasticWeight: Long
   val recycledPlasticWeight: Long
   val convertedPackagingCredit: BigDecimal
   val submissionId: Option[String]
   val returnType: ReturnType
   val availableCredit: BigDecimal
+
+  def totalExportedPlastic: Long
 }
 
 final case class NewReturnValues(
@@ -48,13 +49,18 @@ final case class NewReturnValues(
                                   manufacturedPlasticWeight: Long,
                                   importedPlasticWeight: Long,
                                   exportedPlasticWeight: Long,
+                                  exportedByAnotherBusinessPlasticWeight: Long,
                                   humanMedicinesPlasticWeight: Long,
                                   recycledPlasticWeight: Long,
                                   convertedPackagingCredit: BigDecimal,
-                                  availableCredit: BigDecimal, 
+                                  availableCredit: BigDecimal,
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
+
+  override def totalExportedPlastic: Long = {
+    exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
+  }
 }
 
 object NewReturnValues {
@@ -66,6 +72,7 @@ object NewReturnValues {
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
+      exportedByAnotherBusiness <- userAnswers.get(AnotherBusinessExportWeightGattable)
       humanMedicines <- userAnswers.get(NonExportedHumanMedicinesPlasticPackagingWeightGettable)
       recycled <- userAnswers.get(NonExportedRecycledPlasticPackagingWeightGettable)
     } yield {
@@ -75,6 +82,7 @@ object NewReturnValues {
         manufactured,
         imported,
         exported,
+        exportedByAnotherBusiness,
         humanMedicines,
         recycled,
         credits.moneyInPounds,
@@ -98,6 +106,9 @@ final case class AmendReturnValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
+
+  override def totalExportedPlastic: Long =
+    exportedPlasticWeight
 }
 
 object AmendReturnValues {
@@ -145,6 +156,8 @@ final case class OriginalReturnForAmendValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
+
+  override def totalExportedPlastic: Long = exportedPlasticWeight
 }
 
 object OriginalReturnForAmendValues {
