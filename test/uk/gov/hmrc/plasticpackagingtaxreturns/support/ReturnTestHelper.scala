@@ -32,7 +32,7 @@ object ReturnTestHelper {
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 0,
        |        "exportedPlasticPackagingWeight" : 0,
-       |        "exportedByAnotherBusinessPlasticPackagingWeight": 0,
+       |        "anotherBusinessExportWeight": 0,
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5
        |    }""".stripMargin).asInstanceOf[JsObject]
@@ -46,7 +46,7 @@ object ReturnTestHelper {
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 0,
        |        "exportedPlasticPackagingWeight" : 200,
-       |        "exportedByAnotherBusinessPlasticPackagingWeight": 100,
+       |        "anotherBusinessExportWeight": 100,
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5,
        |        "convertedCredits": {
