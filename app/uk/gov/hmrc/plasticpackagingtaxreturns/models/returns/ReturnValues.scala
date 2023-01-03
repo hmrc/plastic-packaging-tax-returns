@@ -24,12 +24,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTCalculationService
+
+import java.time.LocalDate
 
 sealed trait ReturnValues {
   val periodKey: String
+  val periodEndDate: LocalDate
   val manufacturedPlasticWeight: Long
   val importedPlasticWeight: Long
   val exportedPlasticWeight: Long
@@ -39,12 +40,11 @@ sealed trait ReturnValues {
   val submissionId: Option[String]
   val returnType: ReturnType
   val availableCredit: BigDecimal
-  
-  def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations
 }
 
 final case class NewReturnValues(
                                   periodKey: String,
+                                  periodEndDate: LocalDate,
                                   manufacturedPlasticWeight: Long,
                                   importedPlasticWeight: Long,
                                   exportedPlasticWeight: Long,
@@ -55,9 +55,6 @@ final case class NewReturnValues(
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
-
-  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations = 
-    pptCalculationService.calculateNewReturn(userAnswers, this)
 }
 
 object NewReturnValues {
@@ -65,6 +62,7 @@ object NewReturnValues {
   def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
+      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate")
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
@@ -73,6 +71,7 @@ object NewReturnValues {
     } yield {
       new NewReturnValues(
         periodKey,
+        periodEndDate,
         manufactured,
         imported,
         exported,
@@ -87,6 +86,7 @@ object NewReturnValues {
 
 final case class AmendReturnValues(
                                     periodKey: String,
+                                    periodEndDate: LocalDate,
                                     manufacturedPlasticWeight: Long,
                                     importedPlasticWeight: Long,
                                     exportedPlasticWeight: Long,
@@ -98,9 +98,6 @@ final case class AmendReturnValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
-
-  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
-    pptCalculationService.calculateAmendReturn(userAnswers, this)
 }
 
 object AmendReturnValues {
@@ -111,7 +108,8 @@ object AmendReturnValues {
 
     for {
       submissionID <- original.map(_.idDetails.submissionId)
-      periodKey = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
+      periodKey <- userAnswers.get[String](JsPath() \ "amendSelectedPeriodKey")
+      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
@@ -120,6 +118,7 @@ object AmendReturnValues {
     } yield {
       new AmendReturnValues(
         periodKey,
+        periodEndDate,
         manufactured,
         imported,
         exported,
@@ -134,6 +133,7 @@ object AmendReturnValues {
 
 final case class OriginalReturnForAmendValues(
                                                periodKey: String,
+                                               periodEndDate: LocalDate,
                                                manufacturedPlasticWeight: Long,
                                                importedPlasticWeight: Long,
                                                exportedPlasticWeight: Long,
@@ -145,9 +145,6 @@ final case class OriginalReturnForAmendValues(
   val availableCredit: BigDecimal = 0
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType = ReturnType.AMEND
-
-  override def calculate(pptCalculationService: PPTCalculationService, userAnswers: UserAnswers): Calculations =
-    pptCalculationService.calculateAmendReturn(userAnswers, this)
 }
 
 object OriginalReturnForAmendValues {
@@ -155,7 +152,8 @@ object OriginalReturnForAmendValues {
   def apply(userAnswers: UserAnswers): Option[OriginalReturnForAmendValues] = {
     userAnswers.get(ReturnDisplayApiGettable).map(original =>
       new OriginalReturnForAmendValues(
-        periodKey = "N/A", // todo do we need this? it is available in the ReturnDisplayChargeDetails object.
+        userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey"),
+        userAnswers.getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate"),
         original.returnDetails.manufacturedWeight,
         original.returnDetails.importedWeight,
         original.returnDetails.directExports,

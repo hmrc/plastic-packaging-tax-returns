@@ -104,10 +104,10 @@ class AmendReturnsItSpec extends PlaySpec
       |        },
       |        "amend": {
       |           "obligation" : {
-      |              "periodKey" : "$periodKey", 
-      |              "toDate" : "2022-06-30"
-      |           },
-      |           "amendManufacturedPlasticPackaging" : 100,
+      |                "periodKey" : "$periodKey",
+      |                "toDate" : "2022-06-30"
+      |            },
+      |            "amendManufacturedPlasticPackaging" : 100,
       |           "amendImportedPlasticPackaging" : 0,
       |           "amendDirectExportPlasticPackaging" : 0,
       |           "amendHumanMedicinePlasticPackaging" : 10,
