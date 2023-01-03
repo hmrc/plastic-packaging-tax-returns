@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -157,7 +157,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("subscription-update"),
+            ArgumentMatchers.eq("ppt-subscription"),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -185,7 +185,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("subscription-update"), 
+            ArgumentMatchers.eq("ppt-subscription"), 
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -218,7 +218,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("subscription-update"),
+            ArgumentMatchers.eq("ppt-subscription"),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString()),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -246,7 +246,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("subscription-update"), 
+            ArgumentMatchers.eq("ppt-subscription"), 
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -276,7 +276,7 @@ class SubscriptionControllerSpec
         response.processingDate mustBe subscriptionUpdateResponse.processingDate
         response.nrSubmissionId mustBe nrSubmissionId
         verify(mockNonRepudiationService).submitNonRepudiation(
-          ArgumentMatchers.eq("subscription-update"),
+          ArgumentMatchers.eq("ppt-subscription"),
           ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
           any[ZonedDateTime],
           ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),

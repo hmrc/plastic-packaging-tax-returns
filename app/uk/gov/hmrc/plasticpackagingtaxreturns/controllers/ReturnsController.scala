@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ class ReturnsController @Inject()(
             if(isDDInProgress)
               Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
             else 
-              doSubmit("amend-return", pptReference, AmendReturnValues.apply, userAnswer)
+              doSubmit("ppt-return", pptReference, AmendReturnValues.apply, userAnswer)
         )
       })
     }
@@ -96,7 +96,7 @@ class ReturnsController @Inject()(
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
-              doSubmit("submit-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+              doSubmit("ppt-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
             sessionRepository.clearUserAnswers(pptReference, request.cacheKey)

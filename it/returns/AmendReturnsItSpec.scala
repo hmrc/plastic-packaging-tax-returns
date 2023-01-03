@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,10 +83,6 @@ class AmendReturnsItSpec extends PlaySpec
   private val userAnswersDataAmends: JsObject = Json.parse(
 
     s"""{
-      |        "obligation" : {
-      |            "periodKey" : "$periodKey", 
-      |            "toDate" : "2022-06-30"
-      |        },
       |        "amendSelectedPeriodKey": "$periodKey",
       |        "returnDisplayApi" : {
       |            "idDetails" : {
@@ -107,15 +103,15 @@ class AmendReturnsItSpec extends PlaySpec
       |            }
       |        },
       |        "amend": {
-      |            "obligation" : {
+      |           "obligation" : {
       |                "periodKey" : "$periodKey",
       |                "toDate" : "2022-06-30"
       |            },
       |            "amendManufacturedPlasticPackaging" : 100,
-      |            "amendImportedPlasticPackaging" : 0,
-      |            "amendDirectExportPlasticPackaging" : 0,
-      |            "amendHumanMedicinePlasticPackaging" : 10,
-      |            "amendRecycledPlasticPackaging" : 5
+      |           "amendImportedPlasticPackaging" : 0,
+      |           "amendDirectExportPlasticPackaging" : 0,
+      |           "amendHumanMedicinePlasticPackaging" : 10,
+      |           "amendRecycledPlasticPackaging" : 5
       |        }
       |    }""".stripMargin).asInstanceOf[JsObject]
 

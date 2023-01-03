@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       val processingDate = mock[ZonedDateTime]
       when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(eqTo("change-group-representative"), any, same(processingDate), eqTo("some-ppt-ref"), any) (any)    
+      verify(nonRepudiationService).submitNonRepudiation(eqTo("ppt-subscription"), any, same(processingDate), eqTo("some-ppt-ref"), any) (any)    
     }
 
     "pass user header to NRS" in {

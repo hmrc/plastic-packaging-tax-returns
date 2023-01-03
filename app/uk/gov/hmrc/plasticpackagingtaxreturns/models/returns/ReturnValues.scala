@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ final case class NewReturnValues(
                                   humanMedicinesPlasticWeight: Long,
                                   recycledPlasticWeight: Long,
                                   convertedPackagingCredit: BigDecimal,
-                                  availableCredit: BigDecimal
+                                  availableCredit: BigDecimal, 
                                 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType = ReturnType.NEW
