@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ object ReturnTestHelper {
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 0,
        |        "exportedPlasticPackagingWeight" : 0,
-       |        "plasticExportedByAnotherBusiness": 0,
+       |        "anotherBusinessExportWeight": 0,
+
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5
        |    }""".stripMargin).asInstanceOf[JsObject]
@@ -46,6 +47,7 @@ object ReturnTestHelper {
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 0,
        |        "exportedPlasticPackagingWeight" : 200,
+       |        "anotherBusinessExportWeight" : 100,
        |        "plasticExportedByAnotherBusiness": 100,
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5,

@@ -38,6 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -79,7 +80,7 @@ class CalculationsControllerSpec
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
       when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
-      when(pptCalculationService.calculateNewReturn(any,any)).thenReturn(expected)
+      when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
 
@@ -91,7 +92,7 @@ class CalculationsControllerSpec
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
         packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
       when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
-      when(pptCalculationService.calculateNewReturn(any,any)).thenReturn(expected)
+      when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))
 
@@ -125,7 +126,7 @@ class CalculationsControllerSpec
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
-      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(originalCal)
+      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
 
       val result = sut.calculateAmends(pptReference)(FakeRequest())
 
@@ -139,12 +140,12 @@ class CalculationsControllerSpec
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(ans)))
-      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(originalCal)
+      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
 
       await(sut.calculateAmends(pptReference)(FakeRequest()))
 
-      val expected = OriginalReturnForAmendValues(periodKey = "N/A", 250, 0, 0, 10,5, "submission12")
-      verify(pptCalculationService).calculateAmendReturn(ArgumentMatchers.eq(ans), ArgumentMatchers.eq(expected))
+      val expected = OriginalReturnForAmendValues(periodKey = "21C4", LocalDate.of(2022, 6, 30), 250, 0, 0, 10,5, "submission12")
+      verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
     }
 
     "calculate amend return" in {
@@ -152,12 +153,12 @@ class CalculationsControllerSpec
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(ans)))
-      when(pptCalculationService.calculateAmendReturn(any,any)).thenReturn(Calculations(1,0,0,10,20, true))
+      when(pptCalculationService.calculate(any)).thenReturn(Calculations(1,0,0,10,20, true))
 
       await(sut.calculateAmends(pptReference)(FakeRequest()))
 
-      val expected = AmendReturnValues("21C4", 100, 1, 2, 3,5, "submission12")
-      verify(pptCalculationService).calculateAmendReturn(ArgumentMatchers.eq(ans), ArgumentMatchers.eq(expected))
+      val expected = AmendReturnValues("21C4", LocalDate.of(2022, 6, 30),100, 1, 2, 3,5, "submission12")
+      verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
     }
   }
 }

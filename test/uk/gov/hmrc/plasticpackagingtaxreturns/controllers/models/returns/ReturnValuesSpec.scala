@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
+import java.time.LocalDate
+
 class ReturnValuesSpec extends PlaySpec {
 
   "NewReturnValues" should {
@@ -31,6 +33,7 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe Some(NewReturnValues(
         periodKey = "21C4",
+        periodEndDate = LocalDate.now,
         manufacturedPlasticWeight = 100L,
         importedPlasticWeight = 0,
         exportedPlasticWeight = 200L,
@@ -56,6 +59,7 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe Some(AmendReturnValues(
         periodKey = "21C4",
+        periodEndDate = LocalDate.of(2022, 6, 30),
         manufacturedPlasticWeight = 100L,
         importedPlasticWeight = 1L,
         exportedPlasticWeight = 2L,
@@ -70,6 +74,7 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe Some(AmendReturnValues(
         periodKey = "21C4",
+        periodEndDate = LocalDate.of(2022, 6, 30),
         manufacturedPlasticWeight = 255L,
         importedPlasticWeight = 0,
         exportedPlasticWeight = 6L,
@@ -77,13 +82,6 @@ class ReturnValuesSpec extends PlaySpec {
         recycledPlasticWeight = 5L,
         submission = "submission12"
       ))
-    }
-
-    "throw when period key is missing" in {
-
-      intercept[Exception] {
-        AmendReturnValues.apply(UserAnswers("123", AmendTestHelper.userAnswersDataWithoutKey))
-      }
     }
 
     "return empty when original and amend value not found" in {

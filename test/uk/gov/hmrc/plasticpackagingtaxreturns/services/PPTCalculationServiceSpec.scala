@@ -41,7 +41,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
   }
 
-  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0)
+  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0, 0)
 
 
   "calculate" must {
@@ -99,7 +99,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         val taxReturn = allZeroReturn.copy(exportedByAnotherBusinessPlasticWeight = 10, exportedPlasticWeight = 10)
         val expected = 20L
 
-        calculationService.calculateNewReturn(userAnswers, taxReturn).deductionsTotal mustBe expected
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has a human medicines amount" in {
@@ -249,7 +249,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       when(taxReturn.availableCredit).thenReturn(0)
       when(taxReturn.convertedPackagingCredit).thenReturn(0)
 
-      calculationService.calculateAmendReturn(userAnswers, taxReturn)
+      calculationService.calculate(taxReturn)
 
       verify(taxReturn).totalExportedPlastic
     }

@@ -65,17 +65,6 @@ class ReturnsControllerSpec
   private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
   private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
   private val calculations: Calculations = Calculations(1, 1, 1, 1, 0,true)
-      |            "toDate" : "${LocalDate.now()}"
-      |            "toDate" : "${LocalDate.now()}"
-      |           "obligation" : {
-      |               "periodKey" : "$periodKey",
-      |               "toDate" : "${LocalDate.now()}"
-      |           },
-      |            "toDate" : "${LocalDate.now()}"
-      |            "obligation" : {
-      |               "periodKey" : "$periodKey",
-      |               "toDate" : "${LocalDate.now()}"
-      |           },
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
@@ -103,6 +92,7 @@ class ReturnsControllerSpec
 
   private val expectedAmendReturnValuesWithNoAmend: ReturnValues = AmendReturnValues(
     periodKey = "21C4",
+    periodEndDate = LocalDate.now,
     manufacturedPlasticWeight = 255,
     importedPlasticWeight = 0,
     exportedPlasticWeight = 6,
@@ -429,7 +419,7 @@ class ReturnsControllerSpec
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
-    when(mockPptCalculationService.calculateNewReturn(any, any)).thenReturn(calculations)
+    when(mockPptCalculationService.calculate(any)).thenReturn(calculations)
   }
 
   private def setupMocksForAmend(userAnswers: UserAnswers) = {
@@ -439,6 +429,6 @@ class ReturnsControllerSpec
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
-    when(mockPptCalculationService.calculateAmendReturn(any, any)).thenReturn(calculations)
+    when(mockPptCalculationService.calculate(any)).thenReturn(calculations)
   }
 }
