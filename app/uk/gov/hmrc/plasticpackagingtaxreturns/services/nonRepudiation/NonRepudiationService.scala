@@ -25,8 +25,10 @@ import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalServerException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.NrsPayload
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -53,7 +55,7 @@ case class NonRepudiationService @Inject() (
     userHeaders: Map[String, String]
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
-    val nrsPayload = new NrsPayload(payloadString)
+    val nrsPayload = new NrsPayload(new EdgeOfSystem, payloadString)
 
     for {
       identityData <- retrieveIdentityData()
@@ -150,17 +152,5 @@ object NonRepudiationService {
       Retrievals.mdtpInformation and Retrievals.itmpName and
       Retrievals.itmpDateOfBirth and Retrievals.itmpAddress and
       Retrievals.credentialStrength and Retrievals.loginTimes
-
-}
-
-class NrsPayload(payloadString: String) {
-  
-  def encodePayload(): String = Base64.getEncoder.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8))
-
-  def retrievePayloadChecksum(): String =
-    MessageDigest.getInstance("SHA-256")
-      .digest(payloadString.getBytes(StandardCharsets.UTF_8))
-      .map("%02x".format(_))
-      .mkString
 
 }
