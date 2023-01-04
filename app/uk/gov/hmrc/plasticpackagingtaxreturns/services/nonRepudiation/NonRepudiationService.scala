@@ -41,8 +41,7 @@ case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
   authConnector: AuthConnector, 
   config: AppConfig
-)(implicit ec: ExecutionContext)
-    extends AuthorisedFunctions {
+)(implicit ec: ExecutionContext) extends AuthorisedFunctions {
 
   private val logger = Logger(this.getClass)
 
@@ -54,29 +53,18 @@ case class NonRepudiationService @Inject() (
     userHeaders: Map[String, String]
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
-    val submissionTimestampAsString: String = submissionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     val nrsPayload = new NrsPayload(payloadString)
 
     for {
       identityData <- retrieveIdentityData()
-      payloadChecksum = nrsPayload.retrievePayloadChecksum()
       userAuthToken   = retrieveUserAuthToken(hc)
-      nonRepudiationMetadata = NonRepudiationMetadata(
-        businessId = "ppt",
-        notableEvent, 
-        payloadContentType = "application/json",
-        payloadSha256Checksum = payloadChecksum,
-        userSubmissionTimestamp = submissionTimestampAsString,
-        identityData = identityData,
-        userAuthToken = userAuthToken,
-        headerData = userHeaders,
-        searchKeys = Map("pptReference" -> pptReference)
-      )
+      payloadChecksum = nrsPayload.retrievePayloadChecksum()
+      nonRepudiationMetadata = NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, 
+        userAuthToken, payloadChecksum, submissionTimestamp)
       encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
   }
-
 
   private def retrieveNonRepudiationResponse(
     nonRepudiationMetadata: NonRepudiationMetadata,

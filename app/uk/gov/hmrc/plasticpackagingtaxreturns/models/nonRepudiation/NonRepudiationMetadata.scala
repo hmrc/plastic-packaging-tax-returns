@@ -18,6 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation
 
 import play.api.libs.json._
 
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
 case class NonRepudiationMetadata(
   businessId: String,
   notableEvent: String,
@@ -31,5 +34,24 @@ case class NonRepudiationMetadata(
 )
 
 object NonRepudiationMetadata {
+  
+  def create(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData, 
+    userAuthToken: String, payloadChecksum: String, submissionTimestamp: ZonedDateTime): NonRepudiationMetadata = {
+    
+    val submissionTimestampAsString: String = submissionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    NonRepudiationMetadata(
+      businessId = "ppt",
+      notableEvent,
+      payloadContentType = "application/json",
+      payloadSha256Checksum = payloadChecksum,
+      userSubmissionTimestamp = submissionTimestampAsString,
+      identityData = identityData,
+      userAuthToken = userAuthToken,
+      headerData = userHeaders,
+      searchKeys = Map("pptReference" -> pptReference)
+    )
+  }
+
   implicit val format: OFormat[NonRepudiationMetadata] = Json.format[NonRepudiationMetadata]
+  
 }
