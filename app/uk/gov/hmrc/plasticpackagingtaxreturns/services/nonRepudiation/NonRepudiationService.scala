@@ -55,10 +55,11 @@ case class NonRepudiationService @Inject() (
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
     val submissionTimestampAsString: String = submissionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    val nrsPayload = new NrsPayload(payloadString)
 
     for {
       identityData <- retrieveIdentityData()
-      payloadChecksum = retrievePayloadChecksum(payloadString)
+      payloadChecksum = nrsPayload.retrievePayloadChecksum()
       userAuthToken   = retrieveUserAuthToken(hc)
       nonRepudiationMetadata = NonRepudiationMetadata(
         businessId = "ppt",
@@ -71,13 +72,11 @@ case class NonRepudiationService @Inject() (
         headerData = userHeaders,
         searchKeys = Map("pptReference" -> pptReference)
       )
-      encodedPayloadString = encodePayload(payloadString)
+      encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
   }
 
-  private def encodePayload(payloadString: String): String =
-    Base64.getEncoder.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8))
 
   private def retrieveNonRepudiationResponse(
     nonRepudiationMetadata: NonRepudiationMetadata,
@@ -100,11 +99,6 @@ case class NonRepudiationService @Inject() (
       case Some(Authorization(authToken)) => authToken
       case _                              => throw new InternalServerException("No auth token available for NRS")
     }
-
-  private def retrievePayloadChecksum(payloadString: String): String =
-    MessageDigest.getInstance("SHA-256")
-      .digest(payloadString.getBytes(StandardCharsets.UTF_8))
-      .map("%02x".format(_)).mkString
 
   private def retrieveIdentityData()(implicit headerCarrier: HeaderCarrier): Future[IdentityData] =
     authConnector.authorise(EmptyPredicate, nonRepudiationIdentityRetrievals).map {
@@ -168,5 +162,17 @@ object NonRepudiationService {
       Retrievals.mdtpInformation and Retrievals.itmpName and
       Retrievals.itmpDateOfBirth and Retrievals.itmpAddress and
       Retrievals.credentialStrength and Retrievals.loginTimes
+
+}
+
+class NrsPayload(payloadString: String) {
+  
+  def encodePayload(): String = Base64.getEncoder.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8))
+
+  def retrievePayloadChecksum(): String =
+    MessageDigest.getInstance("SHA-256")
+      .digest(payloadString.getBytes(StandardCharsets.UTF_8))
+      .map("%02x".format(_))
+      .mkString
 
 }
