@@ -28,6 +28,7 @@ import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{NrsTestData, SubscriptionTestData}
@@ -48,8 +49,10 @@ class NonRepudiationServiceSpec
   implicit val hc: HeaderCarrier =
     HeaderCarrier(authorization = Some(Authorization(testAuthToken)))
 
+  private val appConfig = mock[AppConfig]
+
   val nonRepudiationService: NonRepudiationService =
-    NonRepudiationService(mockNonRepudiationConnector, mockAuthConnector)
+    NonRepudiationService(mockNonRepudiationConnector, mockAuthConnector, appConfig)
 
   implicit val request: Request[AnyContent] = FakeRequest()
 

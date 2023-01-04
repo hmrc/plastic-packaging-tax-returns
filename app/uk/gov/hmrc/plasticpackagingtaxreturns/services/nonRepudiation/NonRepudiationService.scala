@@ -23,6 +23,7 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalServerException}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
@@ -38,7 +39,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
-  authConnector: AuthConnector
+  authConnector: AuthConnector, 
+  config: AppConfig
 )(implicit ec: ExecutionContext)
     extends AuthorisedFunctions {
 
@@ -88,7 +90,7 @@ case class NonRepudiationService @Inject() (
         response
     }.recoverWith {
       case exception: HttpException =>
-        logger.warn(s"Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
+        logger.error(s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
         Future.failed(exception)
     }
   }
