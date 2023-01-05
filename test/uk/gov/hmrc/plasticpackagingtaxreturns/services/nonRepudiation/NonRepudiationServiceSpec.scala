@@ -21,13 +21,14 @@ import org.mockito.Mockito.when
 import org.mockito.MockitoSugar.verify
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.enablers.Messaging
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{Authorization, HeaderCarrier}
+import uk.gov.hmrc.http.{Authorization, HeaderCarrier, InternalServerException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
@@ -45,11 +46,10 @@ class NonRepudiationServiceSpec
     with ScalaFutures with Matchers with MockConnectors with SubscriptionTestData {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
-
-  implicit val hc: HeaderCarrier =
-    HeaderCarrier(authorization = Some(Authorization(testAuthToken)))
+  implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(testAuthToken)))
 
   private val appConfig = mock[AppConfig]
+  private val headerCarrier = mock[HeaderCarrier]
 
   val nonRepudiationService: NonRepudiationService =
     NonRepudiationService(mockNonRepudiationConnector, mockAuthConnector, appConfig)
@@ -57,6 +57,20 @@ class NonRepudiationServiceSpec
   implicit val request: Request[AnyContent] = FakeRequest()
 
   "submitNonRepudiation" should {
+    
+    "retrieveUserAuthToken" in {
+      when(headerCarrier.authorization) thenReturn Some(Authorization("yeah go right ahead"))
+      nonRepudiationService.retrieveUserAuthToken(headerCarrier) mustBe "yeah go right ahead"
+    }
+    
+    "complain if there is no auth token" in {
+      when(headerCarrier.authorization) thenReturn None
+      implicit val resolveImplicitAmbiguity: Messaging[InternalServerException] = Messaging.messagingNatureOfThrowable 
+      the [InternalServerException] thrownBy {
+        nonRepudiationService.retrieveUserAuthToken(headerCarrier)
+      } must have message "No auth token available for NRS"
+    }
+    
     val testPayloadString = "testPayloadString"
 
     "call the nonRepudiationConnector with the correctly formatted metadata" in {

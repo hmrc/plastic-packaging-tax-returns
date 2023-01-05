@@ -53,13 +53,13 @@ case class NonRepudiationService @Inject() (
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
     userHeaders: Map[String, String]
-  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+  )(implicit headerCarrier: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
     val nrsPayload = NrsPayload(new EdgeOfSystem, payloadString)
 
     for {
       identityData <- retrieveIdentityData()
-      userAuthToken   = retrieveUserAuthToken(hc)
+      userAuthToken   = retrieveUserAuthToken(headerCarrier)
       payloadChecksum = nrsPayload.calculatePayloadChecksum()
       nonRepudiationMetadata = NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, 
         userAuthToken, payloadChecksum, submissionTimestamp)
@@ -84,7 +84,7 @@ case class NonRepudiationService @Inject() (
     }
   }
 
-  private def retrieveUserAuthToken(hc: HeaderCarrier): String =
+  def retrieveUserAuthToken(hc: HeaderCarrier): String =
     hc.authorization match {
       case Some(Authorization(authToken)) => authToken
       case _                              => throw new InternalServerException("No auth token available for NRS")
