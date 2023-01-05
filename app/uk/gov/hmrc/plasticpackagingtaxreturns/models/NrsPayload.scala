@@ -19,15 +19,20 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.nio.charset.StandardCharsets
-import java.util.Base64
 
 class NrsPayload(edgeOfSystem: EdgeOfSystem, payloadString: String) {
 
-  def encodePayload(): String = Base64.getEncoder.encodeToString(payloadString.getBytes(StandardCharsets.UTF_8))
+  private def payloadBytes = {
+    payloadString.getBytes(StandardCharsets.UTF_8)
+  }
 
-  def retrievePayloadChecksum(): String =
+  def encodePayload(): String =
+    edgeOfSystem.createEncoder
+      .encodeToString(payloadBytes)
+
+  def calculatePayloadChecksum(): String =
     edgeOfSystem.getMessageDigestSingleton
-      .digest(payloadString.getBytes(StandardCharsets.UTF_8))
+      .digest(payloadBytes)
       .map("%02x".format(_))
       .mkString
 

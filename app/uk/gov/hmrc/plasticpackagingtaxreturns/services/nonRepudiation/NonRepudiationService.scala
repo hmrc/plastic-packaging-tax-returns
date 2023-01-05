@@ -60,7 +60,7 @@ case class NonRepudiationService @Inject() (
     for {
       identityData <- retrieveIdentityData()
       userAuthToken   = retrieveUserAuthToken(hc)
-      payloadChecksum = nrsPayload.retrievePayloadChecksum()
+      payloadChecksum = nrsPayload.calculatePayloadChecksum()
       nonRepudiationMetadata = NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, 
         userAuthToken, payloadChecksum, submissionTimestamp)
       encodedPayloadString = nrsPayload.encodePayload()
