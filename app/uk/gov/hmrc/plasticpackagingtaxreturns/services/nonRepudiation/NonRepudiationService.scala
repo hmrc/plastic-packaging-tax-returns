@@ -55,7 +55,7 @@ case class NonRepudiationService @Inject() (
     userHeaders: Map[String, String]
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
-    val nrsPayload = new NrsPayload(new EdgeOfSystem, payloadString)
+    val nrsPayload = NrsPayload(new EdgeOfSystem, payloadString)
 
     for {
       identityData <- retrieveIdentityData()

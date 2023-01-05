@@ -22,7 +22,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Base64
 
@@ -33,11 +32,11 @@ class NrsPayloadSpec extends PlaySpec with BeforeAndAfterEach {
   private val edgeOfSystem = mock[EdgeOfSystem]
   private val messageDigest = mock[MessageDigest]
   private val encoder = mock[Base64.Encoder]
-  private val nrsPayload = new NrsPayload(edgeOfSystem, "blah")
+  private val nrsPayload = NrsPayload(edgeOfSystem, "blah")
 
   override protected def beforeEach(): Unit = { 
     super.beforeEach()
-    reset(edgeOfSystem, messageDigest)
+    reset(edgeOfSystem, messageDigest, encoder)
     when(edgeOfSystem.getMessageDigestSingleton) thenReturn messageDigest
     when(edgeOfSystem.createEncoder) thenReturn encoder
   }
@@ -47,7 +46,6 @@ class NrsPayloadSpec extends PlaySpec with BeforeAndAfterEach {
     "calculatePayloadChecksum" in {
       when(messageDigest.digest(any)) thenReturn Array[Byte](1, 2, 3)
       nrsPayload.calculatePayloadChecksum() mustBe "010203"
-      verify(edgeOfSystem).getMessageDigestSingleton
       verify(messageDigest).digest(blahInBytes)
     }
     

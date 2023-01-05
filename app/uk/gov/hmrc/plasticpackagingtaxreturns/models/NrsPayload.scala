@@ -20,20 +20,24 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.nio.charset.StandardCharsets
 
-class NrsPayload(edgeOfSystem: EdgeOfSystem, payloadString: String) {
-
-  private def payloadBytes = {
-    payloadString.getBytes(StandardCharsets.UTF_8)
-  }
+class NrsPayload(edgeOfSystem: EdgeOfSystem, payload: Array[Byte]) {
 
   def encodePayload(): String =
     edgeOfSystem.createEncoder
-      .encodeToString(payloadBytes)
+      .encodeToString(payload)
 
   def calculatePayloadChecksum(): String =
     edgeOfSystem.getMessageDigestSingleton
-      .digest(payloadBytes)
+      .digest(payload)
       .map("%02x".format(_))
       .mkString
 
+}
+
+object NrsPayload {
+
+  def apply(edgeOfSystem: EdgeOfSystem, payloadString: String): NrsPayload = {
+    val payloadBytes: Array[Byte] = payloadString.getBytes(StandardCharsets.UTF_8)
+    new NrsPayload(edgeOfSystem, payloadBytes)
+  }
 }
