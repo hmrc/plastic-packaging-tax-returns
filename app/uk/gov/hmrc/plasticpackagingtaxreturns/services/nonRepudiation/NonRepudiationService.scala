@@ -59,29 +59,24 @@ case class NonRepudiationService @Inject() (
 
     for {
       identityData <- retrieveIdentityData()
-      userAuthToken   = retrieveUserAuthToken(headerCarrier)
-      payloadChecksum = nrsPayload.calculatePayloadChecksum()
-      nonRepudiationMetadata = NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, 
-        userAuthToken, payloadChecksum, submissionTimestamp)
+      userAuthToken = retrieveUserAuthToken(headerCarrier)
+      nonRepudiationMetadata = nrsPayload.createMetaData(notableEvent, pptReference, userHeaders, identityData, 
+        userAuthToken, submissionTimestamp)
       encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
   }
 
-  private def retrieveNonRepudiationResponse(
-    nonRepudiationMetadata: NonRepudiationMetadata,
-    encodedPayloadString: String
-  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-    val eventualAccepted = nonRepudiationConnector.submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
-    eventualAccepted.map {
-      case response@NonRepudiationSubmissionAccepted(_) =>
-        logger.info(s"Successfully called NRS and got submissionId ${response.submissionId}")
-        response
-    }.recoverWith {
-      case exception: HttpException =>
-        logger.error(s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
-        Future.failed(exception)
-    }
+  private def retrieveNonRepudiationResponse(nonRepudiationMetadata: NonRepudiationMetadata, encodedPayloadString: String
+    ) (implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
+    
+    nonRepudiationConnector
+      .submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
+      .recoverWith {
+        case exception: HttpException =>
+          logger.error(s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
+          Future.failed(exception)
+      }
   }
 
   def retrieveUserAuthToken(hc: HeaderCarrier): String =

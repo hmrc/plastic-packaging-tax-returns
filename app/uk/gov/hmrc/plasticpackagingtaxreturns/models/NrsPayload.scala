@@ -16,11 +16,21 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
 
 class NrsPayload(edgeOfSystem: EdgeOfSystem, payload: Array[Byte]) {
+
+  def createMetaData(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData,
+    userAuthToken: String, submissionTimestamp: ZonedDateTime): NonRepudiationMetadata = {
+    
+    val payloadChecksum = calculatePayloadChecksum()
+    NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData,
+      userAuthToken, payloadChecksum, submissionTimestamp)
+  }
 
   def encodePayload(): String =
     edgeOfSystem.createEncoder
