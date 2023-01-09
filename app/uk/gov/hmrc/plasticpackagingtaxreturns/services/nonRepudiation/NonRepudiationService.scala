@@ -17,11 +17,11 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
 import org.joda.time.LocalDate
-import play.api.Logger
-import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve._
+import play.api.Logging
 import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
+import uk.gov.hmrc.auth.core.retrieve._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalServerException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
@@ -30,11 +30,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityDat
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,9 +39,7 @@ case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
   authConnector: AuthConnector, 
   config: AppConfig
-)(implicit ec: ExecutionContext) extends AuthorisedFunctions {
-
-  private val logger = Logger(this.getClass)
+)(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
 
   def submitNonRepudiation(
     notableEvent: String,
@@ -69,7 +63,7 @@ case class NonRepudiationService @Inject() (
 
   private def retrieveNonRepudiationResponse(nonRepudiationMetadata: NonRepudiationMetadata, encodedPayloadString: String
     ) (implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-    
+
     nonRepudiationConnector
       .submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
       .recoverWith {
