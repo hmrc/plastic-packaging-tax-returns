@@ -98,6 +98,7 @@ final case class AmendReturnValues(
                                     manufacturedPlasticWeight: Long,
                                     importedPlasticWeight: Long,
                                     exportedPlasticWeight: Long,
+                                    exportedByAnotherBusinessPlasticWeight: Long,
                                     humanMedicinesPlasticWeight: Long,
                                     recycledPlasticWeight: Long,
                                     submission: String
@@ -108,7 +109,7 @@ final case class AmendReturnValues(
   override val returnType: ReturnType = ReturnType.AMEND
 
   override def totalExportedPlastic: Long =
-    exportedPlasticWeight
+    exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
 }
 
 object AmendReturnValues {
@@ -124,6 +125,7 @@ object AmendReturnValues {
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
+      exportedByAnotherBusiness <- userAnswers.get(AmendExportedByAnotherBusinessPlasticPackagingGettable).orElse(Some(0L))
       humanMedicines <- userAnswers.get(AmendHumanMedicinePlasticPackagingGettable).orElse(original.map(_.returnDetails.humanMedicines))
       recycled <- userAnswers.get(AmendRecycledPlasticPackagingGettable).orElse(original.map(_.returnDetails.recycledPlastic))
     } yield {
@@ -133,6 +135,7 @@ object AmendReturnValues {
         manufactured,
         imported,
         exported,
+        exportedByAnotherBusiness,
         humanMedicines,
         recycled,
         submissionID

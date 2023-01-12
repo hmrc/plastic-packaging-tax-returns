@@ -48,6 +48,7 @@ object AmendTestHelper {
        |           "amendManufacturedPlasticPackaging" : 100,
        |           "amendImportedPlasticPackaging" : 1,
        |           "amendDirectExportPlasticPackaging" : 2,
+       |           "amendExportedByAnotherBusinessPlasticPackaging": 5,
        |           "amendHumanMedicinePlasticPackaging" : 3,
        |           "amendRecycledPlasticPackaging" : 5
        |        }
@@ -134,4 +135,5 @@ object AmendTestHelper {
        |            }
        |        }
        | }""".stripMargin).asInstanceOf[JsObject]
+
 }

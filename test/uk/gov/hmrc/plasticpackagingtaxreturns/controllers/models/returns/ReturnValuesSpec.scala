@@ -35,7 +35,7 @@ class ReturnValuesSpec extends PlaySpec {
         periodKey = "21C4",
         periodEndDate = LocalDate.now,
         manufacturedPlasticWeight = 100L,
-        importedPlasticWeight = 0,
+        importedPlasticWeight = 1,
         exportedPlasticWeight = 200L,
         exportedByAnotherBusinessPlasticWeight = 100L,
         humanMedicinesPlasticWeight = 10L,
@@ -50,6 +50,12 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe None
     }
+
+    "get total exported plastic" in {
+      val result = NewReturnValues.apply(Credit(10L, 5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
+
+      result.get.totalExportedPlastic mustBe 300
+    }
   }
 
   "AmendReturnValues" should {
@@ -63,6 +69,7 @@ class ReturnValuesSpec extends PlaySpec {
         manufacturedPlasticWeight = 100L,
         importedPlasticWeight = 1L,
         exportedPlasticWeight = 2L,
+        exportedByAnotherBusinessPlasticWeight = 5L,
         humanMedicinesPlasticWeight = 3L,
         recycledPlasticWeight = 5L,
         submission = "submission12"
@@ -78,6 +85,7 @@ class ReturnValuesSpec extends PlaySpec {
         manufacturedPlasticWeight = 255L,
         importedPlasticWeight = 0,
         exportedPlasticWeight = 6L,
+        exportedByAnotherBusinessPlasticWeight = 0L,
         humanMedicinesPlasticWeight = 10L,
         recycledPlasticWeight = 5L,
         submission = "submission12"
@@ -87,6 +95,12 @@ class ReturnValuesSpec extends PlaySpec {
     "return empty when original and amend value not found" in {
 
       AmendReturnValues.apply(UserAnswers("123")) mustBe None
+    }
+
+    "get total exported plastic" in {
+      val result = AmendReturnValues.apply(UserAnswers("123", AmendTestHelper.userAnswersDataAmends))
+
+      result.get.totalExportedPlastic mustBe 7
     }
   }
 }

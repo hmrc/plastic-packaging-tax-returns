@@ -45,7 +45,7 @@ object ReturnTestHelper {
        |            "toDate" : "${LocalDate.now}"
        |        },
        |        "manufacturedPlasticPackagingWeight" : 100,
-       |        "importedPlasticPackagingWeight" : 0,
+       |        "importedPlasticPackagingWeight" : 1,
        |        "exportedPlasticPackagingWeight" : 200,
        |        "anotherBusinessExportWeight" : 100,
        |        "plasticExportedByAnotherBusiness": 100,

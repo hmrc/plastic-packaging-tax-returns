@@ -176,6 +176,10 @@ class ReturnsController @Inject()(
     eisResponse: Return
   )(implicit hc: HeaderCarrier): Future[Result] = {
 
+    //todo: userAnswer here contains the both amendDirectExportPlasticPackaging (exported by you)
+    // and amendExportedByAnotherBusinessPlasticPackaging key, while returnSubmissionRequest contains the sum of these
+    // two (directExports). Should we stored in the NRS a userAnswer with the exported plastic be the sum of exported
+    // by you and by another business?
     val payload = NrsReturnOrAmendSubmission(userAnswers, returnSubmissionRequest)
 
     submitToNrs(nrsEventType, request, payload, eisResponse).map {

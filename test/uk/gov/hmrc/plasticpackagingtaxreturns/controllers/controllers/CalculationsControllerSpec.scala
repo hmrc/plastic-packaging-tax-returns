@@ -157,7 +157,7 @@ class CalculationsControllerSpec
 
       await(sut.calculateAmends(pptReference)(FakeRequest()))
 
-      val expected = AmendReturnValues("21C4", LocalDate.of(2022, 6, 30),100, 1, 2, 3,5, "submission12")
+      val expected = AmendReturnValues("21C4", LocalDate.of(2022, 6, 30),100, 1, 2, 5, 3,5, "submission12")
       verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
     }
   }
