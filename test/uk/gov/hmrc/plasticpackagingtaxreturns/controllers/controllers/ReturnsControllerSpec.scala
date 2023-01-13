@@ -24,7 +24,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.http.Status.{BAD_REQUEST, EXPECTATION_FAILED, NOT_FOUND, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.Json
+import play.api.libs.json._
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, await, contentAsJson, defaultAwaitTimeout, status}
@@ -70,7 +70,7 @@ class ReturnsControllerSpec
     periodKey = "21C4",
     periodEndDate = LocalDate.now,
     manufacturedPlasticWeight = 100,
-    importedPlasticWeight = 0,
+    importedPlasticWeight = 1,
     exportedPlasticWeight = 200,
     exportedByAnotherBusinessPlasticWeight = 100,
     humanMedicinesPlasticWeight = 10,
@@ -85,6 +85,7 @@ class ReturnsControllerSpec
     manufacturedPlasticWeight = 100,
     importedPlasticWeight = 1,
     exportedPlasticWeight = 2,
+    exportedByAnotherBusinessPlasticWeight = 5,
     humanMedicinesPlasticWeight = 3,
     recycledPlasticWeight = 5,
     submission = "submission12"
@@ -96,6 +97,7 @@ class ReturnsControllerSpec
     manufacturedPlasticWeight = 255,
     importedPlasticWeight = 0,
     exportedPlasticWeight = 6,
+    exportedByAnotherBusinessPlasticWeight = 0L,
     humanMedicinesPlasticWeight = 10,
     recycledPlasticWeight = 5,
     submission = "submission12"
@@ -284,10 +286,10 @@ class ReturnsControllerSpec
       )
 
       status(result) mustBe OK
-      val returnDetails = EisReturnDetails(100, 0, 1, 10, 300, 5, 0.00, 1, 1)
-      val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(ReturnType.NEW, None, "21C4", returnDetails, None)
-
-      verify(mockReturnsConnector).submitReturn(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(eisRequest), any)(any)
+      verify(mockReturnsConnector).submitReturn(
+        ArgumentMatchers.eq(pptReference),
+        ArgumentMatchers.eq(expectedSubmissionRequestForReturns),
+        any)(any)
     }
   }
 
@@ -316,6 +318,7 @@ class ReturnsControllerSpec
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
+      verify(mockReturnsConnector).submitReturn(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(expectedSubmissionRequestForAmend), any)(any)
       verifySubmitNonRepudiation(createNrsPayload(expectedAmendReturnValues, userAnswersAmends))
 
       withClue("delete a return after successful amend") {
@@ -431,4 +434,15 @@ class ReturnsControllerSpec
     )
     when(mockPptCalculationService.calculate(any)).thenReturn(calculations)
   }
+
+  private def expectedSubmissionRequestForAmend = {
+    val iesDetails = EisReturnDetails(100, 1, 1, 3, 7, 5, 0.00, 1, 1)
+    ReturnsSubmissionRequest(ReturnType.AMEND, Some("submission12"), "21C4", iesDetails, None)
+  }
+
+  private def expectedSubmissionRequestForReturns = {
+    val returnDetails = EisReturnDetails(100, 1, 1, 10, 300, 5, 0.00, 1, 1)
+    ReturnsSubmissionRequest(ReturnType.NEW, None, "21C4", returnDetails, None)
+  }
+
 }

@@ -137,7 +137,7 @@ class CalculationsItControllerSpec extends PlaySpec with GuiceOneServerPerSuite 
         val result = await(wsClient.url(returnUrl).get)
 
         Json.parse(result.body) mustBe Json.parse(
-          """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":100,"totalRequestCreditInPounds":0,"isSubmittable":false}"""
+          """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":101,"totalRequestCreditInPounds":0,"isSubmittable":false}"""
         )
       }
 
@@ -213,9 +213,9 @@ class CalculationsItControllerSpec extends PlaySpec with GuiceOneServerPerSuite 
       | "isSubmittable":true
       | },
       | "amend":{
-      |   "taxDue":18.2,
-      |   "chargeableTotal":91,
-      |   "deductionsTotal":10,
+      |   "taxDue":17.2,
+      |   "chargeableTotal":86,
+      |   "deductionsTotal":15,
       |   "packagingTotal":101,
       |   "totalRequestCreditInPounds":0,
       |   "isSubmittable":true
