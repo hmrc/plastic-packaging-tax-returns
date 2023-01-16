@@ -54,7 +54,7 @@ case class NonRepudiationService @Inject() (
     for {
       identityData <- retrieveIdentityData()
       userAuthToken = retrieveUserAuthToken(headerCarrier)
-      nonRepudiationMetadata = nrsPayload.createMetaData(notableEvent, pptReference, userHeaders, identityData, 
+      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent, pptReference, userHeaders, identityData, 
         userAuthToken, submissionTimestamp)
       encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)

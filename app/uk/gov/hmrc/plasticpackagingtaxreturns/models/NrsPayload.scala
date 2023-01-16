@@ -24,7 +24,7 @@ import java.time.ZonedDateTime
 
 class NrsPayload(edgeOfSystem: EdgeOfSystem, payload: Array[Byte]) {
 
-  def createMetaData(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData,
+  def createMetadata(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData,
     userAuthToken: String, submissionTimestamp: ZonedDateTime): NonRepudiationMetadata = {
     
     val payloadChecksum = calculatePayloadChecksum()
