@@ -34,45 +34,36 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
   val sut = new ChangeGroupLeadService()
 
-  "change" must {
+  "createSubscriptionUpdateRequest" must {
 
-    "attempt to remove the current Rep from the members list" when {
-      "it is there" in {
-        val sub = createSubscription(
-          defaultMember,
-          createMember("Hooks Pirates Ltd").copy(relationship = "Representative")
-        )
-
-        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
-
-        result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
-        result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
-      }
-
-      "it is not there" in {
-        val sub = createSubscription(defaultMember)
-
-        val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
-
-        result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.relationship == "Representative") mustBe None
-        result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
-      }
-    }
-
-    "put the old representative member in to the members list as just a standard member" in {
+    "convert the new representative member in the members list to have a relationship of 'Representative'" in {
       val sub = createSubscription(defaultMember)
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) mustBe List("original-rep-organisationName")
+      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName").get
+      member.relationship mustBe "Representative"
     }
 
-    "remove the New Representative member from the normal members list" in {
+    "put the original representative member in to the members list as just a standard member" in {
       val sub = createSubscription(defaultMember)
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName") mustBe None
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) must contain("original-rep-organisationName")
+      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "original-rep-organisationName").get
+      member.relationship mustBe "Member"
+    }
+
+    "return only one representative member in the members list" in {
+      val sub = createSubscription(defaultMember, createMember("Tinkerbell"))
+
+      val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
+
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.count(_.relationship == "Representative") mustBe 1
+      withClue("members list should contain all members including representative") {
+        result.groupPartnershipSubscription.get.groupPartnershipDetails.size mustBe 3
+      }
     }
 
     "fill all the details of the representative member with the selected member details and user answers" in {
@@ -238,12 +229,14 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         GroupPartnershipSubscription(
           representativeControl = Some(true),
           allMembersControl = Some(true),
-          groupPartnershipDetails = members.toList
+          groupPartnershipDetails = originalRepMember :: members.toList
         )
       ),
       processingDate = LocalDate.now.toString,
       changeOfCircumstanceDetails = None
     )
+
+  def originalRepMember = createMember("original-rep", "Representative")
   def defaultMember: GroupPartnershipDetails = createMember("Lost Boys Ltd")
 
   def createMember(member: String, relationship: String = "Member"): GroupPartnershipDetails =
