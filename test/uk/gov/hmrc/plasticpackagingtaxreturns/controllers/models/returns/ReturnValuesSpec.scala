@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
@@ -55,6 +56,24 @@ class ReturnValuesSpec extends PlaySpec {
       val result = NewReturnValues.apply(Credit(10L, 5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
 
       result.get.totalExportedPlastic mustBe 300
+    }
+    "return exportedByAnotherBusiness value of zero if missing" in {
+      val ans = UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson - "anotherBusinessExportWeight")
+
+      val result = NewReturnValues.apply(Credit(10L, 5), 10)(ans)
+
+      result mustBe Some(NewReturnValues(
+        periodKey = "21C4",
+        periodEndDate = LocalDate.now,
+        manufacturedPlasticWeight = 100L,
+        importedPlasticWeight = 1,
+        exportedPlasticWeight = 200L,
+        exportedByAnotherBusinessPlasticWeight = 0L,
+        humanMedicinesPlasticWeight = 10L,
+        recycledPlasticWeight = 5L,
+        convertedPackagingCredit = 5,
+        availableCredit = 10
+      ))
     }
   }
 
