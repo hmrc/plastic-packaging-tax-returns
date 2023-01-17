@@ -170,7 +170,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
-      .setUnsafe(ChooseNewGroupLeadGettable, "Lost Boys Ltd-organisationName")
+      .setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName"))
       .setUnsafe(MainContactNameGettable, "Peter Pan")
       .setUnsafe(MainContactJobTitleGettable, "Lost Boy")
       .setUnsafe(NewGroupLeadEnterContactAddressGettable,

@@ -42,7 +42,7 @@ class ChangeGroupLeadService {
       .groupPartnershipDetails
       .filterNot(_.relationship == "Representative")
 
-    val newRepOrganisationName = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
+    val newRepOrganisationName = userAnswers.getOrFail(ChooseNewGroupLeadGettable).organisationName
     val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
     val newRepContactJobTitle = userAnswers.getOrFail(MainContactJobTitleGettable)
     val newRepContactAddress = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)

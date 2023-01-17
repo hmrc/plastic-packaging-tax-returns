@@ -16,10 +16,14 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead
 
-import play.api.libs.json.JsPath
+import play.api.libs.json.{Format, JsPath, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-object ChooseNewGroupLeadGettable extends Gettable[String] {
+case class Member(organisationName: String)  //Todo: should this live elsewhere?
+object Member {
+  implicit val formats: Format[Member] = Json.format[Member]
+}
+object ChooseNewGroupLeadGettable extends Gettable[Member] {
   override def path: JsPath = JsPath \ "changeGroupLead" \ toString
 
   override def toString: String = "chooseNewGroupLead"
