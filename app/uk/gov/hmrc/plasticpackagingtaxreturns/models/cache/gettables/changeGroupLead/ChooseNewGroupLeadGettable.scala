@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGrou
 import play.api.libs.json.{Format, JsPath, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case class Member(organisationName: String)  //Todo: should this live elsewhere?
+case class Member(organisationName: String, crn: String)  //Todo: should this live elsewhere?
 object Member {
   implicit val formats: Format[Member] = Json.format[Member]
 }

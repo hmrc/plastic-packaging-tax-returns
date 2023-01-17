@@ -42,18 +42,19 @@ class ChangeGroupLeadService {
       .groupPartnershipDetails
       .filterNot(_.relationship == "Representative")
 
-    val newRepOrganisationName = userAnswers.getOrFail(ChooseNewGroupLeadGettable).organisationName
+    val newRepOrganisation = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
     val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
     val newRepContactJobTitle = userAnswers.getOrFail(MainContactJobTitleGettable)
     val newRepContactAddress = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)
 
     val newRepOriginalMemberDetails = members
-      .find(_.organisationDetails.exists(_.organisationName == newRepOrganisationName))
+      .find(member => member.organisationDetails.exists(_.organisationName == newRepOrganisation.organisationName)
+        && member.customerIdentification1 == newRepOrganisation.crn)
       .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
 
     val otherMembers = members.map{ member =>
       val memberDetails = member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
-      if(memberDetails.organisationName == newRepOrganisationName)
+      if(memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn)
         member.copy(relationship = "Representative")
       else
         member

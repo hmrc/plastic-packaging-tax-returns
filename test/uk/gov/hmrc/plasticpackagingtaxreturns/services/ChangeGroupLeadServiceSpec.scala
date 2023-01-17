@@ -131,6 +131,25 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
       }
 
+      "Selected New Representative member's name doesn't match anyone in members list" in {
+        val sub = createSubscription(defaultMember)
+
+        val userAnswers = defaultUserAnswers.setUnsafe(ChooseNewGroupLeadGettable, Member("unmatchable", "Lost Boys Ltd-customerIdentification1"))
+
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
+        ex.getMessage mustBe "Selected New Representative member is not part of the group"
+      }
+
+      "Selected New Representative member's crn doesn't match anyone in members list" in {
+        val sub = createSubscription(defaultMember)
+
+        val userAnswers = defaultUserAnswers.setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "unmatchable"))
+
+
+        val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
+        ex.getMessage mustBe "Selected New Representative member is not part of the group"
+      }
+
       "member of group missing organisation" in {
         val brokenMember = createMember("broken").copy(organisationDetails = None)
 
@@ -170,7 +189,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
-      .setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName"))
+      .setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "Lost Boys Ltd-customerIdentification1"))
       .setUnsafe(MainContactNameGettable, "Peter Pan")
       .setUnsafe(MainContactJobTitleGettable, "Lost Boy")
       .setUnsafe(NewGroupLeadEnterContactAddressGettable,
