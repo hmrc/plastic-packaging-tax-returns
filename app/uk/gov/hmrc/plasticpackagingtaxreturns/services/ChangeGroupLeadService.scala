@@ -34,13 +34,13 @@ class ChangeGroupLeadService {
   
   def createSubscriptionUpdateRequest(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers): SubscriptionUpdateRequest = {
 
-    val oldRepresentativeAsStandardMember = createMemberFromPreviousRepresentative(subscription)
+    val oldRepresentativeAsStandardMember: GroupPartnershipDetails = createMemberFromPreviousRepresentative(subscription)
 
     val members = subscription
       .groupPartnershipSubscription
       .getOrElse(throw new IllegalStateException("Change group lead not a group"))
       .groupPartnershipDetails
-      .filterNot(_.relationship == "Representative") // data cleanse as registration has added Representative member to the member list
+      .filterNot(_.relationship == "Representative")
 
     val newRepOrganisationName = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
     val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
@@ -51,10 +51,13 @@ class ChangeGroupLeadService {
       .find(_.organisationDetails.exists(_.organisationName == newRepOrganisationName))
       .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
 
-    val otherMembers = members.filterNot(
-        _.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
-          .organisationName == newRepOrganisationName
-        )
+    val otherMembers = members.map{ member =>
+      val memberDetails = member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
+      if(memberDetails.organisationName == newRepOrganisationName)
+        member.copy(relationship = "Representative")
+      else
+        member
+    }
 
     val newMembersList = oldRepresentativeAsStandardMember :: otherMembers
 
