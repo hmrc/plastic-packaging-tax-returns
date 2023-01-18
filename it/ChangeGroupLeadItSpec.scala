@@ -196,7 +196,11 @@ class ChangeGroupLeadItSpec extends PlaySpec
       |  "isFirstReturn":false,
       |  "changeGroupLead":
       |  {
-      |    "chooseNewGroupLead": "${ukLimitedCompanyGroupMember.organisationDetails.get.organisationName}",
+      |    "chooseNewGroupLead":
+      |    {
+      |     "organisationName": "${ukLimitedCompanyGroupMember.organisationDetails.get.organisationName}",
+      |     "crn" : "${ukLimitedCompanyGroupMember.customerIdentification1}"
+      |    },
       |    "newGroupLeadEnterContactAddress":
       |    {
       |      "addressLine1":"47 Whittingham Road",
