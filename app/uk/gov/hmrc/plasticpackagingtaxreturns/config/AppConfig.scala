@@ -25,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
 
 @Singleton
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
-
+  
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
   lazy val desHost: String = servicesConfig.baseUrl("des")
   lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
@@ -80,4 +80,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     config.getOptional[Boolean]("features.suppress-obligation-date-check")
       .getOrElse(false)
   }
+
+  val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
+
 }
