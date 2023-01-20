@@ -72,7 +72,7 @@ object NewReturnValues {
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
-      exportedByAnotherBusiness <- userAnswers.get(AnotherBusinessExportWeightGettable)
+      exportedByAnotherBusiness <- userAnswers.get(AnotherBusinessExportWeightGettable).orElse(Some(0L))
       humanMedicines <- userAnswers.get(NonExportedHumanMedicinesPlasticPackagingWeightGettable)
       recycled <- userAnswers.get(NonExportedRecycledPlasticPackagingWeightGettable)
     } yield {
