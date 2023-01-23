@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import play.api.Logger
+import play.api.{Logger, Logging}
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -33,11 +33,13 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics, auditConnector: AuditConnector)(implicit
-  ec: ExecutionContext
-) extends EISConnector {
+class ReturnsConnector @Inject() (
+  httpClient: HttpClient, 
+  override val appConfig: AppConfig, 
+  metrics: Metrics, 
+  auditConnector: AuditConnector
+) (implicit ec: ExecutionContext ) extends EISConnector with Logging {
 
-  private val logger  = Logger(this.getClass)
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
 
@@ -104,13 +106,14 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
     val requestHeaders                        = headers :+ correlationIdHeader
 
     httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
-      .andThen { case _ => timer.stop() }
+      .andThen { case _ => stopTheTimer(timer) }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
 
         if (response.status == OK) {
 
           auditConnector.sendExplicitAudit(GetReturn.eventType,
+            
             GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None))
 
           Right(response.json)
@@ -136,6 +139,10 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
           Left(INTERNAL_SERVER_ERROR)
 
       }
+  }
+
+  private def stopTheTimer(timer: Timer.Context) = {
+    timer.stop()
   }
 
   private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {
