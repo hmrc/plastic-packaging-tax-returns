@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
@@ -70,6 +70,16 @@ class ReturnsConnector @Inject() (httpClient: HttpClient, override val appConfig
 
       }
       .recover {
+        case httpEx: UpstreamErrorResponse if httpEx.statusCode == UNPROCESSABLE_ENTITY =>
+          logger.warn(
+            s"Return already submitted with correlationId [${correlationIdHeader._2}], " +
+              s"pptReference [$pptReference], and submissionId [${request.submissionId}, status: ${httpEx.statusCode}"
+          )
+
+          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(httpEx.getMessage)))
+
+          Left(UNPROCESSABLE_ENTITY)
         case httpEx: UpstreamErrorResponse =>
           logger.warn(
             s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
