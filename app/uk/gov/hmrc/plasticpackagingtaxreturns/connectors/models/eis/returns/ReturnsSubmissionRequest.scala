@@ -49,7 +49,7 @@ object EisReturnDetails {
       importedWeight = returnValues.importedPlasticWeight,
       totalNotLiable = calculations.deductionsTotal,
       humanMedicines = returnValues.humanMedicinesPlasticWeight,
-      directExports = returnValues.exportedPlasticWeight,
+      directExports = returnValues.totalExportedPlastic,
       recycledPlastic =  returnValues.recycledPlasticWeight,
       creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
       totalWeight = calculations.chargeableTotal,

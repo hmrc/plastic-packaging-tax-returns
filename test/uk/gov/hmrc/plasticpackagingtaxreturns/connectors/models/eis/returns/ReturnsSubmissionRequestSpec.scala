@@ -38,6 +38,7 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
           importedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 3,
           exportedPlasticWeight = 4,
+          exportedByAnotherBusinessPlasticWeight = 0,
           recycledPlasticWeight = 5,
           convertedPackagingCredit = 11,
           availableCredit = 12

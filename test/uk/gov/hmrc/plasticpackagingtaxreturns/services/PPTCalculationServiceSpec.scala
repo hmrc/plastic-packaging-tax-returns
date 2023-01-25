@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
+import org.mockito.Answers
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
@@ -32,7 +33,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   private val mockConversionService = mock[WeightToPoundsConversionService]
   private val mockCalculationService = mock[CreditsCalculationService]
 
-  val calculationService: PPTCalculationService = new PPTCalculationService(mockCalculationService, mockConversionService)
+  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -40,7 +41,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
   }
 
-  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0)
+  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0, 0)
 
 
   "calculate" must {
@@ -90,6 +91,13 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       "has an exported amount" in {
         val taxReturn = allZeroReturn.copy(exportedPlasticWeight = 10)
         val expected = 10L
+
+        calculationService.calculate(taxReturn).deductionsTotal mustBe expected
+      }
+
+      "has an exported by another business amount" in {
+        val taxReturn = allZeroReturn.copy(exportedByAnotherBusinessPlasticWeight = 10, exportedPlasticWeight = 10)
+        val expected = 20L
 
         calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
@@ -231,6 +239,19 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
         }
       }
+    }
+  }
+
+  "calculateAmendReturn" must {
+
+    "calculate total exported plastic" in {
+      val taxReturn = mock[NewReturnValues](Answers.RETURNS_DEEP_STUBS)
+      when(taxReturn.availableCredit).thenReturn(0)
+      when(taxReturn.convertedPackagingCredit).thenReturn(0)
+
+      calculationService.calculate(taxReturn)
+
+      verify(taxReturn).totalExportedPlastic
     }
   }
 
