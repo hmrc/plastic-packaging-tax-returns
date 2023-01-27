@@ -71,8 +71,8 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
 
   val taxRegimeStartDate: LocalDate = LocalDate.of(2022, 4, 1)
-  val taxRateBefore1stApril2022: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
-  val taxRateFrom1stApril2022: BigDecimal = BigDecimal(config.get[String]("taxRatePoundsPerKg"))
+  val taxRateBefore1stApril2022: Double = config.get[Double]("taxRatePoundsPerKg")
+  val taxRateFrom1stApril2022: Double = config.get[Double]("taxRatePoundsPerKg")
 
   // TODO change config setting name? (Might be more agro than worth it)
   // Used in QA testing to allow open returns that aren't yet due to be filed anyway
