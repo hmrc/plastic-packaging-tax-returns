@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import play.api.{Logger, Logging}
+import play.api.Logging
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -26,6 +26,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorR
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.util.UUID
@@ -37,7 +38,8 @@ class ReturnsConnector @Inject() (
   httpClient: HttpClient, 
   override val appConfig: AppConfig, 
   metrics: Metrics, 
-  auditConnector: AuditConnector
+  auditConnector: AuditConnector,
+  edgeOfSystem: EdgeOfSystem
 ) (implicit ec: ExecutionContext ) extends EISConnector with Logging {
 
   val SUCCESS: String = "Success"
@@ -47,11 +49,9 @@ class ReturnsConnector @Inject() (
     hc: HeaderCarrier
   ): Future[Either[Int, Return]] = {
     val timer                = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
-    val correlationIdHeader  = correlationIdHeaderName -> UUID.randomUUID().toString
+    val correlationIdHeader  = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     val requestHeaders       = headers :+ correlationIdHeader
-
-    logger.info(s"Submitting PPT return via $returnsSubmissionUrl")
 
     httpClient.PUT[ReturnsSubmissionRequest, Return](url = returnsSubmissionUrl,
                                                      headers = requestHeaders,
@@ -106,7 +106,7 @@ class ReturnsConnector @Inject() (
     val requestHeaders                        = headers :+ correlationIdHeader
 
     httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
-      .andThen { case _ => stopTheTimer(timer) }
+      .andThen { case _ => timer.stop() }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
 
@@ -139,10 +139,6 @@ class ReturnsConnector @Inject() (
           Left(INTERNAL_SERVER_ERROR)
 
       }
-  }
-
-  private def stopTheTimer(timer: Timer.Context) = {
-    timer.stop()
   }
 
   private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {

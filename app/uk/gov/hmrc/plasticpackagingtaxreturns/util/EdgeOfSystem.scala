@@ -17,10 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import java.security.MessageDigest
-import java.util.Base64
+import java.util.{Base64, UUID}
 
 class EdgeOfSystem {
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
-
+  def createUuid: UUID = UUID.randomUUID()
 }
