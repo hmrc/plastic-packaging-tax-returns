@@ -143,41 +143,5 @@ object AmendReturnValues {
     }
   }
 
-}
-
-final case class OriginalReturnForAmendValues(
-                                               periodKey: String,
-                                               periodEndDate: LocalDate,
-                                               manufacturedPlasticWeight: Long,
-                                               importedPlasticWeight: Long,
-                                               exportedPlasticWeight: Long,
-                                               humanMedicinesPlasticWeight: Long,
-                                               recycledPlasticWeight: Long,
-                                               submission: String
-                                             ) extends ReturnValues {
-  val convertedPackagingCredit: BigDecimal = 0
-  val availableCredit: BigDecimal = 0
-  override val submissionId: Option[String] = Some(submission)
-  override val returnType: ReturnType = ReturnType.AMEND
-
-  override def totalExportedPlastic: Long = exportedPlasticWeight
-}
-
-object OriginalReturnForAmendValues {
-
-  def apply(userAnswers: UserAnswers): Option[OriginalReturnForAmendValues] = {
-    userAnswers.get(ReturnDisplayApiGettable).map(original =>
-      new OriginalReturnForAmendValues(
-        userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey"),
-        userAnswers.getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate"),
-        original.returnDetails.manufacturedWeight,
-        original.returnDetails.importedWeight,
-        original.returnDetails.directExports,
-        original.returnDetails.humanMedicines,
-        original.returnDetails.recycledPlastic,
-        original.idDetails.submissionId
-      )
-    )
-  }
 
 }

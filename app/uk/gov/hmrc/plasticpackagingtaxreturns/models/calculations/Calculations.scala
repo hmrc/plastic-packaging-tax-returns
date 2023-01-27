@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations
 
 import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApi
 
 case class AmendsCalculations(
                                original: Calculations,
@@ -31,9 +32,19 @@ case class Calculations(taxDue: BigDecimal,
                         chargeableTotal: Long,
                         deductionsTotal: Long,
                         packagingTotal: Long,
-                        totalRequestCreditInPounds: BigDecimal,
+                        totalRequestCreditInPounds: BigDecimal, //todo: should this be optional?
                         isSubmittable: Boolean)
 
 object Calculations {
   implicit val format: OFormat[Calculations] = Json.format[Calculations]
+
+  def fromReturn(returnDisplayApi: ReturnDisplayApi): Calculations =
+    new Calculations(
+      returnDisplayApi.returnDetails.taxDue,
+      returnDisplayApi.returnDetails.totalWeight,
+      returnDisplayApi.returnDetails.totalNotLiable,
+      returnDisplayApi.returnDetails.manufacturedWeight + returnDisplayApi.returnDetails.importedWeight,
+      0,
+      true
+    )
 }

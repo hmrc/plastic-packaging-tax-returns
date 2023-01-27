@@ -32,7 +32,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, OriginalReturnForAmendValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
@@ -122,30 +122,18 @@ class CalculationsControllerSpec
   "calculateAmends" should {
     "return OK response and the calculation" in {
 
-      val originalCal = Calculations(1,0,0,10,20, true)
+      val originalReturnAsCalc = Calculations(44,220,0,250,0, true)
+
+      val amendCalc = Calculations(2, 3, 4, 5, 6, false)
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
-      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
+      when(pptCalculationService.calculate(any)).thenReturn(amendCalc)
 
       val result = sut.calculateAmends(pptReference)(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe toJson(AmendsCalculations(originalCal, originalCal))
-    }
-
-    "calculate original return" in {
-      val originalCal = Calculations(1,0,0,10,20, true)
-      val ans = UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)
-
-      when(sessionRepository.get(any[String]))
-        .thenReturn(Future.successful(Some(ans)))
-      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
-
-      await(sut.calculateAmends(pptReference)(FakeRequest()))
-
-      val expected = OriginalReturnForAmendValues(periodKey = "21C4", LocalDate.of(2022, 6, 30), 250, 0, 0, 10,5, "submission12")
-      verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
+      contentAsJson(result) mustBe toJson(AmendsCalculations(originalReturnAsCalc, amendCalc))
     }
 
     "calculate amend return" in {
