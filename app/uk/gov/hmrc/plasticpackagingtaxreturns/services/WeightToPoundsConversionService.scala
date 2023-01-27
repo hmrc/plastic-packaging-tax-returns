@@ -18,22 +18,21 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 
 import com.google.inject.Inject
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
 
+/*
+  Policy have advised that Rounding must always happen in favor of the customer.
+  When Calculating a credit (money given to the customer) round up.
+  When calculating a debit (money taken from the customer) round down.
+
+  While the tax rate conversion is currently 0.2 this rounding does not take affect,
+   however if it were ever more than 2 d.p. this would make a difference so it is
+   important to use the correct conversion method
+ */
+
 class WeightToPoundsConversionService @Inject()(taxRateService: TaxRateService) {
-
-  /*
-    Policy have advised that Rounding must always happen in favor of the customer.
-    When Calculating a credit (money given to the customer) round up.
-    When calculating a debit (money taken from the customer) round down.
-
-    While the tax rate conversion is currently 0.2 this rounding does not take affect,
-     however if it were ever more than 2 d.p. this would make a difference so it is
-     important to use the correct conversion method
-   */
 
   /**
    * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the

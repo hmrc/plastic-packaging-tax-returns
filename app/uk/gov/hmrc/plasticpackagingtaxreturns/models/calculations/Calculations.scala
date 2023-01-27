@@ -32,7 +32,6 @@ case class Calculations(taxDue: BigDecimal,
                         chargeableTotal: Long,
                         deductionsTotal: Long,
                         packagingTotal: Long,
-                        totalRequestCreditInPounds: BigDecimal, //todo: should this be optional? Or is it even needed?
                         isSubmittable: Boolean,
                         taxRate: Double
                        )
@@ -46,7 +45,6 @@ object Calculations {
       returnDisplayApi.returnDetails.totalWeight,
       returnDisplayApi.returnDetails.totalNotLiable,
       returnDisplayApi.returnDetails.manufacturedWeight + returnDisplayApi.returnDetails.importedWeight,
-      0,
       true,
       taxRate
     )

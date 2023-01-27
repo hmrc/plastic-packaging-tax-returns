@@ -73,9 +73,9 @@ class PPTCalculationService @Inject()(
       chargeableTotal,
       deductionsTotal,
       packagingTotal,
-      convertedPackagingCredit,
       isSubmittable,
-      taxRate)
+      taxRate
+    )
   }
 
 

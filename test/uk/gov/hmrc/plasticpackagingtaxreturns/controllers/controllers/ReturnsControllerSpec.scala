@@ -64,7 +64,7 @@ class ReturnsControllerSpec
   private val userAnswersAmends: UserAnswers         = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
   private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
   private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
-  private val calculations: Calculations = Calculations(1, 1, 1, 1, 0,true)
+  private val calculations: Calculations = Calculations(1, 1, 1, 1,true,0.123)
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
