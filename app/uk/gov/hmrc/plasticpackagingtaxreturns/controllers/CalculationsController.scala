@@ -20,12 +20,13 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +38,8 @@ class CalculationsController @Inject()(
                                         override val controllerComponents: ControllerComponents,
                                         calculationsService: PPTCalculationService,
                                         creditsService: CreditsCalculationService,
-                                        availableCreditService: AvailableCreditService
+                                        availableCreditService: AvailableCreditService,
+                                        taxRateService: TaxRateService
                                       )(implicit executionContext: ExecutionContext)
   extends BackendBaseController with Logging {
 
@@ -47,7 +49,7 @@ class CalculationsController @Inject()(
         sessionRepository.get(request.cacheKey).map { optUa => {
           val userAnswers = optUa.get
           val amend = AmendReturnValues(userAnswers).get
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable))
+          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), taxRateService.lookupTaxRateForPeriod(amend.periodEndDate))
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

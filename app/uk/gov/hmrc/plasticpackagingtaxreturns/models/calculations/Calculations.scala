@@ -32,19 +32,22 @@ case class Calculations(taxDue: BigDecimal,
                         chargeableTotal: Long,
                         deductionsTotal: Long,
                         packagingTotal: Long,
-                        totalRequestCreditInPounds: BigDecimal, //todo: should this be optional?
-                        isSubmittable: Boolean)
+                        totalRequestCreditInPounds: BigDecimal, //todo: should this be optional? Or is it even needed?
+                        isSubmittable: Boolean,
+                        taxRate: Double
+                       )
 
 object Calculations {
   implicit val format: OFormat[Calculations] = Json.format[Calculations]
 
-  def fromReturn(returnDisplayApi: ReturnDisplayApi): Calculations =
+  def fromReturn(returnDisplayApi: ReturnDisplayApi, taxRate: Double): Calculations =
     new Calculations(
       returnDisplayApi.returnDetails.taxDue,
       returnDisplayApi.returnDetails.totalWeight,
       returnDisplayApi.returnDetails.totalNotLiable,
       returnDisplayApi.returnDetails.manufacturedWeight + returnDisplayApi.returnDetails.importedWeight,
       0,
-      true
+      true,
+      taxRate
     )
 }
