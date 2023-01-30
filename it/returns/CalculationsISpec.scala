@@ -43,9 +43,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
 
-  implicit val ec: ExecutionContext          = ExecutionContext.Implicits.global
   implicit lazy val server: WiremockItServer = WiremockItServer()
-  private val httpClient: DefaultHttpClient  = app.injector.instanceOf[DefaultHttpClient]
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository         = mock[SessionRepository]
   private val returnUrl = s"http://localhost:$port/returns-calculate/$pptReference"
