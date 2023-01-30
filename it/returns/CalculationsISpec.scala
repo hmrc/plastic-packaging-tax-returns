@@ -41,7 +41,7 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CalculationsItControllerSpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
+class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
 
   implicit val ec: ExecutionContext          = ExecutionContext.Implicits.global
   implicit lazy val server: WiremockItServer = WiremockItServer()
@@ -136,8 +136,8 @@ class CalculationsItControllerSpec extends PlaySpec with GuiceOneServerPerSuite 
 
         val result = await(wsClient.url(returnUrl).get)
 
-        Json.parse(result.body) mustBe Json.parse(
-          """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":101,"totalRequestCreditInPounds":0,"isSubmittable":false}"""
+        result.json mustBe Json.parse(
+          """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":101,"isSubmittable":false, "taxRate":0.2}"""
         )
       }
 
@@ -205,20 +205,20 @@ class CalculationsItControllerSpec extends PlaySpec with GuiceOneServerPerSuite 
 
   private def expectedAmend = Json.parse(
     """{"original":{
-      | "taxDue":47,
-      | "chargeableTotal":235,
-      | "deductionsTotal":15,
+      | "taxDue":44,
+      | "chargeableTotal":220,
+      | "deductionsTotal":0,
       | "packagingTotal":250,
-      | "totalRequestCreditInPounds":0,
-      | "isSubmittable":true
+      | "isSubmittable":true,
+      | "taxRate":0.2
       | },
       | "amend":{
       |   "taxDue":17.2,
       |   "chargeableTotal":86,
       |   "deductionsTotal":15,
       |   "packagingTotal":101,
-      |   "totalRequestCreditInPounds":0,
-      |   "isSubmittable":true
+      |   "isSubmittable":true,
+      |   "taxRate":0.2
       | }
       |}""".stripMargin
   )
