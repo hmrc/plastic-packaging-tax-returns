@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsObject, JsPath}
+import play.api.libs.json.{JsObject, JsPath, JsValue, Json, Writes}
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
@@ -27,6 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -36,12 +37,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiat
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.format.DateTimeFormatter
-import java.time.{ZoneId, ZonedDateTime}
+import java.time.{LocalDate, ZoneId, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -58,7 +59,8 @@ class ReturnsController @Inject()(
   financialDataService: FinancialDataService,
   financialsService: PPTFinancialsService,
   creditsService: CreditsCalculationService,
-  availableCreditService: AvailableCreditService
+  availableCreditService: AvailableCreditService,
+  taxRateService: TaxRateService
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -70,7 +72,13 @@ class ReturnsController @Inject()(
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
-        case Right(response)       => Ok(response)
+        case Right(displayReturnJson)       => {
+          val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
+          val taxRate = taxRateService.lookupTaxRateForPeriod(endDate)
+
+          val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
+          Ok(returnWithTaxRate)
+        }
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
 
@@ -280,3 +288,15 @@ class ReturnsController @Inject()(
       Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse)))
 
 }
+object ReturnsController {
+
+  case class ReturnWithTaxRate(displayReturnJson: JsValue,
+                               taxRate: Double)
+
+  object ReturnWithTaxRate {
+    implicit val format: Writes[ReturnWithTaxRate] = Json.writes[ReturnWithTaxRate]
+  }
+}
+
+
+
