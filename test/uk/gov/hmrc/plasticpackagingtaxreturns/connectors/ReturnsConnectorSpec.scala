@@ -18,9 +18,10 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.ArgumentMatchersSugar.{any, argMatching, endsWith, eqTo, startsWith}
+import org.mockito.ArgumentMatchersSugar.{any, endsWith, eqTo, startsWith}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
+import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsString}
@@ -34,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -58,9 +60,11 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(httpClient, appConfig, metrics, auditConnector, headerCarrier, timer, shhLogger)
+    reset(httpClient, appConfig, metrics, auditConnector, edgeOfSystem, headerCarrier, timer, shhLogger)
     
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
+    when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
+
     when(httpClient.GET[Any](any, any, any) (any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
     when(httpClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
   }
@@ -85,7 +89,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(timer).stop()
       }
 
-      "submitting a return" ignore {
+      "submitting a return" in {
         callSubmit
         verify(metrics.defaultRegistry).timer(eqTo("ppt.return.create.timer"))
         verify(metrics.defaultRegistry.timer(eqTo("ppt.return.create.timer"))).time()
@@ -96,12 +100,14 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   }
   
   "get" must {
-
+    
     "include a correlation id" in {
       callGet
-      verify(httpClient).GET[HttpResponse](any, any, argMatching {
-        case headers: Seq[(String, String)] if headers.toMap.keySet.contains("CorrelationId") =>
-      }) (any, any, any)
+      verify(edgeOfSystem).createUuid
+      
+      val headers = ArgCaptor[Seq[(String, String)]]
+      verify(httpClient).GET[HttpResponse](any, any, headers) (any, any, any)
+      headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")
     }
     
     "call the correct url" in {
@@ -174,8 +180,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   
   "submit" must {
     
-    "send a put request" ignore {
-      when(edgeOfSystem.createUuid)
+    "send a put request" in {
       when(appConfig.returnsSubmissionUrl(any)) thenReturn "put-url"
       callSubmit
     
@@ -186,9 +191,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("including a correlation id") {
         verify(edgeOfSystem).createUuid
-        verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, any, any) (any, any, any, any)
+        val headers = ArgCaptor[Seq[(String, String)]]
+        verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, any, headers) (any, any, any, any)
+        headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")  
       }
-      
     }
   }
 

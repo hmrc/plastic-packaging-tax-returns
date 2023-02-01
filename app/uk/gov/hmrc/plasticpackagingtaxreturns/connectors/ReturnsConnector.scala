@@ -53,6 +53,7 @@ class ReturnsConnector @Inject() (
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     val requestHeaders       = headers :+ correlationIdHeader
 
+    // todo params are out of order
     httpClient.PUT[ReturnsSubmissionRequest, Return](url = returnsSubmissionUrl,
                                                      headers = requestHeaders,
                                                      body = request
@@ -102,7 +103,7 @@ class ReturnsConnector @Inject() (
 
   def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
     val timer: Timer.Context = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
-    val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
+    val correlationIdHeader: (String, String) = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
     val requestHeaders                        = headers :+ correlationIdHeader
 
     httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
