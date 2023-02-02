@@ -18,7 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.TaxRateService.TaxRatesAndUseFrom
 
 import java.time.LocalDate
 
@@ -34,29 +33,5 @@ class TaxRateService  @Inject()(appConfig: AppConfig) {
       appConfig.taxRateBefore1stApril2022
     else
       appConfig.taxRateFrom1stApril2022
-  }
-
-  // thoughts? //todo not yes in use
-  private def get(localDate: LocalDate): Double =
-    TaxRatesAndUseFrom
-      .filter(_.rateCanApplyTo(localDate))
-      .last //most recent
-      .rate
-
-}
-
-object TaxRateService {
-
-  //this could be read from application conf too if we really want
-  private val TaxRatesAndUseFrom: Seq[TaxRate] = Seq( //something like:
-      TaxRate(0, LocalDate.MIN),
-      TaxRate(0.2, LocalDate.of(2022, 4, 1)),
-      TaxRate(0.5, LocalDate.of(2023, 4, 1))
-    ).sortBy(_.useFromDate)
-
-
-  private case class TaxRate(rate: Double, useFromDate: LocalDate) {
-    def rateCanApplyTo(localDate: LocalDate): Boolean =
-      useFromDate.isBefore(localDate) || useFromDate.isEqual(localDate)
   }
 }
