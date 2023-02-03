@@ -27,7 +27,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsString}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
@@ -55,6 +55,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   }
   private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
   private val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
+  private val putResponse = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -69,7 +70,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
     when(httpClient.GET[Any](any, any, any) (any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
     when(httpClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
-      Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
+      putResponse)
   }
 
   private def callGet = await {
@@ -210,10 +211,21 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
       "2xx response code" in {
         callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
-        verify(auditConnector).sendExplicitAudit(any, any[SubmitReturn])(any, any, any)
+        verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+          "Success", returnSubmission, Some(putResponse), None)))(any, any, any)
+      }
+
+      "4xx response code" in {
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(Upstream4xxResponse("blah", 404, 4))
+        callSubmit mustBe Left(404)
+      }
+
+      "5xx response code" in {
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(Upstream5xxResponse("blab", 500, 3))
+        callSubmit mustBe Left(500)
       }
     }
-
   }
+
 
 }
