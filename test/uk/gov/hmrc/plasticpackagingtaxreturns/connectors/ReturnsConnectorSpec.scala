@@ -218,6 +218,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       "4xx response code" in {
         when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(Upstream4xxResponse("blah", 404, 4))
         callSubmit mustBe Left(404)
+        verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+          "Failure", returnSubmission, None, Some("blah"))))(any, any, any)
       }
 
       "5xx response code" in {
