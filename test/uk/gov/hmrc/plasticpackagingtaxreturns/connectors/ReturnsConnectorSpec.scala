@@ -30,7 +30,7 @@ import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -66,7 +66,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
     when(httpClient.GET[Any](any, any, any) (any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
-    when(httpClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
+    when(httpClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
+      Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
   }
 
   private def callGet = await {
@@ -182,8 +183,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     
     "send a put request" in {
       when(appConfig.returnsSubmissionUrl(any)) thenReturn "put-url"
-      callSubmit
-    
+      callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
+
       withClue("to the correct url") {
         verify(appConfig).returnsSubmissionUrl("ppt-ref")
         verify(httpClient).PUT[ReturnsSubmissionRequest, Return](eqTo("put-url"), any, any) (any, any, any, any)
@@ -193,7 +194,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(edgeOfSystem).createUuid
         val headers = ArgCaptor[Seq[(String, String)]]
         verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, any, headers) (any, any, any, any)
-        headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")  
+        headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")
       }
     }
   }
