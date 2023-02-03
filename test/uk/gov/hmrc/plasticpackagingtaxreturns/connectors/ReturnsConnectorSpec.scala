@@ -53,6 +53,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   private val connector = new ReturnsConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem) {
     protected override val logger: Logger = shhLogger
   }
+  private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  private val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -75,9 +77,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   }
 
   private def callSubmit = await {
-    val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
-    val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
-    connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7") (headerCarrier)
+   connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7") (headerCarrier)
   }
   
   "it" must {
@@ -195,6 +195,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         val headers = ArgCaptor[Seq[(String, String)]]
         verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, any, headers) (any, any, any, any)
         headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")
+      }
+
+      withClue("with correct body") {
+        verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, eqTo(returnSubmission), any) (any, any, any, any)
       }
     }
   }
