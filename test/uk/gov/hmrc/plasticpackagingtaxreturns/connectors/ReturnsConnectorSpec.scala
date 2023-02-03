@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchersSugar.{any, endsWith, eqTo, startsWith}
-import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, never}
 import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
 import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
@@ -183,7 +183,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     
     "send a put request" in {
       when(appConfig.returnsSubmissionUrl(any)) thenReturn "put-url"
-      callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
+      callSubmit
 
       withClue("to the correct url") {
         verify(appConfig).returnsSubmissionUrl("ppt-ref")
@@ -201,6 +201,19 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, eqTo(returnSubmission), any) (any, any, any, any)
       }
     }
+
+    "handle responses" when {
+
+      "shouldn't log info when everything is alright" ignore { //todo: should logger be removed?
+        callSubmit
+        verify(shhLogger, never).info(any)(any)
+      }
+      "2xx response code" in {
+        callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
+        verify(auditConnector).sendExplicitAudit(any, any[SubmitReturn])(any, any, any)
+      }
+    }
+
   }
 
 }
