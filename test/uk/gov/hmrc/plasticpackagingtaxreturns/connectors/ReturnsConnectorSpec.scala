@@ -29,13 +29,12 @@ import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import play.api.{Logger, Logging}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, PurplePrint}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.util.UUID
@@ -51,18 +50,22 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   private val edgeOfSystem = mock[EdgeOfSystem]
   private val headerCarrier = mock[HeaderCarrier]
   private val timer = mock[Timer.Context]
-  private val shhLogger = mock[Logger]
+  private val testLogger = mock[Logger]
   
   private val connector = new ReturnsConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem) {
-    protected override val logger: Logger = shhLogger
+    protected override val logger: Logger = testLogger
   }
   private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
   private val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
   private val putResponse = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
   private val putResponseToJson = HttpResponse(200,
     """{
-      |"processingDate":"date",
-      |"idDetails":{"pptReferenceNumber":"details-ref-no","submissionId":"submission-id"}}""".stripMargin)
+      |   "processingDate" : "date",
+      |   "idDetails" : {
+      |     "pptReferenceNumber" : "details-ref-no",
+      |     "submissionId" : "submission-id"
+      |   }
+      |   }""".stripMargin)
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -70,7 +73,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(httpClient, appConfig, metrics, auditConnector, edgeOfSystem, headerCarrier, timer, shhLogger)
+    reset(httpClient, appConfig, metrics, auditConnector, edgeOfSystem, headerCarrier, timer, testLogger)
     
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
@@ -139,8 +142,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
         
         withClue("logs the failure") {
-          verify(shhLogger).warn(startsWith("Return Display API call for correlationId")) (any)
-          verify(shhLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412")) (any)
+          verify(testLogger).warn(startsWith("Return Display API call for correlationId")) (any)
+          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412")) (any)
         }
       }
       
@@ -155,8 +158,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
 
         withClue("logs the success") {
-          verify(shhLogger).warn(startsWith("Return Display API call for correlationId"))(any)
-          verify(shhLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 200"))(any)
+          verify(testLogger).warn(startsWith("Return Display API call for correlationId"))(any)
+          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 200"))(any)
         }
       }
       
@@ -172,8 +175,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
 
         withClue("logs the failure") {
-          verify(shhLogger).warn(startsWith("Return Display API call for correlationId"), eqTo(anException)) (any)
-          verify(shhLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: exception: went wrong"), any) (any)
+          verify(testLogger).warn(startsWith("Return Display API call for correlationId"), eqTo(anException)) (any)
+          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: exception: went wrong"), any) (any)
         }
       }
       
@@ -214,7 +217,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "shouldn't log info when everything is alright" in {
         callSubmit
-        verify(shhLogger, never).info(any)(any)
+        verify(testLogger, never).info(any)(any)
       }
       "2xx response code" in {
         callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
@@ -228,7 +231,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(404)
         verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
           "Failure", returnSubmission, None, Some("{}"))))(any, any, any)
-
       }
 
       "5xx response code" in {
@@ -250,6 +252,4 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
     }
   }
-
-
 }

@@ -19,18 +19,15 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
+import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -54,21 +51,15 @@ class ReturnsConnector @Inject() (
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     val requestHeaders       = headers :+ correlationIdHeader
 
-      httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl,
-      requestBody,
-      requestHeaders
+      httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders
     )
       .andThen { case _ => timer.stop() }
       .map { jsonResponse =>
-        if (jsonResponse.status == OK) {
+        if (jsonResponse.status == OK)
           happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
-        }
-        else {
+        else
           unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
-        }
-
       }
-
   }
 
   private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
@@ -79,7 +70,6 @@ class ReturnsConnector @Inject() (
         s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${jsonResponse.status}, " +
         s"body: ${jsonResponse.body}",
     )
-
     auditConnector.sendExplicitAudit(SubmitReturn.eventType,
       SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(jsonResponse.body)))
 
@@ -106,25 +96,19 @@ class ReturnsConnector @Inject() (
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
 
         if (response.status == OK) {
-
           auditConnector.sendExplicitAudit(GetReturn.eventType,
             
             GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None))
 
           Right(response.json)
-
         }
         else {
-
           auditConnector.sendExplicitAudit(GetReturn.eventType,
             GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
 
           Left(response.status)
-
         }
-
       }
-
   }
 
   private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {
