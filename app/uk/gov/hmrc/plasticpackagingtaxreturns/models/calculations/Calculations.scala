@@ -33,13 +33,13 @@ case class Calculations(taxDue: BigDecimal,
                         deductionsTotal: Long,
                         packagingTotal: Long,
                         isSubmittable: Boolean,
-                        taxRate: Double
+                        taxRate: BigDecimal
                        )
 
 object Calculations {
   implicit val format: OFormat[Calculations] = Json.format[Calculations]
 
-  def fromReturn(returnDisplayApi: ReturnDisplayApi, taxRate: Double): Calculations =
+  def fromReturn(returnDisplayApi: ReturnDisplayApi, taxRate: BigDecimal): Calculations =
     new Calculations(
       returnDisplayApi.returnDetails.taxDue,
       returnDisplayApi.returnDetails.totalWeight,

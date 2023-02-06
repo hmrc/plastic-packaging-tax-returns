@@ -291,7 +291,7 @@ class ReturnsController @Inject()(
 object ReturnsController {
 
   case class ReturnWithTaxRate(displayReturnJson: JsValue,
-                               taxRate: Double)
+                               taxRate: BigDecimal)
 
   object ReturnWithTaxRate {
     implicit val format: Writes[ReturnWithTaxRate] = Json.writes[ReturnWithTaxRate]
