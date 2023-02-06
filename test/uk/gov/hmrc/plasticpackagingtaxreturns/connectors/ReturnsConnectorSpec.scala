@@ -24,7 +24,9 @@ import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
 import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsObject, JsString}
+import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.mvc.Result
+import play.api.mvc.Results.UnprocessableEntity
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, Upstream4xxResponse, Upstream5xxResponse}
@@ -32,7 +34,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitRe
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, PurplePrint}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.util.UUID
@@ -56,6 +59,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
   private val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
   private val putResponse = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
+  private val putResponseToJson = HttpResponse(200,
+    """{
+      |"processingDate":"date",
+      |"idDetails":{"pptReferenceNumber":"details-ref-no","submissionId":"submission-id"}}""".stripMargin)
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -70,7 +77,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
     when(httpClient.GET[Any](any, any, any) (any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
     when(httpClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
-      putResponse)
+      putResponseToJson)
   }
 
   private def callGet = await {
@@ -216,15 +223,30 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "4xx response code" in {
-        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(Upstream4xxResponse("blah", 404, 4))
+        val putResponse = HttpResponse(404, "{}")
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(404)
         verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-          "Failure", returnSubmission, None, Some("blah"))))(any, any, any)
+          "Failure", returnSubmission, None, Some("{}"))))(any, any, any)
+
       }
 
       "5xx response code" in {
-        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(Upstream5xxResponse("blab", 500, 3))
+        val putResponse = HttpResponse(500, "{}")
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(500)
+      }
+
+      "Etmp already has return" ignore {
+        val create422Response: Future[Result] =
+          Future.successful(UnprocessableEntity(Json.parse(
+            """{
+              |  "failures" : [ {
+              |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
+              |    "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
+              |  } ]
+              |}""".stripMargin))
+          )
       }
     }
   }

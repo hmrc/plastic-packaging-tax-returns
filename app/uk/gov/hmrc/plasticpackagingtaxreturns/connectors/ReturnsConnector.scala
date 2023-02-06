@@ -20,13 +20,14 @@ import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK}
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.util.UUID
@@ -53,46 +54,45 @@ class ReturnsConnector @Inject() (
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     val requestHeaders       = headers :+ correlationIdHeader
 
-    httpClient.PUT[ReturnsSubmissionRequest, Return](returnsSubmissionUrl,
+      httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl,
       requestBody,
       requestHeaders
     )
       .andThen { case _ => timer.stop() }
-      .map { response =>
-
-        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-          SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(response), None))
-
-        Right(response)
-
-      }
-      .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.warn(
-            s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
-              s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${httpEx.statusCode}, " +
-              s"body: ${httpEx.getMessage()}",
-            httpEx
-          )
-
-          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(httpEx.getMessage)))
-
-          Left(httpEx.statusCode)
-
-        case ex: Exception =>
-          logger.warn(
-            s"Error on returns submission with correlationId [${correlationIdHeader._2}], " +
-              s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, failed due to [${ex.getMessage}]",
-            ex
-          )
-
-          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(ex.getMessage)))
-
-          Left(INTERNAL_SERVER_ERROR)
+      .map { jsonResponse =>
+        if (jsonResponse.status == OK) {
+          happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
+        }
+        else {
+          unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
+        }
 
       }
+
+  }
+
+  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
+                                correlationIdHeader: (String, String), jsonResponse: HttpResponse)
+                               (implicit headerCarrier: HeaderCarrier) = {
+    logger.warn(
+      s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
+        s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${jsonResponse.status}, " +
+        s"body: ${jsonResponse.body}",
+    )
+
+    auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+      SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(jsonResponse.body)))
+
+    Left(jsonResponse.status)
+  }
+
+  private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
+                              jsonResponse: HttpResponse)(implicit headerCarrier: HeaderCarrier) = {
+    val returnResponse = Json.parse(jsonResponse.body).as[Return]
+    auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+      SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
+
+    Right(returnResponse)
   }
 
   def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
