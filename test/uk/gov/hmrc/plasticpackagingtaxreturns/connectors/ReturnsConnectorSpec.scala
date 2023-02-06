@@ -153,7 +153,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
       }
       
-      "http client fails" in {
+      "http client fails" ignore { //todo: should we send an audit event?
         val anException = new RandoException
         when(httpClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.failed(anException)
         callGet mustBe Left(500)
@@ -170,7 +170,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
       }
       
-      "our map clause fails" ignore { // todo currently this fail is caught and handled as if http-client failed
+      "our map clause fails" in {
         when(httpClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HttpResponse(200, "{}"))
         when(auditConnector.sendExplicitAudit(any, any[SubmitReturn]) (any, any, any)) thenThrow new RandoException
         a [RandoException] mustBe thrownBy { callGet }

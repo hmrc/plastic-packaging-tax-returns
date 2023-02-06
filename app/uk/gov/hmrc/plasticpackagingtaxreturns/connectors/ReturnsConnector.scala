@@ -124,16 +124,7 @@ class ReturnsConnector @Inject() (
         }
 
       }
-      .recover {
-        case ex: Exception =>
-          logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, s"exception: ${ex.getMessage}"), ex)
 
-          auditConnector.sendExplicitAudit(GetReturn.eventType,
-            GetReturn(internalId, periodKey, FAILURE, None, Some(ex.getMessage)))
-
-          Left(INTERNAL_SERVER_ERROR)
-
-      }
   }
 
   private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {
