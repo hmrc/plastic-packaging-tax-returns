@@ -45,29 +45,28 @@ class ReturnsConnector @Inject() (
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
 
-  def submitReturn(pptReference: String, request: ReturnsSubmissionRequest, internalId: String)(implicit
-    hc: HeaderCarrier
+  def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)(implicit
+                                                                                                    hc: HeaderCarrier
   ): Future[Either[Int, Return]] = {
     val timer                = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationIdHeader  = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     val requestHeaders       = headers :+ correlationIdHeader
 
-    // todo params are out of order
-    httpClient.PUT[ReturnsSubmissionRequest, Return](url = returnsSubmissionUrl,
-                                                     headers = requestHeaders,
-                                                     body = request
+    httpClient.PUT[ReturnsSubmissionRequest, Return](returnsSubmissionUrl,
+      requestBody,
+      requestHeaders
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
         logger.info(
           s"Successful PPT returns submission for request with correlationId [$correlationIdHeader._2] and " +
-            s"pptReference [$pptReference], and submissionId [${request.submissionId}]. " +
+            s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}]. " +
             s"Response contains submissionId [${response.idDetails.submissionId}]"
         )
 
         auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-          SubmitReturn(internalId, pptReference, SUCCESS, request, Some(response), None))
+          SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(response), None))
 
         Right(response)
 
@@ -76,25 +75,25 @@ class ReturnsConnector @Inject() (
         case httpEx: UpstreamErrorResponse =>
           logger.warn(
             s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
-              s"pptReference [$pptReference], and submissionId [${request.submissionId}, status: ${httpEx.statusCode}, " +
+              s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${httpEx.statusCode}, " +
               s"body: ${httpEx.getMessage()}",
             httpEx
           )
 
           auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(httpEx.getMessage)))
+            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(httpEx.getMessage)))
 
           Left(httpEx.statusCode)
 
         case ex: Exception =>
           logger.warn(
             s"Error on returns submission with correlationId [${correlationIdHeader._2}], " +
-              s"pptReference [$pptReference], and submissionId [${request.submissionId}, failed due to [${ex.getMessage}]",
+              s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, failed due to [${ex.getMessage}]",
             ex
           )
 
           auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, request, None, Some(ex.getMessage)))
+            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(ex.getMessage)))
 
           Left(INTERNAL_SERVER_ERROR)
 
