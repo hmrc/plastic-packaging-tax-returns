@@ -205,7 +205,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
     "handle responses" when {
 
-      "shouldn't log info when everything is alright" ignore { //todo: should logger be removed?
+      "shouldn't log info when everything is alright" in {
         callSubmit
         verify(shhLogger, never).info(any)(any)
       }

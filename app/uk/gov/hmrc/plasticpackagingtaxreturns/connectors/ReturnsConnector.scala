@@ -59,11 +59,6 @@ class ReturnsConnector @Inject() (
     )
       .andThen { case _ => timer.stop() }
       .map { response =>
-        logger.info(
-          s"Successful PPT returns submission for request with correlationId [$correlationIdHeader._2] and " +
-            s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}]. " +
-            s"Response contains submissionId [${response.idDetails.submissionId}]"
-        )
 
         auditConnector.sendExplicitAudit(SubmitReturn.eventType,
           SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(response), None))
