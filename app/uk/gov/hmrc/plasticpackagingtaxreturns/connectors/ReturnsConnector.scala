@@ -28,6 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,16 +44,15 @@ class ReturnsConnector @Inject() (
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
 
-  def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)(implicit
-                                                                                                    hc: HeaderCarrier
-  ): Future[Either[Int, Return]] = {
-    val timer                = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
-    val correlationIdHeader  = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
-    val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
-    val requestHeaders       = headers :+ correlationIdHeader
+  def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)
+    (implicit hc: HeaderCarrier): Future[Either[Int, Return]] = {
 
-      httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders
-    )
+    val timer = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
+    val correlationIdHeader = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
+    val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
+    val requestHeaders = headers :+ correlationIdHeader
+
+    httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders)
       .andThen { case _ => timer.stop() }
       .map { jsonResponse =>
         if (jsonResponse.status == OK)

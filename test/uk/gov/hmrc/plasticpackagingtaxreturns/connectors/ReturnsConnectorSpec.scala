@@ -24,6 +24,7 @@ import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
 import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.http.Status
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
@@ -240,15 +241,17 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "Etmp already has return" ignore {
-        val create422Response: Future[Result] =
-          Future.successful(UnprocessableEntity(Json.parse(
-            """{
-              |  "failures" : [ {
-              |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
-              |    "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
-              |  } ]
-              |}""".stripMargin))
-          )
+        val example422Body = """{
+          |  "failures" : [ {
+          |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
+          |    "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
+          |  } ]
+          |}""".stripMargin
+        
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body)
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
+
+        callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
       }
     }
   }
