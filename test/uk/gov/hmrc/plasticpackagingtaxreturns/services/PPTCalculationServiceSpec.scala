@@ -31,13 +31,13 @@ import java.time.LocalDate
 class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val mockConversionService = mock[WeightToPoundsConversionService]
-  private val mockCalculationService = mock[CreditsCalculationService]
+  private val mockTaxRateService = mock[TaxRateService]
 
-  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService)
+  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService, mockTaxRateService)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversionService, mockCalculationService)
+    reset(mockConversionService, mockTaxRateService)
     when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
   }
 

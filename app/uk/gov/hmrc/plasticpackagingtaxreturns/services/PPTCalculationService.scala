@@ -24,7 +24,8 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 class PPTCalculationService @Inject()(
-  conversionService: WeightToPoundsConversionService
+  conversionService: WeightToPoundsConversionService,
+  taxRateService: TaxRateService
 ) extends Logging {
 
   def calculate(returnValues: ReturnValues): Calculations =
@@ -54,6 +55,7 @@ class PPTCalculationService @Inject()(
     val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
     val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
+    val taxRate: BigDecimal = taxRateService.lookupTaxRateForPeriod(periodEndDate)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&
@@ -66,18 +68,14 @@ class PPTCalculationService @Inject()(
         convertedPackagingCredit <= availableCredit
     }
 
-    // TODO do we still want this log?
-    if (!isSubmittable) {
-      logger.info("PPT return not submittable")
-    }
-
     Calculations(
       taxDue,
       chargeableTotal,
       deductionsTotal,
       packagingTotal,
-      convertedPackagingCredit,
-      isSubmittable)
+      isSubmittable,
+      taxRate
+    )
   }
 
 

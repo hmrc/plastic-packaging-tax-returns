@@ -34,6 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
@@ -46,7 +47,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -64,7 +65,7 @@ class ReturnsControllerSpec
   private val userAnswersAmends: UserAnswers         = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
   private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
   private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
-  private val calculations: Calculations = Calculations(1, 1, 1, 1, 0,true)
+  private val calculations: Calculations = Calculations(1, 1, 1, 1,true,0.123)
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
@@ -113,6 +114,7 @@ class ReturnsControllerSpec
   private val mockFinancialsService                            = mock[PPTFinancialsService]
   private val mockCreditCalcService                            = mock[CreditsCalculationService]
   private val mockAvailableCreditService                       = mock[AvailableCreditService]
+  private val mockTaxRateService                               = mock[TaxRateService]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
@@ -129,7 +131,8 @@ class ReturnsControllerSpec
     mockFinancialDataService,
     mockFinancialsService,
     mockCreditCalcService,
-    mockAvailableCreditService
+    mockAvailableCreditService,
+    mockTaxRateService
   )
 
   override def beforeEach(): Unit = {
@@ -145,40 +148,26 @@ class ReturnsControllerSpec
       mockFinancialDataService,
       mockFinancialsService,
       mockCreditCalcService,
-      mockAvailableCreditService)
+      mockAvailableCreditService,
+      mockTaxRateService)
   }
 
   "get" should {
 
     "return OK response" in {
-
       withAuthorizedUser()
       val periodKey = "22CC"
-      val returnDisplayResponse = aReturn(
-        withReturnDetails(returnDetails =
-          Some(
-            EisReturnDetails(
-              manufacturedWeight = BigDecimal(256.12),
-              importedWeight = BigDecimal(352.15),
-              totalNotLiable = BigDecimal(546.42),
-              humanMedicines = BigDecimal(1234.15),
-              directExports = BigDecimal(12121.16),
-              recycledPlastic = BigDecimal(4345.72),
-              creditForPeriod =
-                BigDecimal(1560000.12),
-              totalWeight = BigDecimal(16466.88),
-              taxDue = BigDecimal(4600)
-            )
-          )
-        )
-      )
+      val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" ->JsString(LocalDate.of(2020, 5, 14).toString)))))
 
-      mockReturnDisplayConnector(Json.toJson(returnDisplayResponse))
+      mockReturnDisplayConnector(returnDisplayResponse)
+      when(mockTaxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.133)
 
       val result: Future[Result] = sut.get(pptReference, periodKey).apply(FakeRequest())
-
+      val returnWithTaxRate = ReturnWithTaxRate(returnDisplayResponse, 0.133)
       status(result) mustBe OK
-      contentAsJson(result) mustBe toJson(returnDisplayResponse)
+      contentAsJson(result) mustBe toJson(returnWithTaxRate)
+      verify(mockTaxRateService).lookupTaxRateForPeriod(LocalDate.of(2020, 5, 14))
+      verify(mockReturnsConnector).get(eqTo(pptReference), eqTo(periodKey), any)(any)
     }
 
     "return 404" in {
@@ -189,6 +178,28 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.get(pptReference, periodKey).apply(FakeRequest())
 
       status(result) mustBe NOT_FOUND
+    }
+
+    "throw exception" when {
+      "periodTo is not in the returnDisplayResponse" in {
+        withAuthorizedUser()
+        val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq.empty)))
+
+        mockReturnDisplayConnector(returnDisplayResponse)
+
+        val result: Future[Result] = sut.get(pptReference, "22CC").apply(FakeRequest())
+        intercept[NoSuchElementException](await(result))
+      }
+
+      "periodTo is not a local date" in {
+        withAuthorizedUser()
+        val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" ->JsString("marcy")))))
+
+        mockReturnDisplayConnector(returnDisplayResponse)
+
+        val result: Future[Result] = sut.get(pptReference, "22CC").apply(FakeRequest())
+        intercept[JsResultException](await(result))
+      }
     }
   }
 

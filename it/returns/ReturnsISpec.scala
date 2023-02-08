@@ -35,6 +35,7 @@ import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -46,7 +47,7 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsItSpec extends PlaySpec
+class ReturnsISpec extends PlaySpec
   with GuiceOneServerPerSuite
   with ReturnWireMockServerSpec
   with AuthTestSupport
@@ -54,7 +55,7 @@ class ReturnsItSpec extends PlaySpec
   with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-  val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
+  val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private val periodKey = "22C2"
   private val DesUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
@@ -99,8 +100,9 @@ class ReturnsItSpec extends PlaySpec
     stubReturnDisplayResponse
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
+    val expected = ReturnWithTaxRate(Json.parse(displayApiResponse), 0.2)
 
-    response.json mustBe Json.toJson(createDisplayApiResponse)
+    response.json mustBe Json.toJson(expected)
   }
 
   "return an error if DES API fails when getting return" in {
@@ -191,8 +193,8 @@ class ReturnsItSpec extends PlaySpec
 
   private def stubObligationDesRequest(status: Int = Status.OK) = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
+    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
     server.stubFor(get(obligationDesRequest)
       .willReturn(aResponse
         .withStatus(status)
@@ -208,7 +210,7 @@ class ReturnsItSpec extends PlaySpec
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(Json.toJson(createDisplayApiResponse).toString())
+            .withBody(displayApiResponse)
         )
     )
   }
@@ -248,4 +250,33 @@ class ReturnsItSpec extends PlaySpec
       idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "123456789012")
     )
   }
+
+  def displayApiResponse: String = """{
+                                     |  "processingDate": "2022-07-03T09:30:47Z",
+                                     |  "idDetails": {
+                                     |    "pptReferenceNumber": "XMPPT0000000003",
+                                     |    "submissionId": "123456789012"
+                                     |  },
+                                     |  "chargeDetails": {
+                                     |    "periodKey": "22C2",
+                                     |    "chargeReference": "XY007000075425",
+                                     |    "periodFrom": "2022-04-01",
+                                     |    "periodTo": "2022-06-30",
+                                     |    "receiptDate": "2022-09-03T09:30:47Z",
+                                     |    "returnType": "Amend"
+                                     |  },
+                                     |  "returnDetails": {
+                                     |    "manufacturedWeight": 250,
+                                     |    "importedWeight": 150,
+                                     |    "totalNotLiable": 180,
+                                     |    "humanMedicines": 50,
+                                     |    "directExports": 60,
+                                     |    "recycledPlastic": 70,
+                                     |    "creditForPeriod": 12.13,
+                                     |    "debitForPeriod": 0,
+                                     |    "totalWeight": 220,
+                                     |    "taxDue": 44
+                                     |  }
+                                     |}""".stripMargin
+
 }

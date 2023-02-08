@@ -32,10 +32,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, OriginalReturnForAmendValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
 import java.time.LocalDate
@@ -56,6 +56,7 @@ class CalculationsControllerSpec
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   private val pptCalculationService = mock[PPTCalculationService]
   private val creditsCalculationService = mock[CreditsCalculationService]
+  private val taxRateService = mock[TaxRateService]
 
   private val sut = new CalculationsController(
     new FakeAuthenticator(cc),
@@ -63,22 +64,24 @@ class CalculationsControllerSpec
     cc,
     pptCalculationService,
     creditsCalculationService,
-    availableCreditService
+    availableCreditService,
+    taxRateService
   )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService)
+    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateService)
 
     when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
     when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
+    when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.123)
   }
 
   "calculateSubmit" should {
 
     "return OK response and the calculation" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
-          packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
+          packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
       when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
@@ -90,7 +93,7 @@ class CalculationsControllerSpec
 
     "request credits" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
-        packagingTotal = 100, totalRequestCreditInPounds = 0, isSubmittable = true)
+        packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
       when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
@@ -122,30 +125,18 @@ class CalculationsControllerSpec
   "calculateAmends" should {
     "return OK response and the calculation" in {
 
-      val originalCal = Calculations(1,0,0,10,20, true)
+      val originalReturnAsCalc = Calculations(44,220,0,250, true, taxRate = 0.123)
+
+      val amendCalc = Calculations(2, 3, 4, 5, false, taxRate = 0.123)
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
-      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
+      when(pptCalculationService.calculate(any)).thenReturn(amendCalc)
 
       val result = sut.calculateAmends(pptReference)(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe toJson(AmendsCalculations(originalCal, originalCal))
-    }
-
-    "calculate original return" in {
-      val originalCal = Calculations(1,0,0,10,20, true)
-      val ans = UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)
-
-      when(sessionRepository.get(any[String]))
-        .thenReturn(Future.successful(Some(ans)))
-      when(pptCalculationService.calculate(any)).thenReturn(originalCal)
-
-      await(sut.calculateAmends(pptReference)(FakeRequest()))
-
-      val expected = OriginalReturnForAmendValues(periodKey = "21C4", LocalDate.of(2022, 6, 30), 250, 0, 0, 10,5, "submission12")
-      verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
+      contentAsJson(result) mustBe toJson(AmendsCalculations(originalReturnAsCalc, amendCalc))
     }
 
     "calculate amend return" in {
@@ -153,7 +144,7 @@ class CalculationsControllerSpec
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(ans)))
-      when(pptCalculationService.calculate(any)).thenReturn(Calculations(1,0,0,10,20, true))
+      when(pptCalculationService.calculate(any)).thenReturn(Calculations(1,0,0,10, true, taxRate = 0.123))
 
       await(sut.calculateAmends(pptReference)(FakeRequest()))
 
