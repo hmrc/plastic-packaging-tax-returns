@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.Mockito.{never, reset, verify, when}
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
 
 import java.time.LocalDate
 
@@ -31,26 +32,59 @@ class TaxRateServiceSpec extends PlaySpec with BeforeAndAfterEach {
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAppConfig)
-    when(mockAppConfig.taxRegimeStartDate) thenReturn LocalDate.of(2022, 4, 1)
-    when(mockAppConfig.taxRateBefore1stApril2022) thenReturn 1.44
-    when(mockAppConfig.taxRateFrom1stApril2022) thenReturn 3.14
+
+    when(mockAppConfig.taxRatePoundsPerKgYearly).thenReturn(
+      Seq(TaxRate(0, LocalDate.MIN),
+        TaxRate(0.2, LocalDate.of(2022, 4, 1)),
+        TaxRate(0.5, LocalDate.of(2023, 4, 1)))
+    )
   }
+
 
   val sut = new TaxRateService(mockAppConfig)
 
   "lookupTaxRateForPeriod" must {
     "return the correct tax rate" when {
       "before 1/4/2022" in {
-        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 3, 31)) mustBe 1.44
-
-        verify(mockAppConfig).taxRateBefore1stApril2022
-        verify(mockAppConfig, never()).taxRateFrom1stApril2022
+        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 3, 31)) mustBe 0.0
       }
-      "on or after 1/4/2022" in {
-        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 4, 1)) mustBe 3.14
 
-        verify(mockAppConfig, never()).taxRateBefore1stApril2022
-        verify(mockAppConfig).taxRateFrom1stApril2022
+      "on or after 1/4/2022" in {
+        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 4, 1)) mustBe 0.2
+      }
+
+      "before 1/4/2023" in {
+        sut.lookupTaxRateForPeriod(LocalDate.of(2023, 3, 31)) mustBe 0.2
+      }
+
+      "on or after 1/4/2023" in {
+        sut.lookupTaxRateForPeriod(LocalDate.of(2023, 4, 1)) mustBe 0.5
+      }
+    }
+  }
+
+  "lookupTaxRateForPreviousYears" should {
+    "return a TaxRate" when {
+      "before 1/4/2022" in {
+        sut.lookupTaxRateForPreviousYears(LocalDate.of(2022, 3, 31)) mustBe
+          Seq(TaxRate(0.0, LocalDate.MIN))
+      }
+
+      "on or after 1/4/2022" in {
+        sut.lookupTaxRateForPreviousYears(LocalDate.of(2022, 4, 1)) mustBe
+          Seq(
+            TaxRate(0.0, LocalDate.MIN),
+            TaxRate(0.2, LocalDate.of(2022,4,1))
+
+          )
+      }
+
+      "on or after 1/4/2023" in {
+        sut.lookupTaxRateForPreviousYears(LocalDate.of(2023, 4, 1)) mustBe
+          Seq(TaxRate(0, LocalDate.MIN),
+            TaxRate(0.2, LocalDate.of(2022, 4, 1)),
+            TaxRate(0.5, LocalDate.of(2023, 4, 1))
+          )
       }
     }
   }

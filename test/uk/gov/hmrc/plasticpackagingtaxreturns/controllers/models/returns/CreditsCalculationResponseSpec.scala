@@ -18,7 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsFalse, JsNumber, JsObject, Json}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, TaxRate}
+
+import java.time.LocalDate
 
 class CreditsCalculationResponseSpec extends PlaySpec {
 
@@ -28,14 +30,16 @@ class CreditsCalculationResponseSpec extends PlaySpec {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
           totalRequestedCreditInPounds = 1,
-          totalRequestedCreditInKilograms = 0
+          totalRequestedCreditInKilograms = 0,
+          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
         ).canBeClaimed mustBe true
       }
       "requested is equal to available" in {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
           totalRequestedCreditInPounds = 2,
-          totalRequestedCreditInKilograms = 0
+          totalRequestedCreditInKilograms = 0,
+          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
         ).canBeClaimed mustBe true
       }
     }
@@ -45,14 +49,16 @@ class CreditsCalculationResponseSpec extends PlaySpec {
         CreditsCalculationResponse(
           availableCreditInPounds = 1,
           totalRequestedCreditInPounds = 2,
-          totalRequestedCreditInKilograms = 0
+          totalRequestedCreditInKilograms = 0,
+          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
         ).canBeClaimed mustBe false
       }
     }
   }
 
+  //todo: move the test in
   "json Writes" must {
-    val obj = CreditsCalculationResponse(1 , 2, 3)
+    val obj = CreditsCalculationResponse(1 , 2, 3, Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1))))
     val jsObject = Json.toJson(obj).as[JsObject]
 
     "contain the availableCreditInPounds field" in {

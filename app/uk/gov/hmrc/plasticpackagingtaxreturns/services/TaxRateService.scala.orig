@@ -18,8 +18,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+<<<<<<< Updated upstream
+=======
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
 
+>>>>>>> Stashed changes
 
 import java.time.LocalDate
 
@@ -35,8 +38,13 @@ class TaxRateService  @Inject()(appConfig: AppConfig) {
       .filter(_.rateCanApplyTo(periodEndDate))
       .last.rate //most recent
   }
+
   def lookupTaxRateForPreviousYears(periodEndDate: LocalDate): Seq[TaxRate] = {
     appConfig.taxRatePoundsPerKgYearly
       .filter(_.rateCanApplyTo(periodEndDate))
   }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 }

@@ -34,6 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.F
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, DirectDebitDetails, PPTFinancials}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
@@ -47,6 +48,7 @@ class PPTFinancialsItSpec extends PlaySpec
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  private lazy val sessionRepository = mock[SessionRepository]
 
   val dateFrom = LocalDate.of(2022, 4, 1)
   val DESUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?onlyOpenItems=true" +
@@ -59,7 +61,10 @@ class PPTFinancialsItSpec extends PlaySpec
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(bind[AuthConnector].to(mockAuthConnector))
+      .overrides(
+        bind[AuthConnector].to(mockAuthConnector),
+        bind[SessionRepository].to(sessionRepository)
+      )
       .build()
   }
 

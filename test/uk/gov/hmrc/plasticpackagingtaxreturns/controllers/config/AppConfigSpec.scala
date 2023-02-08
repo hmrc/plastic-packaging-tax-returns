@@ -22,7 +22,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
+import java.time.LocalDate
 
 class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
 
@@ -42,6 +45,10 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
         |eis.environment=ist0
         |nrs.retries=["1s", "2s", "4s"]
         |taxRatePoundsPerKg=0.20
+        |taxRatePoundsPerKgYearly=[
+        |   {taxRate:"0.50",date:"2023-04-01"},
+        |   {taxRate:"0.20",date:"2022-04-01"}
+        | ]
     """.stripMargin)
 
   private val validServicesConfiguration = Configuration(validAppConfig)
@@ -58,8 +65,17 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       configService.auditingEnabled mustBe true
       configService.graphiteHost mustBe "graphite"
       configService.dbTimeToLiveInSeconds mustBe 100
+    }
 
-      configService.taxRateFrom1stApril2022 mustBe BigDecimal("0.20")
+    "taxRatePoundsPerKgYearly" should {
+      "get a list of sorted tax rate "in {
+        val configService: AppConfig = appConfig(validServicesConfiguration)
+
+        configService.taxRatePoundsPerKgYearly mustBe Seq(
+          TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4,1)),
+          TaxRate(BigDecimal(0.5), LocalDate.of(2023, 4,1))
+        )
+      }
     }
   }
 }

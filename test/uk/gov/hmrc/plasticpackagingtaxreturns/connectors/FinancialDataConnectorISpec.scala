@@ -35,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.DateAndTime
 
 import java.time.{LocalDate, LocalDateTime}
@@ -62,7 +63,10 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
   override def fakeApplication(): Application = {
     SharedMetricRegistries.clear()
     new GuiceApplicationBuilder()
-      .overrides(bind[DateAndTime].toInstance(dateAndTime))
+      .overrides(
+        bind[DateAndTime].toInstance(dateAndTime),
+        bind[SessionRepository].to(mock[SessionRepository])
+      )
       .configure(overrideConfig)
       .build()
   }

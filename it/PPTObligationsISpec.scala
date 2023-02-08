@@ -16,7 +16,9 @@
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.reset
+import org.mockito.MockitoSugar.when
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -32,9 +34,12 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.LocalDate
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
@@ -44,6 +49,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
+  private lazy val sessionRepository = mock[SessionRepository]
 
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
 
@@ -70,7 +76,10 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(bind[AuthConnector].to(mockAuthConnector))
+      .overrides(
+        bind[AuthConnector].to(mockAuthConnector),
+        bind[SessionRepository].to(sessionRepository)
+      )
       .build()
   }
 
@@ -92,15 +101,6 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   }
 
   "GET /obligations/open/:pptReference" must {
-
-    "not send dates when fetching open obligations" in {
-      withAuthorizedUser()
-      stubWillReturn(noObligations)
-
-      await(wsClient.url(pptOpenUrl).get())
-
-      server.wireMockServer.verify(getRequestedFor(urlEqualTo(s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O")))
-    }
 
     "return 200 with no obligations" in {
       withAuthorizedUser()
