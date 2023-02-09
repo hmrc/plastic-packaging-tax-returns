@@ -1,5 +1,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
+import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.Writes
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
@@ -45,7 +46,13 @@ class EisHttpClient @Inject() (
    */
   def put[HappyModel](url: String, requestBody: HappyModel) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
     writes: Writes[HappyModel]): Future[HttpResponse] = {
-    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, Seq("Environment" -> appConfig.eisEnvironment))
+    
+    val headers = Seq(
+      "Environment" -> appConfig.eisEnvironment, 
+      HeaderNames.ACCEPT -> MimeTypes.JSON, 
+      HeaderNames.AUTHORIZATION -> appConfig.bearerToken)
+    
+    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
       .map(HttpResponse.fromHttpResponse)
   }
 

@@ -4,6 +4,7 @@ import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.MockitoSugar.{mock, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.{Json, OWrites}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
@@ -31,6 +32,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
     reset(hmrcClient, appConfig, headerCarrier)
     when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HmrcResponse(200, "{}"))
     when(appConfig.eisEnvironment) thenReturn "space"
+    when(appConfig.bearerToken) thenReturn "do-come-in"
   }
 
   "it" should {
@@ -48,7 +50,10 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
         any, any, any)
 
       withClue("with these headers") {
-        val headers = Seq("Environment" -> "space")
+        val headers = Seq(
+          "Environment" -> "space", 
+          "Accept" -> "application/json", 
+          "Authorization" -> "do-come-in")
         verify(appConfig).eisEnvironment
         verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers)) (any, any, any, any)
       }
