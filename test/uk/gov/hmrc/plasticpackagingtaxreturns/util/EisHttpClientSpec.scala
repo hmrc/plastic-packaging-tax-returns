@@ -7,6 +7,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.{Json, OWrites}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.http.HttpReads.Implicits
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
@@ -42,16 +43,10 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
 
   "it" should {
     
-    "quick check" in {
-      when(appConfig.eisEnvironment) thenReturn "brie"
-      appConfig.eisEnvironment mustBe "brie"
-      Seq("Environment" -> appConfig.eisEnvironment) mustBe List(("Environment", "brie"))
-    }
-
     "send a put request" in {
       val response = await { eisHttpClient.put("proto://some:port/endpoint", exampleModel) }
       response mustBe HttpResponse(200, "{}")
-      verify(hmrcClient).PUT[ExampleModel, HttpResponse](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any, 
+      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any, 
         any, any, any)
 
       withClue("with these headers") {
@@ -60,8 +55,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
           "Accept" -> "application/json", 
           "Authorization" -> "do-come-in",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
-        verify(appConfig).eisEnvironment
         verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers)) (any, any, any, any)
+      }
+      
+      withClue("with implicits") {
+        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any) (eqTo(writes), eqTo(Implicits.readRaw),
+          eqTo(headerCarrier), eqTo(global))
       }
     }
 
