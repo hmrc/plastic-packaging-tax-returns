@@ -3,6 +3,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import play.api.libs.json.Writes
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,8 +28,12 @@ object HttpResponse {
 /** Make a rest request-response call to an EIS endpoint or similar. Avoids exceptions for 4xx, 5xx responses. 
  * @note auto-rolled by injector
  * @param hmrcClient underlying hmrc http client to use 
+ * @param appConfig source for required header field values 
  */
-class EisHttpClient @Inject() (hmrcClient: HmrcClient) {
+class EisHttpClient @Inject() (
+  hmrcClient: HmrcClient,
+  appConfig: AppConfig
+) {
 
   /**
    * @tparam HappyModel the type of the model payload / request body 
@@ -40,7 +45,7 @@ class EisHttpClient @Inject() (hmrcClient: HmrcClient) {
    */
   def put[HappyModel](url: String, requestBody: HappyModel) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
     writes: Writes[HappyModel]): Future[HttpResponse] = {
-    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, Seq("header" -> "heed"))
+    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, Seq("Environment" -> appConfig.eisEnvironment))
       .map(HttpResponse.fromHttpResponse)
   }
 
