@@ -1,27 +1,46 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import play.api.libs.json.JsValue
+import play.api.libs.json.Writes
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+/** An http response that allows for equality and same-instance
+ * @param status - http status code from response
+ * @param body - response body as a [[String]]
+ */
 case class HttpResponse(status: Int, body: String)
 
 object HttpResponse {
-  def fromHttpResponse(httpResponse: HmrcResponse): HttpResponse = {
-    HttpResponse(httpResponse.status, httpResponse.body)
+  /** Create from an hmrc [[HmrcResponse]]
+   * @param hmrcResponse source
+   * @return [[HttpResponse]]
+   * @note does not keep a reference to [[HmrcResponse]]  
+   */
+  def fromHttpResponse(hmrcResponse: HmrcResponse): HttpResponse = {
+    HttpResponse(hmrcResponse.status, hmrcResponse.body)
   }
 }
 
 /** Make a rest request-response call to an EIS endpoint or similar. Avoids exceptions for 4xx, 5xx responses. 
- * @param hmrcClient - underlying hmrc http client to use 
+ * @note auto-rolled by injector
+ * @param hmrcClient underlying hmrc http client to use 
  */
 class EisHttpClient @Inject() (hmrcClient: HmrcClient) {
-  
-  def put(url: String, requestBody: JsValue) (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    hmrcClient.PUT[JsValue, HmrcResponse](url, requestBody, Seq("header" -> "heed"))
+
+  /**
+   * @tparam HappyModel the type of the model payload / request body 
+   * @param url full url of endpoint to send put request to
+   * @param requestBody object to send in put-request body, must have an implicit json.Writes[A] in-scope
+   * @param hc header carrier from up-stream request
+   * @param ec current execution context
+   * @return [[HttpResponse]]
+   */
+  def put[HappyModel](url: String, requestBody: HappyModel) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
+    writes: Writes[HappyModel]): Future[HttpResponse] = {
+    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, Seq("header" -> "heed"))
       .map(HttpResponse.fromHttpResponse)
   }
 
