@@ -11,6 +11,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse =
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.PurplePrint.purplePrint
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -18,8 +19,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
 
   private val hmrcClient = mock[HmrcClient]
   private val appConfig = mock[AppConfig]
+  private val edgeOfSystem = mock[EdgeOfSystem]
 
-  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig)
+  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem)
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
   
   case class ExampleModel(vitalData: Int = 1)
@@ -29,10 +31,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
   
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(hmrcClient, appConfig, headerCarrier)
+    reset(hmrcClient, appConfig, edgeOfSystem, headerCarrier)
+    
     when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HmrcResponse(200, "{}"))
     when(appConfig.eisEnvironment) thenReturn "space"
     when(appConfig.bearerToken) thenReturn "do-come-in"
+    when(appConfig.bearerToken) thenReturn "do-come-in"
+    when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
   }
 
   "it" should {
@@ -53,7 +58,8 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
         val headers = Seq(
           "Environment" -> "space", 
           "Accept" -> "application/json", 
-          "Authorization" -> "do-come-in")
+          "Authorization" -> "do-come-in",
+          "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
         verify(appConfig).eisEnvironment
         verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers)) (any, any, any, any)
       }

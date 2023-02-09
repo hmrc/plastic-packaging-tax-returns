@@ -33,7 +33,8 @@ object HttpResponse {
  */
 class EisHttpClient @Inject() (
   hmrcClient: HmrcClient,
-  appConfig: AppConfig
+  appConfig: AppConfig,
+  edgeOfSystem: EdgeOfSystem
 ) {
 
   /**
@@ -50,7 +51,9 @@ class EisHttpClient @Inject() (
     val headers = Seq(
       "Environment" -> appConfig.eisEnvironment, 
       HeaderNames.ACCEPT -> MimeTypes.JSON, 
-      HeaderNames.AUTHORIZATION -> appConfig.bearerToken)
+      HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
+      "CorrelationId" -> edgeOfSystem.createUuid.toString
+    )
     
     hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
       .map(HttpResponse.fromHttpResponse)
