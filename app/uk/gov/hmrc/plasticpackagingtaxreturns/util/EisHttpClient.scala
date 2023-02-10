@@ -1,5 +1,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
+import com.codahale.metrics.Timer
+import com.kenshoo.play.metrics.Metrics
 import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.json.Writes
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -8,6 +10,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /** An http response that allows for equality and same-instance
  * @param status - http status code from response
@@ -30,11 +33,14 @@ object HttpResponse {
  * @note auto-rolled by injector
  * @param hmrcClient underlying hmrc http client to use 
  * @param appConfig source for required header field values 
+ * @param edgeOfSystem used to create a new UUID for each transaction
+ * @param metrics source for request-response transaction timer
  */
 class EisHttpClient @Inject() (
   hmrcClient: HmrcClient,
   appConfig: AppConfig,
-  edgeOfSystem: EdgeOfSystem
+  edgeOfSystem: EdgeOfSystem,
+  metrics: Metrics,
 ) {
 
   /**
@@ -45,7 +51,7 @@ class EisHttpClient @Inject() (
    * @param ec current execution context
    * @return [[HttpResponse]]
    */
-  def put[HappyModel](url: String, requestBody: HappyModel) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
+  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
     writes: Writes[HappyModel]): Future[HttpResponse] = {
     
     val headers = Seq(
@@ -54,9 +60,12 @@ class EisHttpClient @Inject() (
       HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
       "CorrelationId" -> edgeOfSystem.createUuid.toString
     )
-    
-    hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
-      .map(HttpResponse.fromHttpResponse)
+
+    val timer = metrics.defaultRegistry.timer(timerName).time()
+    hmrcClient
+      .PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+      .andThen { case _ => timer.stop() }
+      .map { HttpResponse.fromHttpResponse }
   }
 
 }
