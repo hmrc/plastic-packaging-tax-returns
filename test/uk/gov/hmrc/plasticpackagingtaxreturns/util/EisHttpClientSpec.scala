@@ -1,3 +1,19 @@
+/*
+ * Copyright 2023 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.codahale.metrics.Timer
@@ -44,12 +60,16 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
   }
+  
+  private def callPut = await {
+    eisHttpClient.put("proto://some:port/endpoint", exampleModel, "tick.tick")
+  }
 
   "put" should {
     
     "send a request" in {
-      val response = await { eisHttpClient.put("proto://some:port/endpoint", exampleModel, "") }
-      response mustBe HttpResponse(200, "{}")
+      val response = callPut
+      response mustBe HttpResponse(200, "{}", "00000000-0000-0001-0000-000000000002")
       verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any, 
         any, any, any)
 
@@ -72,17 +92,23 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
       "status is 2xx" in {
         when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
           HmrcResponse(200, """{"a": "b"}"""))
-        await { eisHttpClient.put("", exampleModel, "") } mustBe HttpResponse(200, """{"a": "b"}""")
+        await { eisHttpClient.put("", exampleModel, "") } mustBe HttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
       }
       // All responses the same right now
     }
     
     "time the request-response transaction" in {
-      await { eisHttpClient.put("", exampleModel, "tick.tick") }
+      callPut
       verify(metrics.defaultRegistry).timer(eqTo("tick.tick"))
       verify(metrics.defaultRegistry.timer(eqTo("tick.tick"))).time()
       verify(timer).stop()
     }
+    
+    "return the correlation id" in {
+      callPut.correlationId mustBe "00000000-0000-0001-0000-000000000002"
+      
+    }
 
   }
+
 }

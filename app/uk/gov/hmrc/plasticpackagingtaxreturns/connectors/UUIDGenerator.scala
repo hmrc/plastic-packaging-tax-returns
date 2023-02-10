@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import java.util.UUID
 
-class UUIDGenerator {
+class UUIDGenerator { // TODO merge into EdgeOfSystem
   def randomUUID = UUID.randomUUID().toString
 
 }

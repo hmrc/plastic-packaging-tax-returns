@@ -21,12 +21,12 @@ import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status.OK
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import javax.inject.{Inject, Singleton}
@@ -34,11 +34,12 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ReturnsConnector @Inject() (
-  httpClient: HttpClient, 
+  hmrcClient: HmrcClient, 
   override val appConfig: AppConfig, 
   metrics: Metrics, 
   auditConnector: AuditConnector,
-  edgeOfSystem: EdgeOfSystem
+  edgeOfSystem: EdgeOfSystem,
+  eisHttpClient: EisHttpClient
 ) (implicit ec: ExecutionContext ) extends EISConnector with Logging {
 
   val SUCCESS: String = "Success"
@@ -47,33 +48,28 @@ class ReturnsConnector @Inject() (
   def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)
     (implicit hc: HeaderCarrier): Future[Either[Int, Return]] = {
 
-    val timer = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
-    val correlationIdHeader = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
-    val requestHeaders = headers :+ correlationIdHeader
-
-    httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders)
-      .andThen { case _ => timer.stop() }
-      .map { jsonResponse =>
-        if (jsonResponse.status == OK)
-          happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
+    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer")
+      .map { httpResponse =>
+        if (httpResponse.status == OK)
+          happyPathSubmit(pptReference, requestBody, internalId, httpResponse)
         else
-          unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
+          unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
       }
   }
 
-  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
-                                correlationIdHeader: (String, String), jsonResponse: HttpResponse)
-                               (implicit headerCarrier: HeaderCarrier) = {
+  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String, 
+    httpResponse: HttpResponse) (implicit headerCarrier: HeaderCarrier) = {
+    
     logger.warn(
-      s"Upstream error on returns submission with correlationId [${correlationIdHeader._2}], " +
-        s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${jsonResponse.status}, " +
-        s"body: ${jsonResponse.body}",
+      s"Upstream error on returns submission with correlationId [${httpResponse.correlationId}], " +
+        s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${httpResponse.status}, " +
+        s"body: ${httpResponse.body}",
     )
     auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-      SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(jsonResponse.body)))
+      SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(httpResponse.body)))
 
-    Left(jsonResponse.status)
+    Left(httpResponse.status)
   }
 
   private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
@@ -90,23 +86,23 @@ class ReturnsConnector @Inject() (
     val correlationIdHeader: (String, String) = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
     val requestHeaders                        = headers :+ correlationIdHeader
 
-    httpClient.GET[HttpResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
+    hmrcClient.GET[HmrcResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
       .andThen { case _ => timer.stop() }
-      .map { response =>
-        logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
+      .map { hmrcResponse =>
+        logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${hmrcResponse.status}")
 
-        if (response.status == OK) {
+        if (hmrcResponse.status == OK) {
           auditConnector.sendExplicitAudit(GetReturn.eventType,
             
-            GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None))
+            GetReturn(internalId, periodKey, SUCCESS, Some(hmrcResponse.json), None))
 
-          Right(response.json)
+          Right(hmrcResponse.json)
         }
         else {
           auditConnector.sendExplicitAudit(GetReturn.eventType,
-            GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
+            GetReturn(internalId, periodKey, FAILURE, None, Some(hmrcResponse.body)))
 
-          Left(response.status)
+          Left(hmrcResponse.status)
         }
       }
   }
