@@ -44,9 +44,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
         |auditing.enabled=true
         |eis.environment=ist0
         |nrs.retries=["1s", "2s", "4s"]
-        |taxRatePoundsPerKg=0.20
         |taxRatePoundsPerKgYearly=[
-        |   {taxRate:"0.50",date:"2023-04-01"},
         |   {taxRate:"0.20",date:"2022-04-01"}
         | ]
     """.stripMargin)
@@ -72,8 +70,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
         val configService: AppConfig = appConfig(validServicesConfiguration)
 
         configService.taxRatePoundsPerKgYearly mustBe Seq(
-          TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4,1)),
-          TaxRate(BigDecimal(0.5), LocalDate.of(2023, 4,1))
+          TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4,1))
         )
       }
     }
