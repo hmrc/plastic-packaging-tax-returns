@@ -28,13 +28,15 @@ import java.time.LocalDate
 class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   val mockTaxRateService: TaxRateService = mock[TaxRateService]
+  val mockAppConfig: AppConfig = mock[AppConfig]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockTaxRateService)
+    reset(mockTaxRateService, mockAppConfig)
+    when(mockAppConfig.taxRegimeStartDate).thenReturn(firstApril2022)
   }
 
-  val sut = new WeightToPoundsConversionService(mockTaxRateService)
+  val sut = new WeightToPoundsConversionService(mockTaxRateService, mockAppConfig)
 
   val firstApril2022: LocalDate = LocalDate.of(2022, 4, 1)
 
