@@ -240,7 +240,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(500)
       }
 
-      "Etmp already has return" ignore {
+      "Etmp already has return" in {
         val example422Body = """{
           |  "failures" : [ {
           |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
@@ -251,7 +251,22 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body)
         when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
 
-        callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
+        val exampleReturn = Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)
+        callSubmit mustBe Right(exampleReturn)
+      }
+
+      "being greedy" in {
+        val diffBody = """{
+            |  "failures" : [ {
+            |    "code" : "",
+            |    "reason" : ""
+            |  } ]
+            |}""".stripMargin
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, diffBody)
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
+
+        callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
+
       }
     }
   }

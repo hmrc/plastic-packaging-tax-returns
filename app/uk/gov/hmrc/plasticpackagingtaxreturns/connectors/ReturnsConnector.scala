@@ -19,13 +19,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
-import play.api.http.Status.OK
-import play.api.libs.json.{JsValue, Json}
+import play.api.http.Status.{OK, UNPROCESSABLE_ENTITY}
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -55,9 +55,14 @@ class ReturnsConnector @Inject() (
     httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders)
       .andThen { case _ => timer.stop() }
       .map { jsonResponse =>
-        if (jsonResponse.status == OK)
+        if (jsonResponse.status == OK) {
           happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
-        else
+        } else if (jsonResponse.status == UNPROCESSABLE_ENTITY &&
+          (jsonResponse.json \"failures" \ 0 \"code").as[String] == "TAX_OBLIGATION_ALREADY_FULFILLED")
+        Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
+          else if (jsonResponse.status == UNPROCESSABLE_ENTITY)
+            Left(jsonResponse.status)
+         else
           unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
       }
   }
