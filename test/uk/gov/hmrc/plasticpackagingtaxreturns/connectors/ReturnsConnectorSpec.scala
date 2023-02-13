@@ -25,9 +25,7 @@ import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status
-import play.api.libs.json.{JsObject, JsString, Json}
-import play.api.mvc.Result
-import play.api.mvc.Results.UnprocessableEntity
+import play.api.libs.json.{JsObject, JsString}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
@@ -66,7 +64,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       |     "pptReferenceNumber" : "details-ref-no",
       |     "submissionId" : "submission-id"
       |   }
-      |   }""".stripMargin)
+      |}""".stripMargin)
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
