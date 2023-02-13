@@ -55,15 +55,14 @@ class ReturnsConnector @Inject() (
     httpClient.PUT[ReturnsSubmissionRequest, HttpResponse](returnsSubmissionUrl, requestBody, requestHeaders)
       .andThen { case _ => timer.stop() }
       .map { jsonResponse =>
-        if (jsonResponse.status == OK) {
-          happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
-        } else if (jsonResponse.status == UNPROCESSABLE_ENTITY &&
-          (jsonResponse.json \"failures" \ 0 \"code").as[String] == "TAX_OBLIGATION_ALREADY_FULFILLED")
-        Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
-          else if (jsonResponse.status == UNPROCESSABLE_ENTITY)
-            Left(jsonResponse.status)
-         else
-          unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
+        jsonResponse.status match {
+          case OK => happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
+          case UNPROCESSABLE_ENTITY =>
+            if((jsonResponse.json \"failures" \ 0 \"code").as[String] == "TAX_OBLIGATION_ALREADY_FULFILLED")
+              Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
+            else Left(jsonResponse.status)
+          case _ => unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
+        }
       }
   }
 
