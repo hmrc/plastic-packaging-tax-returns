@@ -114,7 +114,7 @@ class ReturnsConnector @Inject() (
           }, { 
             jsValue =>
               auditConnector.sendExplicitAudit(GetReturn.eventType,
-                GetReturn(internalId, periodKey, SUCCESS, Try(response.json).toOption, None))
+                GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None))
               Right(jsValue)
           })
 
