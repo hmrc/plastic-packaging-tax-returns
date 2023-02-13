@@ -126,7 +126,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
             
-            // TODO this (below) eats any / all output from WireMock's matchers, replace with lines above?
+            // TODO this (below) eats any / all output from WireMock's matchers
 //            eventually(timeout(Span(5, Seconds))) {
 //              eventSendToAudit(auditUrl, auditModel) mustBe true
 //            }

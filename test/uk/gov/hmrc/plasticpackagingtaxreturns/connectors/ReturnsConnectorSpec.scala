@@ -120,7 +120,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       
       val headers = ArgCaptor[Seq[(String, String)]]
       verify(httpClient).GET[HttpResponse](any, any, headers) (any, any, any)
-      headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")
+      headers.value must contain ("CorrelationId" -> "00000000-0000-0001-0000-000000000002")
     }
     
     "call the correct url" in {
@@ -222,7 +222,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(edgeOfSystem).createUuid
         val headers = ArgCaptor[Seq[(String, String)]]
         verify(httpClient).PUT[ReturnsSubmissionRequest, Return](any, any, headers) (any, any, any, any)
-        headers.value must contain ("CorrelationId", "00000000-0000-0001-0000-000000000002")
+        headers.value must contain ("CorrelationId" -> "00000000-0000-0001-0000-000000000002")
       }
 
       withClue("with correct body") {
