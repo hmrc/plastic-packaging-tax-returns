@@ -133,12 +133,12 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     "handle responses" when {
       
       "response code is 4xx" in {
-        when(httpClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HttpResponse(412, """{"a":"b"}"""))
+        when(httpClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HttpResponse(412, ""))
         callGet mustBe Left(412)
         
         withClue("sends failure to audit") {
           verify(auditConnector).sendExplicitAudit(eqTo("GetReturn"), eqTo(
-            GetReturn("internal-id-7", "period-2", "Failure", None, Some("""{"a":"b"}"""))
+            GetReturn("internal-id-7", "period-2", "Failure", None, Some(""))
           ))(any, any, any)
         }
         
@@ -186,6 +186,22 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         when(auditConnector.sendExplicitAudit(any, any[SubmitReturn]) (any, any, any)) thenThrow new RandoException
         a [RandoException] mustBe thrownBy { callGet }
         verify(auditConnector, times(1)).sendExplicitAudit(any, any[GetReturn]) (any, any, any)
+      }
+      
+      "response body is not json" in {
+        when(httpClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HttpResponse(200, "<html />"))
+        callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
+
+        val auditDetail = ArgCaptor[GetReturn]
+        withClue("secure log the failure") {
+          verify(auditConnector).sendExplicitAudit[GetReturn](any, auditDetail) (any, any, any)
+        }
+        
+        withClue("secure log message contains response body and exception message") {
+          auditDetail.value.error.value must include ("<html />")
+          auditDetail.value.error.value must include ("Unexpected character ('<' (code 60))")
+        }
+        
       }
     }
     
