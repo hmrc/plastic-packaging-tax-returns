@@ -102,26 +102,25 @@ class ReturnsConnector @Inject() (
       .andThen { case _ => timer.stop() }
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${response.status}")
-        val triedJsValue = Try(response.json)
 
         if (response.status == OK) { // TODO use Status.isSuccessful(x) ?
-          
-          triedJsValue.toEither.fold({ throwable =>
-            // Note - if response payload was not json, exception from json lib usually includes the payload too
-            auditConnector.sendExplicitAudit(GetReturn.eventType, 
-              GetReturn(internalId, periodKey, FAILURE, None, Some(throwable.getMessage)))
-            Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
-          }, { jsValue =>
-            auditConnector.sendExplicitAudit(GetReturn.eventType,
-              GetReturn(internalId, periodKey, SUCCESS, triedJsValue.toOption, None))
-            Right(jsValue)
+
+          Try(response.json).toEither.fold({ 
+            throwable =>
+              // Note - if response payload was not json, exception from json lib usually includes the payload too
+              auditConnector.sendExplicitAudit(GetReturn.eventType, 
+                GetReturn(internalId, periodKey, FAILURE, None, Some(throwable.getMessage)))
+              Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
+          }, { 
+            jsValue =>
+              auditConnector.sendExplicitAudit(GetReturn.eventType,
+                GetReturn(internalId, periodKey, SUCCESS, Try(response.json).toOption, None))
+              Right(jsValue)
           })
 
         } else {
           
           // TODO currently we just parrot down-stream for non 2xx
-//          val errorMessage = triedJsValue.toEither.fold(throwable => throwable.getMessage, _ => response.body)
-//          val responseCode = triedJsValue.toEither.fold(_ => Status.INTERNAL_SERVER_ERROR, _ => response.status)
           auditConnector.sendExplicitAudit(GetReturn.eventType, 
             GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
           Left(response.status)
