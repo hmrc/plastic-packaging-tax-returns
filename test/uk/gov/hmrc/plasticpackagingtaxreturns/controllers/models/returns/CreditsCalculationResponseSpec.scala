@@ -30,16 +30,14 @@ class CreditsCalculationResponseSpec extends PlaySpec {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
           totalRequestedCreditInPounds = 1,
-          totalRequestedCreditInKilograms = 0,
-          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe true
       }
       "requested is equal to available" in {
         CreditsCalculationResponse(
           availableCreditInPounds = 2,
           totalRequestedCreditInPounds = 2,
-          totalRequestedCreditInKilograms = 0,
-          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe true
       }
     }
@@ -49,8 +47,7 @@ class CreditsCalculationResponseSpec extends PlaySpec {
         CreditsCalculationResponse(
           availableCreditInPounds = 1,
           totalRequestedCreditInPounds = 2,
-          totalRequestedCreditInKilograms = 0,
-          Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1)))
+          totalRequestedCreditInKilograms = 0
         ).canBeClaimed mustBe false
       }
     }
@@ -58,7 +55,7 @@ class CreditsCalculationResponseSpec extends PlaySpec {
 
   //todo: move the test in
   "json Writes" must {
-    val obj = CreditsCalculationResponse(1 , 2, 3, Seq(TaxRate(BigDecimal(0.2), LocalDate.of(2022, 4, 1))))
+    val obj = CreditsCalculationResponse(1 , 2, 3)
     val jsObject = Json.toJson(obj).as[JsObject]
 
     "contain the availableCreditInPounds field" in {

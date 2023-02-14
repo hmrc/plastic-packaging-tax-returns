@@ -33,8 +33,8 @@ class TaxRateServiceSpec extends PlaySpec with BeforeAndAfterEach {
     super.beforeEach()
     reset(mockAppConfig)
 
-    when(mockAppConfig.taxRatePoundsPerKgYearly).thenReturn(
-      Seq(TaxRate(0, LocalDate.MIN),
+    when(mockAppConfig.taxRatesPoundsPerKg).thenReturn(
+      Seq(
         TaxRate(0.2, LocalDate.of(2022, 4, 1)),
         TaxRate(0.5, LocalDate.of(2023, 4, 1)))
     )
@@ -59,32 +59,6 @@ class TaxRateServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
       "on or after 1/4/2023" in {
         sut.lookupTaxRateForPeriod(LocalDate.of(2023, 4, 1)) mustBe 0.5
-      }
-    }
-  }
-
-  "lookupTaxRateForPreviousYears" should {
-    "return a TaxRate" when {
-      "before 1/4/2022" in {
-        sut.lookupTaxRateForPreviousYears(LocalDate.of(2022, 3, 31)) mustBe
-          Seq(TaxRate(0.0, LocalDate.MIN))
-      }
-
-      "on or after 1/4/2022" in {
-        sut.lookupTaxRateForPreviousYears(LocalDate.of(2022, 4, 1)) mustBe
-          Seq(
-            TaxRate(0.0, LocalDate.MIN),
-            TaxRate(0.2, LocalDate.of(2022,4,1))
-
-          )
-      }
-
-      "on or after 1/4/2023" in {
-        sut.lookupTaxRateForPreviousYears(LocalDate.of(2023, 4, 1)) mustBe
-          Seq(TaxRate(0, LocalDate.MIN),
-            TaxRate(0.2, LocalDate.of(2022, 4, 1)),
-            TaxRate(0.5, LocalDate.of(2023, 4, 1))
-          )
       }
     }
   }

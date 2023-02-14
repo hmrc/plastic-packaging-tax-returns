@@ -31,12 +31,9 @@ class TaxRateService  @Inject()(appConfig: AppConfig) {
    * @return the tax rate for the given period
    */
   def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
-    appConfig.taxRatePoundsPerKgYearly
+    (TaxRate(0.0, LocalDate.MIN) +: appConfig.taxRatesPoundsPerKg)
       .filter(_.rateCanApplyTo(periodEndDate))
-      .last.rate //most recent
-  }
-  def lookupTaxRateForPreviousYears(periodEndDate: LocalDate): Seq[TaxRate] = {
-    appConfig.taxRatePoundsPerKgYearly
-      .filter(_.rateCanApplyTo(periodEndDate))
+      .last
+      .rate
   }
 }

@@ -76,7 +76,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         .thenReturn(Future.successful(Some(userAnswers)))
       when(mockAvailableCreditsService.getBalance(any())(any())).thenReturn(Future.successful(available))
       when(mockCreditsCalcService.totalRequestedCredit(any())).thenReturn(requested)
-      when(taxRateService.lookupTaxRateForPreviousYears(any[LocalDate])).thenReturn(Seq(TaxRate(0.2, LocalDate.of(2022, 4, 1))))
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
@@ -85,8 +84,8 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         CreditsCalculationResponse(
           available,
           requested.moneyInPounds,
-          requested.weight,
-          Seq(TaxRate(0.2, LocalDate.of(2022, 4, 1))))
+          requested.weight
+        )
       )
 
       withClue("session repo called with the cache key"){

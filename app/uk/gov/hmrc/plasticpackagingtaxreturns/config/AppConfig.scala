@@ -75,10 +75,10 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   //todo: can we delete this? It seems this is not used any where in the source code
   val taxRegimeStartDate: LocalDate = LocalDate.of(2022, 4, 1)
 
-  val taxRatePoundsPerKgYearly: Seq[TaxRate] = {
+  val taxRatesPoundsPerKg: Seq[TaxRate] = {
 
-    config.get[Seq[Configuration]]("taxRatePoundsPerKgYearly")
-      .map(o => TaxRate(BigDecimal(o.get[String]("taxRate")),LocalDate.parse(o.get[String]("date"))))
+    config.get[Seq[Configuration]]("taxRatesPoundsPerKg")
+      .map(o => TaxRate(BigDecimal(o.get[String]("taxRate")),LocalDate.parse(o.get[String]("useFromDate"))))
       .sortBy(_.useFromDate)
   }
 

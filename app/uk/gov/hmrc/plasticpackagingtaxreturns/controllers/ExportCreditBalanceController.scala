@@ -46,14 +46,11 @@ class ExportCreditBalanceController @Inject() (
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- creditService.getBalance(userAnswers)
         requestedCredit = calculateService.totalRequestedCredit(userAnswers)
-        taxRate = taxRateService.lookupTaxRateForPreviousYears(userAnswers.get[LocalDate](ReturnObligationToDateGettable)
-          .getOrElse(throw new IllegalStateException("could not find Tax Rate")))
       } yield
         Ok(Json.toJson(CreditsCalculationResponse(
           availableCredit,
           requestedCredit.moneyInPounds,
-          requestedCredit.weight,
-          taxRate
+          requestedCredit.weight
         )))
       }.recover{
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
