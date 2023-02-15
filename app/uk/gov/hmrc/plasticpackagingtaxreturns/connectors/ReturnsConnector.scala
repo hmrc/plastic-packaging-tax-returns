@@ -31,6 +31,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class ReturnsConnector @Inject() (
@@ -58,7 +59,8 @@ class ReturnsConnector @Inject() (
         jsonResponse.status match {
           case OK => happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
           case UNPROCESSABLE_ENTITY =>
-            if((jsonResponse.json \"failures" \ 0 \"code").as[String] == "TAX_OBLIGATION_ALREADY_FULFILLED")
+            val json = Try(jsonResponse.json).getOrElse(JsObject.empty)
+            if((json \"failures" \ 0 \"code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED"))
               Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
             else Left(jsonResponse.status)
           case _ => unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)

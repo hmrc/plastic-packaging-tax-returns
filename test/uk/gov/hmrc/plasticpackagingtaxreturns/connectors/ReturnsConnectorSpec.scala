@@ -268,6 +268,12 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
       }
+
+      "422 response but not json" in {
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, "<html />")
+        when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
+        callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
+      }
     }
   }
 }
