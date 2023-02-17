@@ -62,7 +62,8 @@ class ReturnsConnector @Inject() (
             val json = Try(jsonResponse.json).getOrElse(JsObject.empty)
             if((json \"failures" \ 0 \"code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED"))
               Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
-            else Left(jsonResponse.status)
+            else
+              unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
           case _ => unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
         }
       }

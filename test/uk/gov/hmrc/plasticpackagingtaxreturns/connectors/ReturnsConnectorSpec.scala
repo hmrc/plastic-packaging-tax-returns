@@ -256,16 +256,22 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "being greedy" in {
-        val diffBody = """{
+        val responseBody = """{
             |  "failures" : [ {
-            |    "code" : "",
-            |    "reason" : ""
+            |    "code" : "SOME_OTHER_REASON",
+            |    "reason" : "Some other thing happened"
             |  } ]
             |}""".stripMargin
-        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, diffBody)
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, responseBody)
         when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
 
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
+
+        withClue("log as a call failure") {
+          // TODO what response body will we post to secure log, not a fake return?
+          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+            "Failure", returnSubmission, None, Some(responseBody))))(any, any, any)
+        }
 
       }
 
