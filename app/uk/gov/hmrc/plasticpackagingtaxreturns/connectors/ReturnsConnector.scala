@@ -21,7 +21,7 @@ import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{OK, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}

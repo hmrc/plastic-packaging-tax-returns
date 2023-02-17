@@ -311,6 +311,9 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             "Failure", returnSubmission, None, Some("<html />")))) (any, any, any)
         }
       }
+      
+      // todos
+      "log summit when unhappy" in {}
     }
   }
 }
