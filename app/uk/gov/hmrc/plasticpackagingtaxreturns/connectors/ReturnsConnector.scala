@@ -61,9 +61,11 @@ class ReturnsConnector @Inject() (
           case OK => happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
           case UNPROCESSABLE_ENTITY =>
             val json = Try(jsonResponse.json).getOrElse(JsObject.empty)
-            if((json \"failures" \ 0 \"code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED"))
+            if((json \"failures" \ 0 \"code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
+              auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+                SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
               Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
-            else
+            } else
               unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
           case _ => unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
         }
