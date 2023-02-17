@@ -68,7 +68,7 @@ object NewReturnValues {
   def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
-      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate")
+      periodEndDate <- userAnswers.get[LocalDate](ReturnObligationToDateGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)

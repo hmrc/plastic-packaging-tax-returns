@@ -36,6 +36,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -66,7 +67,8 @@ class ObligationDataControllerSpec
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(bind[AuthConnector].to(mockAuthConnector),
-               bind[ObligationsDataConnector].to(mockObligationDataConnector)
+      bind[ObligationsDataConnector].to(mockObligationDataConnector),
+      bind[SessionRepository].to(mock[SessionRepository])
     )
     .build()
 

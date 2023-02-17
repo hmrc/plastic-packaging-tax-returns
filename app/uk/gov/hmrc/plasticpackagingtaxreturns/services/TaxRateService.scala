@@ -18,6 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
+
 
 import java.time.LocalDate
 
@@ -29,9 +31,9 @@ class TaxRateService  @Inject()(appConfig: AppConfig) {
    * @return the tax rate for the given period
    */
   def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
-    if (periodEndDate.isBefore(appConfig.taxRegimeStartDate))
-      appConfig.taxRateBefore1stApril2022
-    else
-      appConfig.taxRateFrom1stApril2022
+    (TaxRate(0.0, LocalDate.MIN) +: appConfig.taxRatesPoundsPerKg)
+      .filter(_.rateCanApplyTo(periodEndDate))
+      .last
+      .rate
   }
 }

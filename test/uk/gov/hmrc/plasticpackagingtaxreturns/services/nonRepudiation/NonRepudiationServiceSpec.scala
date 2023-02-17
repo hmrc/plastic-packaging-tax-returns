@@ -43,7 +43,7 @@ import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
 
 class NonRepudiationServiceSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with AuthTestSupport with NrsTestData with BeforeAndAfterEach
+    extends AnyWordSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach
     with ScalaFutures with Matchers with MockConnectors with SubscriptionTestData {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global

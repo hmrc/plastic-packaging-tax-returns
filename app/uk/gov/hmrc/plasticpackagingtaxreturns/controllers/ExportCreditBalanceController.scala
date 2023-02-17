@@ -19,10 +19,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
 
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -32,18 +34,24 @@ class ExportCreditBalanceController @Inject() (
   sessionRepository: SessionRepository,
   calculateService: CreditsCalculationService,
   creditService: AvailableCreditService,
+  taxRateService: TaxRateService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends BaseController {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
+
       {for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- creditService.getBalance(userAnswers)
         requestedCredit = calculateService.totalRequestedCredit(userAnswers)
       } yield
-        Ok(Json.toJson(CreditsCalculationResponse(availableCredit, requestedCredit.moneyInPounds, requestedCredit.weight)))
+        Ok(Json.toJson(CreditsCalculationResponse(
+          availableCredit,
+          requestedCredit.moneyInPounds,
+          requestedCredit.weight
+        )))
       }.recover{
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
       }
