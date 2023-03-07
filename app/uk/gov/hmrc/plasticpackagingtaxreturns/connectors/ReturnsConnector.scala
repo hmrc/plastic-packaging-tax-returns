@@ -88,11 +88,17 @@ class ReturnsConnector @Inject() (
 
   private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
                               jsonResponse: HttpResponse)(implicit headerCarrier: HeaderCarrier) = {
-    val returnResponse = Json.parse(jsonResponse.body).as[Return]
-    auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-      SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
-
-    Right(returnResponse)
+    Try(Json.parse(jsonResponse.body).as[Return]).toEither.fold({
+      throwable =>
+        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+          SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage)))
+        Left(Status.INTERNAL_SERVER_ERROR)
+    }, {
+      returnResponse =>
+        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
+        Right(returnResponse)
+    })
   }
 
   def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {

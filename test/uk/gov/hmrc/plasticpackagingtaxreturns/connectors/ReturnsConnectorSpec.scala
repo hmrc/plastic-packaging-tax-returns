@@ -315,5 +315,21 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       // todos
       "log summit when unhappy" in {}
     }
+
+    "response body is not json" in {
+      when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HttpResponse(200, "<html />"))
+      callSubmit mustBe Left(Status.INTERNAL_SERVER_ERROR)
+
+      val auditDetail = ArgCaptor[SubmitReturn]
+      withClue("secure log the failure") {
+        verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail)(any, any, any)
+      }
+
+      withClue("secure log message contains response body and exception message") {
+        auditDetail.value.error.value must include("<html />")
+        auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
+      }
+
+    }
   }
 }
