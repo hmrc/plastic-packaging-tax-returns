@@ -26,6 +26,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.ALREADY_REPORTED
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -59,15 +60,15 @@ class ReturnsConnector @Inject() (
       .map { jsonResponse =>
         jsonResponse.status match {
           case OK => happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
-          case UNPROCESSABLE_ENTITY =>
+          case _ =>
             val json = Try(jsonResponse.json).getOrElse(JsObject.empty)
-            if((json \"failures" \ 0 \"code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
-              auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-                SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
-              Right(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None))
+            if(jsonResponse.status == UNPROCESSABLE_ENTITY
+              && (json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
+                auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+                  SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
+                Left(ALREADY_REPORTED)
             } else
               unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
-          case _ => unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
         }
       }
   }
@@ -145,4 +146,8 @@ class ReturnsConnector @Inject() (
     s"Return Display API call for correlationId [${correlationIdHeader._2}], " +
       s"pptReference [$pptReference], periodKey [$periodKey]: " + outcomeMessage
   }
+}
+
+object ReturnsConnector {
+  val ALREADY_REPORTED = 208
 }

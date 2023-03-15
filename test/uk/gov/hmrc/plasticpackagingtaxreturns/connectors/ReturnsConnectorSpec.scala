@@ -31,6 +31,7 @@ import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.ALREADY_REPORTED
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
@@ -273,7 +274,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         when(httpClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(putResponse)
 
         val exampleReturn = Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None) // TODO match thing in front-end
-        callSubmit mustBe Right(exampleReturn)
+        callSubmit mustBe Left(ALREADY_REPORTED)
 
         withClue("log success as etmp did received our call ok") {
           verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
