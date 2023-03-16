@@ -23,7 +23,6 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.enablers.Messaging
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Logger
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
@@ -33,12 +32,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{NrsTestData, SubscriptionTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.NrsPayload
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{NonRepudiationIdentityRetrievals, nonRepudiationIdentityRetrievals}
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.time.ZonedDateTime
+import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -51,21 +51,30 @@ class NonRepudiationServiceSpec
 
   private val appConfig = mock[AppConfig]
   private val headerCarrier = mock[HeaderCarrier]
+  private val nrsPayloadFactory = mock[NrsPayloadFactory]
+  private val nrsPayload = mock[NrsPayload]
 
   implicit val request: Request[AnyContent] = FakeRequest()
   implicit val resolveImplicitAmbiguity: Messaging[InternalServerException] = Messaging.messagingNatureOfThrowable
 
-  val nonRepudiationService: NonRepudiationService = new NonRepudiationService(mockNonRepudiationConnector, 
-    mockAuthConnector, appConfig) {
+  private val exampleMetadata = NonRepudiationMetadata.create(
+    "notable-event", "ppt-ref", Map.empty[String, String], IdentityData.empty, "user-auth-token", "payload-checksum",
+    ZonedDateTime.of(1900, 1, 1, 12, 11, 10, 0, ZoneOffset.UTC))
+
+  private val nonRepudiationService = new NonRepudiationService(mockNonRepudiationConnector, 
+    mockAuthConnector, appConfig, nrsPayloadFactory) {
     override val logger: Logger = mockLogger
   }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig, headerCarrier, mockLogger)
+    reset(appConfig, headerCarrier, mockLogger, nrsPayloadFactory)
     when(headerCarrier.authorization) thenReturn Some(Authorization("yeah go right ahead"))
     when(mockAuthConnector.authorise[NonRepudiationIdentityRetrievals](any, any)(any, any)) thenReturn 
       Future.successful(testAuthRetrievals)
+    when(nrsPayloadFactory.create(any)) thenReturn nrsPayload
+    when(nrsPayload.createMetadata(any, any, any, any, any, any)) thenReturn exampleMetadata
+    when(nrsPayload.encodePayload()) thenReturn "encoded-payload" 
   }
   
 
@@ -96,10 +105,6 @@ class NonRepudiationServiceSpec
     val testPayloadString = "testPayloadString"
 
     "call the nonRepudiationConnector with the correctly formatted metadata" in {
-      val testPayloadChecksum = MessageDigest.getInstance("SHA-256")
-        .digest(testPayloadString.getBytes(StandardCharsets.UTF_8))
-        .map("%02x".format(_)).mkString 
-      
       mockAuthorization(nonRepudiationIdentityRetrievals, testAuthRetrievals)
       when(mockNonRepudiationConnector.submitNonRepudiation(any, any) (any)) thenReturn Future.successful(
         NonRepudiationSubmissionAccepted("testSubmissionId"))
@@ -108,12 +113,7 @@ class NonRepudiationServiceSpec
         testUserHeaders)
       await(res) mustBe NonRepudiationSubmissionAccepted("testSubmissionId")
 
-      val testEncodedPayload = Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
-      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = "an-event",
-        "application/json", testPayloadChecksum, testDateTimeString, testNonRepudiationIdentityData, testAuthToken, 
-        testUserHeaders, searchKeys = Map("pptReference" -> testPPTReference)
-      )
-      verify(mockNonRepudiationConnector).submitNonRepudiation(testEncodedPayload, expectedMetadata)(hc)
+      verify(mockNonRepudiationConnector).submitNonRepudiation("encoded-payload", exampleMetadata) (hc)
     }
 
     "throw an exception when the NRS call fails" in {

@@ -16,11 +16,27 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import java.security.MessageDigest
-import java.util.Base64
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
-class EdgeOfSystem {
+import java.security.MessageDigest
+import java.time.LocalDateTime
+import java.util.Base64
+import javax.inject.Inject
+
+class EdgeOfSystem @Inject() (appConfig: AppConfig) {
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
+  
+  /** The current system date-time, or the overridden date-time if set in config
+   * @return
+   *  - current system date-time, if no override in-place
+   *  - overridden date-time, if set 
+   * @see [[AppConfig.overrideSystemDateTime]]
+   */
+  def localDateTimeNow: LocalDateTime = {
+    appConfig
+      .overrideSystemDateTime
+      .getOrElse(LocalDateTime.now())
+  }
 
 }

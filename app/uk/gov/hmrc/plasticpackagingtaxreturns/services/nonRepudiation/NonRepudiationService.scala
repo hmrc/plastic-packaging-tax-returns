@@ -34,11 +34,18 @@ import java.time.ZonedDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+class NrsPayloadFactory @Inject() (
+  edgeOfSystem: EdgeOfSystem
+) {
+  def create(payload: String): NrsPayload = NrsPayload(edgeOfSystem, payload)
+}
+
 @Singleton
 case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
   authConnector: AuthConnector, 
-  config: AppConfig
+  config: AppConfig,
+  nrsPayloadFactory: NrsPayloadFactory
 )(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
 
   def submitNonRepudiation(
@@ -49,7 +56,7 @@ case class NonRepudiationService @Inject() (
     userHeaders: Map[String, String]
   )(implicit headerCarrier: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
-    val nrsPayload = NrsPayload(new EdgeOfSystem, payloadString)
+    val nrsPayload = nrsPayloadFactory.create(payloadString)
 
     for {
       identityData <- retrieveIdentityData()
