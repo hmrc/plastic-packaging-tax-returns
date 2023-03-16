@@ -20,28 +20,26 @@ import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRateValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
 
 import java.time.LocalDate
 
 class TaxRateServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
-  val mockAppConfig: AppConfig = mock[AppConfig]
+  private val taxRates: TaxRateValues = mock[TaxRateValues]
+  private val sut = new TaxRateService(taxRates)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAppConfig)
+    reset(taxRates)
 
-    when(mockAppConfig.taxRatesPoundsPerKg).thenReturn(
+    when(taxRates.taxRatesPoundsPerKg).thenReturn(
       Seq(
-        TaxRate(0.2, LocalDate.of(2022, 4, 1)),
-        TaxRate(0.5, LocalDate.of(2023, 4, 1)))
-    )
+        TaxRate(0.5, LocalDate.of(2023, 4, 1)),
+        TaxRate(0.2, LocalDate.of(2022, 4, 1))
+      ))
   }
-
-
-  val sut = new TaxRateService(mockAppConfig)
 
   "lookupTaxRateForPeriod" must {
     "return the correct tax rate" when {
@@ -60,6 +58,18 @@ class TaxRateServiceSpec extends PlaySpec with BeforeAndAfterEach {
       "on or after 1/4/2023" in {
         sut.lookupTaxRateForPeriod(LocalDate.of(2023, 4, 1)) mustBe 0.5
       }
+    }
+
+    "return a taxRates when list is not sorted" in {
+      when(taxRates.taxRatesPoundsPerKg).thenReturn(
+        Seq(
+          TaxRate(0.5, LocalDate.of(2023, 4, 1)),
+          TaxRate(0.2, LocalDate.of(2022, 4, 1)),
+          TaxRate(0.6, LocalDate.of(2021, 4, 1))
+        ))
+
+      sut.lookupTaxRateForPeriod(LocalDate.of(2023, 4, 1)) mustBe 0.5
+      sut.lookupTaxRateForPeriod(LocalDate.of(2022, 4, 1)) mustBe 0.2
     }
   }
 

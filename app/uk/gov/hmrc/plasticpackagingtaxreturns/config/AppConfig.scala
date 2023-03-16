@@ -17,8 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.localDateOrdering
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.LocalDate
@@ -74,13 +72,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   //todo: can we delete this? It seems this is not used any where in the source code
   val taxRegimeStartDate: LocalDate = LocalDate.of(2022, 4, 1)
-
-  val taxRatesPoundsPerKg: Seq[TaxRate] = {
-
-    config.get[Seq[Configuration]]("taxRatesPoundsPerKg")
-      .map(o => TaxRate(BigDecimal(o.get[String]("taxRate")),LocalDate.parse(o.get[String]("useFromDate"))))
-      .sortBy(_.useFromDate)
-  }
 
   // TODO change config setting name? (Might be more agro than worth it)
   // Used in QA testing to allow open returns that aren't yet due to be filed anyway
