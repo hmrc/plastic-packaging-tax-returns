@@ -22,22 +22,21 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
 class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val mockConversionService = mock[WeightToPoundsConversionService]
-  private val mockTaxRateService = mock[TaxRateService]
+  private val mockTaxRateTable = mock[TaxRateTable]
 
-  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService, mockTaxRateService)
+  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService, mockTaxRateTable)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversionService, mockTaxRateService)
+    reset(mockConversionService, mockTaxRateTable)
     when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
   }
 

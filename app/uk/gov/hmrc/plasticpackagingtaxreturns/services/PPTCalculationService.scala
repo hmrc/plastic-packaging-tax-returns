@@ -19,13 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import play.api.Logging
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import javax.inject.Inject
 
 class PPTCalculationService @Inject()(
   conversionService: WeightToPoundsConversionService,
-  taxRateService: TaxRateService
+  taxRateTable: TaxRateTable
 ) extends Logging {
 
   def calculate(returnValues: ReturnValues): Calculations =
@@ -55,7 +56,7 @@ class PPTCalculationService @Inject()(
     val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
     val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
-    val taxRate: BigDecimal = taxRateService.lookupTaxRateForPeriod(periodEndDate)
+    val taxRate: BigDecimal = taxRateTable.lookupTaxRateForPeriod(periodEndDate)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&

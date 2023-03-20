@@ -18,9 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsFalse, JsNumber, JsObject, Json}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, TaxRate}
-
-import java.time.LocalDate
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 
 class CreditsCalculationResponseSpec extends PlaySpec {
 

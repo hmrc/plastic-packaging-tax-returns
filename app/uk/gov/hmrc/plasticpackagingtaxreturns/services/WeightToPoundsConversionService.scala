@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
@@ -34,7 +35,7 @@ import scala.math.BigDecimal.RoundingMode
  */
 
 class WeightToPoundsConversionService @Inject()(
- taxRateService: TaxRateService,
+ taxRateTable: TaxRateTable,
  appConfig: AppConfig
 ) {
 
@@ -46,13 +47,13 @@ class WeightToPoundsConversionService @Inject()(
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(periodEndDate)
+    val taxRateForPeriod = taxRateTable.lookupTaxRateForPeriod(periodEndDate)
     val currency = BigDecimal(weightInKg) * taxRateForPeriod // tax rate is £ per kg
     currency.setScale(2, RoundingMode.DOWN)
   }
 
   def weightToCredit(weight: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(appConfig.taxRegimeStartDate) //todo: credits need to bring in a date
+    val taxRateForPeriod = taxRateTable.lookupTaxRateForPeriod(appConfig.taxRegimeStartDate) //todo: credits need to bring in a date
     val currency = BigDecimal(weight) * taxRateForPeriod
     currency.setScale(2, RoundingMode.UP)
   }

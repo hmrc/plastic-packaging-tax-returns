@@ -35,8 +35,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalcula
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,7 +57,7 @@ class CalculationsControllerSpec
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   private val pptCalculationService = mock[PPTCalculationService]
   private val creditsCalculationService = mock[CreditsCalculationService]
-  private val taxRateService = mock[TaxRateService]
+  private val taxRateTable = mock[TaxRateTable]
 
   private val sut = new CalculationsController(
     new FakeAuthenticator(cc),
@@ -65,16 +66,16 @@ class CalculationsControllerSpec
     pptCalculationService,
     creditsCalculationService,
     availableCreditService,
-    taxRateService
+    taxRateTable
   )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateService)
+    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateTable)
 
     when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
     when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
-    when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.123)
+    when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.123)
   }
 
   "calculateSubmit" should {

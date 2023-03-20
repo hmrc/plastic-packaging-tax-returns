@@ -17,26 +17,27 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{atLeastOnce, never, reset, verify, when}
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
 class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
-  val mockTaxRateService: TaxRateService = mock[TaxRateService]
-  val mockAppConfig: AppConfig = mock[AppConfig]
+  private val mockTaxRateTable= mock[TaxRateTable]
+  private val mockAppConfig = mock[AppConfig]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockTaxRateService, mockAppConfig)
+    reset(mockTaxRateTable, mockAppConfig)
     when(mockAppConfig.taxRegimeStartDate).thenReturn(firstApril2022)
   }
 
-  val sut = new WeightToPoundsConversionService(mockTaxRateService, mockAppConfig)
+  val sut = new WeightToPoundsConversionService(mockTaxRateTable, mockAppConfig)
 
   val firstApril2022: LocalDate = LocalDate.of(2022, 4, 1)
 
@@ -44,7 +45,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
     behave like aConverter(weight => sut.weightToDebit(firstApril2022, weight))
 
     "round DOWN for conversion rate of 3 d.p." in {
-      when(mockTaxRateService.lookupTaxRateForPeriod(any())).thenReturn(0.333)
+      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.333)
       sut.weightToDebit(firstApril2022, 5L) mustBe BigDecimal(1.66)
     }
   }
@@ -53,7 +54,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
     behave like aConverter(sut.weightToCredit)
 
     "round UP for conversion rate of 3 d.p." in {
-      when(mockTaxRateService.lookupTaxRateForPeriod(any())).thenReturn(0.333)
+      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.333)
       sut.weightToCredit(5L) mustBe BigDecimal(1.67)
     }
   }
@@ -61,12 +62,12 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
   def aConverter(method: Long => BigDecimal): Unit = {
 
     "multiply the weight by the conversion rate 1 d.p." in {
-      when(mockTaxRateService.lookupTaxRateForPeriod(any())).thenReturn(0.5)
+      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.5)
       method(5L) mustBe BigDecimal(2.5)
     }
 
     "multiply the weight by the conversion rate 2 d.p." in {
-      when(mockTaxRateService.lookupTaxRateForPeriod(any())).thenReturn(0.25)
+      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.25)
       method(5L) mustBe BigDecimal(1.25)
     }
     

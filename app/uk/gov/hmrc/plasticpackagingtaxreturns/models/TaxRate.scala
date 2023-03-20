@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
+package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{Json, OWrites}
 
 import java.time.LocalDate
 
-case class TaxRate(rate: BigDecimal, useFromDate: LocalDate) {
+/**
+ * @param poundsPerKg - tax rate in £ per kg
+ * @param useFromDate - earliest day from which this rate applies
+ */
+case class TaxRate(poundsPerKg: BigDecimal, useFromDate: LocalDate) {
   def rateCanApplyTo(localDate: LocalDate): Boolean =
     useFromDate.isBefore(localDate) || useFromDate.isEqual(localDate)
 }

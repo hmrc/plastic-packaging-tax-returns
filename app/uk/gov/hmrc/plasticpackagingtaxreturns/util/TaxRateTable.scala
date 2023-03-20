@@ -14,26 +14,33 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.services
+package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import com.google.inject.Inject
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRateValues
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.localDateOrdering
 
 import java.time.LocalDate
 
-class TaxRateService @Inject()(taxRates: TaxRateValues) {
+/**
+ * The tax rates for PPT 
+ */
+class TaxRateTable {
+  
+  final val table = Seq(
+    TaxRate(poundsPerKg = 0.20, useFromDate = LocalDate.of(2022, 4, 1)),
+    TaxRate(poundsPerKg = 0.21082, useFromDate = LocalDate.of(2023, 4, 1))
+  )
 
-
-  /** When the tax rate changes, add another if-test here
-   *
+  /**
+   * Looks up the PPT tax rate applicable to the given date
    * @param periodEndDate the last day of the period we are finding the tax-rate for
    * @return the tax rate for the given period
    */
   def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
-    (TaxRate(0.0, LocalDate.MIN) +: taxRates.taxRatesPoundsPerKg.sortBy(_.useFromDate))
+    (TaxRate(0.0, LocalDate.MIN) +: table.sortBy(_.useFromDate))
       .filter(_.rateCanApplyTo(periodEndDate))
       .last
-      .rate
+      .poundsPerKg
   }
+
 }
