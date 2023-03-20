@@ -18,16 +18,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.{LocalDate, LocalDateTime}
-import java.time.format.DateTimeFormatter
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
 @Singleton
 class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) {
-
+  
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
   lazy val desHost: String = servicesConfig.baseUrl("des")
   lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
@@ -83,20 +81,5 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   }
 
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
-
-  /** Override the current system data-time, for coding and testing
-   * @return
-   *   - [[None]] if no date-time override is in-place
-   *   - [[Some]][String]  if an override is in-place, the date-time to use is serialised in the string
-   * @example 2023-03-31T23:59:59
-   * @example 2023-04-01T00:00:00
-   * @see [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
-   * @see [[EdgeOfSystem.localDateTimeNow]]
-   */
-  def overrideSystemDateTime: Option[LocalDateTime] = {
-    config
-      .getOptional[String]("features.override-system-date-time")
-      .map(LocalDateTime.parse(_, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-  }
 
 }

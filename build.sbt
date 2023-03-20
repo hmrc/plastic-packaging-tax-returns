@@ -1,5 +1,4 @@
 import play.sbt.routes.RoutesKeys
-import sbt.IntegrationTest
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
@@ -46,9 +45,3 @@ lazy val scoverageSettings: Seq[Setting[_]] = Seq(
   coverageHighlighting := true,
   parallelExecution in Test := false
 )
-
-lazy val all = taskKey[Unit]("Runs units and it tests")
-all := Def.sequential(
-  Test / test,
-  IntegrationTest / test,
-).value
