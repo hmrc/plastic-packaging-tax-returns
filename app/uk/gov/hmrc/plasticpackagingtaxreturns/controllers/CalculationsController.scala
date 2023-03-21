@@ -50,7 +50,7 @@ class CalculationsController @Inject()(
           val userAnswers = optUa.get
           val amend = AmendReturnValues(userAnswers).get
           val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
-            taxRateTable.lookupTaxRateForPeriod(amend.periodEndDate))
+            taxRateTable.lookupRateFor(amend.periodEndDate))
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

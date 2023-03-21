@@ -75,7 +75,7 @@ class ReturnsController @Inject()(
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
         case Right(displayReturnJson)       => {
           val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
-          val taxRate = taxRateTable.lookupTaxRateForPeriod(endDate)
+          val taxRate = taxRateTable.lookupRateFor(endDate)
 
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)

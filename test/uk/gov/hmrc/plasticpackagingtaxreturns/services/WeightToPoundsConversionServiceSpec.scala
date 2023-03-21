@@ -45,7 +45,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
     behave like aConverter(weight => sut.weightToDebit(firstApril2022, weight))
 
     "round DOWN for conversion rate of 3 d.p." in {
-      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.333)
+      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.333)
       sut.weightToDebit(firstApril2022, 5L) mustBe BigDecimal(1.66)
     }
   }
@@ -54,7 +54,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
     behave like aConverter(sut.weightToCredit)
 
     "round UP for conversion rate of 3 d.p." in {
-      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.333)
+      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.333)
       sut.weightToCredit(5L) mustBe BigDecimal(1.67)
     }
   }
@@ -62,12 +62,12 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEa
   def aConverter(method: Long => BigDecimal): Unit = {
 
     "multiply the weight by the conversion rate 1 d.p." in {
-      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.5)
+      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.5)
       method(5L) mustBe BigDecimal(2.5)
     }
 
     "multiply the weight by the conversion rate 2 d.p." in {
-      when(mockTaxRateTable.lookupTaxRateForPeriod(any())).thenReturn(0.25)
+      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.25)
       method(5L) mustBe BigDecimal(1.25)
     }
     

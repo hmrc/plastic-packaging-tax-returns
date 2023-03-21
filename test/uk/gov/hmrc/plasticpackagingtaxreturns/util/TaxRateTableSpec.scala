@@ -20,66 +20,82 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.exceptions.TestFailedException
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.localDateOrdering
 
 import java.time.LocalDate
 
 class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
 
-  private val sut = new TaxRateTable
+  private val taxRateTable = new TaxRateTable
 
   override def beforeEach(): Unit = {
     super.beforeEach()
   }
 
-  private def sorted(table: Seq[TaxRate]) = {
-    table.sortBy(_.useFromDate)
+  private def inReverseChronologicalOrder(table: Seq[TaxRate]) = {
+    table.sortBy(- _.useFromDate.toEpochDay)
   }
 
   "lookupTaxRateForPeriod" must {
     "return the correct tax rate" when {
+      
       "before 1/4/2022" in {
-        // todo bomb out?
-        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 3, 31)) mustBe 0.0
+        the [IllegalStateException] thrownBy {
+          taxRateTable.lookupRateFor(LocalDate.of(2022, 3, 31))
+        } must have message "No tax rate found for 2022-03-31"
       }
 
       "2022 to 2023" in {
-        sut.lookupTaxRateForPeriod(LocalDate.of(2022, 4, 1)) mustBe 0.2
-        sut.lookupTaxRateForPeriod(LocalDate.of(2023, 3, 31)) mustBe 0.2
+        taxRateTable.lookupRateFor(LocalDate.of(2022, 4, 1)) mustBe 0.2
+        taxRateTable.lookupRateFor(LocalDate.of(2023, 3, 31)) mustBe 0.2
       }
 
       "2023 onwards" in {
-        sut.lookupTaxRateForPeriod(LocalDate.of(2023, 4, 1)) mustBe 0.21082
-        sut.lookupTaxRateForPeriod(LocalDate.of(2024, 3, 31)) mustBe 0.21082
-        sut.lookupTaxRateForPeriod(LocalDate.of(2024, 6, 11)) mustBe 0.21082
+        taxRateTable.lookupRateFor(LocalDate.of(2023, 4, 1)) mustBe 0.21082
+        taxRateTable.lookupRateFor(LocalDate.of(2024, 3, 31)) mustBe 0.21082
+        taxRateTable.lookupRateFor(LocalDate.of(2024, 6, 11)) mustBe 0.21082
       }
     }
   }
   
   "it" must {
-    "have a sorted table" in {
-      sut.table mustBe sorted(sut.table)
+    
+    "have a table in reverse chronological order" in {
+      taxRateTable.table mustBe inReverseChronologicalOrder(taxRateTable.table)
+    }
+    
+    "handle multiple rates" in {
+      val taxRateTable = new TaxRateTable {
+        override val table: Seq[TaxRate] = Seq(
+          TaxRate(poundsPerKg = 1,useFromDate = LocalDate.of(1902, 4, 1)),
+          TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(1901, 4, 1)),
+          TaxRate(poundsPerKg = 3, useFromDate = LocalDate.of(1900, 4, 1)),
+        )
+      }
+      
+      taxRateTable.lookupRateFor(LocalDate.of(1900, 4, 1)) mustBe 3
+      taxRateTable.lookupRateFor(LocalDate.of(1901, 4, 1)) mustBe 2
+      taxRateTable.lookupRateFor(LocalDate.of(1903, 4, 1)) mustBe 1
     }
   }
   
   "check we can detect a sorted table" when {
     
-    "table is sorted" in {
+    "table is in chronological order (don't want)" in {
       val table = Seq(
         TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1)),
         TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1))
       )
-      table mustBe sorted(table)
+      a [TestFailedException] must be thrownBy {
+        table mustBe inReverseChronologicalOrder(table)
+      }
     }
     
-    "table is unsorted" in {
+    "table is in reverse chronological order (do want)" in {
       val table = Seq(
         TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1)),
         TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1))
       )
-      a [TestFailedException] must be thrownBy {
-        table mustBe sorted(table)
-      }
+      table mustBe inReverseChronologicalOrder(table)
     }
     
   }

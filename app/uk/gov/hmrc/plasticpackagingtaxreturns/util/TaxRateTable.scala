@@ -20,15 +20,17 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.localDateOrdering
 
 import java.time.LocalDate
+import scala.math.Ordering.Implicits.infixOrderingOps
 
 /**
- * The tax rates for PPT 
+ * The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
+ * @note table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
  */
 class TaxRateTable {
   
-  final val table = Seq(
-    TaxRate(poundsPerKg = 0.20, useFromDate = LocalDate.of(2022, 4, 1)),
-    TaxRate(poundsPerKg = 0.21082, useFromDate = LocalDate.of(2023, 4, 1))
+  val table: Seq[TaxRate] = Seq(
+    TaxRate(poundsPerKg = 0.21082, useFromDate = LocalDate.of(2023, 4, 1)), 
+    TaxRate(poundsPerKg = 0.20, useFromDate = LocalDate.of(2022, 4, 1))
   )
 
   /**
@@ -36,10 +38,10 @@ class TaxRateTable {
    * @param periodEndDate the last day of the period we are finding the tax-rate for
    * @return the tax rate for the given period
    */
-  def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
-    (TaxRate(0.0, LocalDate.MIN) +: table.sortBy(_.useFromDate))
-      .filter(_.rateCanApplyTo(periodEndDate))
-      .last
+  def lookupRateFor(periodEndDate: LocalDate): BigDecimal = {
+    table
+      .find(_.useFromDate <= periodEndDate)
+      .getOrElse(throw new IllegalStateException(s"No tax rate found for $periodEndDate"))
       .poundsPerKg
   }
 

@@ -56,7 +56,7 @@ class PPTCalculationService @Inject()(
     val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
     val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
-    val taxRate: BigDecimal = taxRateTable.lookupTaxRateForPeriod(periodEndDate)
+    val taxRate: BigDecimal = taxRateTable.lookupRateFor(periodEndDate)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&

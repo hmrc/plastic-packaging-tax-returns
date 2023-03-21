@@ -47,13 +47,13 @@ class WeightToPoundsConversionService @Inject()(
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateTable.lookupTaxRateForPeriod(periodEndDate)
+    val taxRateForPeriod = taxRateTable.lookupRateFor(periodEndDate)
     val currency = BigDecimal(weightInKg) * taxRateForPeriod // tax rate is £ per kg
     currency.setScale(2, RoundingMode.DOWN)
   }
 
   def weightToCredit(weight: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateTable.lookupTaxRateForPeriod(appConfig.taxRegimeStartDate) //todo: credits need to bring in a date
+    val taxRateForPeriod = taxRateTable.lookupRateFor(appConfig.taxRegimeStartDate) //todo: credits need to bring in a date
     val currency = BigDecimal(weight) * taxRateForPeriod
     currency.setScale(2, RoundingMode.UP)
   }
