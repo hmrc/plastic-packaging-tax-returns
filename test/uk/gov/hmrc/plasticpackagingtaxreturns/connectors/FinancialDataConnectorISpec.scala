@@ -36,15 +36,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.DateAndTime
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.{LocalDate, LocalDateTime}
 
 class FinancialDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures 
   with EnterpriseTestData with BeforeAndAfterEach {
   
-  private val dateAndTime = mock[DateAndTime]
-  lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
+  private val edgeOfSystem = mock[EdgeOfSystem]
+  private lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
+  
   val getFinancialDataTimer = "ppt.get.financial.data.timer"
   val internalId: String                          = "someId"
   val pptReference: String                        = "XXPPTP103844123"
@@ -57,14 +58,16 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
   val auditUrl: String                            = "/write/audit"
   val implicitAuditUrl: String                    = s"$auditUrl/merged"
 
-  val getUrl =
-    s"/enterprise/financial-data/ZPPT/$pptReference/PPT?dateFrom=$fromDate&dateTo=$toDate&onlyOpenItems=${onlyOpenItems.get}&includeLocks=${includeLocks.get}&calculateAccruedInterest=${calculateAccruedInterest.get}&customerPaymentInformation=${customerPaymentInformation.get}"
+  private val getUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?dateFrom=$fromDate&dateTo=$toDate" +
+    s"&onlyOpenItems=${onlyOpenItems.get}&includeLocks=${includeLocks.get}" +
+    s"&calculateAccruedInterest=${calculateAccruedInterest.get}" +
+    s"&customerPaymentInformation=${customerPaymentInformation.get}"
 
   override def fakeApplication(): Application = {
     SharedMetricRegistries.clear()
     new GuiceApplicationBuilder()
       .overrides(
-        bind[DateAndTime].toInstance(dateAndTime),
+        bind[EdgeOfSystem].toInstance(edgeOfSystem),
         bind[SessionRepository].to(mock[SessionRepository])
       )
       .configure(overrideConfig)
@@ -80,7 +83,7 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
     
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    Mockito.reset(dateAndTime)
+    Mockito.reset(edgeOfSystem)
   }
 
   "FinancialData connector" when {
@@ -190,7 +193,7 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
     
     "it" should {
       "map special DES 404s to a zero financial records results" in {
-        when(dateAndTime.currentTime).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
+        when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
         val desNotFound = Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire") 
         wiremock.stubFor(get(anyUrl()).willReturn(notFound().withBody(desNotFound.toString)))
         val result = await(getFinancialData)
