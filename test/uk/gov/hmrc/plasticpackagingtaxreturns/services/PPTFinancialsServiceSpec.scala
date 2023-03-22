@@ -16,28 +16,42 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
+import org.mockito.MockitoSugar
+import org.mockito.MockitoSugar.mock
+import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.{LocalDate, LocalDateTime}
 import scala.util.Random
 
-class PPTFinancialsServiceSpec extends PlaySpec {
+class PPTFinancialsServiceSpec extends PlaySpec
+  with MockitoSugar
+  with BeforeAndAfterEach
+  with ResetMocksAfterEachTest {
 
-  val sut: PPTFinancialsService = new PPTFinancialsService()
-  val today: LocalDate          = LocalDate.now()
-  val yesterday: LocalDate      = today.minusDays(1)
-  val lastWeek: LocalDate       = today.minusDays(7)
-  val tomorrow: LocalDate       = today.plusDays(1)
+  private val edgeOfSystem = mock[EdgeOfSystem]
+  
+  private val sut: PPTFinancialsService = new PPTFinancialsService() (edgeOfSystem)
+  private val today: LocalDate          = LocalDate.now()
+  private val yesterday: LocalDate      = today.minusDays(1)
+  private val lastWeek: LocalDate       = today.minusDays(7)
+ 
+  private val amount  = BigDecimal(Math.abs(Random.nextInt()))
+  private val amount2 = BigDecimal(Math.abs(Random.nextInt()))
+  private val amount3 = BigDecimal(Math.abs(Random.nextInt()))
 
-  val amount  = BigDecimal(Math.abs(Random.nextInt()))
-  val amount2 = BigDecimal(Math.abs(Random.nextInt()))
-  val amount3 = BigDecimal(Math.abs(Random.nextInt()))
+  private val emptyData        = FinancialDataResponse(None, None, None, LocalDateTime.now(), Nil)
+  private val emptyTransaction = FinancialTransaction(None, None, None, None, None, None, None, Nil)
+  private val emptyItem        = FinancialItem(None, None, None, None, None, None)
 
-  val emptyData        = FinancialDataResponse(None, None, None, LocalDateTime.now(), Nil)
-  val emptyTransaction = FinancialTransaction(None, None, None, None, None, None, None, Nil)
-  val emptyItem        = FinancialItem(None, None, None, None, None, None)
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
+  }
 
   def makeData(charges: (BigDecimal, LocalDate)*): FinancialDataResponse =
     emptyData.copy(financialTransactions =
@@ -180,9 +194,10 @@ class PPTFinancialsServiceSpec extends PlaySpec {
     }
   }
 
-  def createItem(DDCollectionInProgress: Option[Boolean]) = {
+  private def createItem(DDCollectionInProgress: Option[Boolean]) = {
     FinancialItem(None, None, None, None, None, DDCollectionInProgress)
   }
+  
   private def createFinancialTransaction(periodKey: Option[String], items: Seq[FinancialItem]) = {
     val transaction = FinancialTransaction(None, None, periodKey, None, None, None, None, items)
     FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq(transaction))

@@ -20,11 +20,12 @@ import play.api.Logging
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.{LocalDate, ZoneOffset}
 import javax.inject.Inject
 
-class PPTObligationsService @Inject() (appConfig: AppConfig) extends Logging {
+class PPTObligationsService @Inject() (appConfig: AppConfig) (implicit edgeOfSystem: EdgeOfSystem) extends Logging {
 
   def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
     data.obligations match {

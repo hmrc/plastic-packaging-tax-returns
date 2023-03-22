@@ -22,21 +22,22 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAndAfterEach {
 
-  val appConfig: AppConfig = mock[AppConfig]
-  val sut: PPTObligationsService = new PPTObligationsService(appConfig)
-  val today: LocalDate           = LocalDate.now()
+  private val appConfig = mock[AppConfig]
+  private val edgeOfSystem = mock[EdgeOfSystem]
+  private val sut = new PPTObligationsService(appConfig) (edgeOfSystem)
+  private val today: LocalDate = LocalDate.now()
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig)
+    reset(appConfig, edgeOfSystem)
+    when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
   }
-
-  override protected def afterEach(): Unit = super.afterEach()
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
