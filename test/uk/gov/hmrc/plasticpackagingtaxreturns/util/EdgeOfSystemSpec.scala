@@ -35,6 +35,10 @@ class EdgeOfSystemSpec extends PlaySpec
   private val environment = mock[Environment]
   private val edgeOfSystem = new EdgeOfSystem(appConfig, environment)
 
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    when(environment.mode) thenReturn Mode.Dev
+  }
 
   "localDateTimeNow" should {
 
@@ -54,6 +58,14 @@ class EdgeOfSystemSpec extends PlaySpec
       edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
     }
+    
+    "ignore any override that somehow gets on to production" in {
+      when(environment.mode) thenReturn Mode.Prod
+      when(appConfig.overrideSystemDateTime) thenReturn Some("2023-04-01T12:11:10")
+      edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
+        LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
+    }
+    
   }
 
   "isRunningInProduction" when {
@@ -69,4 +81,5 @@ class EdgeOfSystemSpec extends PlaySpec
     }
 
   }
+
 }

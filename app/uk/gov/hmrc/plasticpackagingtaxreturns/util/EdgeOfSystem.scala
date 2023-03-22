@@ -42,6 +42,7 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
     appConfig
       .overrideSystemDateTime
       .flatMap(parseDate)
+      .filterNot(_ => isRunningInProduction)
       .getOrElse(LocalDateTime.now())
   }
 
