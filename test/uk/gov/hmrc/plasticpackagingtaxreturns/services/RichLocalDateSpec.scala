@@ -22,7 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 
 class RichLocalDateSpec extends PlaySpec
   with MockitoSugar
@@ -31,15 +31,14 @@ class RichLocalDateSpec extends PlaySpec
 
   implicit val edgeOfSystem: EdgeOfSystem = mock[EdgeOfSystem]
 
-  private val pretendThisIsTheCurrentTime = LocalDateTime.of(1900, 1, 2, 12, 30, 23)
+  private val pretendThisIsTheDate = LocalDate.of(1900, 1, 2)
   private val theDayBefore = LocalDate.of(1900, 1, 1)
   private val theSameDay = LocalDate.of(1900, 1, 2)
   private val theDayAfter = LocalDate.of(1900, 1, 3)
   
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    when(edgeOfSystem.localDateTimeNow) thenReturn pretendThisIsTheCurrentTime
-
+    when(edgeOfSystem.today) thenReturn pretendThisIsTheDate
   }
   
   "isEqualOrAfterToday and isBeforeToday" when {

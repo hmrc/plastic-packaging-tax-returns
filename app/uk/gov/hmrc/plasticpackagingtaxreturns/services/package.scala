@@ -27,10 +27,10 @@ package object services {
   implicit class RichLocalDate(val localDate: LocalDate) extends AnyVal {
 
     def isEqualOrAfterToday(implicit edgeOfSystem: EdgeOfSystem): Boolean =
-      localDate.compareTo(edgeOfSystem.localDateTimeNow.toLocalDate) >= 0
+      localDate.compareTo(edgeOfSystem.today) >= 0
 
     def isBeforeToday(implicit edgeOfSystem: EdgeOfSystem): Boolean =
-      localDate.isBefore(edgeOfSystem.localDateTimeNow.toLocalDate)
+      localDate.isBefore(edgeOfSystem.today)
 
   }
 

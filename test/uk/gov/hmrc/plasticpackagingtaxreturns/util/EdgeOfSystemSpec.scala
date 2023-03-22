@@ -23,7 +23,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
-import java.time.LocalDateTime
+import java.time.{LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
 
 class EdgeOfSystemSpec extends PlaySpec
@@ -38,6 +38,20 @@ class EdgeOfSystemSpec extends PlaySpec
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     when(environment.mode) thenReturn Mode.Dev
+  }
+  
+  "isRunningInProduction" when {
+
+    "in dev" in {
+      when(environment.mode) thenReturn Mode.Dev
+      edgeOfSystem.isRunningInProduction mustBe false
+    }
+
+    "in prod" in {
+      when(environment.mode) thenReturn Mode.Prod
+      edgeOfSystem.isRunningInProduction mustBe true
+    }
+
   }
 
   "localDateTimeNow" should {
@@ -68,18 +82,12 @@ class EdgeOfSystemSpec extends PlaySpec
     
   }
 
-  "isRunningInProduction" when {
-
-    "in dev" in {
-      when(environment.mode) thenReturn Mode.Dev
-      edgeOfSystem.isRunningInProduction mustBe false
+  
+  "today" should {
+    "mimic localDateTimeNow" in {
+      when(appConfig.overrideSystemDateTime) thenReturn Some("2023-04-01T12:11:10")
+      edgeOfSystem.today mustBe LocalDate.of(2023, 4, 1)
     }
-
-    "in prod" in {
-      when(environment.mode) thenReturn Mode.Prod
-      edgeOfSystem.isRunningInProduction mustBe true
-    }
-
   }
 
 }
