@@ -20,6 +20,7 @@ import org.mockito.MockitoSugar
 import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.time.LocalDateTime
@@ -31,7 +32,8 @@ class EdgeOfSystemSpec extends PlaySpec
   with ResetMocksAfterEachTest {
 
   private val appConfig = mock[AppConfig]
-  private val edgeOfSystem = new EdgeOfSystem(appConfig)
+  private val environment = mock[Environment]
+  private val edgeOfSystem = new EdgeOfSystem(appConfig, environment)
 
 
   "localDateTimeNow" should {
@@ -51,6 +53,19 @@ class EdgeOfSystemSpec extends PlaySpec
       when(appConfig.overrideSystemDateTime) thenReturn Some("false")
       edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
+    }
+  }
+
+  "isRunningInProduction" when {
+
+    "in dev" in {
+      when(environment.mode) thenReturn Mode.Dev
+      edgeOfSystem.isRunningInProduction mustBe false
+    }
+
+    "in prod" in {
+      when(environment.mode) thenReturn Mode.Prod
+      edgeOfSystem.isRunningInProduction mustBe true
     }
 
   }

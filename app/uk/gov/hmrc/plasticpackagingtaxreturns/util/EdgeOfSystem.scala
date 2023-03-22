@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
+import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.security.MessageDigest
@@ -25,7 +26,7 @@ import java.util.Base64
 import javax.inject.Inject
 import scala.util.Try
 
-class EdgeOfSystem @Inject() (appConfig: AppConfig) {
+class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
   
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
@@ -48,5 +49,11 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
     Try(LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
       .toOption
   }
+
+  /** Check if app is running in a production environment
+   * @return true if production, otherwise false
+   * @see [[play.api.Environment.mode]]
+   */
+  def isRunningInProduction: Boolean = environment.mode == Mode.Prod
 
 }
