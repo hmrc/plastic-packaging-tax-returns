@@ -33,7 +33,6 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.auth.otac.Unauthorised
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
@@ -108,7 +107,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
 
       val response = await(wsClient.url(url).get)
 
-      response.json.toString() mustBe """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true}"""
+      response.json.toString() mustBe """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true,"taxRate":0.2}"""
     }
 
     "return an error" when {

@@ -24,7 +24,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationR
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
 
-import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -46,11 +45,13 @@ class ExportCreditBalanceController @Inject() (
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- creditService.getBalance(userAnswers)
         requestedCredit = calculateService.totalRequestedCredit(userAnswers)
+        taxRate = taxRateService.lookupTaxRateForPeriod(userAnswers.getOrFail(ReturnObligationToDateGettable))
       } yield
         Ok(Json.toJson(CreditsCalculationResponse(
           availableCredit,
           requestedCredit.moneyInPounds,
-          requestedCredit.weight
+          requestedCredit.weight,
+          taxRate
         )))
       }.recover{
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
