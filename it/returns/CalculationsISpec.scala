@@ -28,7 +28,7 @@ import play.api.Application
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
@@ -127,8 +127,28 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return the calculation json" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson))))
+        val userAnswers: JsObject = Json.parse(
+          s"""{
+             |        "obligation" : {
+             |            "periodKey" : "22C4",
+             |            "fromDate" : "2022-10-01",
+             |            "toDate" : "2022-12-31"
+             |        },
+             |        "manufacturedPlasticPackagingWeight" : 100,
+             |        "importedPlasticPackagingWeight" : 1,
+             |        "exportedPlasticPackagingWeight" : 200,
+             |        "anotherBusinessExportWeight" : 100,
+             |        "plasticExportedByAnotherBusiness": 100,
+             |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
+             |        "nonExportRecycledPlasticPackagingWeight" : 5,
+             |        "convertedCredits": {
+             |          "weight": "200"
+             |        }
+             |    }""".stripMargin).asInstanceOf[JsObject]
+
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
+          UserAnswers(pptReference, userAnswers))
+        )
         withAuthorizedUser()
         stubGetBalanceRequest
 
