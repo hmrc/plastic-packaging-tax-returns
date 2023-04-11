@@ -46,12 +46,6 @@ case class IdentityData(
 )
 
 object IdentityData {
-  val empty: IdentityData = IdentityData(
-    confidenceLevel = ConfidenceLevel.L50,
-    agentInformation = AgentInformation(None, None, None),
-    loginTimes = LoginTimes(new DateTime(), None)
-  )
-
   implicit val localDateFormat: Format[LocalDate]         = RestFormats.localDateFormats
   implicit val dateTimeFormat: Format[DateTime]           = RestFormats.dateTimeFormats
   implicit val credFormat: OFormat[Credentials]           = Json.format[Credentials]
