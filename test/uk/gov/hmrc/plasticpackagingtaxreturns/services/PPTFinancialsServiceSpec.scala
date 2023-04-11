@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.MockitoSugar
-import org.mockito.MockitoSugar.mock
 import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -50,7 +49,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
+    when(edgeOfSystem.today) thenReturn LocalDate.now()
   }
 
   def makeData(charges: (BigDecimal, LocalDate)*): FinancialDataResponse =

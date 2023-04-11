@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, EitherValues}
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -26,7 +25,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.{LocalDate, LocalDateTime}
 
-class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAndAfterEach {
+class PPTObligationsServiceSpec extends PlaySpec 
+  with MockitoSugar with EitherValues with BeforeAndAfterEach {
 
   private val appConfig = mock[AppConfig]
   private val edgeOfSystem = mock[EdgeOfSystem]
@@ -36,7 +36,9 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     reset(appConfig, edgeOfSystem)
+    
     when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
+    when(edgeOfSystem.today) thenReturn LocalDate.now()
   }
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
