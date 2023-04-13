@@ -38,9 +38,11 @@ object ReturnTestHelper {
        |        "nonExportRecycledPlasticPackagingWeight" : 5
        |    }""".stripMargin).asInstanceOf[JsObject]
 
-  val returnWithCreditsDataJson: JsObject = Json.parse(s"""{
+  val returnWithCreditsDataJson: JsObject =
+    // TODO obligation dates and period aren't consistent   
+    Json.parse(s"""{
        |        "obligation" : {
-       |            "periodKey" : "22C4",
+       |            "periodKey" : "21C4", 
        |            "fromDate" : "2022-10-01",
        |            "toDate" : "2022-12-31"
        |        },
