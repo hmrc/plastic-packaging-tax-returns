@@ -100,16 +100,10 @@ class ReturnsController @Inject()(
   def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request) { userAnswer =>
-        println("----------")
-        println(userAnswer)
-        println("********")
         isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
-              println("----------")
-              println(availableCredit)
-              println("********")
               doSubmit("ppt-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
