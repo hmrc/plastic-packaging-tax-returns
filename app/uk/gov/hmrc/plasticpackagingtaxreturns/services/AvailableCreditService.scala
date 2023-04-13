@@ -36,7 +36,9 @@ class AvailableCreditService @Inject()(
 
     val fromDate = obligationFromDate.minusYears(2)
     val toDate = obligationFromDate.minusDays(1)
-    val totalRequestedCredit: Long = userAnswers.get(ConvertedCreditWeightGettable).getOrElse(0L) + userAnswers.get(ExportedCreditWeightGettable).getOrElse(0L)
+    val totalRequestedCredit: Long = 
+      userAnswers.get(ConvertedCreditWeightGettable).getOrElse(0L) 
+      + userAnswers.get(ExportedCreditWeightGettable).getOrElse(0L)
     if (totalRequestedCredit == 0)
       Future.successful(BigDecimal(0))
     else

@@ -37,9 +37,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
-import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
 
