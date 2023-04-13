@@ -31,7 +31,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
@@ -67,7 +67,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
 
       val available = BigDecimal(200)
-      val requested = Credit(100L, BigDecimal(20))
+      val requested = CreditClaimed(100L, BigDecimal(20))
 
       when(mockSessionRepo.get(any()))
         .thenReturn(Future.successful(Some(userAnswers)))

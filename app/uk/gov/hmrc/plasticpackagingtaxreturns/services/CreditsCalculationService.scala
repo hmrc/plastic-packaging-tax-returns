@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import com.google.inject.Inject
 import play.api.libs.json.{JsPath, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 
 case class CreditsAnswer(yesNo: Boolean, weight: Option[Long]) {
   def value: Long = (yesNo, weight) match {
@@ -36,12 +36,12 @@ object CreditsAnswer {
 
 class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
 
-  def totalRequestedCredit(userAnswers: UserAnswers): Credit = {
-    val exportedCredit = readUserAnswer(userAnswers, JsPath \ "exportedCredits")
-    val convertedCredit = readUserAnswer(userAnswers, JsPath \ "convertedCredits")
-    val totalWeight = exportedCredit.value + convertedCredit.value
+  def totalRequestedCredit(userAnswers: UserAnswers): CreditClaimed = {
+    val exportedAnswer = readUserAnswer(userAnswers, JsPath \ "exportedCredits")
+    val convertedAnswer = readUserAnswer(userAnswers, JsPath \ "convertedCredits")
+    val totalWeight = exportedAnswer.value + convertedAnswer.value
 
-    Credit(
+    CreditClaimed(
       totalWeight,
       convert.weightToCredit(totalWeight)
     )
@@ -56,6 +56,6 @@ class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionServi
 
 object CreditsCalculationService {
 
-  final case class Credit(weight: Long, moneyInPounds: BigDecimal)
+  final case class CreditClaimed(weight: Long, moneyInPounds: BigDecimal)
 
 }

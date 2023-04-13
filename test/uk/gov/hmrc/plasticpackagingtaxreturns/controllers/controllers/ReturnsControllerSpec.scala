@@ -45,7 +45,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
@@ -434,7 +434,7 @@ class ReturnsControllerSpec
 
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(Credit(0L, BigDecimal(0)))
+    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(CreditClaimed(0L, BigDecimal(0)))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
