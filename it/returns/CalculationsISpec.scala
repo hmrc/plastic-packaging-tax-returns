@@ -126,28 +126,8 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return the calculation json" in {
-        val userAnswers: JsObject = Json.parse(
-          s"""{
-             |        "obligation" : {
-             |            "periodKey" : "22C4",
-             |            "fromDate" : "2022-10-01",
-             |            "toDate" : "2022-12-31"
-             |        },
-             |        "manufacturedPlasticPackagingWeight" : 100,
-             |        "importedPlasticPackagingWeight" : 1,
-             |        "exportedPlasticPackagingWeight" : 200,
-             |        "anotherBusinessExportWeight" : 100,
-             |        "plasticExportedByAnotherBusiness": 100,
-             |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
-             |        "nonExportRecycledPlasticPackagingWeight" : 5,
-             |        "convertedCredits": {
-             |          "weight": "200"
-             |        }
-             |    }""".stripMargin).asInstanceOf[JsObject]
-
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
-          UserAnswers(pptReference, userAnswers))
-        )
+        when(sessionRepository.get(any))
+          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson))))
         withAuthorizedUser()
         stubGetBalanceRequest
 
