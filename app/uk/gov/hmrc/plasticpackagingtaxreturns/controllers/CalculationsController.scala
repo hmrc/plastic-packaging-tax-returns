@@ -25,7 +25,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.Retu
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +39,7 @@ class CalculationsController @Inject()(
                                         calculationsService: PPTCalculationService,
                                         creditsService: CreditsCalculationService,
                                         availableCreditService: AvailableCreditService,
-                                        taxRateService: TaxRateService
+                                        taxRateTable: TaxRateTable
                                       )(implicit executionContext: ExecutionContext)
   extends BackendBaseController with Logging {
 
@@ -48,7 +49,8 @@ class CalculationsController @Inject()(
         sessionRepository.get(request.cacheKey).map { optUa => {
           val userAnswers = optUa.get
           val amend = AmendReturnValues(userAnswers).get
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), taxRateService.lookupTaxRateForPeriod(amend.periodEndDate))
+          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
+            taxRateTable.lookupRateFor(amend.periodEndDate))
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

@@ -38,7 +38,8 @@ import scala.concurrent.{ExecutionContext, Future}
 case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
   authConnector: AuthConnector, 
-  config: AppConfig
+  config: AppConfig, 
+  edgeOfSystem: EdgeOfSystem
 )(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
 
   def submitNonRepudiation(
@@ -46,10 +47,10 @@ case class NonRepudiationService @Inject() (
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
-    userHeaders: Map[String, String]
+    userHeaders: Map[String, String],
   )(implicit headerCarrier: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
-    val nrsPayload = NrsPayload(new EdgeOfSystem, payloadString)
+    val nrsPayload = NrsPayload(edgeOfSystem, payloadString)
 
     for {
       identityData <- retrieveIdentityData()

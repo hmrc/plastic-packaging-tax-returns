@@ -45,10 +45,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
@@ -115,7 +116,7 @@ class ReturnsControllerSpec
   private val mockFinancialsService                            = mock[PPTFinancialsService]
   private val mockCreditCalcService                            = mock[CreditsCalculationService]
   private val mockAvailableCreditService                       = mock[AvailableCreditService]
-  private val mockTaxRateService                               = mock[TaxRateService]
+  private val mockTaxRateTable                                 = mock[TaxRateTable]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
@@ -133,7 +134,7 @@ class ReturnsControllerSpec
     mockFinancialsService,
     mockCreditCalcService,
     mockAvailableCreditService,
-    mockTaxRateService
+    mockTaxRateTable
   )
 
   override def beforeEach(): Unit = {
@@ -150,7 +151,7 @@ class ReturnsControllerSpec
       mockFinancialsService,
       mockCreditCalcService,
       mockAvailableCreditService,
-      mockTaxRateService)
+      mockTaxRateTable)
   }
 
   "get" should {
@@ -161,13 +162,13 @@ class ReturnsControllerSpec
       val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" ->JsString(LocalDate.of(2020, 5, 14).toString)))))
 
       mockReturnDisplayConnector(returnDisplayResponse)
-      when(mockTaxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.133)
+      when(mockTaxRateTable.lookupRateFor(any)).thenReturn(0.133)
 
       val result: Future[Result] = sut.get(pptReference, periodKey).apply(FakeRequest())
       val returnWithTaxRate = ReturnWithTaxRate(returnDisplayResponse, 0.133)
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnWithTaxRate)
-      verify(mockTaxRateService).lookupTaxRateForPeriod(LocalDate.of(2020, 5, 14))
+      verify(mockTaxRateTable).lookupRateFor(LocalDate.of(2020, 5, 14))
       verify(mockReturnsConnector).get(eqTo(pptReference), eqTo(periodKey), any)(any)
     }
 
@@ -433,7 +434,7 @@ class ReturnsControllerSpec
 
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(Credit(0L, BigDecimal(0)))
+    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(CreditClaimed(0L, BigDecimal(0)))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

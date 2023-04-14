@@ -30,10 +30,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceCon
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, TaxRate}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -47,8 +47,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  private val taxRateService = mock[TaxRateService]
-
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateService)
@@ -59,7 +57,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     mockSessionRepo,
     mockCreditsCalcService,
     mockAvailableCreditsService,
-    taxRateService,
     cc,
   )(global)
 
@@ -69,7 +66,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       val userAnswers: UserAnswers = createValidUserAnswer
 
       val available = BigDecimal(200)
-      val requested = Credit(100L, BigDecimal(20))
+      val requested = CreditClaimed(100L, BigDecimal(20))
 
       when(mockSessionRepo.get(any))
         .thenReturn(Future.successful(Some(userAnswers)))

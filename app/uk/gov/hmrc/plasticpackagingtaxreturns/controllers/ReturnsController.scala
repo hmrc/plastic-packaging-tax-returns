@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsObject, JsPath, JsValue, Json, Writes}
+import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
@@ -37,7 +37,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiat
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -60,7 +61,7 @@ class ReturnsController @Inject()(
   financialsService: PPTFinancialsService,
   creditsService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
-  taxRateService: TaxRateService
+  taxRateTable: TaxRateTable
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -74,7 +75,7 @@ class ReturnsController @Inject()(
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
         case Right(displayReturnJson)       => {
           val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
-          val taxRate = taxRateService.lookupTaxRateForPeriod(endDate)
+          val taxRate = taxRateTable.lookupRateFor(endDate)
 
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)

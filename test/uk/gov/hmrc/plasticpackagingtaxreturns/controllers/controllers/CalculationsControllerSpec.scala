@@ -34,9 +34,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,7 +57,7 @@ class CalculationsControllerSpec
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   private val pptCalculationService = mock[PPTCalculationService]
   private val creditsCalculationService = mock[CreditsCalculationService]
-  private val taxRateService = mock[TaxRateService]
+  private val taxRateTable = mock[TaxRateTable]
 
   private val sut = new CalculationsController(
     new FakeAuthenticator(cc),
@@ -65,16 +66,16 @@ class CalculationsControllerSpec
     pptCalculationService,
     creditsCalculationService,
     availableCreditService,
-    taxRateService
+    taxRateTable
   )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateService)
+    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateTable)
 
     when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
     when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
-    when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.123)
+    when(taxRateTable.lookupRateFor(any)).thenReturn(0.123)
   }
 
   "calculateSubmit" should {
@@ -82,7 +83,7 @@ class CalculationsControllerSpec
     "return OK response and the calculation" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaimed(100L, 200))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -94,7 +95,7 @@ class CalculationsControllerSpec
     "request credits" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
         packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaimed(100L, 200))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))
