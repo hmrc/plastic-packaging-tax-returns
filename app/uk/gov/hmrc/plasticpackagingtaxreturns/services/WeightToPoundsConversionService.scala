@@ -21,6 +21,9 @@ import com.google.inject.Inject
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
 
+// todo move to own file
+case class TaxPayable(moneyInPounds: BigDecimal, taxRateApplied: BigDecimal)
+
 /**
  * Calculate the tax to be paid, or the credit to be claimed for a given weight of taxable packaging
  * @param taxRateService auto-injected PPT tax rate table
@@ -37,10 +40,11 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateService)
    * @param weightInKg total weight in kg to pay tax on
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
-  def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(periodEndDate)
-    val currency = BigDecimal(weightInKg) * taxRateForPeriod // tax rate is £ per kg
-    currency.setScale(2, RoundingMode.DOWN)
+  def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): TaxPayable = {
+    val taxRateApplied = taxRateService.lookupTaxRateForPeriod(periodEndDate)
+    val currency = BigDecimal(weightInKg) * taxRateApplied // tax rate is £ per kg
+    val moneyInPounds = currency.setScale(2, RoundingMode.DOWN)
+    TaxPayable(moneyInPounds, taxRateApplied)
   }
 
   /** Calculates credit amount for the given weight, ie tax previously due / paid, using the relevant tax rate applied

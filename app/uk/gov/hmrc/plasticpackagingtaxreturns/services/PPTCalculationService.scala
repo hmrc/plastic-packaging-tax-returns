@@ -23,10 +23,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.ReturnValues
 import java.time.LocalDate
 import javax.inject.Inject
 
-class PPTCalculationService @Inject()(
-  conversionService: WeightToPoundsConversionService,
-  taxRateService: TaxRateService
-) extends Logging {
+class PPTCalculationService @Inject() (conversionService: WeightToPoundsConversionService) extends Logging {
 
   def calculate(returnValues: ReturnValues): Calculations =
     doCalculation(
@@ -54,8 +51,7 @@ class PPTCalculationService @Inject()(
     val packagingTotal: Long = importedPlasticWeight + manufacturedPlasticWeight
     val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
-    val taxDue: BigDecimal = conversionService.weightToDebit(periodEndDate, chargeableTotal)
-    val taxRate: BigDecimal = taxRateService.lookupTaxRateForPeriod(periodEndDate)
+    val taxPayable: TaxPayable = conversionService.weightToDebit(periodEndDate, chargeableTotal)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&
@@ -69,12 +65,12 @@ class PPTCalculationService @Inject()(
     }
 
     Calculations(
-      taxDue,
+      taxPayable.moneyInPounds,
       chargeableTotal,
       deductionsTotal,
       packagingTotal,
       isSubmittable,
-      taxRate
+      taxPayable.taxRateApplied
     )
   }
 

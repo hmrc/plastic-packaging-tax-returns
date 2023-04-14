@@ -29,19 +29,16 @@ import java.time.LocalDate
 class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val mockConversionService = mock[WeightToPoundsConversionService]
-  private val mockTaxRateService = mock[TaxRateService]
-
-  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService, mockTaxRateService)
+  private val calculationService = new PPTCalculationService(mockConversionService)
+  private val allZeroReturn = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, 0, 0)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversionService, mockTaxRateService)
-    when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
+    reset(mockConversionService)
+    when(mockConversionService.weightToDebit(any, any)) thenReturn TaxPayable(moneyInPounds = 0.0, taxRateApplied = 1.1)
   }
 
-  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0, 0)
-
-
+  
   "calculate" must {
 
     "add up liabilities" when {
@@ -162,9 +159,11 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     }
 
     "return the tax due amount" in {
-      when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(7.17)
-      calculationService.calculate(allZeroReturn).taxDue mustBe BigDecimal(7.17)
-      verify(mockConversionService).weightToDebit(eqTo(LocalDate.now()), eqTo(0))
+      when(mockConversionService.weightToDebit(any, any)) thenReturn TaxPayable(7.17, 3.14)
+      val calculations = calculationService.calculate(allZeroReturn)
+      calculations.taxDue mustBe BigDecimal(7.17)
+      calculations.taxRate mustBe BigDecimal(3.14)
+      verify(mockConversionService).weightToDebit(eqTo(LocalDate.of(1900, 11, 22)), eqTo(0))
     }
     
     "sum up the taxable plastic total" when {

@@ -39,16 +39,22 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
   private val aDate: LocalDate = LocalDate.of(2022, 7, 14)
 
   "weightToDebit" must {
-    behave like aConverter(sut.weightToDebit)
+
+    behave like aConverter { (x: LocalDate, y: Long) =>
+      sut.weightToDebit(x, y).moneyInPounds
+    }
 
     "round DOWN for conversion rate of 3 d.p." in {
       when(taxRateTable.lookupTaxRateForPeriod(any)) thenReturn 0.336
-      sut.weightToDebit(aDate, 1L) mustBe BigDecimal(0.33)
+      sut.weightToDebit(aDate, 1L) mustBe TaxPayable(0.33, 0.336)
     }
   }
 
   "weightToCredit" must {
-    behave like aConverter((x: LocalDate, y: Long) => sut.weightToCredit(x, y).moneyInPounds)
+    
+    behave like aConverter { (x: LocalDate, y: Long) =>
+      sut.weightToCredit(x, y).moneyInPounds
+    }
 
     "round UP for conversion rate of 3 d.p." in {
       when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.333)
