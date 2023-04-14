@@ -32,7 +32,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditClaim, CreditsCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditClaim, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -45,7 +45,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   private val mockCreditsCalcService = mock[CreditsCalculationService]
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
-  private val taxRateService = mock[TaxRateService]
   
   private val userAnswers = UserAnswers("user-answers-id")
     .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
@@ -53,7 +52,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateService)
+    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService)
     when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
     when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
   }
@@ -63,7 +62,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     mockSessionRepo,
     mockCreditsCalcService,
     mockAvailableCreditsService,
-    taxRateService,
     cc,
   )(global)
 
@@ -71,7 +69,6 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
       when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, BigDecimal(20), 0.2))
-      when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.20)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 

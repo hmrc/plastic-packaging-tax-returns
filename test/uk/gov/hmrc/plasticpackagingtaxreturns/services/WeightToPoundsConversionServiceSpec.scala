@@ -20,18 +20,19 @@ import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
 class WeightToPoundsConversionServiceSpec extends PlaySpec 
   with MockitoSugar with BeforeAndAfterEach {
 
-  private val taxRateTable = mock[TaxRateService]
+  private val taxRateTable = mock[TaxRateTable]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(taxRateTable)
-    when(taxRateTable.lookupTaxRateForPeriod(any)) thenReturn 1.0
+    when(taxRateTable.lookupRateFor(any)) thenReturn 1.0
   }
 
   private val sut = new WeightToPoundsConversionService(taxRateTable)
@@ -45,7 +46,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
     }
 
     "round DOWN for conversion rate of 3 d.p." in {
-      when(taxRateTable.lookupTaxRateForPeriod(any)) thenReturn 0.336
+      when(taxRateTable.lookupRateFor(any)) thenReturn 0.336
       sut.weightToDebit(aDate, 1L) mustBe TaxPayable(0.33, 0.336)
     }
   }
@@ -57,7 +58,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
     }
 
     "round UP for conversion rate of 3 d.p." in {
-      when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.333)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.333)
       sut.weightToCredit(aDate, 1L) mustBe CreditClaim(1, 0.34, 0.333)
     }
   }
@@ -65,18 +66,18 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
   private def aConverter(method: (LocalDate, Long) => BigDecimal): Unit = {
 
     "multiply the weight by the conversion rate 1 d.p." in {
-      when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.5)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.5)
       method(aDate, 5L) mustBe BigDecimal(2.5)
     }
 
     "multiply the weight by the conversion rate 2 d.p." in {
-      when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.25)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.25)
       method(aDate, 5L) mustBe BigDecimal(1.25)
     }
 
     "look up the correct rate" in {
       method(LocalDate.of(2025, 4, 3), 5L)
-      verify(taxRateTable).lookupTaxRateForPeriod(LocalDate.of(2025, 4, 3))
+      verify(taxRateTable).lookupRateFor(LocalDate.of(2025, 4, 3))
     }
     
   }

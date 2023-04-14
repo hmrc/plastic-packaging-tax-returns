@@ -27,6 +27,8 @@ import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
+import java.time.LocalDate
+
 class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   val mockConversion: WeightToPoundsConversionService = mock[WeightToPoundsConversionService]
@@ -37,6 +39,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConversion)
+    when(mockConversion.weightToCredit(any(), any())) thenReturn CreditClaim(0, 0, 3.14)
   }
 
   private def converterJustAddsOne() =
@@ -46,26 +49,51 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
         CreditClaim(0, BigDecimal(addOne), 1.0)
     }
 
+  // TODO split out tests covering CreditsAnswer
+
+  val theWrongDate: LocalDate = LocalDate.of(2022, 4, 1) // TODO date percolator
+
   "totalRequestCredit" must {
+    
     "return 0" when {
-      "both fields are empty" in { // TODO should complain about missing user-answers?
+      "both fields are empty" in { 
+        // TODO should complain about missing user-answers?
         converterJustAddsOne()
-
         val userAnswers = UserAnswers("user-answers-id")
-
         sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 1, 1.0)
       }
     }
 
     "total the weight" when {
-
-      // TODO what do we want if only part answers are there, eg just the yes-no, not the weight?
+      
+      "both answers are missing" in {
+        val userAnswers = UserAnswers("user-answers-id")
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
+        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+      }
+      
+      "both answers answered with false" in {
+        val userAnswers = UserAnswers("user-answers-id").setAll(
+          "exportedCredits" -> CreditsAnswer(false, None), 
+          "convertedCredits" -> CreditsAnswer(false, None)
+        )
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
+        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+      }
+      
+      "both answers answered are only partially answered" in {
+        val userAnswers = UserAnswers("user-answers-id") .setAll(
+          "exportedCredits" -> CreditsAnswer(true, None), 
+          "convertedCredits" -> CreditsAnswer(true, None)
+        )
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
+        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+      }
 
       "converted is supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
           .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L)))
-
         sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 6, 1.0)
       }
 
@@ -73,7 +101,6 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
           .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L)))
-
         sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 8, 1.0)
       }
 

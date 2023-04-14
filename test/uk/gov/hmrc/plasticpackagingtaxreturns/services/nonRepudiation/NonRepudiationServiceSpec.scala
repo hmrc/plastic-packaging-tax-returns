@@ -23,7 +23,6 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.enablers.Messaging
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Logger
 import play.api.mvc.{AnyContent, Request}
 import play.api.test.FakeRequest
@@ -35,6 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnecto
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{NrsTestData, SubscriptionTestData}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{NonRepudiationIdentityRetrievals, nonRepudiationIdentityRetrievals}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -51,12 +51,13 @@ class NonRepudiationServiceSpec
 
   private val appConfig = mock[AppConfig]
   private val headerCarrier = mock[HeaderCarrier]
+  private val edgeOfSystem = mock[EdgeOfSystem]
 
   implicit val request: Request[AnyContent] = FakeRequest()
   implicit val resolveImplicitAmbiguity: Messaging[InternalServerException] = Messaging.messagingNatureOfThrowable
 
   val nonRepudiationService: NonRepudiationService = new NonRepudiationService(mockNonRepudiationConnector, 
-    mockAuthConnector, appConfig) {
+    mockAuthConnector, appConfig, edgeOfSystem) {
     override val logger: Logger = mockLogger
   }
 
@@ -66,9 +67,12 @@ class NonRepudiationServiceSpec
     when(headerCarrier.authorization) thenReturn Some(Authorization("yeah go right ahead"))
     when(mockAuthConnector.authorise[NonRepudiationIdentityRetrievals](any, any)(any, any)) thenReturn 
       Future.successful(testAuthRetrievals)
+    
+    when(edgeOfSystem.createEncoder) thenReturn Base64.getEncoder // test uses real encoder
+    when(edgeOfSystem.getMessageDigestSingleton) thenReturn MessageDigest.getInstance("SHA-256") // test uses real digest
   }
   
-
+  
   "submitNonRepudiation" should {
     
     "retrieveUserAuthToken" in {

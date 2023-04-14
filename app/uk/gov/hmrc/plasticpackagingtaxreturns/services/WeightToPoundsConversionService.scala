@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
@@ -31,7 +32,7 @@ case class TaxPayable(moneyInPounds: BigDecimal, taxRateApplied: BigDecimal)
  *        - when calculating a credit (money given to the customer) round up
  *        - when calculating a debit (money taken from the customer) round down
  */
-class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateService) {
+class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateTable) {
 
   /**
    * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the
@@ -41,7 +42,7 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateService)
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): TaxPayable = {
-    val taxRateApplied = taxRateService.lookupTaxRateForPeriod(periodEndDate)
+    val taxRateApplied = taxRateService.lookupRateFor(periodEndDate)
     val currency = BigDecimal(weightInKg) * taxRateApplied // tax rate is £ per kg
     val moneyInPounds = currency.setScale(2, RoundingMode.DOWN)
     TaxPayable(moneyInPounds, taxRateApplied)
@@ -55,7 +56,7 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateService)
    * @return the amount in £ this credit claim is worth, rounded up to the nearest pence
    */
   def weightToCredit(taxRateEndDate: LocalDate, weight: Long): CreditClaim = {
-    val taxRateApplied = taxRateService.lookupTaxRateForPeriod(taxRateEndDate)
+    val taxRateApplied = taxRateService.lookupRateFor(taxRateEndDate)
     val currency = BigDecimal(weight) * taxRateApplied
     val moneyInPounds = currency.setScale(2, RoundingMode.UP)
     CreditClaim(weight, moneyInPounds, taxRateApplied)

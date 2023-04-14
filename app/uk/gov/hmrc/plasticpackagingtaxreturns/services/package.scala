@@ -16,7 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns
 
-import java.time.{LocalDate, ZoneOffset}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+
+import java.time.LocalDate
 
 package object services {
 
@@ -24,13 +26,11 @@ package object services {
 
   implicit class RichLocalDate(val localDate: LocalDate) extends AnyVal {
 
-    private def today: LocalDate = LocalDate.now(ZoneOffset.UTC)
+    def isEqualOrAfterToday(implicit edgeOfSystem: EdgeOfSystem): Boolean =
+      localDate.compareTo(edgeOfSystem.today) >= 0
 
-    def isEqualOrAfterToday: Boolean =
-      localDate.compareTo(today) >= 0
-
-    def isBeforeToday: Boolean =
-      localDate.isBefore(today)
+    def isBeforeToday(implicit edgeOfSystem: EdgeOfSystem): Boolean =
+      localDate.isBefore(edgeOfSystem.today)
 
   }
 

@@ -88,5 +88,24 @@ class UserAnswersSpec extends PlaySpec {
           "/fish/cakes in user answers cannot be read as type java.time.LocalDate"
       }
     }
+    
+    "quickly set lots of fields" when {
+      
+      "one key-value pair" in {
+        someUserAnswers.setAll("x" -> "y") mustBe UserAnswers("id1", Json.obj(
+          "fish" -> Json.obj("cakes" -> "cheese"),
+          "x" -> JsString("y")
+        ), Instant.ofEpochSecond(1))
+      }
+      
+      "multiple key-values" in {
+        someUserAnswers.setAll("x" -> "y", "left" -> "right") mustBe UserAnswers("id1", Json.obj(
+          "fish" -> Json.obj("cakes" -> "cheese"),
+          "left" -> JsString("right"), 
+          "x" -> JsString("y"), 
+        ), Instant.ofEpochSecond(1))
+      }
+    }
+    
   }
 }

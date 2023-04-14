@@ -24,6 +24,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnecto
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.LocalDate
@@ -36,7 +37,8 @@ class PPTObligationsController @Inject() (
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
   obligationsService: PPTObligationsService,
-  appConfig: AppConfig
+  appConfig: AppConfig,
+  edgeOfSystem: EdgeOfSystem
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) with Logging {
 
@@ -69,14 +71,14 @@ class PPTObligationsController @Inject() (
   private def fulfilledToDate: LocalDate = {
     // todo see what this is about and still needed
     // If feature flag used by E2E test threads is set, then include test obligations that are in the future
-    val today = LocalDate.now()
+    val today = edgeOfSystem.today
     if (appConfig.qaTestingInProgress)
       today.plusYears(1)
     else
       today
   }
 
-  def createFulfilledResponse(obligationDataResponse: ObligationDataResponse) =
+  def createFulfilledResponse(obligationDataResponse: ObligationDataResponse): Result =
     obligationsService.constructPPTFulfilled(obligationDataResponse) match {
       case Left(error) =>
         logger.error(s"Error constructing Obligation response: $error.")

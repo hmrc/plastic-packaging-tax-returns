@@ -21,7 +21,7 @@ import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -32,7 +32,6 @@ class ExportCreditBalanceController @Inject() (
   sessionRepository: SessionRepository,
   creditsCalculationService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
-  taxRateService: TaxRateService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends BaseController {
 
