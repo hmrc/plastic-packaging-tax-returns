@@ -108,7 +108,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       val response = await(wsClient.url(url).get)
 
       response.json mustBe Json.parse( 
-        """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true}"""
+        """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true,"taxRate":0.2}"""
       )
     }
 
