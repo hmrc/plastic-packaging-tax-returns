@@ -25,7 +25,6 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
@@ -41,7 +40,11 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   private def converterJustAddsOne() =
-    when(mockConversion.weightToCredit(any(), any())).thenAnswer(a => BigDecimal(a.getArgument(1).asInstanceOf[Long] + 1))
+    when(mockConversion.weightToCredit(any(), any())).thenAnswer { 
+      a => 
+        val addOne = a.getArgument(1).asInstanceOf[Long] + 1
+        CreditClaim(0, BigDecimal(addOne), 1.0)
+    }
 
   "totalRequestCredit" must {
     "return 0" when {
@@ -50,44 +53,47 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
         val userAnswers = UserAnswers("user-answers-id")
 
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 1, 1.0)
       }
     }
 
     "total the weight" when {
+
       // TODO what do we want if only part answers are there, eg just the yes-no, not the weight?
+
       "converted is supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "convertedCredits", CreditsAnswer(true, Some(5L)))
+          .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L)))
 
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(5, 6)
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 6, 1.0)
       }
+
       "exported is supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "exportedCredits", CreditsAnswer(true, Some(7L)))
+          .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L)))
 
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(7, 8)
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 8, 1.0)
       }
+
       "both are supplied" in {
         converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "convertedCredits", CreditsAnswer(true, Some(5L)))
-          .setUnsafe(JsPath \ "exportedCredits", CreditsAnswer(true, Some(7L)))
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(12, 13)
+        val userAnswers = UserAnswers("user-answers-id").setAll(
+          "convertedCredits" -> CreditsAnswer(true, Some(5L)),
+          "exportedCredits" -> CreditsAnswer(true, Some(7L))
+        )
+        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 13, 1.0)
       }
     }
 
     "convert the weight in to pounds(£) and return it unchanged" in {
-      val expectedPounds = 42.69
-      when(mockConversion.weightToCredit(any(), any())).thenReturn(expectedPounds)
+      when(mockConversion.weightToCredit(any(), any())).thenReturn(CreditClaim(0, 42.69, 1.1))
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(JsPath \ "convertedCredits", CreditsAnswer(true, Some(5L)))
         .setUnsafe(JsPath \ "exportedCredits", CreditsAnswer(true, Some(7L)))
 
-      sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)
+      sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 42.69, 1.1)
 
       verify(mockConversion).weightToCredit(any(), eqTo(12L)) // TODO date percolator
       verify(mockConversion, never()).weightToDebit(any(), any())

@@ -50,10 +50,11 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateService)
    * @param weight weight of plastic to claim credit for, in kg 
    * @return the amount in £ this credit claim is worth, rounded up to the nearest pence
    */
-  def weightToCredit(taxRateEndDate: LocalDate, weight: Long): BigDecimal = {
-    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(taxRateEndDate)
-    val currency = BigDecimal(weight) * taxRateForPeriod
-    currency.setScale(2, RoundingMode.UP)
+  def weightToCredit(taxRateEndDate: LocalDate, weight: Long): CreditClaim = {
+    val taxRateApplied = taxRateService.lookupTaxRateForPeriod(taxRateEndDate)
+    val currency = BigDecimal(weight) * taxRateApplied
+    val moneyInPounds = currency.setScale(2, RoundingMode.UP)
+    CreditClaim(weight, moneyInPounds, taxRateApplied)
   }
 
 }

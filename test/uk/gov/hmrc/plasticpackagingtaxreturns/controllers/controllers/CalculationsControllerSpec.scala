@@ -34,8 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditClaim, CreditsCalculationService, PPTCalculationService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
 import java.time.LocalDate
@@ -82,7 +81,7 @@ class CalculationsControllerSpec
     "return OK response and the calculation" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -94,7 +93,7 @@ class CalculationsControllerSpec
     "request credits" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
         packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(Credit(100L, 200))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))

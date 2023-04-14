@@ -19,7 +19,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
@@ -31,8 +30,8 @@ import scala.concurrent.ExecutionContext
 class ExportCreditBalanceController @Inject() (
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
-  calculateService: CreditsCalculationService,
-  creditService: AvailableCreditService,
+  creditsCalculationService: CreditsCalculationService,
+  availableCreditService: AvailableCreditService,
   taxRateService: TaxRateService,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends BaseController {
@@ -43,15 +42,14 @@ class ExportCreditBalanceController @Inject() (
       {for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
-        availableCredit <- creditService.getBalance(userAnswers)
-        requestedCredit = calculateService.totalRequestedCredit(userAnswers)
-        taxRate = taxRateService.lookupTaxRateForPeriod(userAnswers.getOrFail(ReturnObligationToDateGettable))
+        availableCredit <- availableCreditService.getBalance(userAnswers)
+        creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers)
       } yield
         Ok(Json.toJson(CreditsCalculationResponse(
           availableCredit,
-          requestedCredit.moneyInPounds,
-          requestedCredit.weight,
-          taxRate
+          creditClaim.moneyInPounds,
+          creditClaim.weight,
+          creditClaim.taxRate,
         )))
       }.recover{
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))

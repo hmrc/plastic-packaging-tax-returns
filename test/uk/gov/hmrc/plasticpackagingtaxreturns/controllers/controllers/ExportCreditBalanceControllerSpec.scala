@@ -32,8 +32,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditClaim, CreditsCalculationService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -47,12 +46,16 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   private val taxRateService = mock[TaxRateService]
-  private val userAnswers = createValidUserAnswer
+  
+  private val userAnswers = UserAnswers("user-answers-id")
+    .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
+    .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateService)
     when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
+    when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
   }
 
   val sut = new ExportCreditBalanceController(
@@ -67,8 +70,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   "get" must {
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
-      when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
-      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(Credit(100L, BigDecimal(20)))
+      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, BigDecimal(20), 0.2))
       when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.20)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
@@ -87,16 +89,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         verify(mockSessionRepo).get(s"some-internal-ID-some-ppt-ref")
       }
 
-      withClue("credits calculation service not called"){
+      withClue("credits calculation service is called"){
         verify(mockCreditsCalcService).totalRequestedCredit(userAnswers)
       }
 
-      withClue("EIS connector called with the user answer"){
+      withClue("fetch available credit balance"){
         verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any)
-      }
-
-      withClue("tax rate is retrieved") {
-        verify(taxRateService).lookupTaxRateForPeriod(LocalDate.of(2023,5, 1))
       }
     }
 
@@ -147,6 +145,8 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         }
       }
 
+      // TODO are these effectively the same test, above and below?
+      
       "getBalance returns an error" in {
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, now)
@@ -160,34 +160,13 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
 
-      "period end date is empty" in {
-        val userAnswers: UserAnswers = createUserAnswerWithoutPeriodEndDate
-
-        val available = BigDecimal(200)
-        val requested = Credit(100L, BigDecimal(20))
-
-        when(mockSessionRepo.get(any))
-          .thenReturn(Future.successful(Some(userAnswers)))
-        when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(available))
-        when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(requested)
-
+      "credits calculation fails for some reason" in {
+        when(mockCreditsCalcService.totalRequestedCredit(any)) thenThrow new RuntimeException("bang")
         val result = sut.get("url-ppt-ref")(FakeRequest())
-
         status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> JsString("bang"))
       }
     }
+    
   }
-
-  private def createValidUserAnswer: UserAnswers = {
-    UserAnswers("user-answers-id")
-      .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
-      .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
-  }
-
-  private def createUserAnswerWithoutPeriodEndDate: UserAnswers = {
-    UserAnswers("user-answers-id")
-      .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
-  }
-
-
 }

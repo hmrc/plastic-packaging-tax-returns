@@ -24,7 +24,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditClaim
 
 import java.time.LocalDate
 
@@ -65,7 +65,7 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
+  def apply(creditClaim: CreditClaim, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       periodKey <- userAnswers.get(PeriodKeyGettable)
       periodEndDate <- userAnswers.get[LocalDate](ReturnObligationToDateGettable)
@@ -85,7 +85,7 @@ object NewReturnValues {
         exportedByAnotherBusiness,
         humanMedicines,
         recycled,
-        credits.moneyInPounds,
+        creditClaim.moneyInPounds,
         availableCredit
       )
     }

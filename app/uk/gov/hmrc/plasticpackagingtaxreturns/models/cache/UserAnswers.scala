@@ -52,6 +52,12 @@ final case class UserAnswers(
       .optionNoError(Reads.at(path))
       .reads(data)
       .getOrElse(None)
+      
+  def setAll[A](all: (String, A)*) (implicit writes: Writes[A]): UserAnswers = {
+    copy(data = data ++ JsObject(all.map {
+      case (x, y) => (x, Json.toJson(y))
+    }))
+  }
 }
 
 object UserAnswers {

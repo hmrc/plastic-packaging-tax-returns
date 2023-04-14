@@ -48,11 +48,11 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
   }
 
   "weightToCredit" must {
-    behave like aConverter(sut.weightToCredit)
+    behave like aConverter((x: LocalDate, y: Long) => sut.weightToCredit(x, y).moneyInPounds)
 
     "round UP for conversion rate of 3 d.p." in {
       when(taxRateTable.lookupTaxRateForPeriod(any)).thenReturn(0.333)
-      sut.weightToCredit(aDate, 1L) mustBe BigDecimal(0.34)
+      sut.weightToCredit(aDate, 1L) mustBe CreditClaim(1, 0.34, 0.333)
     }
   }
 
