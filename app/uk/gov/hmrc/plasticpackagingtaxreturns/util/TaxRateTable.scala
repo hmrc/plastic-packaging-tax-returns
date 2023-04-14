@@ -26,7 +26,7 @@ import scala.math.Ordering.Implicits.infixOrderingOps
  * The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
  * @note table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
  */
-class TaxRateTable {
+final class TaxRateTable {
   
   val table: Seq[TaxRate] = Seq(
     TaxRate(poundsPerKg = 0.21082, useFromDate = LocalDate.of(2023, 4, 1)), 

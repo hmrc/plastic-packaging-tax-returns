@@ -62,22 +62,8 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
     "have a table in reverse chronological order" in {
       taxRateTable.table mustBe inReverseChronologicalOrder(taxRateTable.table)
     }
-    
-    "handle multiple rates" in {
-      val taxRateTable = new TaxRateTable {
-        override val table: Seq[TaxRate] = Seq(
-          TaxRate(poundsPerKg = 1,useFromDate = LocalDate.of(1902, 4, 1)),
-          TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(1901, 4, 1)),
-          TaxRate(poundsPerKg = 3, useFromDate = LocalDate.of(1900, 4, 1)),
-        )
-      }
-      
-      taxRateTable.lookupRateFor(LocalDate.of(1900, 4, 1)) mustBe 3
-      taxRateTable.lookupRateFor(LocalDate.of(1901, 4, 1)) mustBe 2
-      taxRateTable.lookupRateFor(LocalDate.of(1903, 4, 1)) mustBe 1
-    }
   }
-  
+
   "check we can detect a sorted table" when {
     
     "table is in chronological order (don't want)" in {
