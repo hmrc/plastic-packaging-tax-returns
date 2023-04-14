@@ -107,7 +107,9 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
 
       val response = await(wsClient.url(url).get)
 
-      response.json.toString() mustBe """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true,"taxRate":0.2}"""
+      response.json mustBe Json.parse( 
+        """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true,"taxRate":0.2}"""
+      )
     }
 
     "return an error" when {
@@ -147,8 +149,8 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
        | "fromDate": "${fromDate.toString}",
        |  "toDate": "${toDate.toString()}"
        | },
-       | "convertedCredits": { "weight": 10 },
-       | "exportedCredits": { "weight": 5 }
+       | "convertedCredits": { "yesNo": true, "weight": 10 },
+       | "exportedCredits": { "yesNo": true, "weight": 5 }
        |}""".stripMargin).as[JsObject]
 
 

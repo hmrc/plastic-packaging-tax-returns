@@ -31,7 +31,7 @@ import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, await, contentAsJson, def
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
@@ -50,6 +50,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import java.time.{LocalDate, LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -203,15 +204,21 @@ class ReturnsControllerSpec
     }
   }
 
+
   "submit" should {
     "propagate status code when failure occurs" in {
       withAuthorizedUser()
       setupMocksForSubmit(userAnswersReturns)
       mockReturnsSubmissionConnectorFailure(BAD_REQUEST)
 
-      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
+      val result: Result = await {
+        sut.submit(pptReference).apply(FakeRequest())
+      }
 
-      status(result) mustBe BAD_REQUEST
+      verify(mockObligationDataConnector).get(eqTo(pptReference), eqTo("some-internal-ID"), eqTo(None), eqTo(None), 
+        eqTo(Some(ObligationStatus.OPEN)))(any)
+
+      result.header.status mustBe BAD_REQUEST
     }
 
     "propagate un-processable entity when cache incomplete" in {
