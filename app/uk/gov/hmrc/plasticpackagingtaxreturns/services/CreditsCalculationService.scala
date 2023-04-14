@@ -21,6 +21,8 @@ import play.api.libs.json.{JsPath, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
+import java.time.LocalDate
+
 case class CreditsAnswer(yesNo: Boolean, weight: Option[Long]) {
   def value: Long = (yesNo, weight) match {
     case (true, Some(x)) => x
@@ -43,7 +45,7 @@ class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionServi
 
     Credit(
       totalWeight,
-      convert.weightToCredit(totalWeight)
+      convert.weightToCredit(LocalDate.of(2022, 4, 1), totalWeight) // TODO date percolator
     )
   }
 

@@ -22,8 +22,6 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
 
 import java.time.LocalDate
@@ -53,7 +51,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         calculationService.calculate(allZeroReturn).packagingTotal mustBe expected
 
         withClue("Credit should not be called for a debit calculator") {
-          verify(mockConversionService, never()).weightToCredit(any)
+          verify(mockConversionService, never()).weightToCredit(any, any) // TODO date percolator
         }
       }
 

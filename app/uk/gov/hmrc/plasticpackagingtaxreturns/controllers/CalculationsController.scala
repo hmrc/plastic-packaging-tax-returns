@@ -48,7 +48,8 @@ class CalculationsController @Inject()(
         sessionRepository.get(request.cacheKey).map { optUa => {
           val userAnswers = optUa.get
           val amend = AmendReturnValues(userAnswers).get
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), taxRateService.lookupTaxRateForPeriod(amend.periodEndDate))
+          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
+            taxRateService.lookupTaxRateForPeriod(amend.periodEndDate))
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

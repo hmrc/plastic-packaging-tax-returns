@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -40,7 +41,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   private def converterJustAddsOne() =
-    when(mockConversion.weightToCredit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long] + 1))
+    when(mockConversion.weightToCredit(any(), any())).thenAnswer(a => BigDecimal(a.getArgument(1).asInstanceOf[Long] + 1))
 
   "totalRequestCredit" must {
     "return 0" when {
@@ -81,14 +82,14 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
     "convert the weight in to pounds(£) and return it unchanged" in {
       val expectedPounds = 42.69
-      when(mockConversion.weightToCredit(any())).thenReturn(expectedPounds)
+      when(mockConversion.weightToCredit(any(), any())).thenReturn(expectedPounds)
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(JsPath \ "convertedCredits", CreditsAnswer(true, Some(5L)))
         .setUnsafe(JsPath \ "exportedCredits", CreditsAnswer(true, Some(7L)))
 
       sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)
 
-      verify(mockConversion).weightToCredit(12L)
+      verify(mockConversion).weightToCredit(any(), eqTo(12L)) // TODO date percolator
       verify(mockConversion, never()).weightToDebit(any(), any())
     }
   }
