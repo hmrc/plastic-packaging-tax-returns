@@ -35,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.global
@@ -46,10 +47,11 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   private val mockCreditsCalcService = mock[CreditsCalculationService]
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
+  private val taxRateTable = mock[TaxRateTable]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateService)
+    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateTable)
   }
 
   val sut = new ExportCreditBalanceController(
@@ -57,6 +59,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     mockSessionRepo,
     mockCreditsCalcService,
     mockAvailableCreditsService,
+    taxRateTable,
     cc,
   )(global)
 
@@ -72,7 +75,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         .thenReturn(Future.successful(Some(userAnswers)))
       when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(available))
       when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(requested)
-      when(taxRateService.lookupTaxRateForPeriod(any)).thenReturn(0.20)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.20)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
@@ -99,7 +102,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       }
 
       withClue("tax rate is retrieved") {
-        verify(taxRateService).lookupTaxRateForPeriod(LocalDate.of(2023,5, 1))
+        verify(taxRateTable).lookupRateFor(LocalDate.of(2023,5, 1))
       }
     }
 
@@ -167,7 +170,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         val userAnswers: UserAnswers = createUserAnswerWithoutPeriodEndDate
 
         val available = BigDecimal(200)
-        val requested = Credit(100L, BigDecimal(20))
+        val requested = CreditClaimed(100L, BigDecimal(20))
 
         when(mockSessionRepo.get(any))
           .thenReturn(Future.successful(Some(userAnswers)))

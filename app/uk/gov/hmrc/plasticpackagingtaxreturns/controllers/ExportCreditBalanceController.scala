@@ -19,9 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -32,6 +34,7 @@ class ExportCreditBalanceController @Inject() (
   sessionRepository: SessionRepository,
   calculateService: CreditsCalculationService,
   creditService: AvailableCreditService,
+  taxRateTable: TaxRateTable,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends BaseController {
 
@@ -43,7 +46,7 @@ class ExportCreditBalanceController @Inject() (
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- creditService.getBalance(userAnswers)
         requestedCredit = calculateService.totalRequestedCredit(userAnswers)
-        taxRate = taxRateService.lookupTaxRateForPeriod(userAnswers.getOrFail(ReturnObligationToDateGettable))
+        taxRate = taxRateTable.lookupRateFor(userAnswers.getOrFail(ReturnObligationToDateGettable))
       } yield
         Ok(Json.toJson(CreditsCalculationResponse(
           availableCredit,
