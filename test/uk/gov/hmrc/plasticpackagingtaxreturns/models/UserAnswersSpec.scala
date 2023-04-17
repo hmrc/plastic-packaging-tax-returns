@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.Json.obj
 import play.api.libs.json._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
 
@@ -94,17 +95,33 @@ class UserAnswersSpec extends PlaySpec {
       "one key-value pair" in {
         someUserAnswers.setAll("x" -> "y") mustBe UserAnswers("id1", Json.obj(
           "fish" -> Json.obj("cakes" -> "cheese"),
-          "x" -> JsString("y")
+          "x" -> "y"
         ), Instant.ofEpochSecond(1))
       }
       
       "multiple key-values" in {
         someUserAnswers.setAll("x" -> "y", "left" -> "right") mustBe UserAnswers("id1", Json.obj(
           "fish" -> Json.obj("cakes" -> "cheese"),
-          "left" -> JsString("right"), 
-          "x" -> JsString("y"), 
+          "left" -> "right", 
+          "x" -> "y", 
         ), Instant.ofEpochSecond(1))
       }
+      
+      "values are of multiple js types" in {
+        someUserAnswers.setAll("x" -> JsNumber(1), "y" -> JsString("z")) mustBe UserAnswers("id1", Json.obj(
+          "fish" -> Json.obj("cakes" -> "cheese"),
+          "x" -> 1,  
+          "y" -> "z", 
+        ), Instant.ofEpochSecond(1))
+      }
+      
+      "nested field" in {
+        someUserAnswers.setAll("x" -> obj { "y" -> "z" }) mustBe UserAnswers("id1", Json.obj(
+          "fish" -> Json.obj("cakes" -> "cheese"),
+          "x" -> Json.obj {"y" -> "z"}
+        ), Instant.ofEpochSecond(1))
+      }
+      
     }
     
   }

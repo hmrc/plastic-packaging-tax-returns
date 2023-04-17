@@ -16,114 +16,109 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchersSugar.eqTo
-import org.mockito.Mockito.{never, reset, verify, when}
+import org.mockito.ArgumentMatchersSugar._
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
+import play.api.libs.json.Json.obj
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
 
-class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
+class CreditsCalculationServiceSpec extends PlaySpec 
+  with BeforeAndAfterEach with MockitoSugar {
 
-  val mockConversion: WeightToPoundsConversionService = mock[WeightToPoundsConversionService]
-  val captor: ArgumentCaptor[Long] = ArgumentCaptor.forClass(classOf[Long])
-
-  val sut = new CreditsCalculationService(mockConversion)
+  private val weightToPoundsConversionService = mock[WeightToPoundsConversionService]
+  private val sut = new CreditsCalculationService(weightToPoundsConversionService)
+  private val userAnswers = UserAnswers("id")
+    .setAll("obligation" -> obj { "toDate" -> "2022-06-30" })
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversion)
-    when(mockConversion.weightToCredit(any(), any())) thenReturn CreditClaim(0, 0, 3.14)
+    reset(weightToPoundsConversionService)
+    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn CreditClaim(11, 22.3, 3.14)
   }
 
-  private def converterJustAddsOne() =
-    when(mockConversion.weightToCredit(any(), any())).thenAnswer { 
-      a => 
-        val addOne = a.getArgument(1).asInstanceOf[Long] + 1
-        CreditClaim(0, BigDecimal(addOne), 1.0)
-    }
-
-  // TODO split out tests covering CreditsAnswer
-
+  // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
+  
   val theWrongDate: LocalDate = LocalDate.of(2022, 4, 1) // TODO date percolator
 
   "totalRequestCredit" must {
     
-    "return 0" when {
-      "both fields are empty" in { 
-        // TODO should complain about missing user-answers?
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 1, 1.0)
-      }
+    "return the credit claimed total" in {
+      sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(11, 22.3, 3.14)
     }
 
     "total the weight" when {
       
       "both answers are missing" in {
-        val userAnswers = UserAnswers("user-answers-id")
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
-        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+        sut.totalRequestedCredit(userAnswers)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 0L)
       }
       
       "both answers answered with false" in {
-        val userAnswers = UserAnswers("user-answers-id").setAll(
+        val userAnswers2 = userAnswers.setAll(
           "exportedCredits" -> CreditsAnswer(false, None), 
           "convertedCredits" -> CreditsAnswer(false, None)
         )
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
-        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+        sut.totalRequestedCredit(userAnswers2)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 0L)
       }
       
       "both answers answered are only partially answered" in {
-        val userAnswers = UserAnswers("user-answers-id") .setAll(
+        val userAnswers2 = userAnswers.setAll(
           "exportedCredits" -> CreditsAnswer(true, None), 
           "convertedCredits" -> CreditsAnswer(true, None)
         )
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(weight = 0, moneyInPounds = 0, taxRate = 3.14)
-        verify(mockConversion).weightToCredit(theWrongDate, 0L)
+        sut.totalRequestedCredit(userAnswers2)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 0L)
       }
 
       "converted is supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L)))
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 6, 1.0)
+        val userAnswers2 = userAnswers.setAll(
+          "convertedCredits" -> CreditsAnswer(true, Some(5L))
+        )
+        sut.totalRequestedCredit(userAnswers2)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 5L)
       }
 
       "exported is supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L)))
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 8, 1.0)
+        val userAnswers2 = userAnswers.setAll(
+          "exportedCredits" -> CreditsAnswer(true, Some(7L))
+        )
+        sut.totalRequestedCredit(userAnswers2)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 7L)
       }
 
       "both are supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id").setAll(
+        val userAnswers2 = userAnswers.setAll(
           "convertedCredits" -> CreditsAnswer(true, Some(5L)),
           "exportedCredits" -> CreditsAnswer(true, Some(7L))
         )
-        sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 13, 1.0)
+        sut.totalRequestedCredit(userAnswers2)
+        verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2022, 6, 30), 12L)
       }
     }
-
-    "convert the weight in to pounds(£) and return it unchanged" in {
-      when(mockConversion.weightToCredit(any(), any())).thenReturn(CreditClaim(0, 42.69, 1.1))
-      val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(JsPath \ "convertedCredits", CreditsAnswer(true, Some(5L)))
-        .setUnsafe(JsPath \ "exportedCredits", CreditsAnswer(true, Some(7L)))
-
-      sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(0, 42.69, 1.1)
-
-      verify(mockConversion).weightToCredit(any(), eqTo(12L)) // TODO date percolator
-      verify(mockConversion, never()).weightToDebit(any(), any())
+    
+    "read the period end date from user answers" in {
+      val userAnswers = spy(UserAnswers("user-answers-id").setAll(
+        "obligation" -> obj("toDate" -> "2022-06-30")
+      ))
+      sut.totalRequestedCredit(userAnswers)
+      verify(userAnswers).getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
+      verify(weightToPoundsConversionService).weightToCredit(eqTo(LocalDate.of(2022, 6, 30)), any)
+    }
+    
+    "complain if the period end date is missing" in {
+      // TODO actually a test of UserAnswers, could replace with test that UserAnswers exception gets passed on
+      val userAnswers = UserAnswers("user-answers-id").setAll(
+        "convertedCredits" -> CreditsAnswer(true, Some(5L)),
+        "exportedCredits" -> CreditsAnswer(true, Some(7L))
+      )
+      the [Exception] thrownBy {
+        sut.totalRequestedCredit(userAnswers)
+      } must have message "/obligation/toDate is missing from user answers"
     }
   }
 

@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import com.google.inject.Inject
 import play.api.libs.json.{JsPath, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 
 import java.time.LocalDate
 
@@ -41,11 +42,14 @@ case class CreditClaim(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDeci
 
 class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
 
+  // TODO date percolator - check all call sites
+  
   def totalRequestedCredit(userAnswers: UserAnswers): CreditClaim = {
+    val periodEndDate = userAnswers.getOrFail[LocalDate](ReturnObligationToDateGettable)
     val exportedCredit = readUserAnswer(userAnswers, JsPath \ "exportedCredits")
     val convertedCredit = readUserAnswer(userAnswers, JsPath \ "convertedCredits")
     val totalWeight = exportedCredit.value + convertedCredit.value
-    convert.weightToCredit(LocalDate.of(2022, 4, 1), totalWeight) // TODO date percolator
+    convert.weightToCredit(periodEndDate, totalWeight)
   }
 
   private def readUserAnswer(userAnswers: UserAnswers, path: JsPath) = {
