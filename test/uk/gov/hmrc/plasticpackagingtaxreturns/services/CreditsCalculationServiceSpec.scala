@@ -42,8 +42,6 @@ class CreditsCalculationServiceSpec extends PlaySpec
   }
 
   // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
-  
-  val theWrongDate: LocalDate = LocalDate.of(2022, 4, 1) // TODO date percolator
 
   "totalRequestCredit" must {
     

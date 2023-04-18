@@ -24,8 +24,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.Ret
 import java.time.LocalDate
 
 class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
-
-  // TODO date percolator - check all call sites
   
   def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
     val periodEndDate = userAnswers.getOrFail[LocalDate](ReturnObligationToDateGettable)

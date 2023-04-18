@@ -50,7 +50,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         calculationService.calculate(allZeroReturn).packagingTotal mustBe expected
 
         withClue("Credit should not be called for a debit calculator") {
-          verify(mockConversionService, never()).weightToCredit(any, any) // TODO date percolator
+          verify(mockConversionService, never()).weightToCredit(any, any)
         }
       }
 
