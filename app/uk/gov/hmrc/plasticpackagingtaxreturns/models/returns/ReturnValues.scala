@@ -18,13 +18,12 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditClaim, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditClaim
 
 import java.time.LocalDate
 

@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditClaim
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.CreditClaim
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
 import java.time.LocalDate

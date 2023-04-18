@@ -22,6 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
 import play.api.libs.json.Json.obj
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditClaim, CreditsAnswer}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 import java.time.LocalDate
