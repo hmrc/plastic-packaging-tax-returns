@@ -22,6 +22,7 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
 
 import java.time.LocalDate
@@ -35,7 +36,8 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConversionService)
-    when(mockConversionService.weightToDebit(any, any)) thenReturn TaxPayable(moneyInPounds = 0.0, taxRateApplied = 1.1)
+    when(mockConversionService.weightToDebit(any, any)) thenReturn TaxablePlastic(weight = 0, moneyInPounds = 0.0, 
+      taxRate = 1.1)
   }
 
   
@@ -159,7 +161,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     }
 
     "return the tax due amount" in {
-      when(mockConversionService.weightToDebit(any, any)) thenReturn TaxPayable(7.17, 3.14)
+      when(mockConversionService.weightToDebit(any, any)) thenReturn TaxablePlastic(2, 7.17, 3.14)
       val calculations = calculationService.calculate(allZeroReturn)
       calculations.taxDue mustBe BigDecimal(7.17)
       calculations.taxRate mustBe BigDecimal(3.14)

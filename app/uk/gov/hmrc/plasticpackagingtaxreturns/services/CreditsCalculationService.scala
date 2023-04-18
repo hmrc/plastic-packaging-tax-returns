@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditClaim, CreditsAnswer}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 
@@ -27,7 +27,7 @@ class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionServi
 
   // TODO date percolator - check all call sites
   
-  def totalRequestedCredit(userAnswers: UserAnswers): CreditClaim = {
+  def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
     val periodEndDate = userAnswers.getOrFail[LocalDate](ReturnObligationToDateGettable)
     val exportedCredit = CreditsAnswer.readFrom(userAnswers, "exportedCredits")
     val convertedCredit = CreditsAnswer.readFrom(userAnswers, "convertedCredits")

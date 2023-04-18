@@ -28,7 +28,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.CreditClaim
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
@@ -69,7 +69,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   "get" must {
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
-      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, BigDecimal(20), 0.2))
+      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, BigDecimal(20), 0.2))
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 

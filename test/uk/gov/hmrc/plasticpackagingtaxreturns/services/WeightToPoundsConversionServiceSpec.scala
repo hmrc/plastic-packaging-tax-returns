@@ -20,7 +20,7 @@ import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.CreditClaim
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
@@ -48,7 +48,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
 
     "round DOWN for conversion rate of 3 d.p." in {
       when(taxRateTable.lookupRateFor(any)) thenReturn 0.336
-      sut.weightToDebit(aDate, 1L) mustBe TaxPayable(0.33, 0.336)
+      sut.weightToDebit(aDate, 1L) mustBe TaxablePlastic(1, 0.33, 0.336)
     }
   }
 
@@ -60,7 +60,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
 
     "round UP for conversion rate of 3 d.p." in {
       when(taxRateTable.lookupRateFor(any)).thenReturn(0.333)
-      sut.weightToCredit(aDate, 1L) mustBe CreditClaim(1, 0.34, 0.333)
+      sut.weightToCredit(aDate, 1L) mustBe TaxablePlastic(1, 0.34, 0.333)
     }
   }
 

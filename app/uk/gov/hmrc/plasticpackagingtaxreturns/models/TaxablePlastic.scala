@@ -16,4 +16,4 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-case class CreditClaim(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal)
+case class TaxablePlastic(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal)

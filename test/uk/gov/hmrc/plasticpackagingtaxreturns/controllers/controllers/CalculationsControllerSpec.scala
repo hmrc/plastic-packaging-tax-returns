@@ -30,7 +30,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.CreditClaim
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
@@ -83,7 +83,7 @@ class CalculationsControllerSpec
     "return OK response and the calculation" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -95,7 +95,7 @@ class CalculationsControllerSpec
     "request credits" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
         packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(CreditClaim(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))

@@ -22,7 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
 import play.api.libs.json.Json.obj
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditClaim, CreditsAnswer}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 import java.time.LocalDate
@@ -38,7 +38,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(weightToPoundsConversionService)
-    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn CreditClaim(11, 22.3, 3.14)
+    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn TaxablePlastic(11, 22.3, 3.14)
   }
 
   // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
@@ -48,7 +48,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
   "totalRequestCredit" must {
     
     "return the credit claimed total" in {
-      sut.totalRequestedCredit(userAnswers) mustBe CreditClaim(11, 22.3, 3.14)
+      sut.totalRequestedCredit(userAnswers) mustBe TaxablePlastic(11, 22.3, 3.14)
     }
 
     "total the weight" when {

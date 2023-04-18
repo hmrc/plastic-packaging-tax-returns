@@ -18,7 +18,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditClaim, ReturnType}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
@@ -64,8 +64,10 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(creditClaim: CreditClaim, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
+  def apply(creditClaim: TaxablePlastic, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
+      // todo which of these are must-have vs can default?
+      // todo allow exception from UserAnswers (which has name of missing element) to percolate up
       periodKey <- userAnswers.get(PeriodKeyGettable)
       periodEndDate <- userAnswers.get[LocalDate](ReturnObligationToDateGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
