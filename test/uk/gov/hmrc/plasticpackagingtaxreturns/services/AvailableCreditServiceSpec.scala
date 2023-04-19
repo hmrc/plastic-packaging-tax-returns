@@ -37,27 +37,31 @@ import scala.concurrent.Future
 
 class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
-  val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
-  val sut = new AvailableCreditService(mockConnector)(global)
-
-  val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
-
+  private val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  private val sut = new AvailableCreditService(mockConnector)(global)
+  private val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
+ 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
   }
 
   "getBalance" must {
-    "return 0 and not call connector" when {
+    
+    "return available balance" when {
       "no credit is being claimed" in {
+        val expected = BigDecimal(200)
+        val unUsedBigDec = mock[BigDecimal]
+        val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
+          Future.successful(Right(creditResponse)))
+
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(
             ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
           )
 
-        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe BigDecimal(0)
-
-        verifyNoMoreInteractions(mockConnector)
+        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe 200
       }
     }
 
@@ -86,16 +90,15 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "throw an exception" when {
-      "the useranswers does not contain an obligation" in {
-        val userAnswers = UserAnswers("user-answers-id")
-
-        val error = intercept[IllegalStateException](await(sut.getBalance(userAnswers)(fakeRequest)))
-
-        error.getMessage mustBe "Obligation fromDate not found in user-answers"
+      
+      "the user answers does not contain an obligation" in {
+        val userAnswers = mock[UserAnswers]
+        when(userAnswers.getOrFail(ReturnObligationFromDateGettable)) thenThrow new RuntimeException("bang")
+        the [Exception] thrownBy await(sut.getBalance(userAnswers)(fakeRequest)) must have message "bang"
       }
+      
       "the connector call fails" in {
         when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
-
 
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())

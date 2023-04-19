@@ -78,6 +78,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     "return 200" when {
       "total requested credit is 0 "in {
         withAuthorizedUser()
+        stubGetBalanceResponse()
         when(sessionRepository.get(any))
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonObj))))
 
@@ -88,7 +89,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
 
       "total requested credit is not 0" in {
         withAuthorizedUser()
-        stubGetBalanceResponse
+        stubGetBalanceResponse()
         when(sessionRepository.get(any))
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonWitTotalRequestedCredit))))
 
@@ -100,7 +101,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
 
     "return json" in {
       withAuthorizedUser()
-      stubGetBalanceResponse
+      stubGetBalanceResponse()
 
       when(sessionRepository.get(any))
         .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonWitTotalRequestedCredit))))
@@ -137,7 +138,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     s"""{
        |"obligation": {
        | "fromDate": "${fromDate.toString}",
-       | "toDate": "${toDate.toString()}"
+       | "toDate": "${toDate.toString}"
        | },
        | "convertedCredits": "0",
        | "exportedCredits": "0"
@@ -147,7 +148,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     s"""{
        |"obligation": {
        | "fromDate": "${fromDate.toString}",
-       |  "toDate": "${toDate.toString()}"
+       |  "toDate": "${toDate.toString}"
        | },
        | "convertedCredits": { "yesNo": true, "weight": 10 },
        | "exportedCredits": { "yesNo": true, "weight": 5 }
@@ -160,7 +161,8 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     totalExportCreditClaimed = BigDecimal(100),
     totalExportCreditAvailable = BigDecimal(200)
   )
-  private def stubGetBalanceResponse: Unit = {
+  
+  private def stubGetBalanceResponse() = {
 
     val date = fromDate.minusYears(2)
     val toDate = fromDate.minusDays(1)

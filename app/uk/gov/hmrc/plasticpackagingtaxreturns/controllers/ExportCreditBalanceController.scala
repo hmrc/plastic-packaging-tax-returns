@@ -55,6 +55,7 @@ class ExportCreditBalanceController @Inject() (
           taxRate
         )))
       }.recover{
+        // TODO do we still want this? seems to swallow log message when running service locally 
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
       }
     }
