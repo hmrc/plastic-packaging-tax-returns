@@ -23,7 +23,9 @@ import org.mockito.MockitoSugar.verify
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.UNPROCESSABLE_ENTITY
+import play.api.libs.json.JsPath
 import play.api.libs.json.Json.toJson
+import play.api.mvc.Results.UnprocessableEntity
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers.{OK, await, contentAsJson, defaultAwaitTimeout, status}
 import play.api.test.{FakeRequest, Helpers}
@@ -131,7 +133,7 @@ class CalculationsControllerSpec
       val amendCalc = Calculations(2, 3, 4, 5, false, taxRate = 0.123)
 
       when(sessionRepository.get(any[String]))
-        .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
+        .thenReturn(Future.successful(Some(UserAnswers("id", AmendTestHelper.userAnswersDataAmends))))
       when(pptCalculationService.calculate(any)).thenReturn(amendCalc)
 
       val result = sut.calculateAmends(pptReference)(FakeRequest())
@@ -141,7 +143,7 @@ class CalculationsControllerSpec
     }
 
     "calculate amend return" in {
-      val ans = UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)
+      val ans = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
 
       when(sessionRepository.get(any[String]))
         .thenReturn(Future.successful(Some(ans)))
@@ -152,5 +154,86 @@ class CalculationsControllerSpec
       val expected = AmendReturnValues("21C4", LocalDate.of(2022, 6, 30),100, 1, 2, 5, 3,5, "submission12")
       verify(pptCalculationService).calculate(ArgumentMatchers.eq(expected))
     }
+  }
+  
+  "it should complain about missing period end date, or another failure" when {
+    
+    "calculating a new return" when {
+      
+      "building ReturnValues fails" in {
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
+          userAnswers.remove("importedPlasticPackagingWeight")))
+        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
+        
+        val result = sut.calculateSubmit(pptReference)(FakeRequest())
+        await(result) mustBe UnprocessableEntity("User answers insufficient")
+      }
+
+      "a must have field is missing from user answers" in {
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
+          userAnswers.remove(JsPath \ 'obligation \ 'toDate)))
+        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
+        the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
+          have message "/obligation/toDate is missing from user answers"
+      }
+      
+      "tax calculation complains" in {
+        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(pptCalculationService.calculate(any)) thenThrow new RuntimeException("something else wrong")
+        the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must 
+          have message "something else wrong"
+      }
+      
+      "credit calculation complains" in {
+        when(creditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("a field is missing")
+        when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
+        the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must 
+          have message "a field is missing"
+      }
+      
+    }
+    
+    "calculating an amended return" when {
+      
+      "calculations service complains" in {
+        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
+        when(pptCalculationService.calculate(any)) thenThrow new RuntimeException("boom")
+        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
+          have message "boom"
+      }
+      
+      "building ReturnValues fails" in {
+        // remove an 'optional' field
+        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends).remove("returnDisplayApi")
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
+        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
+          have message "Failed to build AmendReturnValues from UserAnswers"
+      }
+
+      "fetching the user answers fails 1" in {
+        when(sessionRepository.get(any)) thenReturn Future.failed(new RuntimeException("boom"))
+        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
+          have message "boom"
+      }
+
+      "fetching the user answers fails 2" in {
+        when(sessionRepository.get(any)) thenReturn Future.successful(None)
+        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
+          have message "No user answers found in session repo"
+      }
+      
+      "must have field in user answers are missing" in {
+        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
+          .remove(JsPath \ 'amend \ 'obligation \ 'toDate)
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
+        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
+          have message "/amend/obligation/toDate is missing from user answers"
+      }
+
+    }
+    
   }
 }

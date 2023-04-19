@@ -68,9 +68,9 @@ object NewReturnValues {
     for {
       // todo which of these are must-have vs can default?
       // todo allow exception from UserAnswers (which has name of missing element) to percolate up
-      periodKey <- userAnswers.get(PeriodKeyGettable)
-      periodEndDate <- userAnswers.get[LocalDate](ReturnObligationToDateGettable)
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
+      periodEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
+      periodKey = userAnswers.getOrFail(PeriodKeyGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
       exportedByAnotherBusiness <- userAnswers.get(AnotherBusinessExportWeightGettable).orElse(Some(0L))
@@ -117,12 +117,13 @@ object AmendReturnValues {
 
   def apply(userAnswers: UserAnswers): Option[AmendReturnValues] = {
 
+    // TODO which of these are really must-haves vs can have default values
     val original = userAnswers.get(ReturnDisplayApiGettable)
 
     for {
       submissionID <- original.map(_.idDetails.submissionId)
-      periodKey <- userAnswers.get[String](JsPath() \ "amendSelectedPeriodKey")
-      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
+      periodKey = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
+      periodEndDate = userAnswers.getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))

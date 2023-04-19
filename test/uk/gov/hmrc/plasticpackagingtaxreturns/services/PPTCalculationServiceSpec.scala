@@ -239,6 +239,11 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         }
       }
     }
+    
+    "complain if period end-date is missing" in {
+      when(mockConversionService.weightToDebit(any, any)) thenThrow new RuntimeException("a field is missing")
+      the [Exception] thrownBy calculationService.calculate(allZeroReturn) must have message "a field is missing"
+    }
   }
 
   "calculateAmendReturn" must {

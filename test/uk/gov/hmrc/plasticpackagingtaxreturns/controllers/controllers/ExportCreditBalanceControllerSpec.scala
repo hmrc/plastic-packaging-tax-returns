@@ -158,13 +158,13 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
 
-      "credits calculation fails for some reason" in {
+      "complain about missing period end-date / credits calculation fails for some other reason" in {
         when(mockCreditsCalcService.totalRequestedCredit(any)) thenThrow new RuntimeException("bang")
         val result = sut.get("url-ppt-ref")(FakeRequest())
         status(result) mustBe INTERNAL_SERVER_ERROR
-        contentAsJson(result) mustBe Json.obj("message" -> JsString("bang"))
+        contentAsJson(result) mustBe Json.obj("message" -> "bang")
       }
     }
-    
+
   }
 }

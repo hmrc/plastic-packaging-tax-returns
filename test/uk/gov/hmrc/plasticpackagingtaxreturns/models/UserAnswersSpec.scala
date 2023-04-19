@@ -124,5 +124,15 @@ class UserAnswersSpec extends PlaySpec {
       
     }
     
+    "remove a top level field" in {
+      someUserAnswers.remove("fish") mustBe UserAnswers("id1", obj(), Instant.ofEpochSecond(1))
+    }
+    
+    "remove a nested field" in {
+      someUserAnswers.remove(JsPath \ "fish" \ 'cakes) mustBe UserAnswers("id1", obj(
+        "fish" -> Json.obj(),
+      ), Instant.ofEpochSecond(1))
+    }
+    
   }
 }

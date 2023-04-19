@@ -23,6 +23,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import play.api.Logger
 import play.api.http.Status.{BAD_REQUEST, EXPECTATION_FAILED, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
@@ -39,11 +40,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxablePlastic}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
@@ -112,13 +113,13 @@ class ReturnsControllerSpec
   private val mockPptCalculationService                        = mock[PPTCalculationService]
   private val mockFinancialDataService                         = mock[FinancialDataService]
   private val mockFinancialsService                            = mock[PPTFinancialsService]
-  private val mockCreditCalcService                            = mock[CreditsCalculationService]
+  private val mockCreditsCalculationService                    = mock[CreditsCalculationService]
   private val mockAvailableCreditService                       = mock[AvailableCreditService]
   private val mockTaxRateTable                                 = mock[TaxRateTable]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  val sut = new ReturnsController(
+  private val sut = new ReturnsController(
     new FakeAuthenticator(cc),
     mockSessionRepository,
     mockNonRepudiationService,
@@ -130,10 +131,12 @@ class ReturnsControllerSpec
     mockPptCalculationService,
     mockFinancialDataService,
     mockFinancialsService,
-    mockCreditCalcService,
+    mockCreditsCalculationService,
     mockAvailableCreditService,
     mockTaxRateTable
-  )
+  ) {
+    protected override val logger: Logger = mockLogger
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -147,7 +150,7 @@ class ReturnsControllerSpec
       mockPptCalculationService,
       mockFinancialDataService,
       mockFinancialsService,
-      mockCreditCalcService,
+      mockCreditsCalculationService,
       mockAvailableCreditService,
       mockTaxRateTable)
   }
@@ -407,6 +410,41 @@ class ReturnsControllerSpec
       verify(mockReturnsConnector).submitReturn(any, any, any)(any)
     }
   }
+  
+  "it should complain about missing period end-date" when {
+
+    "calculating a new return" when {
+
+      "credits calculation fails" in {
+        withAuthorizedUser()
+        setupMocksForSubmit(userAnswersReturns)
+        mockReturnsSubmissionConnector(aReturn())
+        when(mockCreditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("a field is missing")
+
+        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
+          have message "a field is missing"
+      }
+
+      "building ReturnValues fails" in {
+        withAuthorizedUser()
+        setupMocksForSubmit(userAnswersReturns.remove("obligation"))
+        mockReturnsSubmissionConnector(aReturn())
+        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
+          have message "/obligation/periodKey is missing from user answers"
+      }
+
+    }    
+
+    "calculating an amended return" in {
+      withAuthorizedUser()
+      setupMocksForAmend(userAnswersAmends)
+      mockReturnsSubmissionConnector(aReturn())
+      when(mockPptCalculationService.calculate(any)) thenThrow new RuntimeException("a field is missing")
+
+      the [Exception] thrownBy await(sut.amend(pptReference)(FakeRequest())) must 
+        have message "a field is missing"
+    }
+  }
 
   private def verifySubmitNonRepudiation(expectedNrsPayload: NrsReturnOrAmendSubmission) = {
     verify(mockNonRepudiationService).submitNonRepudiation(
@@ -432,7 +470,7 @@ class ReturnsControllerSpec
 
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditCalcService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(0L, BigDecimal(0), 1.0))
+    when(mockCreditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(0L, BigDecimal(0), 1.0))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

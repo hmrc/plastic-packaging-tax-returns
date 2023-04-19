@@ -65,6 +65,21 @@ final case class UserAnswers(
       case (x, y) => (x, Json.toJson(y))
     }))
   }
+
+  /**
+   * Removes the top level field with the given name
+   * @param fieldName name of top-level field to remove
+   * @return an updated [[UserAnswers]]
+   */
+  def remove(fieldName: String): UserAnswers = copy(data = data - fieldName)
+
+  /**
+   * Removes the field at the given path, if there is one
+   * @param path [[JsPath]] to field to remove
+   * @return an updated [[UserAnswers]]
+   */
+  def remove(path: JsPath): UserAnswers = copy(data = data.transform(path.json.prune).get)
+
 }
 
 object UserAnswers {
