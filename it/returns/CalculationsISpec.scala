@@ -28,7 +28,7 @@ import play.api.Application
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
@@ -78,6 +78,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         when(sessionRepository.get(any))
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnsWithNoCreditDataJson))))
         withAuthorizedUser()
+        stubGetBalanceRequest
 
         val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
 
@@ -196,7 +197,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
   private def stubGetBalanceRequest =
     server.stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference")
+      get(urlPathEqualTo(s"/plastic-packaging-tax/export-credits/PPT/$pptReference"))
         .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
 
