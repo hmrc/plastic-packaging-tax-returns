@@ -24,8 +24,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 case class CreditsAnswer(yesNo: Boolean, weight: Option[Long]) {
   def value: Long = (yesNo, weight) match {
     case (true, Some(x)) => x
-    case (true, None) => 0
-    case (false, _) => 0
+    case _ => 0
   }
 }
 
