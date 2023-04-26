@@ -47,10 +47,16 @@ class CalculationsController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         sessionRepository.get(request.cacheKey).map { optUa => {
-          val userAnswers = optUa.get
-          val amend = AmendReturnValues(userAnswers).get
+          
+          val userAnswers = {
+            optUa.getOrElse(throw new IllegalStateException("No user answers found in session repo"))
+          }
+          val amend = AmendReturnValues(userAnswers).getOrElse {
+            throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
+          }
+          
           val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
-            taxRateTable.lookupRateFor(amend.periodEndDate))
+            taxRateTable.lookupRateFor(amend.periodEndDate)) // TODO looks like a duplicate lookup?
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

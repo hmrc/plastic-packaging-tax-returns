@@ -137,7 +137,7 @@ class ReturnsController @Inject()(
   }
 
   private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
-    val periodKey = userAnswer.get(PeriodKeyGettable).get
+    val periodKey = userAnswer.getOrFail(PeriodKeyGettable)
     obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
       _.fold(
         status => throw new RuntimeException(s"Could not get Open Obligation details. Server responded with status code: $status"),

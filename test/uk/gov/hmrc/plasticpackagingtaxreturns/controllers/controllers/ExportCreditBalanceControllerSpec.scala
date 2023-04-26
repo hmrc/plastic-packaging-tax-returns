@@ -28,14 +28,13 @@ import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.CreditClaimed
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.global
@@ -47,11 +46,16 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   private val mockCreditsCalcService = mock[CreditsCalculationService]
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
-  private val taxRateTable = mock[TaxRateTable]
+  
+  private val userAnswers = UserAnswers("user-answers-id")
+    .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
+    .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService, taxRateTable)
+    reset(mockAvailableCreditsService, mockSessionRepo, mockCreditsCalcService)
+    when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
+    when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
   }
 
   val sut = new ExportCreditBalanceController(
@@ -59,32 +63,22 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     mockSessionRepo,
     mockCreditsCalcService,
     mockAvailableCreditsService,
-    taxRateTable,
     cc,
   )(global)
 
   "get" must {
     def now: LocalDate = LocalDate.now
     "return 200 response with correct values" in {
-      val userAnswers: UserAnswers = createValidUserAnswer
-
-      val available = BigDecimal(200)
-      val requested = CreditClaimed(100L, BigDecimal(20))
-
-      when(mockSessionRepo.get(any))
-        .thenReturn(Future.successful(Some(userAnswers)))
-      when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(available))
-      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(requested)
-      when(taxRateTable.lookupRateFor(any)).thenReturn(0.20)
+      when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, BigDecimal(20), 0.2))
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(
         CreditsCalculationResponse(
-          available,
-          requested.moneyInPounds,
-          requested.weight,
+          BigDecimal(200),
+          BigDecimal(20),
+          100L,
           0.20
         )
       )
@@ -93,16 +87,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         verify(mockSessionRepo).get(s"some-internal-ID-some-ppt-ref")
       }
 
-      withClue("credits calculation service not called"){
+      withClue("credits calculation service is called"){
         verify(mockCreditsCalcService).totalRequestedCredit(userAnswers)
       }
 
-      withClue("EIS connector called with the user answer"){
+      withClue("fetch available credit balance"){
         verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any)
-      }
-
-      withClue("tax rate is retrieved") {
-        verify(taxRateTable).lookupRateFor(LocalDate.of(2023,5, 1))
       }
     }
 
@@ -153,6 +143,8 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         }
       }
 
+      // TODO are these effectively the same test, above and below?
+      
       "getBalance returns an error" in {
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, now)
@@ -166,34 +158,13 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
 
-      "period end date is empty" in {
-        val userAnswers: UserAnswers = createUserAnswerWithoutPeriodEndDate
-
-        val available = BigDecimal(200)
-        val requested = CreditClaimed(100L, BigDecimal(20))
-
-        when(mockSessionRepo.get(any))
-          .thenReturn(Future.successful(Some(userAnswers)))
-        when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(available))
-        when(mockCreditsCalcService.totalRequestedCredit(any)).thenReturn(requested)
-
+      "complain about missing period end-date / credits calculation fails for some other reason" in {
+        when(mockCreditsCalcService.totalRequestedCredit(any)) thenThrow new RuntimeException("bang")
         val result = sut.get("url-ppt-ref")(FakeRequest())
-
         status(result) mustBe INTERNAL_SERVER_ERROR
+        contentAsJson(result) mustBe Json.obj("message" -> "bang")
       }
     }
+
   }
-
-  private def createValidUserAnswer: UserAnswers = {
-    UserAnswers("user-answers-id")
-      .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
-      .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
-  }
-
-  private def createUserAnswerWithoutPeriodEndDate: UserAnswers = {
-    UserAnswers("user-answers-id")
-      .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
-  }
-
-
 }

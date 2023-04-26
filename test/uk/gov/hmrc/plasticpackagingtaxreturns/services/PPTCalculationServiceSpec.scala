@@ -22,27 +22,25 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{NewReturnValues, ReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
 class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val mockConversionService = mock[WeightToPoundsConversionService]
-  private val mockTaxRateTable = mock[TaxRateTable]
-
-  val calculationService: PPTCalculationService = new PPTCalculationService(mockConversionService, mockTaxRateTable)
+  private val calculationService = new PPTCalculationService(mockConversionService)
+  private val allZeroReturn = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, 0, 0)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversionService, mockTaxRateTable)
-    when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(0)
+    reset(mockConversionService)
+    when(mockConversionService.weightToDebit(any, any)) thenReturn TaxablePlastic(weight = 0, moneyInPounds = 0.0, 
+      taxRate = 1.1)
   }
 
-  private val allZeroReturn = NewReturnValues("", LocalDate.now(), 0, 0, 0, 0, 0, 0, 0, 0)
-
-
+  
   "calculate" must {
 
     "add up liabilities" when {
@@ -52,7 +50,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
         calculationService.calculate(allZeroReturn).packagingTotal mustBe expected
 
         withClue("Credit should not be called for a debit calculator") {
-          verify(mockConversionService, never()).weightToCredit(any)
+          verify(mockConversionService, never()).weightToCredit(any, any)
         }
       }
 
@@ -163,9 +161,11 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     }
 
     "return the tax due amount" in {
-      when(mockConversionService.weightToDebit(any, any)) thenReturn BigDecimal(7.17)
-      calculationService.calculate(allZeroReturn).taxDue mustBe BigDecimal(7.17)
-      verify(mockConversionService).weightToDebit(eqTo(LocalDate.now()), eqTo(0))
+      when(mockConversionService.weightToDebit(any, any)) thenReturn TaxablePlastic(2, 7.17, 3.14)
+      val calculations = calculationService.calculate(allZeroReturn)
+      calculations.taxDue mustBe BigDecimal(7.17)
+      calculations.taxRate mustBe BigDecimal(3.14)
+      verify(mockConversionService).weightToDebit(eqTo(LocalDate.of(1900, 11, 22)), eqTo(0))
     }
     
     "sum up the taxable plastic total" when {
@@ -238,6 +238,11 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
         }
       }
+    }
+    
+    "complain if period end-date is missing" in {
+      when(mockConversionService.weightToDebit(any, any)) thenThrow new RuntimeException("a field is missing")
+      the [Exception] thrownBy calculationService.calculate(allZeroReturn) must have message "a field is missing"
     }
   }
 

@@ -20,8 +20,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
-import scala.reflect.runtime.universe.typeOf
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
 final case class UserAnswers(
   id: String,
@@ -52,12 +51,35 @@ final case class UserAnswers(
       .optionNoError(Reads.at(path))
       .reads(data)
       .getOrElse(None)
-      
+
+  /**
+   * Quickly set lots of (top-level) fields. Can be either 
+   * @param all varargs of (key: String, value: A) or (key: String, value: JsValue)
+   * @param writes [[Writes]] for A
+   * @tparam A allows values without eg JsNumber wrapper, if all values are same type
+   * @return [[UserAnswers]] with previous answer merged with given key-value
+   * @see UserAnswerSpec
+   */
   def setAll[A](all: (String, A)*) (implicit writes: Writes[A]): UserAnswers = {
     copy(data = data ++ JsObject(all.map {
       case (x, y) => (x, Json.toJson(y))
     }))
   }
+
+  /**
+   * Removes the top level field with the given name
+   * @param fieldName name of top-level field to remove
+   * @return an updated [[UserAnswers]]
+   */
+  def remove(fieldName: String): UserAnswers = copy(data = data - fieldName)
+
+  /**
+   * Removes the field at the given path, if there is one
+   * @param path [[JsPath]] to field to remove
+   * @return an updated [[UserAnswers]]
+   */
+  def remove(path: JsPath): UserAnswers = copy(data = data.transform(path.json.prune).get)
+
 }
 
 object UserAnswers {

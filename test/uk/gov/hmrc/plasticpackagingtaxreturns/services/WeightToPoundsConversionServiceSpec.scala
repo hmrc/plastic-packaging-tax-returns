@@ -16,59 +16,69 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, when}
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
-class WeightToPoundsConversionServiceSpec extends PlaySpec with BeforeAndAfterEach {
+class WeightToPoundsConversionServiceSpec extends PlaySpec 
+  with MockitoSugar with BeforeAndAfterEach {
 
-  private val mockTaxRateTable= mock[TaxRateTable]
-  private val mockAppConfig = mock[AppConfig]
+  private val taxRateTable = mock[TaxRateTable]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockTaxRateTable, mockAppConfig)
-    when(mockAppConfig.taxRegimeStartDate).thenReturn(firstApril2022)
+    reset(taxRateTable)
+    when(taxRateTable.lookupRateFor(any)) thenReturn 1.0
   }
 
-  val sut = new WeightToPoundsConversionService(mockTaxRateTable, mockAppConfig)
+  private val sut = new WeightToPoundsConversionService(taxRateTable)
 
-  val firstApril2022: LocalDate = LocalDate.of(2022, 4, 1)
+  private val aDate: LocalDate = LocalDate.of(2022, 7, 14)
 
   "weightToDebit" must {
-    behave like aConverter(weight => sut.weightToDebit(firstApril2022, weight))
+
+    behave like aConverter { (x: LocalDate, y: Long) =>
+      sut.weightToDebit(x, y).moneyInPounds
+    }
 
     "round DOWN for conversion rate of 3 d.p." in {
-      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.333)
-      sut.weightToDebit(firstApril2022, 5L) mustBe BigDecimal(1.66)
+      when(taxRateTable.lookupRateFor(any)) thenReturn 0.336
+      sut.weightToDebit(aDate, 1L) mustBe TaxablePlastic(1, 0.33, 0.336)
     }
   }
 
   "weightToCredit" must {
-    behave like aConverter(sut.weightToCredit)
+    
+    behave like aConverter { (x: LocalDate, y: Long) =>
+      sut.weightToCredit(x, y).moneyInPounds
+    }
 
     "round UP for conversion rate of 3 d.p." in {
-      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.333)
-      sut.weightToCredit(5L) mustBe BigDecimal(1.67)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.333)
+      sut.weightToCredit(aDate, 1L) mustBe TaxablePlastic(1, 0.34, 0.333)
     }
   }
 
-  def aConverter(method: Long => BigDecimal): Unit = {
+  private def aConverter(method: (LocalDate, Long) => BigDecimal): Unit = {
 
     "multiply the weight by the conversion rate 1 d.p." in {
-      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.5)
-      method(5L) mustBe BigDecimal(2.5)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.5)
+      method(aDate, 5L) mustBe BigDecimal(2.5)
     }
 
     "multiply the weight by the conversion rate 2 d.p." in {
-      when(mockTaxRateTable.lookupRateFor(any())).thenReturn(0.25)
-      method(5L) mustBe BigDecimal(1.25)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(0.25)
+      method(aDate, 5L) mustBe BigDecimal(1.25)
+    }
+
+    "look up the correct rate" in {
+      method(LocalDate.of(2025, 4, 3), 5L)
+      verify(taxRateTable).lookupRateFor(LocalDate.of(2025, 4, 3))
     }
     
   }
