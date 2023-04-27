@@ -3,7 +3,7 @@ import sbt._
 
 object AppDependencies {
 
-  val bootstrapVersion = "7.15.0" // Note - updating above this version introduces an issue with the LocalDate coming from Auth, will need further investigation.
+  val bootstrapVersion = "7.15.0"
   val mongoVersion = "0.74.0"
 
   val compile = Seq(
