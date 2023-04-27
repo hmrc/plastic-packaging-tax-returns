@@ -86,12 +86,10 @@ case class NonRepudiationService @Inject() (
           externalId ~ agentCode ~
           credentials ~ confidenceLevel ~
           nino ~ saUtr ~
-          name ~ dateOfBirth ~
-          email ~ agentInfo ~
+          name ~ email ~ agentInfo ~
           groupId ~ credentialRole ~
           mdtpInfo ~ itmpName ~
-          itmpDateOfBirth ~ itmpAddress ~
-          credentialStrength ~ loginTimes =>
+          itmpAddress ~ credentialStrength =>
         IdentityData(internalId = internalId,
                      externalId = externalId,
                      agentCode = agentCode,
@@ -100,18 +98,15 @@ case class NonRepudiationService @Inject() (
                      nino = nino,
                      saUtr = saUtr,
                      optionalName = name,
-                     dateOfBirth = dateOfBirth,
                      email = email,
                      agentInformation = agentInfo,
                      groupIdentifier = groupId,
                      credentialRole = credentialRole,
                      mdtpInformation = mdtpInfo,
                      optionalItmpName = itmpName,
-                     itmpDateOfBirth = itmpDateOfBirth,
                      optionalItmpAddress = itmpAddress,
                      affinityGroup = affinityGroup,
-                     credentialStrength = credentialStrength,
-                     loginTimes = loginTimes
+                     credentialStrength = credentialStrength
         )
     }
 
@@ -124,23 +119,23 @@ object NonRepudiationService {
       ~ Option[String] ~ Option[String]
       ~ Option[Credentials] ~ ConfidenceLevel
       ~ Option[String] ~ Option[String]
-      ~ Option[Name] ~ Option[LocalDate]
+      ~ Option[Name]
       ~ Option[String] ~ AgentInformation
       ~ Option[String] ~ Option[CredentialRole]
       ~ Option[MdtpInformation] ~ Option[ItmpName]
-      ~ Option[LocalDate] ~ Option[ItmpAddress]
-      ~ Option[String] ~ LoginTimes)
+      ~ Option[ItmpAddress]
+      ~ Option[String])
 
   val nonRepudiationIdentityRetrievals: Retrieval[NonRepudiationIdentityRetrievals] =
     Retrievals.affinityGroup and Retrievals.internalId and
       Retrievals.externalId and Retrievals.agentCode and
       Retrievals.credentials and Retrievals.confidenceLevel and
       Retrievals.nino and Retrievals.saUtr and
-      Retrievals.name and Retrievals.dateOfBirth and
+      Retrievals.name and
       Retrievals.email and Retrievals.agentInformation and
       Retrievals.groupIdentifier and Retrievals.credentialRole and
       Retrievals.mdtpInformation and Retrievals.itmpName and
-      Retrievals.itmpDateOfBirth and Retrievals.itmpAddress and
-      Retrievals.credentialStrength and Retrievals.loginTimes
+      Retrievals.itmpAddress and
+      Retrievals.credentialStrength
 
 }

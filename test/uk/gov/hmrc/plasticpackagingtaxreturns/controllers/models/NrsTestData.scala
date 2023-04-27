@@ -69,8 +69,6 @@ trait NrsTestData {
 
   val testCredentialStrength: String = CredentialStrength.strong
 
-  val testLoginTimes: LoginTimes =
-    LoginTimes(org.joda.time.DateTime.now(), Some(org.joda.time.DateTime.now()))
 
   val testNonRepudiationIdentityData: IdentityData = IdentityData(Some(testInternalid),
                                                                   Some(testExternalId),
@@ -80,18 +78,15 @@ trait NrsTestData {
                                                                   Some(testNino),
                                                                   Some(testSautr),
                                                                   Some(testAuthName),
-                                                                  Some(testAuthDateOfBirth),
                                                                   Some(testEmail),
                                                                   testAgentInformation,
                                                                   Some(testGroupIdentifier),
                                                                   Some(testCredentialRole),
                                                                   Some(testMdtpInformation),
                                                                   Some(testItmpName),
-                                                                  Some(testItmpDateOfBirth),
                                                                   Some(testItmpAddress),
                                                                   Some(testAffinityGroup),
-                                                                  Some(testCredentialStrength),
-                                                                  testLoginTimes
+                                                                  Some(testCredentialStrength)
   )
 
   val identityJson: JsValue = Json.toJson(testNonRepudiationIdentityData)
@@ -110,16 +105,13 @@ trait NrsTestData {
       Some(testNino) ~
       Some(testSautr) ~
       Some(testAuthName) ~
-      Some(testAuthDateOfBirth) ~
       Some(testEmail) ~
       testAgentInformation ~
       Some(testGroupIdentifier) ~
       Some(testCredentialRole) ~
       Some(testMdtpInformation) ~
       Some(testItmpName) ~
-      Some(testItmpDateOfBirth) ~
       Some(testItmpAddress) ~
-      Some(testCredentialStrength) ~
-      testLoginTimes
+      Some(testCredentialStrength)
 
 }

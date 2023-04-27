@@ -3,13 +3,13 @@ import sbt._
 
 object AppDependencies {
 
-  val bootstrapVersion = "5.20.0" // Note - updating above this version introduces an issue with the LocalDate coming from Auth, will need further investigation.
+  val bootstrapVersion = "7.15.0" // Note - updating above this version introduces an issue with the LocalDate coming from Auth, will need further investigation.
   val mongoVersion = "0.74.0"
 
   val compile = Seq(
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % bootstrapVersion,
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % mongoVersion,
-    "com.typesafe.play" %% "play-json-joda"            % "2.6.14"
+    "com.typesafe.play" %% "play-json-joda"            % "2.10.0-RC7"
   )
 
   val test = Seq(

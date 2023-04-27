@@ -16,37 +16,39 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.Mockito
-import org.mockito.Mockito.when
+import com.codahale.metrics.Timer
+import com.kenshoo.play.metrics.Metrics
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.{eq => meq}
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.Mockito.{mock => _, _}
+import org.mockito.MockitoSugar.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Seconds, Span}
-import play.api.Application
-import play.api.http.Status
-import play.api.inject.bind
-import play.api.inject.guice.GuiceApplicationBuilder
+import org.scalatestplus.mockito.MockitoSugar._
+import org.scalatestplus.play.PlaySpec
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.libs.json.Json
-import play.api.test.Helpers.await
+import play.api.test.Helpers.{SERVICE_UNAVAILABLE, await, defaultAwaitTimeout}
+import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.{LocalDate, LocalDateTime}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class FinancialDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures 
-  with EnterpriseTestData with BeforeAndAfterEach {
-  
+class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with BeforeAndAfterEach {
+
   private val edgeOfSystem = mock[EdgeOfSystem]
   private lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
   
-  val getFinancialDataTimer = "ppt.get.financial.data.timer"
+  private val timer                               = mock[Timer]
   val internalId: String                          = "someId"
   val pptReference: String                        = "XXPPTP103844123"
   val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
@@ -55,35 +57,21 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
   val includeLocks: Option[Boolean]               = Some(false)
   val calculateAccruedInterest: Option[Boolean]   = Some(true)
   val customerPaymentInformation: Option[Boolean] = Some(false)
-  val auditUrl: String                            = "/write/audit"
-  val implicitAuditUrl: String                    = s"$auditUrl/merged"
 
-  private val getUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?dateFrom=$fromDate&dateTo=$toDate" +
-    s"&onlyOpenItems=${onlyOpenItems.get}&includeLocks=${includeLocks.get}" +
-    s"&calculateAccruedInterest=${calculateAccruedInterest.get}" +
-    s"&customerPaymentInformation=${customerPaymentInformation.get}"
+  private val httpClient     = mock[HttpClient]
+  private val appConfig      = mock[AppConfig]
+  private val metrics        = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val auditConnector = mock[AuditConnector]
+  private val dateAndTime    = mock[DateAndTime]
 
-  override def fakeApplication(): Application = {
-    SharedMetricRegistries.clear()
-    new GuiceApplicationBuilder()
-      .overrides(
-        bind[EdgeOfSystem].toInstance(edgeOfSystem),
-        bind[SessionRepository].to(mock[SessionRepository])
-      )
-      .configure(overrideConfig)
-      .build()
-  }
+  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, dateAndTime)
 
-  override def overrideConfig: Map[String, Any] =
-    Map("microservice.services.des.host" -> wireHost,
-      "microservice.services.des.port" -> wirePort,
-      "auditing.consumer.baseUri.port" -> wirePort,
-      "auditing.enabled" -> true
-    )
-    
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    Mockito.reset(edgeOfSystem)
+    reset(dateAndTime, auditConnector, metrics, httpClient, appConfig)
+
+    when(metrics.defaultRegistry.timer(any)).thenReturn(timer)
+    when(timer.time()).thenReturn(timerContent)
   }
 
   "FinancialData connector" when {
@@ -91,153 +79,141 @@ class FinancialDataConnectorISpec extends ConnectorISpec with Injector with Scal
     "get financial data" should {
 
       "handle a 200 with financial data" in {
-
-        val auditModel = GetPaymentStatement(internalId, pptReference, "Success", Some(financialDataResponse), None)
-
-        stubFinancialDataRequest(financialDataResponse)
-
-        givenAuditReturns(auditUrl, Status.NO_CONTENT)
-        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
-
-        val res = await(getFinancialData)
-        res.right.get mustBe financialDataResponse
-
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
-        }
-
-        getTimer(getFinancialDataTimer).getCount mustBe 1
-      }
-
-      "handle bad json" in {
-
-        val url = s"http://localhost:20202$getUrl"
-
-        val error = s"GET of '$url' returned invalid json. Attempting to convert to " +
-          s"uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse gave errors: " +
-          s"List((/financialTransactions,List(JsonValidationError(List(error.path.missing),WrappedArray()))), " +
-          s"(/processingDate,List(JsonValidationError(List(error.path.missing),WrappedArray()))))"
-
-        val auditModel = GetPaymentStatement(internalId, pptReference, "Failure", None, Some(error))
-
-        stubFor(
-          get(getUrl)
-            .willReturn(
-              aResponse()
-                .withStatus(Status.OK)
-                .withBody(Json.obj("rubbish" -> "errors").toString)
-            )
-        )
-
-        givenAuditReturns(auditUrl, Status.NO_CONTENT)
-        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+        when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(financialDataResponse))
 
         val res = await(getFinancialData)
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        res mustBe Right(financialDataResponse)
 
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
+        withClue("stop the timer") {
+          verify(timerContent).stop()
         }
 
-        getTimer(getFinancialDataTimer).getCount mustBe 1
-
+        withClue("write the audit") {
+          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getAuditModel))(any, any, any)
+        }
       }
 
+      "call the financial api" in {
+        when(appConfig.enterpriseFinancialDataUrl(any)).thenReturn("/foo")
+        when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(financialDataResponse))
+
+        await(getFinancialData)
+
+        val captor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
+
+        verify(httpClient).GET(meq("/foo"), meq(expectedParams), captor.capture())(any, any, any)
+
+        withClue("have a correlation id in the header") {
+          val correlationId = captor.getValue.filter(o => o._1.equals("CorrelationId"))
+          correlationId must not be empty
+          correlationId(0)._2.length must be > 0
+        }
+      }
+
+      "return empty financial transaction when there are none" in {}
+
+      "return an error" when {
+        "is upstream error" in {
+          when(httpClient.GET[Any](any, any, any)(any, any, any))
+            .thenReturn(Future.failed(UpstreamErrorResponse("upstream error", NOT_FOUND, NOT_FOUND)))
+
+          val res = await(getFinancialData)
+
+          res mustBe Left(NOT_FOUND)
+          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getExpectedAuditModelForFailure("upstream error")))(
+            any,
+            any,
+            any
+          )
+        }
+
+        "return an exception" in {
+          when(httpClient.GET[Any](any, any, any)(any, any, any))
+            .thenReturn(Future.failed(new HttpException("error", SERVICE_UNAVAILABLE)))
+
+          val res = await(getFinancialData)
+
+          res mustBe Left(INTERNAL_SERVER_ERROR)
+          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getExpectedAuditModelForFailure("error")))(any, any, any)
+        }
+      }
     }
   }
 
   private def getFinancialData =
-    connector.get(pptReference,
-      Some(fromDate),
-      Some(toDate),
-      onlyOpenItems,
-      includeLocks,
-      calculateAccruedInterest,
-      customerPaymentInformation,
-      internalId
-    )
+    sut.get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)
 
   "FinancialData connector for obligation data" should {
 
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
       "return " + statusCode when {
 
         statusCode + " is returned from downstream service" in {
 
-          val url = s"http://localhost:20202$getUrl"
-          val errors = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
-          val error  = s"GET of '$url' returned $statusCode. Response body: $errors"
+          val message  = createUpstreamMessageError(statusCode)
 
-          val auditModel = GetPaymentStatement(internalId, pptReference, "Failure", None, Some(error))
-
-          stubFinancialDataRequestFailure(httpStatus = statusCode, errors = Seq(EISError("Error Code", "Error Reason")))
-
-          givenAuditReturns(auditUrl, Status.NO_CONTENT)
-          givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+          when(httpClient.GET[Any](any, any, any)(any, any, any))
+            .thenReturn(Future.failed(UpstreamErrorResponse(message, statusCode)))
 
           val res = await(getFinancialData)
 
-          res.left.get mustBe statusCode
-
-          eventually(timeout(Span(5, Seconds))) {
-            eventSendToAudit(auditUrl, auditModel) mustBe true
-          }
-
-          getTimer(getFinancialDataTimer).getCount mustBe 1
-
+          res mustBe Left(statusCode)
+          verify(auditConnector).sendExplicitAudit(GetPaymentStatement.eventType, getExpectedAuditModelForFailure(message))
         }
       }
     }
-    
+
     "it" should {
       "map special DES 404s to a zero financial records results" in {
         when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
-        val desNotFound = Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire") 
-        wiremock.stubFor(get(anyUrl()).willReturn(notFound().withBody(desNotFound.toString)))
+        when(httpClient.GET[Any](any, any, any)(any, any, any))
+          .thenReturn(Future.failed(UpstreamErrorResponse(createUpstreamMessage, NOT_FOUND)))
+
         val result = await(getFinancialData)
+
         result mustBe Right(FinancialDataResponse(
-          idType = Some("ZPPT"), 
-          idNumber = Some("XXPPTP103844123"), 
-          regimeType = Some("PPT"), 
-          processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3), 
+          idType = Some("ZPPT"),
+          idNumber = Some("XXPPTP103844123"),
+          regimeType = Some("PPT"),
+          processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3),
           financialTransactions = Seq()
         ))
       }
     }
   }
 
-  private def stubFinancialDataRequest(response: FinancialDataResponse): Unit =
-    stubFor(
-      get(getUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(FinancialDataResponse.format.writes(response).toString())
-        )
+  private def expectedParams =
+    Seq(
+      "dateFrom"                   -> DateFormat.isoFormat(fromDate),
+      "dateTo"                     -> DateFormat.isoFormat(toDate),
+      "onlyOpenItems"              -> "true",
+      "includeLocks"               -> "false",
+      "calculateAccruedInterest"   -> "true",
+      "customerPaymentInformation" -> "false"
     )
 
-  private def stubFinancialDataRequestFailure(httpStatus: Int, errors: Seq[EISError]): Any =
-    stubFor(
-      get(getUrl)
-        .willReturn(
-          aResponse()
-            .withStatus(httpStatus)
-            .withBody(Json.obj("failures" -> errors).toString)
-        )
+  private def getAuditModel =
+    GetPaymentStatement(internalId, pptReference, "Success", Some(financialDataResponse), None)
+
+  private def getExpectedAuditModelForFailure(message: String) =
+    GetPaymentStatement(internalId, pptReference, "Failure", None, Some(message))
+
+  private def createUpstreamMessage =
+    upstreamResponseMessage(
+      "GET",
+      "/url",
+      NOT_FOUND,
+      Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire").toString
     )
 
-  private def givenAuditReturns(url: String, statusCode: Int): Unit =
-    stubFor(
-      post(url)
-        .willReturn(
-          aResponse()
-            .withStatus(statusCode)
-        )
+  private def createUpstreamMessageError(status: Int) =
+    upstreamResponseMessage(
+      "GET",
+      "/url",
+      status,
+      Json.obj("failures" -> Seq(EISError("Error Code", "Error Reason"))).toString
     )
 
-  private def eventSendToAudit(url: String, displayResponse: GetPaymentStatement): Boolean =
-    eventSendToAudit(url, GetPaymentStatement.eventType, GetPaymentStatement.formats.writes(displayResponse).toString())
 
 }
