@@ -18,14 +18,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{eq => meq}
-import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.Mockito.{mock => _, _}
-import org.mockito.MockitoSugar.{reset, verify, when}
+import org.mockito.{Answers, ArgumentCaptor}
+import org.mockito.ArgumentMatchersSugar.{any, eqTo}
+import org.mockito.MockitoSugar.{mock, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
-import org.scalatestplus.mockito.MockitoSugar._
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.libs.json.Json
@@ -60,7 +57,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
   private val httpClient     = mock[HttpClient]
   private val appConfig      = mock[AppConfig]
-  private val metrics        = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
   private val dateAndTime    = mock[DateAndTime]
 
@@ -90,7 +87,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         }
 
         withClue("write the audit") {
-          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getAuditModel))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getAuditModel))(any, any, any)
         }
       }
 
@@ -102,7 +99,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
         val captor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
 
-        verify(httpClient).GET(meq("/foo"), meq(expectedParams), captor.capture())(any, any, any)
+        verify(httpClient).GET(eqTo("/foo"), eqTo(expectedParams), captor.capture())(any, any, any)
 
         withClue("have a correlation id in the header") {
           val correlationId = captor.getValue.filter(o => o._1.equals("CorrelationId"))
@@ -121,7 +118,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
           val res = await(getFinancialData)
 
           res mustBe Left(NOT_FOUND)
-          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getExpectedAuditModelForFailure("upstream error")))(
+          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("upstream error")))(
             any,
             any,
             any
@@ -135,7 +132,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
           val res = await(getFinancialData)
 
           res mustBe Left(INTERNAL_SERVER_ERROR)
-          verify(auditConnector).sendExplicitAudit(meq(GetPaymentStatement.eventType), meq(getExpectedAuditModelForFailure("error")))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("error")))(any, any, any)
         }
       }
     }
