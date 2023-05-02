@@ -153,12 +153,53 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
           "anotherBusinessExportWeight" -> 3,
           "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
           "nonExportRecycledPlasticPackagingWeight" -> 5,
+          "whatDoYouWantToDo" -> true,
           "exportedCredits" -> obj (
             "yesNo" -> true,
             "weight" -> 0
           ),
           "convertedCredits" -> obj (
             "yesNo" -> false,
+            "weight" -> 2000
+          )
+        )
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
+        withAuthorizedUser()
+        stubGetBalanceRequest
+
+        val result = await(wsClient.url(returnUrl).get)
+
+        result.status mustBe Status.OK
+        result.json mustBe obj(
+          "taxDue" -> 0,
+          "chargeableTotal" -> 0,
+          "deductionsTotal" -> 14,
+          "packagingTotal" -> 14,
+          "isSubmittable" -> true,
+          "taxRate" -> 0.2
+        )
+      }
+      
+      "handle don't claim answer" in {
+        val json = obj (
+          "obligation" -> obj (
+            "periodKey" -> "22C4",
+            "fromDate" -> "2022-09-01",
+            "toDate" -> "2022-12-31"
+          ),
+          "manufacturedPlasticPackagingWeight" -> 13,
+          "importedPlasticPackagingWeight" -> 1,
+          "exportedPlasticPackagingWeight" -> 2,
+          "anotherBusinessExportWeight" -> 3,
+          "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
+          "nonExportRecycledPlasticPackagingWeight" -> 5,
+          "whatDoYouWantToDo" -> false,
+          "exportedCredits" -> obj (
+            "yesNo" -> true,
+            "weight" -> 0
+          ),
+          "convertedCredits" -> obj (
+            "yesNo" -> true,
             "weight" -> 2000
           )
         )
