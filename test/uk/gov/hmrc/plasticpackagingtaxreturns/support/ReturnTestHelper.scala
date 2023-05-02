@@ -40,15 +40,14 @@ object ReturnTestHelper {
 
   val returnWithCreditsDataJson: JsObject = Json.parse(s"""{
        |        "obligation" : {
-       |            "periodKey" : "21C4",
-       |            "fromDate" : "${LocalDate.now.minusMonths(1)}",
-       |            "toDate" : "${LocalDate.now}"
+       |            "periodKey" : "22C4",
+       |            "fromDate" : "2022-09-01",
+       |            "toDate" : "2022-12-31"
        |        },
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 1,
        |        "exportedPlasticPackagingWeight" : 200,
        |        "anotherBusinessExportWeight" : 100,
-       |        "plasticExportedByAnotherBusiness": 100,
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5,
        |        "convertedCredits": {
