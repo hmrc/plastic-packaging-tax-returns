@@ -80,6 +80,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         when(sessionRepository.get(any))
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnsWithNoCreditDataJson))))
         withAuthorizedUser()
+        stubGetBalanceRequest
 
         val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
 
