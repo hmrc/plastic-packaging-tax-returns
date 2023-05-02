@@ -40,7 +40,7 @@ object ReturnTestHelper {
 
   val returnWithCreditsDataJson: JsObject = Json.parse(s"""{
        |        "obligation" : {
-       |            "periodKey" : "22C4",
+       |            "periodKey" : "21C4",
        |            "fromDate" : "2022-09-01",
        |            "toDate" : "2022-12-31"
        |        },

@@ -34,7 +34,7 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe Some(NewReturnValues(
         periodKey = "21C4",
-        periodEndDate = LocalDate.now,
+        periodEndDate = LocalDate.of(2022, 12, 31),
         manufacturedPlasticWeight = 100L,
         importedPlasticWeight = 1,
         exportedPlasticWeight = 200L,
@@ -64,7 +64,7 @@ class ReturnValuesSpec extends PlaySpec {
 
       result mustBe Some(NewReturnValues(
         periodKey = "21C4",
-        periodEndDate = LocalDate.now,
+        periodEndDate = LocalDate.of(2022, 12, 31),
         manufacturedPlasticWeight = 100L,
         importedPlasticWeight = 1,
         exportedPlasticWeight = 200L,
