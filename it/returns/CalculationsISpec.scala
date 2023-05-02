@@ -162,7 +162,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
             "weight" -> 2000
           )
         )
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson)))
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
         withAuthorizedUser()
         stubGetBalanceRequest
 
