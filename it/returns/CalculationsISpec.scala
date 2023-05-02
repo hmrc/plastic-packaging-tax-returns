@@ -237,7 +237,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
   private def stubGetBalanceRequest =
     server.stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference")
+      get(urlPathEqualTo(s"/plastic-packaging-tax/export-credits/PPT/$pptReference"))
         .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
 
