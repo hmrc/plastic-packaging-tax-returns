@@ -25,10 +25,12 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
+import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.libs.json.Json.obj
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
@@ -37,9 +39,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
-import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
 
@@ -79,6 +80,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         when(sessionRepository.get(any))
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnsWithNoCreditDataJson))))
         withAuthorizedUser()
+        stubGetBalanceRequest
 
         val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
 
@@ -136,6 +138,86 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
         result.json mustBe Json.parse(
           """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":101,"isSubmittable":false, "taxRate":0.2}"""
+        )
+      }
+
+      "handle 'no credit' answers" in {
+        val json = obj (
+          "obligation" -> obj (
+            "periodKey" -> "22C4",
+            "fromDate" -> "2022-09-01",
+            "toDate" -> "2022-12-31"
+          ),
+          "manufacturedPlasticPackagingWeight" -> 13,
+          "importedPlasticPackagingWeight" -> 1,
+          "exportedPlasticPackagingWeight" -> 2,
+          "anotherBusinessExportWeight" -> 3,
+          "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
+          "nonExportRecycledPlasticPackagingWeight" -> 5,
+          "whatDoYouWantToDo" -> true,
+          "exportedCredits" -> obj (
+            "yesNo" -> true,
+            "weight" -> 0
+          ),
+          "convertedCredits" -> obj (
+            "yesNo" -> false,
+            "weight" -> 2000
+          )
+        )
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
+        withAuthorizedUser()
+        stubGetBalanceRequest
+
+        val result = await(wsClient.url(returnUrl).get)
+
+        result.status mustBe Status.OK
+        result.json mustBe obj(
+          "taxDue" -> 0,
+          "chargeableTotal" -> 0,
+          "deductionsTotal" -> 14,
+          "packagingTotal" -> 14,
+          "isSubmittable" -> true,
+          "taxRate" -> 0.2
+        )
+      }
+      
+      "handle don't claim answer" in {
+        val json = obj (
+          "obligation" -> obj (
+            "periodKey" -> "22C4",
+            "fromDate" -> "2022-09-01",
+            "toDate" -> "2022-12-31"
+          ),
+          "manufacturedPlasticPackagingWeight" -> 13,
+          "importedPlasticPackagingWeight" -> 1,
+          "exportedPlasticPackagingWeight" -> 2,
+          "anotherBusinessExportWeight" -> 3,
+          "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
+          "nonExportRecycledPlasticPackagingWeight" -> 5,
+          "whatDoYouWantToDo" -> false,
+          "exportedCredits" -> obj (
+            "yesNo" -> true,
+            "weight" -> 0
+          ),
+          "convertedCredits" -> obj (
+            "yesNo" -> true,
+            "weight" -> 2000
+          )
+        )
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
+        withAuthorizedUser()
+        stubGetBalanceRequest
+
+        val result = await(wsClient.url(returnUrl).get)
+
+        result.status mustBe Status.OK
+        result.json mustBe obj(
+          "taxDue" -> 0,
+          "chargeableTotal" -> 0,
+          "deductionsTotal" -> 14,
+          "packagingTotal" -> 14,
+          "isSubmittable" -> true,
+          "taxRate" -> 0.2
         )
       }
 
@@ -197,7 +279,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
   private def stubGetBalanceRequest =
     server.stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference")
+      get(urlPathEqualTo(s"/plastic-packaging-tax/export-credits/PPT/$pptReference"))
         .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
 

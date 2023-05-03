@@ -20,7 +20,7 @@ import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ExportedCreditWeightGettable, ReturnObligationFromDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,15 +36,11 @@ class AvailableCreditService @Inject()(
 
     val fromDate = obligationFromDate.minusYears(2)
     val toDate = obligationFromDate.minusDays(1)
-    val totalRequestedCredit: Long = userAnswers.get(ConvertedCreditWeightGettable).getOrElse(0L) + userAnswers.get(ExportedCreditWeightGettable).getOrElse(0L)
-    if (totalRequestedCredit == 0)
-      Future.successful(BigDecimal(0))
-    else
-      exportCreditBalanceConnector
-        .getBalance(request.pptReference, fromDate, toDate, request.internalId)
-        .map(
-          _.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable)
-        )
+    exportCreditBalanceConnector
+      .getBalance(request.pptReference, fromDate, toDate, request.internalId)
+      .map(
+        _.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable)
+      )
   }
 
 }

@@ -226,7 +226,7 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubGetBalanceEISRequest = {
-    server.stubFor(get(balanceEISURL)
+    server.stubFor(get(urlPathMatching(balanceEISURL))
       .willReturn(
         ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
       )
