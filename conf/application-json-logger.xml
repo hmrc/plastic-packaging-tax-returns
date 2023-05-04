@@ -5,9 +5,9 @@
         <encoder class="uk.gov.hmrc.play.logging.JsonEncoder"/>
     </appender>
 
-    <logger name="uk.gov.hmrc.plasticpackagingtaxreturns" level="${logger.ppt:-WARN}"/>
+    <logger name="uk.gov.hmrc.plasticpackagingtaxreturns" level="WARN"/>
 
-    <root level="${logger.application:-WARN}">
+    <root level="WARN">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
