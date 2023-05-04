@@ -43,32 +43,32 @@ import scala.concurrent.Future
 class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with BeforeAndAfterEach {
 
   private val edgeOfSystem = mock[EdgeOfSystem]
-  private lazy val connector: FinancialDataConnector = app.injector.instanceOf[FinancialDataConnector]
-  
+
   private val timer                               = mock[Timer]
-  val internalId: String                          = "someId"
-  val pptReference: String                        = "XXPPTP103844123"
-  val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
-  val toDate: LocalDate                           = LocalDate.parse("2021-10-31")
-  val onlyOpenItems: Option[Boolean]              = Some(true)
-  val includeLocks: Option[Boolean]               = Some(false)
-  val calculateAccruedInterest: Option[Boolean]   = Some(true)
-  val customerPaymentInformation: Option[Boolean] = Some(false)
+  private val timerContext = mock[Timer.Context]
+  private val internalId: String                          = "someId"
+  private val pptReference: String                        = "XXPPTP103844123"
+  private val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
+  private val toDate: LocalDate                           = LocalDate.parse("2021-10-31")
+  private val onlyOpenItems: Option[Boolean]              = Some(true)
+  private val includeLocks: Option[Boolean]               = Some(false)
+  private val calculateAccruedInterest: Option[Boolean]   = Some(true)
+  private val customerPaymentInformation: Option[Boolean] = Some(false)
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val httpClient     = mock[HttpClient]
   private val appConfig      = mock[AppConfig]
   private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
-  private val dateAndTime    = mock[DateAndTime]
 
-  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, dateAndTime)
+  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(dateAndTime, auditConnector, metrics, httpClient, appConfig)
+    reset(edgeOfSystem, auditConnector, metrics, httpClient, appConfig)
 
     when(metrics.defaultRegistry.timer(any)).thenReturn(timer)
-    when(timer.time()).thenReturn(timerContent)
+    when(timer.time()).thenReturn(timerContext)
   }
 
   "FinancialData connector" when {
@@ -83,7 +83,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         res mustBe Right(financialDataResponse)
 
         withClue("stop the timer") {
-          verify(timerContent).stop()
+          verify(timerContext).stop()
         }
 
         withClue("write the audit") {
@@ -139,7 +139,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   }
 
   private def getFinancialData =
-    sut.get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)
+    sut.get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)(hc)
 
   "FinancialData connector for obligation data" should {
 
