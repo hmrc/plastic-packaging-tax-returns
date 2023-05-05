@@ -16,27 +16,31 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.Inspectors.forAll
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Seconds, Span}
-import play.api.http.Status
-import play.api.libs.json.Json
-import play.api.test.Helpers.await
+import com.codahale.metrics.Timer
+import com.kenshoo.play.metrics.Metrics
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.{eq => meq}
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.Mockito.{mock => _, _}
+import org.mockito.MockitoSugar.{verify, when}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar._
+import org.scalatestplus.play.PlaySpec
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
+import play.api.test.Helpers.{SERVICE_UNAVAILABLE, await, defaultAwaitTimeout}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetExportCredits
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
+class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach {
 
-  lazy val connector: ExportCreditBalanceConnector = app.injector.instanceOf[ExportCreditBalanceConnector]
-
-  val displayExportCreditBalanceTimer = "ppt.exportcreditbalance.display.timer"
-
+  protected implicit val hc: HeaderCarrier    = HeaderCarrier()
   val internalId: String       = "someId"
   val pptReference: String     = "XXPPTP103844123"
   val fromDate: LocalDate      = LocalDate.parse("2021-10-01")
@@ -51,143 +55,102 @@ class ExportCreditBalanceConnectorISpec extends ConnectorISpec with Injector wit
     totalExportCreditAvailable = BigDecimal(200)
   )
 
-  override def overrideConfig: Map[String, Any] =
-    Map("microservice.services.eis.host" -> wireHost,
-      "microservice.services.eis.port" -> wirePort,
-      "auditing.consumer.baseUri.port" -> wirePort,
-      "auditing.enabled" -> true
-    )
+  private val timerContent = mock[Timer.Context]
+  private val timer = mock[Timer]
+  private val httpClient = mock[HttpClient]
+  private val config = mock[AppConfig]
+  private val metric = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val auditConnector = mock[AuditConnector]
+
+  private val sut = new ExportCreditBalanceConnector(
+    httpClient,
+    config,
+    metric,
+    auditConnector
+  )
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(httpClient, config, auditConnector)
+
+    when(metric.defaultRegistry.timer(any)).thenReturn(timer)
+    when(timer.time()).thenReturn(timerContent)
+  }
 
   "ExportCreditBalance connector" when {
-
     "requesting a balance" should {
+      "call the api" in {
+        when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(exportCreditBalanceDisplayResponse))
+        when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("/balanceUrl")
 
-      "handle a 200 with credit balance data" in {
+        await {sut.getBalance(pptReference, fromDate, toDate, internalId)}
 
-        val auditModel = GetExportCredits(internalId, pptReference, fromDate, toDate, "Success", Some(exportCreditBalanceDisplayResponse), None)
+        val captor: ArgumentCaptor[Seq[(String, String)]] = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
+        verify(httpClient).GET(
+          meq("/balanceUrl"),
+          meq(Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))),
+          captor.capture()
+        )(any, any, any)
 
-        stubExportCreditBalanceDisplay(exportCreditBalanceDisplayResponse)
+        withClue("stop the timer") {verify(timerContent).stop()}
 
-        givenAuditReturns(auditUrl, Status.NO_CONTENT)
-        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
-
-        val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
-        res.right.get mustBe exportCreditBalanceDisplayResponse
-
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
+        withClue("have a correlation id in the header") {
+          val correlationId = captor.getValue.filter(o => o._1.equals("CorrelationId"))
+          correlationId must not be empty
+          correlationId(0)._2.length must be > 0
         }
-
-        getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
-
       }
 
-      "handle bad json" in {
+      "store audit" in {
+        when(httpClient.GET[Any](any, any, any)(any, any, any))
+          .thenReturn(Future.successful(exportCreditBalanceDisplayResponse))
 
-        val url    = s"http://localhost:20202/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$fromDate&toDate=$toDate"
-
-        val error = s"GET of '$url' returned invalid json. Attempting to convert to " +
-          s"uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse gave errors: " +
-          s"List((/totalPPTCharges,List(JsonValidationError(List(error.path.missing),WrappedArray()))), " +
-          s"(/totalExportCreditAvailable,List(JsonValidationError(List(error.path.missing),WrappedArray()))), " +
-          s"(/processingDate,List(JsonValidationError(List(error.path.missing),WrappedArray()))), " +
-          s"(/totalExportCreditClaimed,List(JsonValidationError(List(error.path.missing),WrappedArray()))))"
-
-        val auditModel = GetExportCredits(internalId, pptReference, fromDate, toDate, "Failure", None, Some(error))
-
-        stubFor(
-          get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$fromDate&toDate=$toDate")
-            .willReturn(
-              aResponse()
-                .withStatus(Status.OK)
-                .withBody(Json.obj("rubbish" -> "errors").toString)
-            )
-        )
-
-        givenAuditReturns(auditUrl, Status.NO_CONTENT)
-        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
-
-        val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
-
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
-
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
+        val res = await {
+          sut.getBalance(pptReference, fromDate, toDate, internalId)
         }
 
-        getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
-
+        res mustBe Right(exportCreditBalanceDisplayResponse)
+        verifyAuditIsSent(expectedExportCredits)
       }
 
-    }
+      "handle error" when {
+        "exception is returned by the api" in {
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).
+            thenReturn(Future.failed(new HttpException("oops", SERVICE_UNAVAILABLE)))
 
-    "ExportCreditBalance connector for display" should {
-
-      forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
-        "return " + statusCode when {
-
-          statusCode + " is returned from downstream service" in {
-
-            val url    = s"http://localhost:20202/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$fromDate&toDate=$toDate"
-            val errors = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
-            val error  = s"GET of '$url' returned $statusCode. Response body: $errors"
-
-            val auditModel = GetExportCredits(internalId, pptReference, fromDate, toDate, "Failure", None, Some(error))
-
-            stubExportCreditBalanceDisplayFailure(httpStatus = statusCode,
-              errors = Seq(EISError("Error Code", "Error Reason"))
-            )
-
-            givenAuditReturns(auditUrl, Status.NO_CONTENT)
-            givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
-
-            val res = await(connector.getBalance(pptReference, fromDate, toDate, internalId))
-
-            res.left.get mustBe statusCode
-
-            eventually(timeout(Span(5, Seconds))) {
-              eventSendToAudit(auditUrl, auditModel) mustBe true
-            }
-
-            getTimer(displayExportCreditBalanceTimer).getCount mustBe 1
-
+          val res = await {
+            sut.getBalance(pptReference, fromDate, toDate, internalId)
           }
+
+          res mustBe Left(INTERNAL_SERVER_ERROR)
+          verifyAuditIsSent(expectedFailedExportCredits("oops"))
+        }
+
+        "when there is an upstream error response" in {
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).
+            thenReturn(Future.failed(UpstreamErrorResponse("UpstreamError", NOT_FOUND, NOT_FOUND)))
+
+          val res = await {
+            sut.getBalance(pptReference, fromDate, toDate, internalId)
+          }
+
+          res mustBe Left(NOT_FOUND)
+          verifyAuditIsSent(expectedFailedExportCredits("UpstreamError"))
         }
       }
     }
   }
 
-  private def stubExportCreditBalanceDisplay(response: ExportCreditBalanceDisplayResponse): Unit =
-    stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$fromDate&toDate=$toDate")
-        .willReturn(
-          aResponse()
-            .withStatus(Status.OK)
-            .withBody(ExportCreditBalanceDisplayResponse.format.writes(response).toString())
-        )
-    )
+  private def verifyAuditIsSent(credits: GetExportCredits) = {
+    verify(auditConnector).sendExplicitAudit(
+      meq(GetExportCredits.eventType),
+      meq(credits)
+    )(any, any, any)
+  }
 
-  private def stubExportCreditBalanceDisplayFailure(httpStatus: Int, errors: Seq[EISError]): Any =
-    stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$fromDate&toDate=$toDate")
-        .willReturn(
-          aResponse()
-            .withStatus(httpStatus)
-            .withBody(Json.obj("failures" -> errors).toString)
-        )
-    )
+  private def expectedExportCredits =
+    GetExportCredits(internalId, pptReference, fromDate, toDate, "Success", Some(exportCreditBalanceDisplayResponse), None)
 
-  private def givenAuditReturns(url: String, statusCode: Int): Unit =
-    stubFor(
-      post(url)
-        .willReturn(
-          aResponse()
-            .withStatus(statusCode)
-        )
-    )
-
-  private def eventSendToAudit(url: String, displayResponse: GetExportCredits): Boolean =
-    eventSendToAudit(url, GetExportCredits.eventType, GetExportCredits.format.writes(displayResponse).toString())
-
+  private def expectedFailedExportCredits(errMsg: String): GetExportCredits =
+    GetExportCredits(internalId, pptReference, fromDate, toDate, "Failure", None, Some(errMsg))
 }

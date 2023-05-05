@@ -89,9 +89,9 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with BeforeAndAfterEach {
             inboundCorrespondenceDueDate = LocalDate.parse("2021-10-31"),
             periodKey = "#001"
           )
-        ).toVector
+        )
       )
-    ).toVector
+    )
   )
 
   implicit val executionContext: ExecutionContext = ExecutionContext.Implicits.global
