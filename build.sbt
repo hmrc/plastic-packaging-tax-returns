@@ -6,7 +6,7 @@ val appName = "plastic-packaging-tax-returns"
 
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8504")
 
-val silencerVersion = "1.7.1"
+val silencerVersion = "1.7.12"
 
 lazy val IntegrationTest = config("it") extend(Test)
 
@@ -14,7 +14,7 @@ lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(majorVersion := 1,
-            scalaVersion := "2.12.11",
+            scalaVersion := "2.13.10",
             libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
             // ***************
             // Use the silencer plugin to suppress warnings

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
-import org.joda.time
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve._
@@ -45,7 +44,6 @@ trait NrsTestData {
   val testAuthName: Name =
     uk.gov.hmrc.auth.core.retrieve.Name(Some("testFirstName"), Some("testLastName"))
 
-  val testAuthDateOfBirth: org.joda.time.LocalDate = org.joda.time.LocalDate.now()
   val testEmail: String                            = "testEmail"
   val testPPTReference: String                     = "XMPPT123456789"
   val testAuthToken: String                        = "testAuthToken"
@@ -62,15 +60,10 @@ trait NrsTestData {
   val testItmpName: ItmpName =
     ItmpName(Some("testGivenName"), Some("testMiddleName"), Some("testFamilyName"))
 
-  val testItmpDateOfBirth: time.LocalDate = org.joda.time.LocalDate.now()
-
   val testItmpAddress: ItmpAddress =
     ItmpAddress(Some("testLine1"), None, None, None, None, Some("testPostcode"), None, None)
 
   val testCredentialStrength: String = CredentialStrength.strong
-
-  val testLoginTimes: LoginTimes =
-    LoginTimes(org.joda.time.DateTime.now(), Some(org.joda.time.DateTime.now()))
 
   val testNonRepudiationIdentityData: IdentityData = IdentityData(Some(testInternalid),
                                                                   Some(testExternalId),
@@ -80,18 +73,15 @@ trait NrsTestData {
                                                                   Some(testNino),
                                                                   Some(testSautr),
                                                                   Some(testAuthName),
-                                                                  Some(testAuthDateOfBirth),
                                                                   Some(testEmail),
                                                                   testAgentInformation,
                                                                   Some(testGroupIdentifier),
                                                                   Some(testCredentialRole),
                                                                   Some(testMdtpInformation),
                                                                   Some(testItmpName),
-                                                                  Some(testItmpDateOfBirth),
                                                                   Some(testItmpAddress),
                                                                   Some(testAffinityGroup),
-                                                                  Some(testCredentialStrength),
-                                                                  testLoginTimes
+                                                                  Some(testCredentialStrength)
   )
 
   val identityJson: JsValue = Json.toJson(testNonRepudiationIdentityData)
@@ -110,16 +100,13 @@ trait NrsTestData {
       Some(testNino) ~
       Some(testSautr) ~
       Some(testAuthName) ~
-      Some(testAuthDateOfBirth) ~
       Some(testEmail) ~
       testAgentInformation ~
       Some(testGroupIdentifier) ~
       Some(testCredentialRole) ~
       Some(testMdtpInformation) ~
       Some(testItmpName) ~
-      Some(testItmpDateOfBirth) ~
       Some(testItmpAddress) ~
-      Some(testCredentialStrength) ~
-      testLoginTimes
+      Some(testCredentialStrength)
 
 }
