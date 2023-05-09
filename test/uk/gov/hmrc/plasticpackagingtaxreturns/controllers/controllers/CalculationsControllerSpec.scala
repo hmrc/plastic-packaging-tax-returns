@@ -162,7 +162,7 @@ class CalculationsControllerSpec
       
       "building ReturnValues fails" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
-          userAnswers.remove("importedPlasticPackagingWeight")))
+          userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight")))
         when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         
@@ -172,7 +172,7 @@ class CalculationsControllerSpec
 
       "a must have field is missing from user answers" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
-          userAnswers.remove(JsPath \ 'obligation \ 'toDate)))
+          userAnswers.removePath(JsPath \ 'obligation \ 'toDate)))
         when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
@@ -207,7 +207,7 @@ class CalculationsControllerSpec
       
       "building ReturnValues fails" in {
         // remove an 'optional' field
-        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends).remove("returnDisplayApi")
+        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends).removePath(JsPath \ "returnDisplayApi")
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "Failed to build AmendReturnValues from UserAnswers"
@@ -227,7 +227,7 @@ class CalculationsControllerSpec
       
       "must have field in user answers are missing" in {
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
-          .remove(JsPath \ 'amend \ 'obligation \ 'toDate)
+          .removePath(JsPath \ 'amend \ 'obligation \ 'toDate)
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "/amend/obligation/toDate is missing from user answers"

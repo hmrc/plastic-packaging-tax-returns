@@ -427,7 +427,7 @@ class ReturnsControllerSpec
 
       "building ReturnValues fails" in {
         withAuthorizedUser()
-        setupMocksForSubmit(userAnswersReturns.remove("obligation"))
+        setupMocksForSubmit(userAnswersReturns.removePath(JsPath \ "obligation"))
         mockReturnsSubmissionConnector(aReturn())
         the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
           have message "/obligation/periodKey is missing from user answers"
