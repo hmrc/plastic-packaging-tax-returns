@@ -29,7 +29,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository

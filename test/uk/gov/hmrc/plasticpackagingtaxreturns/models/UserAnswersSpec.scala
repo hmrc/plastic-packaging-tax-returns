@@ -16,123 +16,276 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
+import org.mockito.ArgumentMatchersSugar._
+import org.mockito.MockitoSugar
+import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.TryValues.convertTryToSuccessOrFailure
 import org.scalatestplus.play.PlaySpec
+import play.api.data.Form
 import play.api.libs.json.Json.obj
 import play.api.libs.json._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers.SaveUserAnswerFunc
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.QuestionPage
 
-import java.time.{Instant, LocalDate}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.Try
 
-class UserAnswersSpec extends PlaySpec {
+class UserAnswersSpec extends PlaySpec
+  with BeforeAndAfterEach with MockitoSugar with ResetMocksAfterEachTest {
 
-  private val emptyUserAnswers = UserAnswers("id1", Json.obj(), Instant.ofEpochSecond(1))
-  private val someUserAnswers = UserAnswers("id1", Json.obj(
-    "fish" -> Json.obj("cakes" -> "cheese")
-  ), Instant.ofEpochSecond(1))
-  
-  private class GetSomeFishCakes extends Gettable[String] {
-    override def path: JsPath = JsPath \ "fish" \ "cakes"
+  private val emptyUserAnswers = UserAnswers("empty")
+  private val filledUserAnswers = UserAnswers("filled", obj("cheese" -> obj("brie" -> "200g")))
+
+  private val question = mock[QuestionPage[String]]
+  private val saveFunction = mock[SaveUserAnswerFunc]
+  private val newValueFunc = mock[Option[String] => String]
+  private val fillFormFunc = mock[String => Option[String]]
+  private val emptyForm = mock[Form[String]]("empty form")
+  private val filledForm = mock[Form[String]]("filled form")
+
+  class RandoException extends Exception {}
+
+  case class BadValue()
+  object BadValue {
+    implicit val writes: OWrites[BadValue] = throw new RandoException
   }
 
-  "UserAnswers" should {
-    
-    "retrieve an answer" when {
-      "calling with a JsPath" in {
-        someUserAnswers.getOrFail[String](JsPath \ "fish" \ "cakes") mustBe "cheese"
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+
+    when(question.path) thenReturn JsPath \ "cheese" \ "brie"
+    when(question.cleanup(any, any)) thenAnswer {
+      (_: Option[String], userAnswers: UserAnswers) => Try(userAnswers) // pass through
+    }
+
+    when(saveFunction.apply(any, any)) thenReturn Future.successful(true)
+    when(newValueFunc.apply(any)) thenReturn "new-value"
+
+    when(emptyForm.fill(any)) thenReturn filledForm
+  }
+
+  "it" should {
+    "have an id" in {
+      emptyUserAnswers must have('id ("empty"))
+      filledUserAnswers must have('id ("filled"))
+    }
+
+    // TODO the timestamp... is it needed? (Actual timestamp for mongo in set by session repo in backend)
+  }
+
+  "setOrFail" should {
+
+    "set a value" when {
+      "using a path" in {
+        val updatedAnswers = emptyUserAnswers.setOrFail(JsPath \ "cheese", "please")
+        updatedAnswers.data.value mustBe Map("cheese" -> JsString("please"))
       }
-      "calling with a Gettable" in {
-        someUserAnswers.getOrFail(new GetSomeFishCakes) mustBe "cheese"
+      "using a question" in {
+        val updatedAnswers = emptyUserAnswers.setOrFail(question, "much")
+        updatedAnswers.data.value mustBe Map("cheese" -> JsObject(Seq("brie" -> JsString("much"))))
       }
     }
-    
-    "retrieve an optional answer" when {
-      "calling with a JsPath" in {
-        someUserAnswers.get[String](JsPath \ "fish" \ "cakes") mustBe Some("cheese")
+
+    "pass on exceptions if something else goes wrong" in {
+      a [RandoException] must be thrownBy emptyUserAnswers.setOrFail(JsPath \ "x", BadValue())
+    }
+  }
+
+  "set" should {
+
+    "set a value" in {
+      val updatedAnswers = emptyUserAnswers.set(question, "much")
+      updatedAnswers.success.value.data.value mustBe Map("cheese" -> JsObject(Seq("brie" -> JsString("much"))))
+    }
+
+    // TODO don't know how to test set() return a failed Try
+  }
+
+  "getOrFail" should {
+
+    "get a value" when {
+      "using a path key" in {
+        filledUserAnswers.getOrFail[String](JsPath \ "cheese" \ "brie") mustBe "200g"
       }
-      "calling with a Gettable" in {
-        someUserAnswers.get(new GetSomeFishCakes) mustBe Some("cheese")
+      "using a question page key" in {
+        filledUserAnswers.getOrFail(question) mustBe "200g"
       }
     }
-    
-    "retrieve a missing optional answer" when {
-      "calling with a JsPath" in {
-        emptyUserAnswers.get[String](JsPath \ "fish" \ "cakes") mustBe None
+
+    "complain when an answer is missing" when {
+      "using a question" in {
+        when(question.path) thenReturn JsPath \ "doesnt" \ "exist"
+        the [Exception] thrownBy emptyUserAnswers.getOrFail(question) must have message
+          "/doesnt/exist is missing from user answers"
       }
-      "calling with a Gettable" in {
-        emptyUserAnswers.get(new GetSomeFishCakes) mustBe None
-      }
-    }
-    
-    "complain if an answer is not there" when {
-      "calling with a JsPath" in {
-        the[Exception] thrownBy emptyUserAnswers.getOrFail[JsValue](JsPath \ "fish" \ "cakes") must have message
-          "/fish/cakes is missing from user answers"
-      }
-      "calling with a Gettable" in {
-        the[Exception] thrownBy emptyUserAnswers.getOrFail(new GetSomeFishCakes) must have message
-          "/fish/cakes is missing from user answers"
+      "using a path" in {
+        the [Exception] thrownBy emptyUserAnswers.getOrFail[JsValue](JsPath \ "not-there") must have message
+          "/not-there is missing from user answers"
       }
     }
-    
-    "complain if an answer cannot be converted to the required type" when {
-      
-      class GetWhiteboard extends Gettable[LocalDate] {
-        override def path: JsPath = JsPath \ "fish" \ "cakes"
+
+    "complain if an answer cannot be read as given type" in {
+      the [Exception] thrownBy filledUserAnswers.getOrFail[Long](JsPath \ "cheese" \ "brie") must have message
+        "/cheese/brie in user answers cannot be read as type Long"
+    }
+  }
+
+  "get" when {
+    "calling with a JsPath" in {
+      filledUserAnswers.get[String](JsPath \ "cheese" \ "brie") mustBe Some("200g")
+    }
+    "calling with a question / Gettable" in {
+      filledUserAnswers.get(question) mustBe Some("200g")
+    }
+    "asking for answer that isn't there" in {
+      emptyUserAnswers.get(question) mustBe None
+    }
+    "asking for answer of the wrong type" in {
+      filledUserAnswers.get[Long](JsPath \ "cheese" \ "brie") mustBe None
+    }
+  }
+
+  "it" should {
+
+    "fill in a form's value" when {
+      "the answer exists" in {
+        filledUserAnswers.fill(question, emptyForm) mustBe theSameInstanceAs(filledForm)
+        verify(emptyForm).fill("200g")
       }
-      
-      "calling with a JsPath" in {
-        the[Exception] thrownBy someUserAnswers.getOrFail[LocalDate](JsPath \ "fish" \ "cakes") must have message
-          "/fish/cakes in user answers cannot be read as type java.time.LocalDate"
+      "using a path" in {
+        filledUserAnswers.fill(JsPath \ "cheese" \ "brie", emptyForm) mustBe filledForm
+        verify(emptyForm).fill("200g")
       }
-      "calling with a Gettable" in {
-        the[Exception] thrownBy someUserAnswers.getOrFail(new GetWhiteboard) must have message
-          "/fish/cakes in user answers cannot be read as type java.time.LocalDate"
+      "the answer does not exist" in {
+        emptyUserAnswers.fill(question, emptyForm) mustBe theSameInstanceAs(emptyForm)
+        verify(emptyForm, never).fill(any)
       }
     }
-    
+
+    "fill a yes-no form using given function" when {
+      "user answer does not exist" in {
+        emptyUserAnswers.fillWithFunc(question, emptyForm, fillFormFunc) mustBe theSameInstanceAs(emptyForm)
+        verify(fillFormFunc, never).apply(any)
+        verify(emptyForm, never).fill(any)
+      }
+      "user answer does exist" in {
+        when(fillFormFunc.apply(any)) thenReturn Some("new-value")
+        filledUserAnswers.fillWithFunc(question, emptyForm, fillFormFunc) mustBe theSameInstanceAs(filledForm)
+        verify(fillFormFunc).apply(any)
+        verify(emptyForm).fill(any)
+      }
+      "user answer does exist by function returns None" in {
+        when(fillFormFunc.apply(any)) thenReturn None
+        filledUserAnswers.fillWithFunc(question, emptyForm, fillFormFunc) mustBe theSameInstanceAs(emptyForm)
+        verify(fillFormFunc).apply(any)
+        verify(emptyForm, never).fill(any)
+      }
+    }
+
+    "change a value" when {
+      "new value is different" in {
+        await(filledUserAnswers.change(question, "no", saveFunction)) mustBe true
+        val updatedJs = JsObject(Seq("cheese" -> JsObject(Seq("brie" -> JsString("no")))))
+        verify(saveFunction).apply(UserAnswers("filled", updatedJs, filledUserAnswers.lastUpdated), true)
+      }
+      "new value is the same" in {
+        await(filledUserAnswers.change(question, "200g", saveFunction)) mustBe false
+        verify(saveFunction, never).apply(any, any)
+      }
+    }
+
+    "change a value with a function" when {
+
+      "previous value exists" in {
+        await {
+          filledUserAnswers.changeWithFunc(question, newValueFunc, saveFunction)
+        }
+        verify(newValueFunc).apply(Some("200g"))
+        verify(saveFunction).apply(
+          eqTo(UserAnswers("filled", obj { "cheese" -> obj("brie" -> "new-value") }, filledUserAnswers.lastUpdated)),
+          any)
+      }
+
+      "previous value does not exist" in {
+        await {
+          emptyUserAnswers.changeWithFunc(question, newValueFunc, saveFunction)
+        }
+        verify(newValueFunc).apply(None)
+        verify(saveFunction).apply(
+          eqTo(UserAnswers("empty", obj { "cheese" -> obj("brie" -> "new-value") }, emptyUserAnswers.lastUpdated)),
+          any)
+      }
+    }
+
+    "save changed answers" in {
+      await(filledUserAnswers.save(saveFunction)) must be theSameInstanceAs(filledUserAnswers)
+      verify(saveFunction).apply(any, any)
+    }
+
+    "remove answers" when {
+
+      "remove all answers" in {
+        val resetUserAnswers = filledUserAnswers.removeAll()
+        resetUserAnswers.id mustBe "filled"
+        resetUserAnswers.data mustBe Json.obj()
+      }
+
+      "remove a single answer" in {
+        val updatedAnswers = filledUserAnswers.remove(question)
+        updatedAnswers.success.value.data.value mustBe Map("cheese" -> obj())
+      }
+
+      // TODO don't know how to test remove with a failed try 
+
+      "remove a top level field" in {
+        filledUserAnswers.removePath(JsPath \ "cheese") mustBe UserAnswers("filled", obj(), filledUserAnswers.lastUpdated)
+      }
+
+      "remove a nested field" in {
+        filledUserAnswers.removePath(JsPath \ "cheese" \ 'brie) mustBe UserAnswers("filled", obj(
+          "cheese" -> Json.obj(),
+        ), filledUserAnswers.lastUpdated)
+      }
+
+    }
+
     "quickly set lots of fields" when {
-      
+
       "one key-value pair" in {
-        someUserAnswers.setAll("x" -> "y") mustBe UserAnswers("id1", Json.obj(
-          "fish" -> Json.obj("cakes" -> "cheese"),
+        filledUserAnswers.setAll("x" -> "y") mustBe UserAnswers("filled", Json.obj(
+          "cheese" -> Json.obj("brie" -> "200g"),
           "x" -> "y"
-        ), Instant.ofEpochSecond(1))
+        ), filledUserAnswers.lastUpdated)
       }
-      
+
       "multiple key-values" in {
-        someUserAnswers.setAll("x" -> "y", "left" -> "right") mustBe UserAnswers("id1", Json.obj(
-          "fish" -> Json.obj("cakes" -> "cheese"),
-          "left" -> "right", 
-          "x" -> "y", 
-        ), Instant.ofEpochSecond(1))
+        filledUserAnswers.setAll("x" -> "y", "left" -> "right") mustBe UserAnswers("filled", Json.obj(
+          "cheese" -> Json.obj("brie" -> "200g"),
+          "left" -> "right",
+          "x" -> "y",
+        ), filledUserAnswers.lastUpdated)
       }
-      
+
       "values are of multiple js types" in {
-        someUserAnswers.setAll("x" -> JsNumber(1), "y" -> JsString("z")) mustBe UserAnswers("id1", Json.obj(
-          "fish" -> Json.obj("cakes" -> "cheese"),
-          "x" -> 1,  
-          "y" -> "z", 
-        ), Instant.ofEpochSecond(1))
+        filledUserAnswers.setAll("x" -> JsNumber(1), "y" -> JsString("z")) mustBe UserAnswers("filled", Json.obj(
+          "cheese" -> Json.obj("brie" -> "200g"),
+          "x" -> 1,
+          "y" -> "z",
+        ), filledUserAnswers.lastUpdated)
       }
-      
+
       "nested field" in {
-        someUserAnswers.setAll("x" -> obj { "y" -> "z" }) mustBe UserAnswers("id1", Json.obj(
-          "fish" -> Json.obj("cakes" -> "cheese"),
+        filledUserAnswers.setAll("x" -> obj { "y" -> "z" }) mustBe UserAnswers("filled", Json.obj(
+          "cheese" -> Json.obj("brie" -> "200g"),
           "x" -> Json.obj {"y" -> "z"}
-        ), Instant.ofEpochSecond(1))
+        ), filledUserAnswers.lastUpdated)
       }
-      
+
     }
-    
-    "remove a top level field" in {
-      someUserAnswers.removePath(JsPath \ "fish") mustBe UserAnswers("id1", obj(), Instant.ofEpochSecond(1))
-    }
-    
-    "remove a nested field" in {
-      someUserAnswers.removePath(JsPath \ "fish" \ 'cakes) mustBe UserAnswers("id1", obj(
-        "fish" -> Json.obj(),
-      ), Instant.ofEpochSecond(1))
-    }
-    
+
+
   }
 }

@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation
 
 import play.api.libs.json.{JsObject, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 
 case class NrsSubscriptionUpdateSubmission (
   userAnswers: JsObject,
