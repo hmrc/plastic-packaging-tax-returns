@@ -20,8 +20,6 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json.obj
-import play.api.libs.json.{JsPath, Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 import java.time.LocalDate
 

@@ -19,8 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsObject, JsPath, JsSuccess, Json, Reads}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import play.api.libs.json.{JsObject, JsPath, Json}
 
 class CreditsAnswerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
