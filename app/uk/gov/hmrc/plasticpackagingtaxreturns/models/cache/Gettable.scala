@@ -17,10 +17,19 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache
 
 import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 
-trait Gettable[A] {
+import scala.util.{Success, Try}
 
+trait Query {
   def path: JsPath
-
 }
 
+trait Gettable[A] extends Query
+
+trait Settable[A] extends Query {
+  def cleanup(value: Option[A], userAnswers: UserAnswers): Try[UserAnswers] =
+    Success(userAnswers)
+}
+
+trait QuestionPage[A] extends Gettable[A] with Settable[A]

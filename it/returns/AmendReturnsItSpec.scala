@@ -35,7 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.AmendTestHelper
@@ -86,7 +86,7 @@ class AmendReturnsItSpec extends PlaySpec
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubmitReturnEISRequest(pptReference)
-      setUpMockForAmend
+      setUpMockForAmend()
 
       val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -99,7 +99,7 @@ class AmendReturnsItSpec extends PlaySpec
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubmitReturnEISRequest(pptReference)
       stubNrsRequest
-      setUpMockForAmend
+      setUpMockForAmend()
 
       val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -112,7 +112,7 @@ class AmendReturnsItSpec extends PlaySpec
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubmitReturnEISRequest(pptReference)
       stubNrsFailingRequest
-      setUpMockForAmend
+      setUpMockForAmend()
 
       val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -130,7 +130,7 @@ class AmendReturnsItSpec extends PlaySpec
   }
 
 
-  private def setUpMockForAmend: Unit = {
+  private def setUpMockForAmend(): Unit = {
     when(cacheRepository.get(any()))
       .thenReturn(Future.successful(Option(UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))

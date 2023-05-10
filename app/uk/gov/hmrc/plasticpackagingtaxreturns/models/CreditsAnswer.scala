@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{JsPath, Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 // TODO add test coverage
 
