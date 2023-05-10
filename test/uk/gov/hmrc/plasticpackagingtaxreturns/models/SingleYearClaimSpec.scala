@@ -25,22 +25,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 import java.time.LocalDate
 
-case class SingleYearClaim(endDate: LocalDate, exportedCredits: Option[CreditsAnswer], convertedCredits: Option[CreditsAnswer])
-
-object SingleYearClaim {
+class SingleYearClaimSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
   
-  def readFirstFrom(userAnswers: UserAnswers): SingleYearClaim =
-    userAnswers
-      .getOrFail[Map[String, SingleYearClaim]](JsPath \ "credit")
-      .values
-      .head
-
-  implicit val formats: OFormat[SingleYearClaim] = Json.format[SingleYearClaim]
-}
-
-class MultiYearCreditClaimSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
+  private val exampleClaim = SingleYearClaim(
+    LocalDate.of(2024, 3, 31),
+    Some(CreditsAnswer(true, Some(1L))),
+    Some(CreditsAnswer(true, Some(2L))),
+  )
   
   "it" should {
+    
     "read from user answers" in {
       val userAnswers = UserAnswers("id", obj(
         "credit" -> obj(
@@ -64,5 +58,10 @@ class MultiYearCreditClaimSpec extends PlaySpec with MockitoSugar with BeforeAnd
         Some(CreditsAnswer(true, Some(123L))),
       )
     }
+    
+    "total the weight of the claim" in {
+//      exampleClaim.totalWeight mustBe 3L
+    }
+    
   }
 }

@@ -18,27 +18,25 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{JsPath, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.WeightToPoundsConversionService
 
-// TODO add test coverage
+import java.time.LocalDate
 
-case class CreditsAnswer(yesNo: Boolean, private val weight: Option[Long]) {
-  def value: Long = (yesNo, weight) match {
-    case (true, Some(x)) => x
-    case _ => 0
+
+case class SingleYearClaim(endDate: LocalDate, exportedCredits: Option[CreditsAnswer], convertedCredits: Option[CreditsAnswer]) {
+  def calculate(weightToPoundsConversionService: WeightToPoundsConversionService): TaxablePlastic = {
+    val totalWeight = CreditsAnswer.from(exportedCredits).value + CreditsAnswer.from(convertedCredits).value 
+    weightToPoundsConversionService.weightToCredit(endDate, totalWeight)
   }
 }
 
-object CreditsAnswer {
+object SingleYearClaim {
 
-  def noClaim: CreditsAnswer = CreditsAnswer(false, None)
-
-  implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]  
-  def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer =
-    exportedCredits.getOrElse(CreditsAnswer.noClaim)
-
-  def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer = {
+  def readFirstFrom(userAnswers: UserAnswers): SingleYearClaim =
     userAnswers
-      .get[CreditsAnswer](JsPath \ path)
-      .getOrElse(CreditsAnswer.noClaim) // therefore will be (no and zero) if missing / unanswered 
-  }
+      .getOrFail[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .values
+      .head
+
+  implicit val formats: OFormat[SingleYearClaim] = Json.format[SingleYearClaim]
 }
