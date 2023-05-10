@@ -23,7 +23,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
 import play.api.libs.json.Json.obj
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 
 import java.time.LocalDate
 
