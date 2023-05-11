@@ -17,11 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{JsPath, Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
 
 // TODO add test coverage
 
-case class CreditsAnswer(yesNo: Boolean, weight: Option[Long]) {
+case class CreditsAnswer(yesNo: Boolean, private val weight: Option[Long]) {
   def value: Long = (yesNo, weight) match {
     case (true, Some(x)) => x
     case _ => 0
@@ -29,9 +28,12 @@ case class CreditsAnswer(yesNo: Boolean, weight: Option[Long]) {
 }
 
 object CreditsAnswer {
+
   def noClaim: CreditsAnswer = CreditsAnswer(false, None)
 
-  implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]
+  implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]  
+  def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer =
+    exportedCredits.getOrElse(CreditsAnswer.noClaim)
 
   def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer = {
     userAnswers
