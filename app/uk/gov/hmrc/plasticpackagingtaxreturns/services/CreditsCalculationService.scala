@@ -17,19 +17,34 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
+import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditsAnswer, SingleYearClaim, TaxablePlastic}
 
 import java.time.LocalDate
 
-class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
-  
+class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
+
   def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
-    val periodEndDate = userAnswers.getOrFail[LocalDate](ReturnObligationToDateGettable)
+    newJourney(userAnswers)
+      .orElse(Some(currentJourney(userAnswers)))
+      .getOrElse(TaxablePlastic.zero)
+  }
+
+  private def currentJourney(userAnswers: UserAnswers) = {
+    val endOfFirstYearOfPpt = LocalDate.of(2023, 3, 31)
     val exportedCredit = CreditsAnswer.readFrom(userAnswers, "exportedCredits")
     val convertedCredit = CreditsAnswer.readFrom(userAnswers, "convertedCredits")
     val totalWeight = exportedCredit.value + convertedCredit.value
-    convert.weightToCredit(periodEndDate, totalWeight)
+    weightToPoundsConversionService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
+  }
+
+  private def newJourney(userAnswers: UserAnswers): Option[TaxablePlastic] = {
+    userAnswers
+      .get[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .flatMap { map =>
+        map.values.headOption
+      }
+      .map(singleYearClaim => singleYearClaim.calculate(weightToPoundsConversionService))
   }
 }

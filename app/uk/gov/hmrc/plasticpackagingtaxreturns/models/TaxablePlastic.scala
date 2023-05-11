@@ -17,3 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 case class TaxablePlastic(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal)
+
+object TaxablePlastic {
+  def zero: TaxablePlastic = TaxablePlastic(0L, 0, 0)
+}
