@@ -31,18 +31,15 @@ case class IdentityData(
   nino: Option[String] = None,
   saUtr: Option[String] = None,
   optionalName: Option[Name] = None,
-  dateOfBirth: Option[LocalDate] = None,
   email: Option[String] = None,
   agentInformation: AgentInformation,
   groupIdentifier: Option[String] = None,
   credentialRole: Option[CredentialRole] = None,
   mdtpInformation: Option[MdtpInformation] = None,
   optionalItmpName: Option[ItmpName] = None,
-  itmpDateOfBirth: Option[LocalDate] = None,
   optionalItmpAddress: Option[ItmpAddress] = None,
   affinityGroup: Option[AffinityGroup] = None,
-  credentialStrength: Option[String] = None,
-  loginTimes: LoginTimes
+  credentialStrength: Option[String] = None
 )
 
 object IdentityData {
