@@ -24,12 +24,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditsAnswer, SingleYearC
 import java.time.LocalDate
 
 class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
-
+  
   def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
-    newJourney(userAnswers)
-      .orElse(Some(currentJourney(userAnswers)))
+    isClaimingCredit(userAnswers)
+      .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
       .getOrElse(TaxablePlastic.zero)
   }
+
+  private def isClaimingCredit(userAnswers: UserAnswers) =
+    userAnswers.get[Boolean](JsPath \ "whatDoYouWantToDo")
+      .filter(_ == true)
 
   private def currentJourney(userAnswers: UserAnswers) = {
     val endOfFirstYearOfPpt = LocalDate.of(2023, 3, 31)

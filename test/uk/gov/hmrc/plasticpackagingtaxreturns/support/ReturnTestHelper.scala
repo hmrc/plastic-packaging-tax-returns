@@ -50,7 +50,6 @@ object ReturnTestHelper {
        |        "importedPlasticPackagingWeight" : 1,
        |        "exportedPlasticPackagingWeight" : 200,
        |        "anotherBusinessExportWeight" : 100,
-       |        "plasticExportedByAnotherBusiness": 100,
        |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 10,
        |        "nonExportRecycledPlasticPackagingWeight" : 5,
        |        "convertedCredits": {

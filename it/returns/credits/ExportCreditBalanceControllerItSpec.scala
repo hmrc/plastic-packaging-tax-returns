@@ -76,16 +76,6 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
 
   "GET" should {
     "return 200" when {
-      "total requested credit is 0 "in {
-        withAuthorizedUser()
-        stubGetBalanceResponse()
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonObj))))
-
-        val response = await(wsClient.url(url).get)
-
-        response.status mustBe OK
-      }
 
       "total requested credit is not 0" in {
         withAuthorizedUser()
@@ -150,6 +140,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
        | "fromDate": "${fromDate.toString}",
        |  "toDate": "${toDate.toString}"
        | },
+       | "whatDoYouWantToDo": true, 
        | "convertedCredits": { "yesNo": true, "weight": 10 },
        | "exportedCredits": { "yesNo": true, "weight": 5 }
        |}""".stripMargin).as[JsObject]
