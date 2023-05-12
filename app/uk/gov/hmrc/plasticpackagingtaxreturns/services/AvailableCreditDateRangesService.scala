@@ -17,15 +17,30 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.LocalDate
+import javax.inject.Inject
 
-class AvailableCreditDateRangesService {
-  //todo: actually do something
+class AvailableCreditDateRangesService @Inject() (
+  edgeOfSystem: EdgeOfSystem
+) {
+  
+  def taxYears(date: LocalDate): Seq[Int] = {
+    val isWithinNextTaxYear = date.isAfter(LocalDate.of(date.getYear, 3, 31))
+    val currentTaxYearStartYear = if (isWithinNextTaxYear) date.getYear else date.getYear - 1
+    val taxRegimeStartYear = 2022
+    Range.inclusive(taxRegimeStartYear, currentTaxYearStartYear)
+  }
 
-  def calculate: Seq[CreditRangeOption] = Seq(
-    CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2023, 3, 31)),
-    CreditRangeOption(LocalDate.of(2023, 4, 1), LocalDate.of(2024, 3, 31)),
-  )
 
+  def calculate: Seq[CreditRangeOption] = {
+    // TODO base these off the quarter currently being filed
+    val endDate = edgeOfSystem.today
+    taxYears(endDate).map(toYearRange) 
+  }
+
+  private def toYearRange(year: Int): CreditRangeOption = {
+    CreditRangeOption(LocalDate.of(year, 4, 1), LocalDate.of(year + 1, 3, 31))
+  }
 }
