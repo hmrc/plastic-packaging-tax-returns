@@ -58,7 +58,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAft
 
     }
     "return 200 and list of dates" in {
-      when(service.get).thenReturn(
+      when(service.calculate).thenReturn(
         Seq(
         CreditRangeOption(
           LocalDate.of(1996, 3, 27),
@@ -72,7 +72,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAft
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.parse(dates)
-      verify(service).get
+      verify(service).calculate
     }
   }
 

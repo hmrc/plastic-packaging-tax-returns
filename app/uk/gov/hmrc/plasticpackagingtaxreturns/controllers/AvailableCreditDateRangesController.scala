@@ -25,7 +25,7 @@ import javax.inject.Inject
 import scala.concurrent.Future
 
 class AvailableCreditDateRangesController @Inject()(
-  availableService: AvailableCreditDateRangesService,
+  availableCreditDateRangesService: AvailableCreditDateRangesService,
   authenticator: Authenticator,
   override val controllerComponents: ControllerComponents
 ) extends BaseController{
@@ -33,7 +33,7 @@ class AvailableCreditDateRangesController @Inject()(
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { request =>
 
-    val dates = availableService.get
+    val dates = availableCreditDateRangesService.calculate
     Future.successful(Ok(Json.toJson(dates)))
   }
 
