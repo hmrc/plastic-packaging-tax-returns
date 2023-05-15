@@ -18,13 +18,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditsAnswer, SingleYearClaim, TaxablePlastic}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, SingleYearClaim, TaxablePlastic, UserAnswers}
 
 import java.time.LocalDate
+import scala.collection.MapView
 
 class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
-  
+
   def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
@@ -51,4 +51,21 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       }
       .map(singleYearClaim => singleYearClaim.calculate(weightToPoundsConversionService))
   }
+
+  def newJourney2(userAnswers: UserAnswers): Map[String, TaxablePlastic] = {
+    userAnswers
+      .get[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .getOrElse(Map())
+      .view.mapValues(_.calculate(weightToPoundsConversionService))
+      .toMap
+  }
+
+  def biggerObject(userAnswers: UserAnswers): CreditCalculation =
+    CreditCalculation(
+      BigDecimal(1), // TODO
+      BigDecimal(2), // TODO
+      3L, // TODO
+      newJourney2(userAnswers)
+    )
+
 }

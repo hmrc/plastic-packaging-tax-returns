@@ -20,10 +20,9 @@ import org.mockito.ArgumentMatchersSugar._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsPath
+import play.api.libs.json.{JsPath, Json, MapWrites}
 import play.api.libs.json.Json.obj
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, TaxablePlastic, UserAnswers}
 
 import java.time.LocalDate
 
@@ -44,7 +43,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "obligation" -> obj("toDate" -> "2024-06-30"),
     "whatDoYouWantToDo" -> true, 
     "credit" -> obj(
-      "2023-04-01-2024-03-31" -> obj(
+      "key-blah" -> obj(
         "endDate" -> "2024-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
@@ -55,6 +54,14 @@ class CreditsCalculationServiceSpec extends PlaySpec
           "weight" -> 2
         )
       ),
+    
+      "key-waffle" -> obj(
+        "endDate" -> "2025-03-31",
+        "exportedCredits" -> obj(
+          "yesNo" -> true,
+          "weight" -> 11
+        ),
+      ),
     )
   ))
 
@@ -62,7 +69,10 @@ class CreditsCalculationServiceSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(weightToPoundsConversionService)
-    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn TaxablePlastic(11, 22.3, 3.14)
+    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn (
+      TaxablePlastic(1, 1.1, 1.11),
+      TaxablePlastic(2, 2.2, 2.22),
+    )
   }
 
   // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
@@ -171,8 +181,30 @@ class CreditsCalculationServiceSpec extends PlaySpec
         verify(weightToPoundsConversionService).weightToCredit(any, eqTo(3))
       }
       "return the correct total" in {
-        sut.totalRequestedCredit(newUserAnswers) mustBe TaxablePlastic(11, 22.3, 3.14)
+        sut.totalRequestedCredit(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
       }
     }
+    
+    "newJourney2" must {
+      
+      "calculate all years" in {
+        sut.newJourney2(newUserAnswers).toMap mustBe Map(
+          ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
+          ("key-waffle", TaxablePlastic(2, 2.2, 2.22))
+        )
+      }
+      
+      "do bigger object" in {
+        sut.biggerObject(newUserAnswers) mustBe CreditCalculation(
+          availableCreditInPounds = 1, 
+          totalRequestedCreditInPounds = 2,
+          totalRequestedCreditInKilograms = 3, 
+          credit = Map(
+            ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
+            ("key-waffle", TaxablePlastic(2, 2.2, 2.22))
+        ))
+      }
+    }
+    
   }
 }

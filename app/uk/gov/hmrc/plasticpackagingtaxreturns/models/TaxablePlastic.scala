@@ -16,8 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
+import play.api.libs.json.{Json, OWrites}
+
 case class TaxablePlastic(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal)
 
 object TaxablePlastic {
   def zero: TaxablePlastic = TaxablePlastic(0L, 0, 0)
+  
+  implicit val writes: OWrites[TaxablePlastic] = Json.writes[TaxablePlastic]
 }
