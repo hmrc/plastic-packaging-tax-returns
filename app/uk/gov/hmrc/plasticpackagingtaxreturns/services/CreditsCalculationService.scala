@@ -18,10 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, SingleYearClaim, TaxablePlastic, UserAnswers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
-import scala.collection.MapView
 
 class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
 
@@ -60,12 +59,18 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       .toMap
   }
 
-  def biggerObject(userAnswers: UserAnswers): CreditCalculation =
+  def biggerObject(userAnswers: UserAnswers): CreditCalculation = {
+    val availableCreditInPounds = BigDecimal(11) // TODO
+    val totalRequestedCreditInPounds = BigDecimal(2) // TODO
+    val totalRequestedCreditInKilograms = 3L // TODO
+    val canBeClaimed: Boolean = totalRequestedCreditInPounds <= availableCreditInPounds
     CreditCalculation(
-      BigDecimal(1), // TODO
-      BigDecimal(2), // TODO
-      3L, // TODO
-      newJourney2(userAnswers)
+      availableCreditInPounds, 
+      totalRequestedCreditInPounds, 
+      totalRequestedCreditInKilograms,
+      canBeClaimed = canBeClaimed, 
+      credit = newJourney2(userAnswers),
     )
+  }
 
 }

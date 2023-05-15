@@ -20,7 +20,7 @@ import org.mockito.ArgumentMatchersSugar._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsPath, Json, MapWrites}
+import play.api.libs.json.JsPath
 import play.api.libs.json.Json.obj
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, TaxablePlastic, UserAnswers}
 
@@ -69,7 +69,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(weightToPoundsConversionService)
-    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn (
+    when(weightToPoundsConversionService.weightToCredit(any, any)).thenReturn(
       TaxablePlastic(1, 1.1, 1.11),
       TaxablePlastic(2, 2.2, 2.22),
     )
@@ -188,7 +188,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "newJourney2" must {
       
       "calculate all years" in {
-        sut.newJourney2(newUserAnswers).toMap mustBe Map(
+        sut.newJourney2(newUserAnswers) mustBe Map(
           ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
           ("key-waffle", TaxablePlastic(2, 2.2, 2.22))
         )
@@ -196,9 +196,10 @@ class CreditsCalculationServiceSpec extends PlaySpec
       
       "do bigger object" in {
         sut.biggerObject(newUserAnswers) mustBe CreditCalculation(
-          availableCreditInPounds = 1, 
+          availableCreditInPounds = 11, 
           totalRequestedCreditInPounds = 2,
           totalRequestedCreditInKilograms = 3, 
+          canBeClaimed = true, 
           credit = Map(
             ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
             ("key-waffle", TaxablePlastic(2, 2.2, 2.22))

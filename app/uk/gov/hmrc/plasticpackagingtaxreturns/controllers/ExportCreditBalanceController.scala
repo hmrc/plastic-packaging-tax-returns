@@ -19,7 +19,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.{JsString, Json}
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 
@@ -42,14 +41,10 @@ class ExportCreditBalanceController @Inject() (
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- availableCreditService.getBalance(userAnswers)
-        creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers)
-      } yield
-        Ok(Json.toJson(CreditsCalculationResponse(
-          availableCredit,
-          creditClaim.moneyInPounds,
-          creditClaim.weight,
-          creditClaim.taxRate,
-        )))
+        creditClaim = creditsCalculationService.biggerObject(userAnswers)
+      } yield { 
+        Ok(Json.toJson(creditClaim))
+      }
       }.recover{
         // TODO do we still want this? seems to swallow log message when running service locally 
         case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
