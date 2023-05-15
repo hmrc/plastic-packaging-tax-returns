@@ -33,11 +33,10 @@ class AvailableCreditDateRangesService @Inject() (
     Range.inclusive(taxRegimeStartYear, currentTaxYearStartYear)
   }
 
-
-  def calculate: Seq[CreditRangeOption] = {
+  def calculate(returnEndDate: LocalDate): Seq[CreditRangeOption] = {
     // TODO base these off the quarter currently being filed
-    val endDate = edgeOfSystem.today
-    taxYears(endDate).map(toYearRange) 
+    val endDate = edgeOfSystem.today //todo use this if trimming dates
+    taxYears(returnEndDate).map(toYearRange)
   }
 
   private def toYearRange(year: Int): CreditRangeOption = {

@@ -19,22 +19,30 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService
 
 import javax.inject.Inject
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class AvailableCreditDateRangesController @Inject()(
   availableCreditDateRangesService: AvailableCreditDateRangesService,
   authenticator: Authenticator,
+  sessionRepository: SessionRepository,
   override val controllerComponents: ControllerComponents
-) extends BaseController{
+)(implicit val ec: ExecutionContext) extends BaseController{
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { request =>
-
-    val dates = availableCreditDateRangesService.calculate
-    Future.successful(Ok(Json.toJson(dates)))
+      for {
+        userAnswersOpt <- sessionRepository.get(request.cacheKey)
+        userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
+      } yield {
+        val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
+        val dateRanges = availableCreditDateRangesService.calculate(returnEndDate)
+        Ok(Json.toJson(dateRanges))
+      }
   }
 
 }
