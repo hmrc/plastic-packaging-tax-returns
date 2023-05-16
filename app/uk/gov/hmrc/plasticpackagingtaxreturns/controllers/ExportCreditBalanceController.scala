@@ -37,17 +37,13 @@ class ExportCreditBalanceController @Inject() (
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
-      {for {
+      for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- availableCreditService.getBalance(userAnswers)
         creditClaim = creditsCalculationService.biggerObject(userAnswers)
       } yield { 
         Ok(Json.toJson(creditClaim))
-      }
-      }.recover{
-        // TODO do we still want this? seems to swallow log message when running service locally 
-        case e: Exception => InternalServerError(Json.obj("message" -> JsString(e.getMessage)))
       }
     }
 

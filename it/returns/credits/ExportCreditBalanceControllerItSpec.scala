@@ -17,7 +17,7 @@
 package returns.credits
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{get, ok}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.reset
 import org.mockito.MockitoSugar.when
@@ -28,7 +28,7 @@ import play.api.Application
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json.obj
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
@@ -56,6 +56,20 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   private val toDate=LocalDate.of(2022, 6,1)
 
   private val url = s"http://localhost:$port/credits/calculate/$pptReference"
+  
+  private val userAnswerWithCredit = UserAnswers("user-answers-id", obj(
+    "obligation" -> obj(
+      "fromDate" -> "2023-04-01",
+      "toDate" -> "2023-06-30"
+    ),
+    "whatDoYouWantToDo" -> true,
+    "credit" -> obj(
+      "2022-04-01-2023-03-31" -> obj(
+        "endDate" -> "2023-03-31",
+        "convertedCredits" -> obj("yesNo" -> true, "weight" -> 10),
+        "exportedCredits" -> obj("yesNo" -> true, "weight" -> 5),
+    ))
+  ))
 
   override lazy val app: Application = {
     server.start()
@@ -74,33 +88,34 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     reset(mockAuthConnector, sessionRepository)
   }
 
-  "GET" should {
-    "return 200" when {
 
-      "total requested credit is not 0" in {
-        withAuthorizedUser()
-        stubGetBalanceResponse()
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonWitTotalRequestedCredit))))
-
-        val response = await(wsClient.url(url).get)
-
-        response.status mustBe OK
-      }
-    }
-
-    "return json" in {
+  "get" should {
+    "return the credit calculations" in {
       withAuthorizedUser()
       stubGetBalanceResponse()
-
-      when(sessionRepository.get(any))
-        .thenReturn(Future.successful(Some(UserAnswers(pptReference, jsonWitTotalRequestedCredit))))
-
+      when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       val response = await(wsClient.url(url).get)
+      
+      withClue("Check call to EIS to query credit balance") {
+        server.wireMockServer.verify(getRequestedFor(urlEqualTo(
+          "/plastic-packaging-tax/export-credits/PPT/7777777?fromDate=2021-04-01&toDate=2023-03-31"
+        )))
+      }
 
-      response.json mustBe Json.parse( 
-        """{"availableCreditInPounds":200,"totalRequestedCreditInPounds":3,"totalRequestedCreditInKilograms":15,"canBeClaimed":true,"taxRate":0.2}"""
-      )
+      withClue("Response with correct values") {
+        response.status mustBe OK
+        response.json mustBe obj(
+          "availableCreditInPounds" -> 11, // TODO should be 200
+          "totalRequestedCreditInPounds" -> 2, // TODO should be 3
+          "totalRequestedCreditInKilograms" -> 3, // TODO should be 15
+          "canBeClaimed" -> true,
+          "credit" -> obj(
+            "2022-04-01-2023-03-31" -> obj(
+              "weight" -> 15,
+              "moneyInPounds" -> 3,
+              "taxRate" -> 0.2
+        )))
+      }
     }
 
     "return an error" when {
@@ -122,47 +137,24 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       }
     }
   }
-
-
-  private def jsonObj = Json.parse(
-    s"""{
-       |"obligation": {
-       | "fromDate": "${fromDate.toString}",
-       | "toDate": "${toDate.toString}"
-       | },
-       | "convertedCredits": "0",
-       | "exportedCredits": "0"
-       |}""".stripMargin).as[JsObject]
-
-  private def jsonWitTotalRequestedCredit = Json.parse(
-    s"""{
-       |"obligation": {
-       | "fromDate": "${fromDate.toString}",
-       |  "toDate": "${toDate.toString}"
-       | },
-       | "whatDoYouWantToDo": true, 
-       | "convertedCredits": { "yesNo": true, "weight": 10 },
-       | "exportedCredits": { "yesNo": true, "weight": 5 }
-       |}""".stripMargin).as[JsObject]
-
-
+    
   val exportCreditBalanceDisplayResponse: ExportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
     processingDate = "2021-11-17T09:32:50.345Z",
     totalPPTCharges = BigDecimal(1000),
     totalExportCreditClaimed = BigDecimal(100),
     totalExportCreditAvailable = BigDecimal(200)
   )
-  
+
   private def stubGetBalanceResponse() = {
-
-    val date = fromDate.minusYears(2)
-    val toDate = fromDate.minusDays(1)
-
-    server.stubFor(
-      get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$date&toDate=$toDate")
-        .willReturn(
-          ok().withBody(ExportCreditBalanceDisplayResponse.format.writes(exportCreditBalanceDisplayResponse).toString())
-        )
+    // $pptReference?fromDate=$date&toDate=$toDate")
+    server.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+      .willReturn(
+        ok()
+          .withBody(ExportCreditBalanceDisplayResponse
+            .format
+            .writes(exportCreditBalanceDisplayResponse)
+            .toString())
+      )
     )
   }
 

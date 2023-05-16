@@ -24,6 +24,7 @@ import java.time.LocalDate
 
 class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
 
+  // TODO replace with biggerObject
   def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
