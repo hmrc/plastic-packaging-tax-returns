@@ -25,4 +25,6 @@ final case class CreditRangeOption(from: LocalDate, to: LocalDate)
 object CreditRangeOption {
   implicit val format: OFormat[CreditRangeOption] = Json.format[CreditRangeOption]
 
+  def apply(fromTo: (LocalDate, LocalDate)): CreditRangeOption =
+    new CreditRangeOption(fromTo._1, fromTo._2)
 }
