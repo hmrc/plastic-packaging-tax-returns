@@ -82,14 +82,14 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "given current user answers" must {
 
       "return the credit claimed total" in {
-        sut.totalRequestedCredit(currentUserAnswers)// mustBe TaxablePlastic(11, 22.3, 3.14)
+        sut.totalRequestedCredit_old(currentUserAnswers)// mustBe TaxablePlastic(11, 22.3, 3.14)
         verify(weightToPoundsConversionService).weightToCredit(any, any)
       }
 
       "total the weight" when {
 
         "both answers are missing" in {
-          sut.totalRequestedCredit(currentUserAnswers)
+          sut.totalRequestedCredit_old(currentUserAnswers)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
@@ -98,7 +98,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             "exportedCredits" -> CreditsAnswer(false, None),
             "convertedCredits" -> CreditsAnswer(false, None)
           )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
@@ -107,7 +107,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             "exportedCredits" -> CreditsAnswer(true, None),
             "convertedCredits" -> CreditsAnswer(true, None)
           )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
@@ -116,7 +116,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L))
             )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 5L)
         }
 
@@ -125,7 +125,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 7L)
         }
 
@@ -136,7 +136,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
               "convertedCredits" -> CreditsAnswer(true, Some(5L)),
               "exportedCredits" -> CreditsAnswer(true, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 12L)
         }
 
@@ -145,7 +145,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("exportedCredits" -> CreditsAnswer(false, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(any, eqTo(0L))
         }
         "converted is false" in {
@@ -153,7 +153,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("convertedCredits" -> CreditsAnswer(false, Some(5L)),
             )
-          sut.totalRequestedCredit(userAnswers2)
+          sut.totalRequestedCredit_old(userAnswers2)
           verify(weightToPoundsConversionService).weightToCredit(any, eqTo(0L))
         }
       }
@@ -163,7 +163,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
           "whatDoYouWantToDo" -> true,
           "obligation" -> obj("toDate" -> "2022-06-30")
         )))
-        sut.totalRequestedCredit(userAnswers)
+        sut.totalRequestedCredit_old(userAnswers)
 
         // Previously used this
         verify(userAnswers, never).getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
@@ -173,15 +173,15 @@ class CreditsCalculationServiceSpec extends PlaySpec
 
     "given new user answers" must {
       "use the correct end date for the new journey" in {
-        sut.totalRequestedCredit(newUserAnswers)
+        sut.totalRequestedCredit_old(newUserAnswers)
         verify(weightToPoundsConversionService).weightToCredit(eqTo(LocalDate.of(2024, 3, 31)), any)
       }
       "use the correct weight for the new journey" in {
-        sut.totalRequestedCredit(newUserAnswers)
+        sut.totalRequestedCredit_old(newUserAnswers)
         verify(weightToPoundsConversionService).weightToCredit(any, eqTo(3))
       }
       "return the correct total" in {
-        sut.totalRequestedCredit(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
+        sut.totalRequestedCredit_old(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
       }
     }
     
@@ -195,7 +195,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
       }
       
       "do bigger object" in {
-        sut.biggerObject(newUserAnswers) mustBe CreditCalculation(
+        sut.totalRequestedCredit(newUserAnswers) mustBe CreditCalculation(
           availableCreditInPounds = 11, 
           totalRequestedCreditInPounds = 2,
           totalRequestedCreditInKilograms = 3, 

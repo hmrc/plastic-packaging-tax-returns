@@ -419,7 +419,7 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         setupMocksForSubmit(userAnswersReturns)
         mockReturnsSubmissionConnector(aReturn())
-        when(mockCreditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("a field is missing")
+        when(mockCreditsCalculationService.totalRequestedCredit_old(any)) thenThrow new RuntimeException("a field is missing")
 
         the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
           have message "a field is missing"
@@ -470,7 +470,7 @@ class ReturnsControllerSpec
 
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(0L, BigDecimal(0), 1.0))
+    when(mockCreditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(0L, BigDecimal(0), 1.0))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

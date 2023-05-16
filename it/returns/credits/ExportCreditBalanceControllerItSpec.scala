@@ -52,9 +52,6 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository = mock[SessionRepository]
 
-  private val fromDate = LocalDate.of(2022, 4, 1)
-  private val toDate=LocalDate.of(2022, 6,1)
-
   private val url = s"http://localhost:$port/credits/calculate/$pptReference"
   
   private val userAnswerWithCredit = UserAnswers("user-answers-id", obj(
@@ -70,6 +67,25 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         "exportedCredits" -> obj("yesNo" -> true, "weight" -> 5),
     ))
   ))
+  
+  private val exportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
+    processingDate = "2021-11-17T09:32:50.345Z",
+    totalPPTCharges = BigDecimal(1000),
+    totalExportCreditClaimed = BigDecimal(100),
+    totalExportCreditAvailable = BigDecimal(200)
+  )
+
+  private def stubGetBalanceResponse() = {
+    server.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+      .willReturn(
+        ok()
+          .withBody(ExportCreditBalanceDisplayResponse
+            .format
+            .writes(exportCreditBalanceDisplayResponse)
+            .toString())
+      )
+    )
+  }
 
   override lazy val app: Application = {
     server.start()
@@ -122,40 +138,17 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       "cannot find userAnswers" in {
         withAuthorizedUser()
         when(sessionRepository.get(any)).thenReturn(Future.successful(None))
-
         val response = await(wsClient.url(url).get)
-
         response.status mustBe INTERNAL_SERVER_ERROR
+        response.json mustBe obj("statusCode" -> 500, "message" -> "UserAnswers is empty")
       }
 
-      "user is not Authorized" in {
-        withUnauthorizedUser(new IllegalAccessException())
-
+      "user is not authorized" in {
+        withUnauthorizedUser(new IllegalAccessException()) // TODO ehh?
         val response = await(wsClient.url(url).get)
-
         response.status mustBe UNAUTHORIZED
       }
     }
-  }
     
-  val exportCreditBalanceDisplayResponse: ExportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
-    processingDate = "2021-11-17T09:32:50.345Z",
-    totalPPTCharges = BigDecimal(1000),
-    totalExportCreditClaimed = BigDecimal(100),
-    totalExportCreditAvailable = BigDecimal(200)
-  )
-
-  private def stubGetBalanceResponse() = {
-    // $pptReference?fromDate=$date&toDate=$toDate")
-    server.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
-      .willReturn(
-        ok()
-          .withBody(ExportCreditBalanceDisplayResponse
-            .format
-            .writes(exportCreditBalanceDisplayResponse)
-            .toString())
-      )
-    )
   }
-
 }

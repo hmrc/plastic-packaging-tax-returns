@@ -25,7 +25,7 @@ import java.time.LocalDate
 class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
 
   // TODO replace with biggerObject
-  def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
+  def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic = {
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
       .getOrElse(TaxablePlastic.zero)
@@ -60,7 +60,7 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       .toMap
   }
 
-  def biggerObject(userAnswers: UserAnswers): CreditCalculation = {
+  def totalRequestedCredit(userAnswers: UserAnswers): CreditCalculation = {
     val availableCreditInPounds = BigDecimal(11) // TODO
     val totalRequestedCreditInPounds = BigDecimal(2) // TODO
     val totalRequestedCreditInKilograms = 3L // TODO

@@ -75,12 +75,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   "get" must {
 
     "return 200 response with correct values" in {
-      when(creditsCalculationService.biggerObject(any)) thenReturn exampleCreditCalculation
+      when(creditsCalculationService.totalRequestedCredit(any)) thenReturn exampleCreditCalculation
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
       await(result)
       
-      verify(creditsCalculationService).biggerObject(any)
+      verify(creditsCalculationService).totalRequestedCredit(any)
       
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(exampleCreditCalculation)
@@ -90,7 +90,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       }
 
       withClue("credits calculation service is called"){
-        verify(creditsCalculationService).biggerObject(userAnswers)
+        verify(creditsCalculationService).totalRequestedCredit(userAnswers)
       }
 
       withClue("fetch available credit balance"){
@@ -110,7 +110,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)
         }
         withClue("calculator should not have been called"){
-          verify(creditsCalculationService, never()).biggerObject(any)
+          verify(creditsCalculationService, never()).totalRequestedCredit(any)
         }
       }
 
@@ -125,7 +125,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)
         }
         withClue("calculator should not have been called"){
-          verify(creditsCalculationService, never()).totalRequestedCredit(any)
+          verify(creditsCalculationService, never()).totalRequestedCredit_old(any)
         }
       }
 
@@ -138,12 +138,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         } must have message "test message"
 
         withClue("calculator should not have been called"){
-          verify(creditsCalculationService, never()).totalRequestedCredit(any)
+          verify(creditsCalculationService, never()).totalRequestedCredit_old(any)
         }
       }
 
       "complain about missing period end-date / credits calculation fails for some other reason" in {
-        when(creditsCalculationService.biggerObject(any)) thenThrow new RuntimeException("bang")
+        when(creditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("bang")
         the [Exception] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
         } must have message "bang"
