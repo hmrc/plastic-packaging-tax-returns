@@ -120,9 +120,9 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       withClue("Response with correct values") {
         response.status mustBe OK
         response.json mustBe obj(
-          "availableCreditInPounds" -> 11, // TODO should be 200
-          "totalRequestedCreditInPounds" -> 2, // TODO should be 3
-          "totalRequestedCreditInKilograms" -> 3, // TODO should be 15
+          "availableCreditInPounds" -> 200,
+          "totalRequestedCreditInPounds" -> 3,
+          "totalRequestedCreditInKilograms" -> 15,
           "canBeClaimed" -> true,
           "credit" -> obj(
             "2022-04-01-2023-03-31" -> obj(

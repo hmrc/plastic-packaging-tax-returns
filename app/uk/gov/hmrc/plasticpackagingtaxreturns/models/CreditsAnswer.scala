@@ -31,10 +31,12 @@ object CreditsAnswer {
 
   def noClaim: CreditsAnswer = CreditsAnswer(false, None)
 
-  implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]  
+  implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]
+  
   def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer =
     exportedCredits.getOrElse(CreditsAnswer.noClaim)
 
+  // TODO replace
   def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer = {
     userAnswers
       .get[CreditsAnswer](JsPath \ path)

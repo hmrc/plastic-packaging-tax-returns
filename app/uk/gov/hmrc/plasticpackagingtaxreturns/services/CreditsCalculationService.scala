@@ -22,7 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
 
-class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
+class CreditsCalculationService @Inject()(taxCalculationService: TaxCalculationService) {
 
   // TODO replace with biggerObject
   def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic = {
@@ -40,7 +40,7 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
     val exportedCredit = CreditsAnswer.readFrom(userAnswers, "exportedCredits")
     val convertedCredit = CreditsAnswer.readFrom(userAnswers, "convertedCredits")
     val totalWeight = exportedCredit.value + convertedCredit.value
-    weightToPoundsConversionService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
+    taxCalculationService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
   }
 
   private def newJourney(userAnswers: UserAnswers): Option[TaxablePlastic] = {
@@ -49,14 +49,14 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       .flatMap { map =>
         map.values.headOption
       }
-      .map(singleYearClaim => singleYearClaim.calculate(weightToPoundsConversionService))
+      .map(singleYearClaim => singleYearClaim.calculate(taxCalculationService))
   }
 
   def newJourney2(userAnswers: UserAnswers): Map[String, TaxablePlastic] = {
     userAnswers
       .get[Map[String, SingleYearClaim]](JsPath \ "credit")
       .getOrElse(Map())
-      .view.mapValues(_.calculate(weightToPoundsConversionService))
+      .view.mapValues(_.calculate(taxCalculationService))
       .toMap
   }
 
