@@ -30,20 +30,24 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService
 
 import java.time.LocalDate
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAfterEach{
 
   private val controllerComponents = Helpers.stubControllerComponents()
   private val service = mock[AvailableCreditDateRangesService]
+  private val session = mock[SessionRepository]
   private val authenticator = spy(new FakeAuthenticator(controllerComponents))
 
-  val sut = new AvailableCreditDateRangesController(service, authenticator, controllerComponents)
+  val sut = new AvailableCreditDateRangesController(service, authenticator, session, controllerComponents)(ExecutionContext.global)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -58,7 +62,10 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAft
 
     }
     "return 200 and list of dates" in {
-      when(service.calculate).thenReturn(
+      when(session.get(FakeAuthenticator.cacheKey))
+        .thenReturn(Future.successful(Some(UserAnswers("id")
+          .setOrFail(ReturnObligationToDateGettable.path, LocalDate.of(1996, 3, 27)))))
+      when(service.calculate(any)).thenReturn(
         Seq(
         CreditRangeOption(
           LocalDate.of(1996, 3, 27),
@@ -72,7 +79,22 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAft
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.parse(dates)
-      verify(service).calculate
+      verify(service).calculate(any)
+    }
+
+    "error" when {
+      "user answers is missing" in {
+        when(session.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
+
+        val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
+        ex.getMessage mustBe "UserAnswers is empty"
+      }
+      "user answers is missing the return toDate" in {
+        when(session.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(UserAnswers("blah"))))
+
+        val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
+        ex.getMessage mustBe s"${ReturnObligationToDateGettable.path} is missing from user answers"
+      }
     }
   }
 

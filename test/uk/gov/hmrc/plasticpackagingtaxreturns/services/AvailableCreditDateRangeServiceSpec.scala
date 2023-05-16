@@ -34,15 +34,15 @@ class AvailableCreditDateRangeServiceSpec extends PlaySpec
   "calculate" should {
 
     "return 1 year" in {
-      when(edgeOfSystem.today) thenReturn LocalDate.of(2023, 3, 31)
-      service.calculate mustBe Seq(
+      val returnEndDate = LocalDate.of(2023, 3, 31)
+      service.calculate(returnEndDate) mustBe Seq(
         CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2023, 3, 31)),
       )
     }
 
     "return 2 years" in {
-      when(edgeOfSystem.today) thenReturn LocalDate.of(2024, 3, 31)
-      service.calculate mustBe Seq(
+      val returnEndDate = LocalDate.of(2024, 3, 31)
+      service.calculate(returnEndDate) mustBe Seq(
         CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2023, 3, 31)),
         CreditRangeOption(LocalDate.of(2023, 4, 1), LocalDate.of(2024, 3, 31)),
       )
