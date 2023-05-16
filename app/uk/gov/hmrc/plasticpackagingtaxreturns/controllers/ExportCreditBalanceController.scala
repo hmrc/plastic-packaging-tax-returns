@@ -41,7 +41,7 @@ class ExportCreditBalanceController @Inject() (
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
         availableCredit <- availableCreditService.getBalance(userAnswers)
-        creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers)
+        creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
       } yield { 
         Ok(Json.toJson(creditClaim))
       }

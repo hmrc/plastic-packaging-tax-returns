@@ -75,12 +75,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   "get" must {
 
     "return 200 response with correct values" in {
-      when(creditsCalculationService.totalRequestedCredit(any)) thenReturn exampleCreditCalculation
+      when(creditsCalculationService.totalRequestedCredit(any, any)) thenReturn exampleCreditCalculation
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
       await(result)
       
-      verify(creditsCalculationService).totalRequestedCredit(any)
+      verify(creditsCalculationService).totalRequestedCredit(any, any)
       
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(exampleCreditCalculation)
@@ -88,13 +88,11 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       withClue("session repo called with the cache key"){
         verify(mockSessionRepo).get(s"some-internal-ID-some-ppt-ref")
       }
-
-      withClue("credits calculation service is called"){
-        verify(creditsCalculationService).totalRequestedCredit(userAnswers)
-      }
-
       withClue("fetch available credit balance"){
         verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any)
+      }
+      withClue("credits calculation service is called"){
+        verify(creditsCalculationService).totalRequestedCredit(userAnswers, availableCreditInPounds = 200)
       }
     }
 
@@ -110,7 +108,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)
         }
         withClue("calculator should not have been called"){
-          verify(creditsCalculationService, never()).totalRequestedCredit(any)
+          verify(creditsCalculationService, never()).totalRequestedCredit(any, any)
         }
       }
 
@@ -143,7 +141,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       }
 
       "complain about missing period end-date / credits calculation fails for some other reason" in {
-        when(creditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("bang")
+        when(creditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException("bang")
         the [Exception] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
         } must have message "bang"

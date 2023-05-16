@@ -60,18 +60,8 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       .toMap
   }
 
-  def totalRequestedCredit(userAnswers: UserAnswers): CreditCalculation = {
-    val availableCreditInPounds = BigDecimal(11) // TODO
-    val totalRequestedCreditInPounds = BigDecimal(2) // TODO
-    val totalRequestedCreditInKilograms = 3L // TODO
-    val canBeClaimed: Boolean = totalRequestedCreditInPounds <= availableCreditInPounds
-    CreditCalculation(
-      availableCreditInPounds, 
-      totalRequestedCreditInPounds, 
-      totalRequestedCreditInKilograms,
-      canBeClaimed = canBeClaimed, 
-      credit = newJourney2(userAnswers),
-    )
+  def totalRequestedCredit(userAnswers: UserAnswers, availableCreditInPounds: BigDecimal): CreditCalculation = {
+    CreditCalculation.totalUp(newJourney2(userAnswers), availableCreditInPounds)
   }
 
 }

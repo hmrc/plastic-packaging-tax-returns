@@ -43,7 +43,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "obligation" -> obj("toDate" -> "2024-06-30"),
     "whatDoYouWantToDo" -> true, 
     "credit" -> obj(
-      "key-blah" -> obj(
+      "key-a" -> obj(
         "endDate" -> "2024-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
@@ -55,7 +55,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
         )
       ),
     
-      "key-waffle" -> obj(
+      "key-b" -> obj(
         "endDate" -> "2025-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
@@ -189,23 +189,26 @@ class CreditsCalculationServiceSpec extends PlaySpec
       
       "calculate all years" in {
         sut.newJourney2(newUserAnswers) mustBe Map(
-          ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
-          ("key-waffle", TaxablePlastic(2, 2.2, 2.22))
+          ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+          ("key-b", TaxablePlastic(2, 2.2, 2.22))
         )
       }
       
       "do bigger object" in {
-        sut.totalRequestedCredit(newUserAnswers) mustBe CreditCalculation(
+        sut.totalRequestedCredit(newUserAnswers, 11) mustBe CreditCalculation(
           availableCreditInPounds = 11, 
-          totalRequestedCreditInPounds = 2,
+          totalRequestedCreditInPounds = 3.3,
           totalRequestedCreditInKilograms = 3, 
           canBeClaimed = true, 
           credit = Map(
-            ("key-blah", TaxablePlastic(1, 1.1, 1.11)),
-            ("key-waffle", TaxablePlastic(2, 2.2, 2.22))
+            ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+            ("key-b", TaxablePlastic(2, 2.2, 2.22))
         ))
       }
     }
+    
+    "there is no credit claim" in {}
+    "there is claim data, but user has said no to claiming" in {}
     
   }
 }
