@@ -27,5 +27,20 @@ case class CreditCalculation(
 )
 
 object CreditCalculation {
+  
+  def totalUp(credit: Map[String, TaxablePlastic], availableCreditInPounds: BigDecimal): CreditCalculation = {
+    val totals = credit.foldLeft(TaxablePlastic.zero) {
+      case (accumulator, (_, taxablePlastic)) => accumulator + taxablePlastic
+    }
+    val canBeClaimed: Boolean = totals.moneyInPounds <= availableCreditInPounds
+    CreditCalculation(
+      availableCreditInPounds = availableCreditInPounds,
+      totalRequestedCreditInPounds = totals.moneyInPounds,
+      totalRequestedCreditInKilograms = totals.weight,
+      canBeClaimed,
+      credit = credit
+    )
+  }
+
   implicit val writes: OWrites[CreditCalculation] = Json.writes[CreditCalculation]
 }

@@ -38,7 +38,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
-import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 
 class ExportCreditBalanceControllerItSpec extends PlaySpec
