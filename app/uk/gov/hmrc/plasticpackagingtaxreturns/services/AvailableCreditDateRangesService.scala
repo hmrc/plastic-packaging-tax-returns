@@ -17,29 +17,80 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService.TaxQuarter
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.LocalDate
+import java.time.{LocalDate, Month}
+import java.time.Month._
 import javax.inject.Inject
+import scala.annotation.tailrec
 
 class AvailableCreditDateRangesService @Inject() (
   edgeOfSystem: EdgeOfSystem
 ) {
-  
-  def taxYears(date: LocalDate): Seq[Int] = {
-    val isWithinNextTaxYear = date.isAfter(LocalDate.of(date.getYear, 3, 31))
-    val currentTaxYearStartYear = if (isWithinNextTaxYear) date.getYear else date.getYear - 1
-    val taxRegimeStartYear = 2022
-    Range.inclusive(taxRegimeStartYear, currentTaxYearStartYear)
+
+  def taxYears(date: LocalDate): Seq[(LocalDate, LocalDate)] = {
+    TaxQuarter(date)
+      .previousEightQuarters
+      .groupBy(_.taxYear)
+      .values.toSeq
+      .map{ range =>
+        range.minBy(_.quarter).fromToDates._1 -> range.maxBy(_.quarter).fromToDates._2
+      }
   }
+
 
   def calculate(returnEndDate: LocalDate): Seq[CreditRangeOption] = {
-    // TODO base these off the quarter currently being filed
-    val endDate = edgeOfSystem.today //todo use this if trimming dates
-    taxYears(returnEndDate).map(toYearRange)
+    val endDate = edgeOfSystem.today //todo use this if trimming from 'todays date'
+
+    val startDate = LocalDate.of(2022, 4, 1) //todo use user's taxStartDate
+    taxYears(returnEndDate).collect{
+      case (from, to) if from.isAfter(startDate) => from -> to
+      case (from, to) if from.isEqual(startDate) => from -> to
+      case (from, to) if to.isEqual(startDate) => from -> to
+      case (from, to) if from.isBefore(startDate) && to.isAfter(startDate) => startDate -> to
+    }.map(CreditRangeOption.apply)
   }
 
-  private def toYearRange(year: Int): CreditRangeOption = {
-    CreditRangeOption(LocalDate.of(year, 4, 1), LocalDate.of(year + 1, 3, 31))
+}
+
+object AvailableCreditDateRangesService {
+
+  final case class TaxQuarter(taxYear: Int, quarter: Int) {
+    require(quarter >= 1 && quarter <= 4) //todo
+
+    private def previousQuarter = if (quarter == 1) TaxQuarter(taxYear-1, 4) else TaxQuarter(taxYear, quarter -1)
+
+    def previousEightQuarters: Seq[TaxQuarter] = {
+      @tailrec
+      def builder(seq: Seq[TaxQuarter]): Seq[TaxQuarter] = {
+        if (seq.size == 8) seq
+        else builder(seq :+ seq.last.previousQuarter)
+      }
+      builder(Seq(previousQuarter))
+    }
+
+    private def firstOf(month: Month, year: Int): LocalDate = LocalDate.of(year, month, 1)
+    private def endOf(month: Month, year: Int): LocalDate =  LocalDate.of(year, month, month.length(true))
+
+    def fromToDates: (LocalDate, LocalDate) = quarter match {
+      case 1 => firstOf(APRIL, taxYear) -> endOf(JUNE, taxYear)
+      case 2 => firstOf(JULY, taxYear) -> endOf(SEPTEMBER, taxYear)
+      case 3 => firstOf(OCTOBER, taxYear) -> endOf(DECEMBER, taxYear)
+      case 4 => firstOf(JANUARY, taxYear + 1) -> endOf(MARCH, taxYear + 1)
+      case e => throw new IllegalStateException(s"quarter must be 1-4 was $e")
+    }
+  }
+
+  object TaxQuarter {
+    def apply(localDate: LocalDate): TaxQuarter = {
+      val year = localDate.getYear
+      localDate.getMonth match {
+        case APRIL | MAY | JUNE => new TaxQuarter(year, 1)
+        case JULY | AUGUST | SEPTEMBER => new TaxQuarter(year, 2)
+        case OCTOBER | NOVEMBER | DECEMBER => new TaxQuarter(year, 3)
+        case JANUARY | FEBRUARY | MARCH => new TaxQuarter(year - 1, 4)
+      }
+    }
   }
 }
