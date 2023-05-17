@@ -17,15 +17,15 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditsAnswer, SingleYearClaim, TaxablePlastic}
+import play.api.libs.json.{JsObject, JsPath}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
 
-class CreditsCalculationService @Inject()(weightToPoundsConversionService: WeightToPoundsConversionService) {
-  
-  def totalRequestedCredit(userAnswers: UserAnswers): TaxablePlastic = {
+class CreditsCalculationService @Inject()(taxCalculationService: TaxCalculationService) {
+
+  // TODO replace with biggerObject
+  def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic = {
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
       .getOrElse(TaxablePlastic.zero)
@@ -40,7 +40,7 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
     val exportedCredit = CreditsAnswer.readFrom(userAnswers, "exportedCredits")
     val convertedCredit = CreditsAnswer.readFrom(userAnswers, "convertedCredits")
     val totalWeight = exportedCredit.value + convertedCredit.value
-    weightToPoundsConversionService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
+    taxCalculationService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
   }
 
   private def newJourney(userAnswers: UserAnswers): Option[TaxablePlastic] = {
@@ -49,6 +49,19 @@ class CreditsCalculationService @Inject()(weightToPoundsConversionService: Weigh
       .flatMap { map =>
         map.values.headOption
       }
-      .map(singleYearClaim => singleYearClaim.calculate(weightToPoundsConversionService))
+      .map(singleYearClaim => singleYearClaim.calculate(taxCalculationService))
   }
+
+  def newJourney2(userAnswers: UserAnswers): Map[String, TaxablePlastic] = {
+    userAnswers
+      .get[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .getOrElse(Map())
+      .view.mapValues(_.calculate(taxCalculationService))
+      .toMap
+  }
+
+  def totalRequestedCredit(userAnswers: UserAnswers, availableCreditInPounds: BigDecimal): CreditCalculation = {
+    CreditCalculation.totalUp(newJourney2(userAnswers), availableCreditInPounds)
+  }
+
 }

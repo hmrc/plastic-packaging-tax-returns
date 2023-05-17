@@ -22,16 +22,15 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
 import play.api.libs.json.Json.obj
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, CreditsAnswer}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, TaxablePlastic, UserAnswers}
 
 import java.time.LocalDate
 
 class CreditsCalculationServiceSpec extends PlaySpec
   with BeforeAndAfterEach with MockitoSugar {
 
-  private val weightToPoundsConversionService = mock[WeightToPoundsConversionService]
-  private val sut = new CreditsCalculationService(weightToPoundsConversionService)
+  private val taxCalculationService = mock[TaxCalculationService]
+  private val sut = new CreditsCalculationService(taxCalculationService)
 
   private val currentUserAnswers = UserAnswers("id", obj(
     "obligation" -> obj (
@@ -44,7 +43,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "obligation" -> obj("toDate" -> "2024-06-30"),
     "whatDoYouWantToDo" -> true, 
     "credit" -> obj(
-      "2023-04-01-2024-03-31" -> obj(
+      "key-a" -> obj(
         "endDate" -> "2024-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
@@ -55,14 +54,25 @@ class CreditsCalculationServiceSpec extends PlaySpec
           "weight" -> 2
         )
       ),
+    
+      "key-b" -> obj(
+        "endDate" -> "2025-03-31",
+        "exportedCredits" -> obj(
+          "yesNo" -> true,
+          "weight" -> 11
+        ),
+      ),
     )
   ))
 
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(weightToPoundsConversionService)
-    when(weightToPoundsConversionService.weightToCredit(any, any)) thenReturn TaxablePlastic(11, 22.3, 3.14)
+    reset(taxCalculationService)
+    when(taxCalculationService.weightToCredit(any, any)).thenReturn(
+      TaxablePlastic(1, 1.1, 1.11),
+      TaxablePlastic(2, 2.2, 2.22),
+    )
   }
 
   // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
@@ -72,15 +82,15 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "given current user answers" must {
 
       "return the credit claimed total" in {
-        sut.totalRequestedCredit(currentUserAnswers)// mustBe TaxablePlastic(11, 22.3, 3.14)
-        verify(weightToPoundsConversionService).weightToCredit(any, any)
+        sut.totalRequestedCredit_old(currentUserAnswers)// mustBe TaxablePlastic(11, 22.3, 3.14)
+        verify(taxCalculationService).weightToCredit(any, any)
       }
 
       "total the weight" when {
 
         "both answers are missing" in {
-          sut.totalRequestedCredit(currentUserAnswers)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+          sut.totalRequestedCredit_old(currentUserAnswers)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
         "both answers answered with false" in {
@@ -88,8 +98,8 @@ class CreditsCalculationServiceSpec extends PlaySpec
             "exportedCredits" -> CreditsAnswer(false, None),
             "convertedCredits" -> CreditsAnswer(false, None)
           )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
         "both answers answered are only partially answered" in {
@@ -97,8 +107,8 @@ class CreditsCalculationServiceSpec extends PlaySpec
             "exportedCredits" -> CreditsAnswer(true, None),
             "convertedCredits" -> CreditsAnswer(true, None)
           )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
         }
 
         "converted is supplied" in {
@@ -106,8 +116,8 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L))
             )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 5L)
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 5L)
         }
 
         "exported is supplied" in {
@@ -115,8 +125,8 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 7L)
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 7L)
         }
 
         "both are supplied" in {
@@ -126,8 +136,8 @@ class CreditsCalculationServiceSpec extends PlaySpec
               "convertedCredits" -> CreditsAnswer(true, Some(5L)),
               "exportedCredits" -> CreditsAnswer(true, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(LocalDate.of(2023, 3, 31), 12L)
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 12L)
         }
 
         "exported is false" in {
@@ -135,16 +145,16 @@ class CreditsCalculationServiceSpec extends PlaySpec
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("exportedCredits" -> CreditsAnswer(false, Some(7L))
             )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(any, eqTo(0L))
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(any, eqTo(0L))
         }
         "converted is false" in {
           val userAnswers2 = currentUserAnswers
             .setOrFail(JsPath \ "whatDoYouWantToDo", true)
             .setAll("convertedCredits" -> CreditsAnswer(false, Some(5L)),
             )
-          sut.totalRequestedCredit(userAnswers2)
-          verify(weightToPoundsConversionService).weightToCredit(any, eqTo(0L))
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(any, eqTo(0L))
         }
       }
 
@@ -153,26 +163,52 @@ class CreditsCalculationServiceSpec extends PlaySpec
           "whatDoYouWantToDo" -> true,
           "obligation" -> obj("toDate" -> "2022-06-30")
         )))
-        sut.totalRequestedCredit(userAnswers)
+        sut.totalRequestedCredit_old(userAnswers)
 
         // Previously used this
         verify(userAnswers, never).getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
-        verify(weightToPoundsConversionService).weightToCredit(eqTo(LocalDate.of(2023, 3, 31)), any)
+        verify(taxCalculationService).weightToCredit(eqTo(LocalDate.of(2023, 3, 31)), any)
       }
     }
 
     "given new user answers" must {
       "use the correct end date for the new journey" in {
-        sut.totalRequestedCredit(newUserAnswers)
-        verify(weightToPoundsConversionService).weightToCredit(eqTo(LocalDate.of(2024, 3, 31)), any)
+        sut.totalRequestedCredit_old(newUserAnswers)
+        verify(taxCalculationService).weightToCredit(eqTo(LocalDate.of(2024, 3, 31)), any)
       }
       "use the correct weight for the new journey" in {
-        sut.totalRequestedCredit(newUserAnswers)
-        verify(weightToPoundsConversionService).weightToCredit(any, eqTo(3))
+        sut.totalRequestedCredit_old(newUserAnswers)
+        verify(taxCalculationService).weightToCredit(any, eqTo(3))
       }
       "return the correct total" in {
-        sut.totalRequestedCredit(newUserAnswers) mustBe TaxablePlastic(11, 22.3, 3.14)
+        sut.totalRequestedCredit_old(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
       }
     }
+    
+    "newJourney2" must {
+      
+      "calculate all years" in {
+        sut.newJourney2(newUserAnswers) mustBe Map(
+          ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+          ("key-b", TaxablePlastic(2, 2.2, 2.22))
+        )
+      }
+      
+      "do bigger object" in {
+        sut.totalRequestedCredit(newUserAnswers, 11) mustBe CreditCalculation(
+          availableCreditInPounds = 11, 
+          totalRequestedCreditInPounds = 3.3,
+          totalRequestedCreditInKilograms = 3, 
+          canBeClaimed = true, 
+          credit = Map(
+            ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+            ("key-b", TaxablePlastic(2, 2.2, 2.22))
+        ))
+      }
+    }
+    
+    "there is no credit claim" in {}
+    "there is claim data, but user has said no to claiming" in {}
+    
   }
 }

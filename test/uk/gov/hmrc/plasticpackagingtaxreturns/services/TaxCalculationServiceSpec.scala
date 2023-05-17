@@ -25,7 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
-class WeightToPoundsConversionServiceSpec extends PlaySpec 
+class TaxCalculationServiceSpec extends PlaySpec 
   with MockitoSugar with BeforeAndAfterEach {
 
   private val taxRateTable = mock[TaxRateTable]
@@ -36,7 +36,7 @@ class WeightToPoundsConversionServiceSpec extends PlaySpec
     when(taxRateTable.lookupRateFor(any)) thenReturn 1.0
   }
 
-  private val sut = new WeightToPoundsConversionService(taxRateTable)
+  private val sut = new TaxCalculationService(taxRateTable)
 
   private val aDate: LocalDate = LocalDate.of(2022, 7, 14)
 

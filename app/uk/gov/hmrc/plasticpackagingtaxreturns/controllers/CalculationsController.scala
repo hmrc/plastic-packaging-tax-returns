@@ -67,7 +67,7 @@ class CalculationsController @Inject()(
       sessionRepository.get(request.cacheKey).flatMap(
         _.fold(Future.successful(UnprocessableEntity("No user answers found"))){ userAnswers =>
           availableCreditService.getBalance(userAnswers).map{ availableCredit =>
-            val requestedCredits = creditsService.totalRequestedCredit(userAnswers)
+            val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
             NewReturnValues(requestedCredits, availableCredit)(userAnswers)
               .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
                 val calculations: Calculations = calculationsService.calculate(returnValues)

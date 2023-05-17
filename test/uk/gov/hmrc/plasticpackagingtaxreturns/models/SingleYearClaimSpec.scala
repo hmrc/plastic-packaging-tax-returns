@@ -16,50 +16,38 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
+import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json.obj
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.TaxCalculationService
 
 import java.time.LocalDate
 
 class SingleYearClaimSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
-  
+
+  private val taxCalculationService = mock[TaxCalculationService]
+  private val taxablePlastic = TaxablePlastic(1, 2, 3)
+
   private val exampleClaim = SingleYearClaim(
     LocalDate.of(2024, 3, 31),
     Some(CreditsAnswer(true, Some(1L))),
     Some(CreditsAnswer(true, Some(2L))),
   )
   
-  "it" should {
-    
-    "read from user answers" in {
-      val userAnswers = UserAnswers("id", obj(
-        "credit" -> obj(
-          "2023-04-01-2024-03-31" -> obj(
-            "endDate" -> "2024-03-31",
-            "exportedCredits" -> obj(
-              "yesNo" -> true,
-              "weight" -> 12344
-            ),
-            "convertedCredits" -> obj(
-              "yesNo" -> true,
-              "weight" -> 123
-            )
-          ),
-        )
-      ))
 
-      SingleYearClaim.readFirstFrom(userAnswers) mustBe SingleYearClaim(
-        LocalDate.of(2024, 3, 31),
-        Some(CreditsAnswer(true, Some(12344L))),
-        Some(CreditsAnswer(true, Some(123L))),
-      )
-    }
-    
-    "total the weight of the claim" in {
-//      exampleClaim.totalWeight mustBe 3L
-    }
-    
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    when(taxCalculationService.weightToCredit(any, any)) thenReturn taxablePlastic
   }
+
+  "it" should {
+
+    "calculate the total weight in the claim" in {
+      exampleClaim.calculate(taxCalculationService) mustBe taxablePlastic
+      verify(taxCalculationService).weightToCredit(LocalDate.of(2024, 3, 31), 3L)
+    }
+
+  }
+
 }

@@ -16,26 +16,23 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import play.api.libs.json.{JsPath, Json, OFormat}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.WeightToPoundsConversionService
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.TaxCalculationService
 
 import java.time.LocalDate
 
 
-case class SingleYearClaim(endDate: LocalDate, exportedCredits: Option[CreditsAnswer], convertedCredits: Option[CreditsAnswer]) {
-  def calculate(weightToPoundsConversionService: WeightToPoundsConversionService): TaxablePlastic = {
+case class SingleYearClaim(
+  endDate: LocalDate, 
+  exportedCredits: Option[CreditsAnswer], 
+  convertedCredits: Option[CreditsAnswer]
+) {
+  def calculate(taxCalculationService: TaxCalculationService): TaxablePlastic = {
     val totalWeight = CreditsAnswer.from(exportedCredits).value + CreditsAnswer.from(convertedCredits).value 
-    weightToPoundsConversionService.weightToCredit(endDate, totalWeight)
+    taxCalculationService.weightToCredit(endDate, totalWeight)
   }
 }
 
 object SingleYearClaim {
-
-  def readFirstFrom(userAnswers: UserAnswers): SingleYearClaim =
-    userAnswers
-      .getOrFail[Map[String, SingleYearClaim]](JsPath \ "credit")
-      .values
-      .head
-
   implicit val formats: OFormat[SingleYearClaim] = Json.format[SingleYearClaim]
 }
