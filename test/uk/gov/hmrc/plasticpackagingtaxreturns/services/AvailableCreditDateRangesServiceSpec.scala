@@ -163,14 +163,14 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
 
     "return 8 previous quarters" when {
       "for a return for a tax year in quarter 1 (1/4/2024)" in {
-        val taxYears = service.taxYears(LocalDate.of(2024, 4, 1))
+        val taxYears = service.taxYears(LocalDate.of(2024, 6, 30))
         taxYears mustBe Seq(
           LocalDate.of(2023, 4, 1) -> LocalDate.of(2024, 3, 31),
           LocalDate.of(2022, 4, 1) -> LocalDate.of(2023, 3, 31),
         )
       }
       "for a return for a tax year in quarter 2 (1/7/2024)" in {
-        val taxYears = service.taxYears(LocalDate.of(2024, 7, 1))
+        val taxYears = service.taxYears(LocalDate.of(2024, 9, 30))
         taxYears mustBe Seq(
           LocalDate.of(2024, 4, 1) -> LocalDate.of(2024, 6, 30),
           LocalDate.of(2023, 4, 1) -> LocalDate.of(2024, 3, 31),
@@ -178,7 +178,7 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
         )
       }
       "for a return for a tax year in quarter 3 (1/10/2024)" in {
-        val taxYears = service.taxYears(LocalDate.of(2024, 10, 1))
+        val taxYears = service.taxYears(LocalDate.of(2024, 12, 31))
         taxYears mustBe Seq(
           LocalDate.of(2024, 4, 1) -> LocalDate.of(2024, 9, 30),
           LocalDate.of(2023, 4, 1) -> LocalDate.of(2024, 3, 31),
@@ -186,8 +186,8 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
         )
       }
 
-      "for a return for a tax year in quarter 4 (1/1/2025)" in {
-        val taxYears = service.taxYears(LocalDate.of(2024, 1, 1))
+      "for a return for a tax year in quarter 4 (1/1/2024)" in {
+        val taxYears = service.taxYears(LocalDate.of(2024, 3, 31))
         taxYears mustBe Seq(
           LocalDate.of(2023, 4, 1) -> LocalDate.of(2023, 12, 31),
           LocalDate.of(2022, 4, 1) -> LocalDate.of(2023, 3, 31),
