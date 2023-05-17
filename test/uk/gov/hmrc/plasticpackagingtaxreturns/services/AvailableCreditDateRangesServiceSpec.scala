@@ -22,6 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService.TaxQuarter
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService.TaxQuarter._
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.LocalDate
@@ -82,46 +83,78 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
   }
 
   "TaxQuarter" when {
-    "previousEightQuarters" must {
-      "return 8 quarters" in {
-        val quarters = TaxQuarter(2025, 1).previousEightQuarters
-
-        quarters.size mustBe 8
-        quarters must contain(TaxQuarter(2024, 4))
-        quarters must contain(TaxQuarter(2024, 3))
-        quarters must contain(TaxQuarter(2024, 2))
-        quarters must contain(TaxQuarter(2024, 1))
-        quarters must contain(TaxQuarter(2023, 4))
-        quarters must contain(TaxQuarter(2023, 3))
-        quarters must contain(TaxQuarter(2023, 2))
-        quarters must contain(TaxQuarter(2023, 1))
+    "previous quarter" when {
+      "Q1 give Q4" in {
+        Q1(2024).previousQuarter mustBe Q4(2023)
+      }
+      "Q2 give Q1" in {
+        Q2(2024).previousQuarter mustBe Q1(2024)
+      }
+      "Q3 give Q2" in {
+        Q3(2024).previousQuarter mustBe Q2(2024)
+      }
+      "Q4 give Q3" in {
+        Q4(2024).previousQuarter mustBe Q3(2024)
       }
     }
 
-    "fromToDates" must {
-      "give correct dates for quarter 1" in {
-        val fromToDates = TaxQuarter(2025, 1).fromToDates
+    "previousEightQuarters" must {
+      "return 8 quarters" in {
+        val quarters = Q1(2025).previousEightQuarters
 
-        fromToDates._1 mustBe LocalDate.of(2025, 4, 1)
-        fromToDates._2 mustBe LocalDate.of(2025, 6, 30)
+        quarters.size mustBe 8
+        quarters must contain(Q4(2024))
+        quarters must contain(Q3(2024))
+        quarters must contain(Q2(2024))
+        quarters must contain(Q1(2024))
+        quarters must contain(Q4(2023))
+        quarters must contain(Q3(2023))
+        quarters must contain(Q2(2023))
+        quarters must contain(Q1(2023))
+      }
+    }
+
+    "apply" must {
+      "create a quarter from a date" when {
+        "Q1" in {
+          TaxQuarter.apply(LocalDate.of(2022, 6, 30)) mustBe Q1(2022)
+        }
+        "Q2" in {
+          TaxQuarter.apply(LocalDate.of(2022, 9, 30)) mustBe Q2(2022)
+        }
+        "Q3" in {
+          TaxQuarter.apply(LocalDate.of(2022, 12, 31)) mustBe Q3(2022)
+        }
+        "Q4" in {
+          TaxQuarter.apply(LocalDate.of(2022, 3, 31)) mustBe Q4(2021)
+        }
+      }
+    }
+
+    "fromDate and toDate" must {
+      "give correct dates for quarter 1" in {
+        val quarter = Q1(2025)
+
+        quarter.fromDate mustBe LocalDate.of(2025, 4, 1)
+        quarter.toDate mustBe LocalDate.of(2025, 6, 30)
       }
       "give correct dates for quarter 2" in {
-        val fromToDates = TaxQuarter(2025, 2).fromToDates
+        val quarter = Q2(2025)
 
-        fromToDates._1 mustBe LocalDate.of(2025, 7, 1)
-        fromToDates._2 mustBe LocalDate.of(2025, 9, 30)
+        quarter.fromDate mustBe LocalDate.of(2025, 7, 1)
+        quarter.toDate mustBe LocalDate.of(2025, 9, 30)
       }
       "give correct dates for quarter 3" in {
-        val fromToDates = TaxQuarter(2025, 3).fromToDates
+        val quarter = Q3(2025)
 
-        fromToDates._1 mustBe LocalDate.of(2025, 10, 1)
-        fromToDates._2 mustBe LocalDate.of(2025, 12, 31)
+        quarter.fromDate mustBe LocalDate.of(2025, 10, 1)
+        quarter.toDate mustBe LocalDate.of(2025, 12, 31)
       }
       "give correct dates for quarter 4" in {
-        val fromToDates = TaxQuarter(2025, 4).fromToDates
+        val quarter = Q4(2025)
 
-        fromToDates._1 mustBe LocalDate.of(2026, 1, 1)
-        fromToDates._2 mustBe LocalDate.of(2026, 3, 31)
+        quarter.fromDate mustBe LocalDate.of(2026, 1, 1)
+        quarter.toDate mustBe LocalDate.of(2026, 3, 31)
       }
     }
   }
@@ -152,6 +185,9 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
           LocalDate.of(2022, 10, 1) -> LocalDate.of(2023, 3, 31),
         )
       }
+
+      //List((2024-04-01,2025-03-31), (2024-01-01,2024-03-31), (2025-04-01,2025-12-31))
+      //List((2023-04-01,2023-12-31), (2022-04-01,2023-03-31), (2022-01-01,2022-03-31))
       "for a return for a tax year in quarter 4 (1/1/2025)" in {
         val taxYears = service.taxYears(LocalDate.of(2024, 1, 1))
         taxYears mustBe Seq(
