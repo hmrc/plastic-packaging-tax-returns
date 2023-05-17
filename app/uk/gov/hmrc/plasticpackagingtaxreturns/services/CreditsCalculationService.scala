@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import play.api.libs.json.JsPath
+import play.api.libs.json.{JsObject, JsPath}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
 import java.time.LocalDate
