@@ -186,8 +186,6 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
         )
       }
 
-      //List((2024-04-01,2025-03-31), (2024-01-01,2024-03-31), (2025-04-01,2025-12-31))
-      //List((2023-04-01,2023-12-31), (2022-04-01,2023-03-31), (2022-01-01,2022-03-31))
       "for a return for a tax year in quarter 4 (1/1/2025)" in {
         val taxYears = service.taxYears(LocalDate.of(2024, 1, 1))
         taxYears mustBe Seq(
