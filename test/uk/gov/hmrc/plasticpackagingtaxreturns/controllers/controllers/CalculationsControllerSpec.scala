@@ -85,7 +85,7 @@ class CalculationsControllerSpec
     "return OK response and the calculation" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
           packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -97,13 +97,13 @@ class CalculationsControllerSpec
     "request credits" in {
       val expected: Calculations = Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15,
         packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
-      when(creditsCalculationService.totalRequestedCredit(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))
 
       verify(availableCreditService).getBalance(ArgumentMatchers.eq(userAnswers))(any)
-      verify(creditsCalculationService).totalRequestedCredit(ArgumentMatchers.eq(userAnswers))
+      verify(creditsCalculationService).totalRequestedCredit_old(ArgumentMatchers.eq(userAnswers))
     }
 
     "return un-processable entity" when {
@@ -163,7 +163,7 @@ class CalculationsControllerSpec
       "building ReturnValues fails" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
           userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight")))
-        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         
         val result = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -173,21 +173,21 @@ class CalculationsControllerSpec
       "a must have field is missing from user answers" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
           userAnswers.removePath(JsPath \ 'obligation \ 'toDate)))
-        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
           have message "/obligation/toDate is missing from user answers"
       }
       
       "tax calculation complains" in {
-        when(creditsCalculationService.totalRequestedCredit(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenThrow new RuntimeException("something else wrong")
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must 
           have message "something else wrong"
       }
       
       "credit calculation complains" in {
-        when(creditsCalculationService.totalRequestedCredit(any)) thenThrow new RuntimeException("a field is missing")
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenThrow new RuntimeException("a field is missing")
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must 
           have message "a field is missing"

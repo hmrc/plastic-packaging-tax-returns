@@ -25,12 +25,12 @@ import scala.math.BigDecimal.RoundingMode
 
 /**
  * Calculate the tax to be paid, or the credit to be claimed for a given weight of taxable packaging
- * @param taxRateService auto-injected PPT tax rate table
+ * @param taxRateTable auto-injected PPT tax rate table
  * @note Policy have advised that rounding must always happen in favor of the customer:
  *        - when calculating a credit (money given to the customer) round up
  *        - when calculating a debit (money taken from the customer) round down
  */
-class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateTable) {
+class TaxCalculationService @Inject() (taxRateTable: TaxRateTable) {
 
   /**
    * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the
@@ -40,7 +40,7 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateTable) {
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): TaxablePlastic = {
-    val taxRateApplied = taxRateService.lookupRateFor(periodEndDate)
+    val taxRateApplied = taxRateTable.lookupRateFor(periodEndDate)
     val currency = BigDecimal(weightInKg) * taxRateApplied // tax rate is £ per kg
     val moneyInPounds = currency.setScale(2, RoundingMode.DOWN)
     TaxablePlastic(weightInKg, moneyInPounds, taxRateApplied)
@@ -54,7 +54,7 @@ class WeightToPoundsConversionService @Inject() (taxRateService: TaxRateTable) {
    * @return the amount in £ this credit claim is worth, rounded up to the nearest pence
    */
   def weightToCredit(taxRateEndDate: LocalDate, weightInKg: Long): TaxablePlastic = {
-    val taxRateApplied = taxRateService.lookupRateFor(taxRateEndDate)
+    val taxRateApplied = taxRateTable.lookupRateFor(taxRateEndDate)
     val currency = BigDecimal(weightInKg) * taxRateApplied
     val moneyInPounds = currency.setScale(2, RoundingMode.UP)
     TaxablePlastic(weightInKg, moneyInPounds, taxRateApplied)
