@@ -32,6 +32,7 @@ import scala.concurrent.ExecutionContext
 class CacheController @Inject()(
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
+
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
@@ -41,7 +42,9 @@ class CacheController @Inject()(
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { request =>
       sessionRepository.get(request.cacheKey).map {
-        case Some(userAnswers) => Ok(userAnswers)
+        case Some(userAnswers) =>
+
+          Ok(userAnswers)
         case None => NotFound
       }
     }
