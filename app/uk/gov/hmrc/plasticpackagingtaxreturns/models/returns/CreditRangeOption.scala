@@ -20,7 +20,9 @@ import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
-final case class CreditRangeOption(from: LocalDate, to: LocalDate)
+final case class CreditRangeOption(from: LocalDate, to: LocalDate) {
+  def key: String = from.toString + "-" + to.toString
+}
 
 object CreditRangeOption {
   implicit val format: OFormat[CreditRangeOption] = Json.format[CreditRangeOption]

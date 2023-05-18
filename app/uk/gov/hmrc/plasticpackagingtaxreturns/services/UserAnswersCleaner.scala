@@ -16,18 +16,44 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.libs.json.{JsPath, JsValue}
+import play.api.libs.json.{JsObject, JsPath, JsValue, Writes}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner.CleaningUserAnswers
+
+import java.time.LocalDate
+import javax.inject.Inject
 
 
 /** A cleaner that formats user answers from old JsPaths
- * to maintain backwards compatibility for users midjourney during deployments
+ * to maintain backwards compatibility for users mid journey during deployments
  */
 
-class UserAnswersCleaner {
+class UserAnswersCleaner @Inject()(
+                                  availableCreditDateRangesService: AvailableCreditDateRangesService
+                                  ){
 
-  def clean(userAnswers: UserAnswers): UserAnswers = {
-    ???
+  private def getAssumedDateRange(userAnswers: UserAnswers) = {
+    val returnToDate = userAnswers.getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
+    val available = availableCreditDateRangesService.calculate(returnToDate)
+    available match {
+      case Seq(claimPeriod) => claimPeriod
+      case e => throw new IllegalStateException(s"Cannot assume tax year for existing credits as ${e.size} are available")
+    }
+  }
+
+  def clean(userAnswers: UserAnswers): (UserAnswers, Boolean) = {
+
+    if (userAnswers.get[JsObject](JsPath \ "obligation").isDefined) {
+      val taxRange = getAssumedDateRange(userAnswers: UserAnswers)
+      userAnswers
+        .migrate(JsPath \ "exportedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "yesNo")
+        .migrate(JsPath \ "exportedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "weight")
+        .migrate(JsPath \ "convertedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "yesNo")
+        .migrate(JsPath \ "convertedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "weight")
+        .removePath(JsPath \ "exportedCredits")
+        .removePath(JsPath \ "convertedCredits")
+        .setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to) -> true
+    } else userAnswers -> false
   }
 
 }
@@ -39,5 +65,10 @@ object UserAnswersCleaner {
       (if (userAnswers.get[JsValue](to).isDefined) userAnswers
       else userAnswers.setOrFail(to, userAnswers.get[JsValue](from))
         ).removePath(from)
+
+    def setIfDefined[A](check: JsPath, setPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers = {
+      if (userAnswers.get[JsValue](check).isDefined) userAnswers.setOrFail(setPath, value)
+      else userAnswers
+    }
   }
 }

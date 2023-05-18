@@ -24,15 +24,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class CacheController @Inject()(
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
-
+  userAnswersCleaner: UserAnswersCleaner,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses {
@@ -41,11 +42,15 @@ class CacheController @Inject()(
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { request =>
-      sessionRepository.get(request.cacheKey).map {
-        case Some(userAnswers) =>
-
-          Ok(userAnswers)
-        case None => NotFound
+      sessionRepository.get(request.cacheKey).flatMap {
+        case Some(ua) =>
+          val (userAnswers, hasBeenCleaned) = userAnswersCleaner.clean(ua)
+          (if (hasBeenCleaned)
+            sessionRepository.set(userAnswers)
+          else Future.successful(true)).map(_ =>
+            Ok(userAnswers)
+          )
+        case None => Future.successful(NotFound)
       }
     }
 
