@@ -245,9 +245,13 @@ class UserAnswersSpec extends PlaySpec
       }
 
       "remove a nested field" in {
-        filledUserAnswers.removePath(JsPath \ "cheese" \ 'brie) mustBe UserAnswers("filled", obj(
+        filledUserAnswers.removePath(JsPath \ "cheese" \ "brie") mustBe UserAnswers("filled", obj(
           "cheese" -> Json.obj(),
         ), filledUserAnswers.lastUpdated)
+      }
+
+      "not fail if not there" in  {
+        emptyUserAnswers.removePath(JsPath \ "cheese" \ "brie") mustBe emptyUserAnswers
       }
 
     }

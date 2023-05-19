@@ -212,7 +212,17 @@ case class UserAnswers(
    * @param path [[JsPath]] to field to remove
    * @return an updated [[UserAnswers]]
    */
-  def removePath(path: JsPath): UserAnswers = copy(data = data.transform(path.json.prune).get)
+  def removePath(path: JsPath): UserAnswers = {
+
+    val updatedData = data.removeObject(path) match {
+      case JsSuccess(jsValue, _) =>
+        Success(jsValue)
+      case JsError(_) =>
+        Success(data)
+    }
+
+    copy(data = updatedData.value)
+  }
 
   /** Alternative to removePath
    * @param question source of path to remove

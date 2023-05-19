@@ -38,6 +38,7 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
 
   val sut = new UserAnswersCleaner(mockAvailService)
 
+
   "clean" must {
     "do nothing" when {
       "return has not been started" in {
@@ -47,6 +48,27 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
          userAnswers mustBe unchangedUserAnswers
         hasBeenCleaned mustBe false
         verifyNoInteractions(mockAvailService)
+      }
+
+      "a return has started but not done old stuff" in {
+        when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
+          .thenReturn(Seq(CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))))
+
+        val data = """{
+                     |        "obligation" : {
+                     |            "fromDate" : "2023-01-01",
+                     |            "toDate" : "2023-03-31",
+                     |            "dueDate" : "2023-05-31",
+                     |            "periodKey" : "23C1"
+                     |        },
+                     |        "isFirstReturn" : false
+                     |    }""".stripMargin
+
+        val userAnswers = UserAnswers("test-id", Json.parse(data).as[JsObject])
+
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        hasBeenCleaned mustBe false
+        newUserAnswers mustBe userAnswers
       }
     }
 
@@ -68,8 +90,10 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq.empty)
 
-        val ex = intercept[IllegalStateException](sut.clean(userAnswers))
-        ex.getMessage mustBe "Cannot assume tax year for existing credits as 0 are available"
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        newUserAnswers mustBe userAnswers
+        hasBeenCleaned mustBe false
+
       }
       "available years is 2+" in {
         val userAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
@@ -77,8 +101,9 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq(opt, opt))
 
-        val ex = intercept[IllegalStateException](sut.clean(userAnswers))
-        ex.getMessage mustBe "Cannot assume tax year for existing credits as 2 are available"
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        newUserAnswers mustBe userAnswers
+        hasBeenCleaned mustBe false
       }
     }
   }
