@@ -249,6 +249,11 @@ class UserAnswersSpec extends PlaySpec
           "cheese" -> Json.obj(),
         ), filledUserAnswers.lastUpdated)
       }
+      
+      "remove a path that doesn't exist" in {
+        filledUserAnswers.removePath(JsPath \ "cheese" \ "not-there") mustBe filledUserAnswers
+        filledUserAnswers.removePath(JsPath \ "not-there") mustBe filledUserAnswers
+      }
 
       "not fail if not there" in  {
         emptyUserAnswers.removePath(JsPath \ "cheese" \ "brie") mustBe emptyUserAnswers
