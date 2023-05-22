@@ -43,7 +43,9 @@ class UserAnswersCleaner @Inject()(
 
   def clean(userAnswers: UserAnswers): (UserAnswers, Boolean) = {
 
-    if (userAnswers.get[JsObject](JsPath \ "obligation").isDefined) {
+    if (!userAnswers.get[JsObject](JsPath \ "exportedCredits").isDefined) {
+      userAnswers -> false
+    } else {
       val taxRange = getAssumedDateRange(userAnswers: UserAnswers)
       userAnswers
         .migrate(JsPath \ "exportedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "yesNo")
@@ -53,7 +55,7 @@ class UserAnswersCleaner @Inject()(
         .removePath(JsPath \ "exportedCredits")
         .removePath(JsPath \ "convertedCredits")
         .setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to) -> true
-    } else userAnswers -> false
+    }
   }
 
 }
