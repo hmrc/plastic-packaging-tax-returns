@@ -20,6 +20,7 @@ import org.mockito.Mockito.{reset, verifyNoInteractions, when}
 import org.mockito.MockitoSugar.mock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.Json.obj
 import play.api.libs.json.{JsObject, JsPath, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
@@ -40,7 +41,8 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
 
   "clean" must {
     "do nothing" when {
-      "return has not been started" in {
+      
+      "no credit-return has started" in {
         val unchangedUserAnswers = UserAnswers("test-id").setOrFail(JsPath \ "blah", "bloop")
 
         val (userAnswers, hasBeenCleaned) = sut.clean(unchangedUserAnswers)
@@ -48,7 +50,22 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         hasBeenCleaned mustBe false
         verifyNoInteractions(mockAvailService)
       }
+      
+      "new credit-return journey is started" in {
+        val userAnswers = UserAnswers("id", data = obj(
+          "obligation" -> obj(
+            "fromDate" -> "2022-10-01",
+            "toDate" -> "2022-12-31",
+            "dueDate" -> "2023-02-28",
+            "periodKey" -> "22C4"
+          ), 
+          "isFirstReturn" -> false
+        ))
+        
+        sut.clean(userAnswers) mustBe (userAnswers, false)
+      }
     }
+    
 
     "convert and old userAnswers in to a new one" in {
       val oldUserAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
