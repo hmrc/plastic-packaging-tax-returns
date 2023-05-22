@@ -20,7 +20,7 @@ import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.BDDMockito.`given`
-import org.mockito.Mockito.{atLeastOnce, reset, verify, verifyNoInteractions}
+import org.mockito.Mockito.{atLeastOnce, reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -39,6 +39,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockReturnsRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner
 
 import java.time.Instant
 import scala.concurrent.Future
@@ -48,13 +49,20 @@ class CacheControllerSpec
 
   SharedMetricRegistries.clear()
 
+  val mockUserAnswersCleaner = mock[UserAnswersCleaner]
+
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(mockSessionRepository)).build()
+    .overrides(
+      bind[AuthConnector].to(mockAuthConnector),
+      bind[SessionRepository].to(mockSessionRepository),
+      bind[UserAnswersCleaner].to(mockUserAnswersCleaner),
+    ).build()
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
     reset(mockSessionRepository)
+    reset(mockUserAnswersCleaner)
   }
 
   "POST /" should {
@@ -110,6 +118,7 @@ class CacheControllerSpec
         val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
         given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
+        when(mockUserAnswersCleaner.clean(any)).thenReturn((userAnswers, false))
 
         val result: Future[Result] = route(app, get).get
 
@@ -117,6 +126,25 @@ class CacheControllerSpec
         contentAsJson(result) mustBe toJson(userAnswers)
         verify(mockSessionRepository, atLeastOnce()).get(any())
       }
+
+      "request is valid and cleaner has cleaned" in {
+        withAuthorizedUser(newUser(Some(pptEnrolment("test02"))))
+
+        val request     = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
+        val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
+
+        given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
+        when(mockUserAnswersCleaner.clean(any)).thenReturn((userAnswers, true))
+        when(mockSessionRepository.set(any)).thenReturn(Future.successful(true))
+
+        val result: Future[Result] = route(app, get).get
+
+        status(result) must be(OK)
+        contentAsJson(result) mustBe toJson(userAnswers)
+        verify(mockSessionRepository, atLeastOnce()).get(any())
+        verify(mockSessionRepository).set(userAnswers)
+      }
+
     }
 
     "return 404" when {
