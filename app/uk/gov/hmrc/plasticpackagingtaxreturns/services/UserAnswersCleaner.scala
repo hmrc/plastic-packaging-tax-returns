@@ -33,29 +33,35 @@ class UserAnswersCleaner @Inject()(
                                   ){
 
   private def getAssumedDateRange(userAnswers: UserAnswers) = {
-    val returnToDate = userAnswers.getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
-    val available = availableCreditDateRangesService.calculate(returnToDate)
-    available match {
-      case Seq(claimPeriod) => claimPeriod
-      case e => throw new IllegalStateException(s"Cannot assume tax year for existing credits as ${e.size} are available")
+    userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate").flatMap{ returnToDate =>
+      val available = availableCreditDateRangesService.calculate(returnToDate)
+      available match {
+        case Seq(claimPeriod) => Some(claimPeriod)
+        case _ => None
+      }
     }
   }
 
   def clean(userAnswers: UserAnswers): (UserAnswers, Boolean) = {
 
-    if (!userAnswers.get[JsObject](JsPath \ "exportedCredits").isDefined) {
-      userAnswers -> false
-    } else {
-      val taxRange = getAssumedDateRange(userAnswers: UserAnswers)
-      userAnswers
+    val startedAReturn = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
+    val assumableDateRange = getAssumedDateRange(userAnswers)
+
+    if (startedAReturn && assumableDateRange.isDefined) { //todo map?
+      val taxRange = assumableDateRange.get
+      val updated = userAnswers
         .migrate(JsPath \ "exportedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "yesNo")
         .migrate(JsPath \ "exportedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "weight")
         .migrate(JsPath \ "convertedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "yesNo")
         .migrate(JsPath \ "convertedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "weight")
         .removePath(JsPath \ "exportedCredits")
         .removePath(JsPath \ "convertedCredits")
-        .setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to) -> true
-    }
+
+        val userAnswersChanged = updated != userAnswers
+
+         val updatedWithMeta = if (userAnswersChanged) updated.setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to) else updated
+      (updatedWithMeta, userAnswersChanged)
+    } else userAnswers -> false
   }
 
 }
@@ -63,10 +69,12 @@ class UserAnswersCleaner @Inject()(
 object UserAnswersCleaner {
 
   implicit class CleaningUserAnswers(val userAnswers: UserAnswers) extends AnyVal {
-    def migrate(from: JsPath, to: JsPath): UserAnswers =
-      (if (userAnswers.get[JsValue](to).isDefined) userAnswers
-      else userAnswers.setOrFail(to, userAnswers.get[JsValue](from))
-        ).removePath(from)
+    def migrate(from: JsPath, to: JsPath): UserAnswers = {
+      (if (userAnswers.get[JsValue](to).isEmpty && userAnswers.get[JsValue](from).isDefined)
+          userAnswers.setOrFail(to, userAnswers.get[JsValue](from))
+      else userAnswers
+      ).removePath(from)
+    }
 
     def setIfDefined[A](check: JsPath, setPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers = {
       if (userAnswers.get[JsValue](check).isDefined) userAnswers.setOrFail(setPath, value)

@@ -255,6 +255,10 @@ class UserAnswersSpec extends PlaySpec
         filledUserAnswers.removePath(JsPath \ "not-there") mustBe filledUserAnswers
       }
 
+      "not fail if not there" in  {
+        emptyUserAnswers.removePath(JsPath \ "cheese" \ "brie") mustBe emptyUserAnswers
+      }
+
     }
 
     "quickly set lots of fields" when {

@@ -20,7 +20,6 @@ import org.mockito.Mockito.{reset, verifyNoInteractions, when}
 import org.mockito.MockitoSugar.mock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json.obj
 import play.api.libs.json.{JsObject, JsPath, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
@@ -39,10 +38,10 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
 
   val sut = new UserAnswersCleaner(mockAvailService)
 
+
   "clean" must {
     "do nothing" when {
-      
-      "no credit-return has started" in {
+      "return has not been started" in {
         val unchangedUserAnswers = UserAnswers("test-id").setOrFail(JsPath \ "blah", "bloop")
 
         val (userAnswers, hasBeenCleaned) = sut.clean(unchangedUserAnswers)
@@ -50,22 +49,28 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         hasBeenCleaned mustBe false
         verifyNoInteractions(mockAvailService)
       }
-      
-      "new credit-return journey is started" in {
-        val userAnswers = UserAnswers("id", data = obj(
-          "obligation" -> obj(
-            "fromDate" -> "2022-10-01",
-            "toDate" -> "2022-12-31",
-            "dueDate" -> "2023-02-28",
-            "periodKey" -> "22C4"
-          ), 
-          "isFirstReturn" -> false
-        ))
-        
-        sut.clean(userAnswers) mustBe (userAnswers, false)
+
+      "a return has started but not done old stuff" in {
+        when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
+          .thenReturn(Seq(CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))))
+
+        val data = """{
+                     |        "obligation" : {
+                     |            "fromDate" : "2023-01-01",
+                     |            "toDate" : "2023-03-31",
+                     |            "dueDate" : "2023-05-31",
+                     |            "periodKey" : "23C1"
+                     |        },
+                     |        "isFirstReturn" : false
+                     |    }""".stripMargin
+
+        val userAnswers = UserAnswers("test-id", Json.parse(data).as[JsObject])
+
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        hasBeenCleaned mustBe false
+        newUserAnswers mustBe userAnswers
       }
     }
-    
 
     "convert and old userAnswers in to a new one" in {
       val oldUserAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
@@ -85,8 +90,10 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq.empty)
 
-        val ex = intercept[IllegalStateException](sut.clean(userAnswers))
-        ex.getMessage mustBe "Cannot assume tax year for existing credits as 0 are available"
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        newUserAnswers mustBe userAnswers
+        hasBeenCleaned mustBe false
+
       }
       "available years is 2+" in {
         val userAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
@@ -94,8 +101,9 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq(opt, opt))
 
-        val ex = intercept[IllegalStateException](sut.clean(userAnswers))
-        ex.getMessage mustBe "Cannot assume tax year for existing credits as 2 are available"
+        val (newUserAnswers, hasBeenCleaned) = sut.clean(userAnswers)
+        newUserAnswers mustBe userAnswers
+        hasBeenCleaned mustBe false
       }
     }
   }
