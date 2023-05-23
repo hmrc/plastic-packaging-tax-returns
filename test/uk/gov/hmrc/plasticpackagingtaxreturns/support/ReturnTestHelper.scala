@@ -70,6 +70,40 @@ object ReturnTestHelper {
          |        "nonExportRecycledPlasticPackagingWeight" : 5
          |    }""".stripMargin).asInstanceOf[JsObject]
 
+
+  def   returnWithLegacyCreditData: String =
+  """{
+  |        "obligation" : {
+  |            "fromDate" : "2023-01-01",
+  |            "toDate" : "2023-03-31",
+  |            "dueDate" : "2023-05-31",
+  |            "periodKey" : "23C1"
+  |        },
+  |        "isFirstReturn" : false,
+  |        "startYourReturn" : true,
+  |        "whatDoYouWantToDo" : true,
+  |        "exportedCredits" : {
+  |            "yesNo" : true,
+  |            "weight" : 12
+  |        },
+  |        "convertedCredits" : {
+  |            "yesNo" : true,
+  |            "weight" : 34
+  |        },
+  |        "manufacturedPlasticPackaging" : false,
+  |        "manufacturedPlasticPackagingWeight" : 0,
+  |        "importedPlasticPackaging" : false,
+  |        "importedPlasticPackagingWeight" : 0,
+  |        "directlyExportedComponents" : false,
+  |        "exportedPlasticPackagingWeight" : 0,
+  |        "plasticExportedByAnotherBusiness" : false,
+  |        "anotherBusinessExportWeight" : 0,
+  |        "nonExportedHumanMedicinesPlasticPackaging" : false,
+  |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
+  |        "nonExportRecycledPlasticPackaging" : false,
+  |        "nonExportRecycledPlasticPackagingWeight" : 0
+  |    }""".stripMargin
+
   def createCreditBalanceDisplayResponse =
     ExportCreditBalanceDisplayResponse(
       processingDate = "2021-11-17T09:32:50.345Z",

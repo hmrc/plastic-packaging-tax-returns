@@ -16,12 +16,13 @@
 
 import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.MockitoSugar.when
+import org.mockito.MockitoSugar.{reset, when}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status.OK
+import play.api.http.Status.{NOT_FOUND, OK}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
@@ -31,16 +32,16 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.{returnWithLegacyCreditData, returnsWithNoCreditDataJson}
 
 import scala.concurrent.Future
 
 
-class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSuite {
+class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSuite with BeforeAndAfterEach{
 
-  val httpClient: DefaultHttpClient  = app.injector.instanceOf[DefaultHttpClient]
-  lazy val wsClient: WSClient        = app.injector.instanceOf[WSClient]
+  private lazy val wsClient: WSClient        = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository = mock[SessionRepository]
+  private val url = s"http://localhost:$port/cache/get/$pptReference"
 
   override lazy val app: Application = {
     SharedMetricRegistries.clear()
@@ -50,109 +51,102 @@ class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSu
       .build()
   }
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(mockAuthConnector, sessionRepository)
+  }
+
   "return a user answer" when {
     "credit is not available" in {
-      val json   = Json.parse("""
-          |{
-          |"obligation" : {
-          |            "fromDate" : "2022-10-01",
-          |            "toDate" : "2022-12-31",
-          |            "dueDate" : "2023-02-28",
-          |            "periodKey" : "22C4"
-          |        },
-          |        "isFirstReturn" : false
-          | }
-          |""".stripMargin).as[JsObject]
-      val answer = new UserAnswers("123", json)
       withAuthorizedUser()
-      when(sessionRepository.get(any)).thenReturn(Future.successful(Some(answer)))
+      when(sessionRepository.get(any))
+        .thenReturn(Future.successful(Some(new UserAnswers("123", returnsWithNoCreditDataJson))))
 
-      val response = await(wsClient.url(s"http://localhost:$port/cache/get/$pptReference").get())
+      val response = await(wsClient.url(url).get())
 
       response.status mustBe OK
-      (response.json \ "data").as[JsObject] mustBe json
+      (response.json \ "data").as[JsObject] mustBe returnsWithNoCreditDataJson
     }
 
-    "credit is Available" in {
-      val answer = new UserAnswers("123", Json.parse(oldUserAnswersData).as[JsObject])
+    "old credit is Available" in {
+      val answer = new UserAnswers("123", Json.parse(returnWithLegacyCreditData).as[JsObject])
       withAuthorizedUser()
-      when(sessionRepository.get(any)).thenReturn(Future.successful(Some(answer)))
-      when(sessionRepository.set(any[UserAnswers])).thenReturn(Future.successful(true))
+      setRepository(answer)
 
-      val response = await(wsClient.url(s"http://localhost:$port/cache/get/$pptReference").get())
+      val response = await(wsClient.url(url).get())
 
       response.status mustBe OK
-      (response.json \ "data").as[JsObject]  shouldBe Json.parse(expectedJson).as[JsObject]
+      (response.json \ "data").as[JsObject]  shouldBe Json.parse(newCreditJsonData).as[JsObject]
+    }
+
+    "new credit is Available" in {
+      val answer = new UserAnswers("123", Json.parse(newCreditJsonData).as[JsObject])
+      withAuthorizedUser()
+      setRepository(answer)
+
+      val response = await(wsClient.url(url).get())
+
+      response.status mustBe OK
+      (response.json \ "data").as[JsObject]  shouldBe Json.parse(newCreditJsonData).as[JsObject]
+    }
+
+    "return 404 if user answer not found" in {
+      withAuthorizedUser()
+      when(sessionRepository.get(any)).thenReturn(Future.successful(None))
+
+      val response = await(wsClient.url(url).get())
+
+      response.status mustBe NOT_FOUND
     }
   }
 
-  def expectedJson = """{
-                       |        "obligation" : {
-                       |            "fromDate" : "2023-01-01",
-                       |            "toDate" : "2023-03-31",
-                       |            "dueDate" : "2023-05-31",
-                       |            "periodKey" : "23C1"
-                       |        },
-                       |        "isFirstReturn" : false,
-                       |        "startYourReturn" : true,
-                       |        "whatDoYouWantToDo" : true,
-                       |        "credit": {
-                       |          "2022-04-01-2022-12-31": {
-                       |            "exportedCredits" : {
-                       |              "yesNo" : true,
-                       |              "weight" : 12
-                       |            },
-                       |            "convertedCredits" : {
-                       |              "yesNo" : true,
-                       |              "weight" : 34
-                       |            },
-                       |            "fromDate": "2022-04-01",
-                       |            "endDate": "2022-12-31"
-                       |          }
-                       |        },
-                       |        "manufacturedPlasticPackaging" : false,
-                       |        "manufacturedPlasticPackagingWeight" : 0,
-                       |        "importedPlasticPackaging" : false,
-                       |        "importedPlasticPackagingWeight" : 0,
-                       |        "directlyExportedComponents" : false,
-                       |        "exportedPlasticPackagingWeight" : 0,
-                       |        "plasticExportedByAnotherBusiness" : false,
-                       |        "anotherBusinessExportWeight" : 0,
-                       |        "nonExportedHumanMedicinesPlasticPackaging" : false,
-                       |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
-                       |        "nonExportRecycledPlasticPackaging" : false,
-                       |        "nonExportRecycledPlasticPackagingWeight" : 0
-                       |    }""".stripMargin
+  private def setRepository(answer: UserAnswers) = {
+    when(sessionRepository.get(any)).thenReturn(Future.successful(Some(answer)))
+    when(sessionRepository.set(any[UserAnswers])).thenReturn(Future.successful(true))
+  }
 
-  def oldUserAnswersData = """{
-                             |        "obligation" : {
-                             |            "fromDate" : "2023-01-01",
-                             |            "toDate" : "2023-03-31",
-                             |            "dueDate" : "2023-05-31",
-                             |            "periodKey" : "23C1"
-                             |        },
-                             |        "isFirstReturn" : false,
-                             |        "startYourReturn" : true,
-                             |        "whatDoYouWantToDo" : true,
-                             |        "exportedCredits" : {
-                             |            "yesNo" : true,
-                             |            "weight" : 12
-                             |        },
-                             |        "convertedCredits" : {
-                             |            "yesNo" : true,
-                             |            "weight" : 34
-                             |        },
-                             |        "manufacturedPlasticPackaging" : false,
-                             |        "manufacturedPlasticPackagingWeight" : 0,
-                             |        "importedPlasticPackaging" : false,
-                             |        "importedPlasticPackagingWeight" : 0,
-                             |        "directlyExportedComponents" : false,
-                             |        "exportedPlasticPackagingWeight" : 0,
-                             |        "plasticExportedByAnotherBusiness" : false,
-                             |        "anotherBusinessExportWeight" : 0,
-                             |        "nonExportedHumanMedicinesPlasticPackaging" : false,
-                             |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
-                             |        "nonExportRecycledPlasticPackaging" : false,
-                             |        "nonExportRecycledPlasticPackagingWeight" : 0
-                             |    }""".stripMargin
+  def newCreditJsonData =
+  """{
+  |        "obligation" : {
+  |            "fromDate" : "2023-01-01",
+  |            "toDate" : "2023-03-31",
+  |            "dueDate" : "2023-05-31",
+  |            "periodKey" : "23C1"
+  |        },
+  |        "isFirstReturn" : false,
+  |        "startYourReturn" : true,
+  |        "whatDoYouWantToDo" : true,
+  |        "credit": {
+  |          "2022-04-01-2022-12-31": {
+  |            "exportedCredits" : {
+  |              "yesNo" : true,
+  |              "weight" : 12
+  |            },
+  |            "convertedCredits" : {
+  |              "yesNo" : true,
+  |              "weight" : 34
+  |            },
+  |            "fromDate": "2022-04-01",
+  |            "endDate": "2022-12-31"
+  |          }
+  |        },
+  |        "creditAvailableYears" : [
+  |            {
+  |                "from" : "2022-04-01",
+  |                "to" : "2022-12-31"
+  |            }
+  |        ],
+  |        "manufacturedPlasticPackaging" : false,
+  |        "manufacturedPlasticPackagingWeight" : 0,
+  |        "importedPlasticPackaging" : false,
+  |        "importedPlasticPackagingWeight" : 0,
+  |        "directlyExportedComponents" : false,
+  |        "exportedPlasticPackagingWeight" : 0,
+  |        "plasticExportedByAnotherBusiness" : false,
+  |        "anotherBusinessExportWeight" : 0,
+  |        "nonExportedHumanMedicinesPlasticPackaging" : false,
+  |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
+  |        "nonExportRecycledPlasticPackaging" : false,
+  |        "nonExportRecycledPlasticPackagingWeight" : 0
+  |    }""".stripMargin
 }
