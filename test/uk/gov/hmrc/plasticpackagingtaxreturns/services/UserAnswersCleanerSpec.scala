@@ -24,6 +24,7 @@ import play.api.libs.json.{JsObject, JsPath, Json}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner.CleaningUserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.returnWithLegacyCreditData
 
 import java.time.LocalDate
 
@@ -73,7 +74,7 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "convert and old userAnswers in to a new one" in {
-      val oldUserAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
+      val oldUserAnswers = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
       val expectedUserAnswers = oldUserAnswers.copy(data = Json.parse(newUserAnswerData).as[JsObject])
       when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
         .thenReturn(Seq(CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))))
@@ -86,7 +87,7 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
 
     "error" when {
       "available years is 0" in {
-        val userAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
+        val userAnswers = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq.empty)
 
@@ -96,7 +97,7 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
 
       }
       "available years is 2+" in {
-        val userAnswers = UserAnswers("test-id", Json.parse(oldUserAnswersData).as[JsObject])
+        val userAnswers = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
         val opt = CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))
         when(mockAvailService.calculate(LocalDate.of(2023, 3, 31)))
           .thenReturn(Seq(opt, opt))
@@ -163,38 +164,6 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
     }
   }
 
-  def oldUserAnswersData = """{
-                             |        "obligation" : {
-                             |            "fromDate" : "2023-01-01",
-                             |            "toDate" : "2023-03-31",
-                             |            "dueDate" : "2023-05-31",
-                             |            "periodKey" : "23C1"
-                             |        },
-                             |        "isFirstReturn" : false,
-                             |        "startYourReturn" : true,
-                             |        "whatDoYouWantToDo" : true,
-                             |        "exportedCredits" : {
-                             |            "yesNo" : true,
-                             |            "weight" : 12
-                             |        },
-                             |        "convertedCredits" : {
-                             |            "yesNo" : true,
-                             |            "weight" : 34
-                             |        },
-                             |        "manufacturedPlasticPackaging" : false,
-                             |        "manufacturedPlasticPackagingWeight" : 0,
-                             |        "importedPlasticPackaging" : false,
-                             |        "importedPlasticPackagingWeight" : 0,
-                             |        "directlyExportedComponents" : false,
-                             |        "exportedPlasticPackagingWeight" : 0,
-                             |        "plasticExportedByAnotherBusiness" : false,
-                             |        "anotherBusinessExportWeight" : 0,
-                             |        "nonExportedHumanMedicinesPlasticPackaging" : false,
-                             |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
-                             |        "nonExportRecycledPlasticPackaging" : false,
-                             |        "nonExportRecycledPlasticPackagingWeight" : 0
-                             |    }""".stripMargin
-
   def newUserAnswerData = """{
                             |        "obligation" : {
                             |            "fromDate" : "2023-01-01",
@@ -219,6 +188,12 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
                             |                }
                             |            }
                             |        },
+                            |        "creditAvailableYears" : [
+                            |            {
+                            |                "from" : "2022-04-01",
+                            |                "to" : "2022-12-31"
+                            |            }
+                            |        ],
                             |        "manufacturedPlasticPackaging" : false,
                             |        "manufacturedPlasticPackagingWeight" : 0,
                             |        "importedPlasticPackaging" : false,
