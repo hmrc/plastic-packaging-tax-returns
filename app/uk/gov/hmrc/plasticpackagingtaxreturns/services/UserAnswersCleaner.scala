@@ -59,7 +59,11 @@ class UserAnswersCleaner @Inject()(
 
         val userAnswersChanged = updated != userAnswers
 
-         val updatedWithMeta = if (userAnswersChanged) updated.setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to) else updated
+         val updatedWithMeta = if (userAnswersChanged) {
+           updated
+             .setOrFail(JsPath \ "credit" \ taxRange.key \ "endDate", taxRange.to)
+             .setOrFail(JsPath \ "credit" \ taxRange.key \ "fromDate", taxRange.from)
+         } else updated
       (updatedWithMeta, userAnswersChanged)
     } else userAnswers -> false
   }
