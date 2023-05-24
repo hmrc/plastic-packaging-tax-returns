@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.security.MessageDigest
@@ -26,7 +25,7 @@ import java.util.Base64
 import javax.inject.Inject
 import scala.util.Try
 
-class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
+class EdgeOfSystem @Inject() (appConfig: AppConfig) {
 
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
@@ -42,7 +41,6 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
     appConfig
       .overrideSystemDateTime
       .flatMap(parseDate)
-      .filterNot(_ => isRunningInProduction)
       .getOrElse(LocalDateTime.now())
   }
 
@@ -51,11 +49,6 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
       .toOption
   }
 
-  /** Check if app is running in a production environment
-   * @return true if production, otherwise false
-   * @see [[play.api.Environment.mode]]
-   */
-  def isRunningInProduction: Boolean = environment.mode == Mode.Prod
 
   /** The current system date, or provides the date part of the overridden date-time, if set 
    * @return today's date, or the overridden date if set
