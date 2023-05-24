@@ -36,7 +36,7 @@ class AvailableCreditDateRangesService @Inject() (
       .map(range => range.minBy(_.fromDate).fromDate -> range.maxBy(_.toDate).toDate)
   }
 
-  def calculate(returnEndDate: LocalDate): Seq[CreditRangeOption] = {
+  def calculate(returnEndDate: LocalDate, taxStartDate: LocalDate = LocalDate.of(2022, 4, 1)): Seq[CreditRangeOption] = {
     val endDate = edgeOfSystem.today //todo use this if trimming from 'todays date'
 
     val startDate = LocalDate.of(2022, 4, 1) //todo use user's taxStartDate
