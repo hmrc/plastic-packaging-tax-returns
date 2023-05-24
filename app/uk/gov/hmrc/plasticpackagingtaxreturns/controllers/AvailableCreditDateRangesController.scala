@@ -41,8 +41,7 @@ class AvailableCreditDateRangesController @Inject()(
       for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
-        futureSubscription <- subscriptionsConnector.getSubscription(pptReference)
-        subscription = futureSubscription.getOrElse(throw new IllegalStateException("Subscription not found")) // TODO don't eat api failures
+        subscription <- subscriptionsConnector.getSubscriptionFuture(pptReference)
       } yield {
         val taxStartDate = subscription.taxStartDate()
         val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)

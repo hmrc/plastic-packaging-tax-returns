@@ -118,7 +118,7 @@ class CacheControllerSpec
         val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
         given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
-        when(mockUserAnswersCleaner.clean(any)).thenReturn((userAnswers, false))
+        when(mockUserAnswersCleaner.clean(any, any)(any)).thenReturn(Future.successful((userAnswers, false)))
 
         val result: Future[Result] = route(app, get).get
 
@@ -134,7 +134,7 @@ class CacheControllerSpec
         val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
         given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
-        when(mockUserAnswersCleaner.clean(any)).thenReturn((userAnswers, true))
+        when(mockUserAnswersCleaner.clean(any, any)(any)).thenReturn(Future.successful((userAnswers, true)))
         when(mockSessionRepository.set(any)).thenReturn(Future.successful(true))
 
         val result: Future[Result] = route(app, get).get

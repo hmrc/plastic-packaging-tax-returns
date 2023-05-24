@@ -25,7 +25,6 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.{arr, obj}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
@@ -59,7 +58,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     reset(service, sessionRepository, authenticator, subscriptionsConnector, subscription, userAnswers)
     
     when(subscription.taxStartDate()) thenReturn LocalDate.of(2001, 2, 3)
-    when(subscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Right(subscription))
+    when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
 
     when(userAnswers.getOrFail(any[Gettable[LocalDate]]) (any, any)) thenReturn LocalDate.of(2004, 5, 6)
     when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
@@ -80,7 +79,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     "fetch user answers and subscription" in {
       Try(await(sut.get("ppt-ref") (FakeRequest())))
       verify(sessionRepository).get(FakeAuthenticator.cacheKey)
-      verify(subscriptionsConnector).getSubscription(eqTo("ppt-ref"))(any)
+      verify(subscriptionsConnector).getSubscriptionFuture(eqTo("ppt-ref"))(any)
     }
     
     "calculate available dates using return's obligation and the subscription's tax start date" in {
@@ -120,12 +119,14 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     }
 
     "error" when {
+
       "user answers is missing" in {
         when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
 
         val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
         ex.getMessage mustBe "UserAnswers is empty"
       }
+
       "user answers is missing the return toDate" in {
         when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(UserAnswers("blah"))))
 
@@ -134,15 +135,9 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
       }
       
       "subscription api call failed with exception" in {
-        when(subscriptionsConnector.getSubscription(any)(any)) thenReturn Future.failed(new IllegalStateException("boom"))
+        when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(new IllegalStateException("boom"))
         the [IllegalStateException] thrownBy await(sut.get("pptRef")(FakeRequest())) must 
           have message "boom"
-      }
-
-      "subscription api call failed with response" ignore {
-        when(subscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Left(HttpResponse.apply(500, "server-boom")))
-        the [Exception] thrownBy await(sut.get("pptRef")(FakeRequest())) must have message "???"
-        // TODO need to report failure somehow, but should be sub connector that does that?
       }
      
     }

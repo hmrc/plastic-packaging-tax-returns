@@ -85,4 +85,12 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
+  def getSubscriptionFuture(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] = {
+    getSubscription(pptReference).flatMap {
+      case Right(subscription) => Future.successful(subscription)
+      case Left(errorResponse) => Future.failed(new RuntimeException("Failed to fetch subscription details from api, " +
+        s"response code ${errorResponse.status}"))
+    }
+  }
+
 }

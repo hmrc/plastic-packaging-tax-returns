@@ -17,11 +17,17 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.libs.json.{JsObject, JsPath, JsValue, Writes}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner.CleaningUserAnswers
 
 import java.time.LocalDate
 import javax.inject.Inject
+import scala.collection.Seq
+import scala.concurrent.{ExecutionContext, Future}
 
 
 /** A cleaner that formats user answers from old JsPaths
@@ -29,12 +35,19 @@ import javax.inject.Inject
  */
 
 class UserAnswersCleaner @Inject()(
-                                  availableCreditDateRangesService: AvailableCreditDateRangesService
-                                  ){
+  availableCreditDateRangesService: AvailableCreditDateRangesService,
+  subscriptionsConnector: SubscriptionsConnector,
+) (implicit executionContext: ExecutionContext) {
+  
+  def hasOldAnswers(userAnswers: UserAnswers): Boolean = {
+    userAnswers.get[JsValue](JsPath \ "exportedCredits").isDefined || 
+      userAnswers.get[JsValue](JsPath \ "convertedCredits").isDefined
+  }
 
-  private def getAssumedDateRange(userAnswers: UserAnswers) = {
-    userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate").flatMap{ returnToDate =>
-      val available = availableCreditDateRangesService.calculate(returnToDate)
+  private def getAssumedDateRange(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): Option[CreditRangeOption] = {
+    userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate").flatMap { returnToDate =>
+      val taxStartDate = subscription.taxStartDate()
+      val available = availableCreditDateRangesService.calculate(returnToDate, taxStartDate)
       available match {
         case Seq(claimPeriod) => Some(claimPeriod)
         case _ => None
@@ -42,10 +55,23 @@ class UserAnswersCleaner @Inject()(
     }
   }
 
-  def clean(userAnswers: UserAnswers): (UserAnswers, Boolean) = {
+  def fetchSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] =
+    subscriptionsConnector.getSubscriptionFuture(pptReference)
+
+  def clean(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[(UserAnswers, Boolean)] = {
+    Future.unit
+      .filter(_ => hasOldAnswers(userAnswers))
+      .flatMap(_ => 
+        fetchSubscription(pptReference)
+          .map(migrateOldAnswers(userAnswers, _))
+      )
+      .recover(_ => userAnswers -> false)
+  }
+  
+  private def migrateOldAnswers(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): (UserAnswers, Boolean) = {
 
     val startedAReturn = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
-    val assumableDateRange = getAssumedDateRange(userAnswers)
+    val assumableDateRange = getAssumedDateRange(userAnswers, subscription)
 
     if (startedAReturn && assumableDateRange.isDefined) { //todo map?
       val taxRange = assumableDateRange.get
