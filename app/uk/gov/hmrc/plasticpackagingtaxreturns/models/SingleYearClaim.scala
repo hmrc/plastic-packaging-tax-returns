@@ -23,13 +23,13 @@ import java.time.LocalDate
 
 
 case class SingleYearClaim(
-  endDate: LocalDate, 
+  toDate: LocalDate,
   exportedCredits: Option[CreditsAnswer], 
   convertedCredits: Option[CreditsAnswer]
 ) {
   def calculate(taxCalculationService: TaxCalculationService): TaxablePlastic = {
     val totalWeight = CreditsAnswer.from(exportedCredits).value + CreditsAnswer.from(convertedCredits).value 
-    taxCalculationService.weightToCredit(endDate, totalWeight)
+    taxCalculationService.weightToCredit(toDate, totalWeight)
   }
 }
 

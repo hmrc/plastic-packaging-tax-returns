@@ -61,7 +61,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     "whatDoYouWantToDo" -> true,
     "credit" -> obj(
       "2022-04-01-2023-03-31" -> obj(
-        "endDate" -> "2023-03-31",
+        "toDate" -> "2023-03-31",
         "convertedCredits" -> obj("yesNo" -> true, "weight" -> 10),
         "exportedCredits" -> obj("yesNo" -> true, "weight" -> 5),
     ))

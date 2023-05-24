@@ -44,7 +44,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
     "whatDoYouWantToDo" -> true, 
     "credit" -> obj(
       "key-a" -> obj(
-        "endDate" -> "2024-03-31",
+        "toDate" -> "2024-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
           "weight" -> 1
@@ -56,7 +56,7 @@ class CreditsCalculationServiceSpec extends PlaySpec
       ),
     
       "key-b" -> obj(
-        "endDate" -> "2025-03-31",
+        "toDate" -> "2025-03-31",
         "exportedCredits" -> obj(
           "yesNo" -> true,
           "weight" -> 11

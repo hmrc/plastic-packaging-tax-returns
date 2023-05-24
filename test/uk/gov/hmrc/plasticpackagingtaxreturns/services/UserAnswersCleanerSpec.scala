@@ -176,7 +176,7 @@ class UserAnswersCleanerSpec extends PlaySpec with BeforeAndAfterEach {
                             |        "whatDoYouWantToDo" : true,
                             |        "credit" : {
                             |            "2022-04-01-2022-12-31" : {
-                            |                "endDate" : "2022-12-31",
+                            |                "toDate" : "2022-12-31",
                             |                "fromDate": "2022-04-01",
                             |                "exportedCredits" : {
                             |                    "yesNo" : true,
