@@ -28,30 +28,14 @@ import java.time.temporal.ChronoUnit
 
 class EdgeOfSystemSpec extends PlaySpec
   with MockitoSugar
-  with BeforeAndAfterEach
-  with ResetMocksAfterEachTest {
+  with BeforeAndAfterEach {
 
   private val appConfig = mock[AppConfig]
-  private val environment = mock[Environment]
-  private val edgeOfSystem = new EdgeOfSystem(appConfig, environment)
+  private val edgeOfSystem = new EdgeOfSystem(appConfig)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    when(environment.mode) thenReturn Mode.Dev
-  }
-  
-  "isRunningInProduction" when {
-
-    "in dev" in {
-      when(environment.mode) thenReturn Mode.Dev
-      edgeOfSystem.isRunningInProduction mustBe false
-    }
-
-    "in prod" in {
-      when(environment.mode) thenReturn Mode.Prod
-      edgeOfSystem.isRunningInProduction mustBe true
-    }
-
+    reset(appConfig)
   }
 
   "localDateTimeNow" should {
@@ -72,14 +56,7 @@ class EdgeOfSystemSpec extends PlaySpec
       edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
     }
-    
-    "ignore any override that somehow gets on to production" in {
-      when(environment.mode) thenReturn Mode.Prod
-      when(appConfig.overrideSystemDateTime) thenReturn Some("2023-04-01T12:11:10")
-      edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
-        LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
-    }
-    
+
   }
 
   
