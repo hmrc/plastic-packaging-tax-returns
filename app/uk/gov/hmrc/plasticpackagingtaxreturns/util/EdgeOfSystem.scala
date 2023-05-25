@@ -42,7 +42,6 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
     appConfig
       .overrideSystemDateTime
       .flatMap(parseDate)
-      .filterNot(_ => isRunningInProduction)
       .getOrElse(LocalDateTime.now())
   }
 
@@ -50,13 +49,6 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
     Try(LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
       .toOption
   }
-
-  /** Check if app is running in a production environment
-   *
-   * @return true if production, otherwise false
-   * @see [[play.api.Environment.mode]]
-   */
-  def isRunningInProduction: Boolean = environment.mode == Mode.Prod
 
   /** The current system date, or provides the date part of the overridden date-time, if set
    *

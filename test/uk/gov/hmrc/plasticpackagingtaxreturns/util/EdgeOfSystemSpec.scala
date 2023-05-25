@@ -36,7 +36,7 @@ class EdgeOfSystemSpec extends PlaySpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    when(environment.mode) thenReturn Mode.Dev
+    reset(appConfig)
   }
 
 
