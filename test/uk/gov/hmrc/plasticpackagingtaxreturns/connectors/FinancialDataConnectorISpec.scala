@@ -61,11 +61,13 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val auditConnector = mock[AuditConnector]
   private val dateAndTime    = mock[DateAndTime]
 
-  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, dateAndTime)
+  private val edgeOfSystem = mock[EdgeOfSystem]
+
+  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(dateAndTime, auditConnector, metrics, httpClient, appConfig)
+    reset(auditConnector, metrics, httpClient, appConfig, edgeOfSystem)
 
     when(metrics.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContext)
@@ -163,8 +165,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
     "it" should {
       "map special DES 404s to a zero financial records results" in {
-        val currentTime = LocalDateTime.of(2022, 2, 22, 13, 1, 2)
-        when(dateAndTime.currentTime).thenReturn(currentTime)
+        when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
         when(httpClient.GET[Any](any, any, any)(any, any, any))
           .thenReturn(Future.failed(UpstreamErrorResponse(createUpstreamMessage, NOT_FOUND)))
 
@@ -174,7 +175,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
           idType = Some("ZPPT"),
           idNumber = Some("XXPPTP103844123"),
           regimeType = Some("PPT"),
-          processingDate = currentTime,
+          processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3),
           financialTransactions = Seq()
         ))
       }

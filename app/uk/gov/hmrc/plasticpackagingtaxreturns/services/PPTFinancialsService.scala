@@ -20,10 +20,12 @@ import play.api.Logging
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialTransaction}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTFinancials
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTFinancialsService.Charge
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.LocalDate
+import javax.inject.Inject
 
-class PPTFinancialsService extends Logging {
+class PPTFinancialsService @Inject() (implicit edgeOfSystem: EdgeOfSystem) extends Logging {
 
   def lookUpForDdInProgress(periodKey: String, response: FinancialDataResponse): Boolean = {
     response.financialTransactions.find(o => o.periodKey == Some(periodKey))
