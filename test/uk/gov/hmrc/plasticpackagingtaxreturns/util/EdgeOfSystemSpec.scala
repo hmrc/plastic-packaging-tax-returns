@@ -32,8 +32,7 @@ class EdgeOfSystemSpec extends PlaySpec
   with ResetMocksAfterEachTest {
 
   private val appConfig = mock[AppConfig]
-  private val environment = mock[Environment]
-  private val edgeOfSystem = new EdgeOfSystem(appConfig, environment)
+  private val edgeOfSystem = new EdgeOfSystem(appConfig)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
