@@ -26,7 +26,7 @@ import java.util.Base64
 import javax.inject.Inject
 import scala.util.Try
 
-class EdgeOfSystem @Inject() (appConfig: AppConfig, environment: Environment) {
+class EdgeOfSystem @Inject() (appConfig: AppConfig) {
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
 
