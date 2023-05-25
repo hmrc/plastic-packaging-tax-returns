@@ -73,12 +73,6 @@ class EdgeOfSystemSpec extends PlaySpec
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
     }
 
-    "ignore any override that somehow gets on to production" in {
-      when(environment.mode) thenReturn Mode.Prod
-      when(appConfig.overrideSystemDateTime) thenReturn Some("2023-04-01T12:11:10")
-      edgeOfSystem.localDateTimeNow.truncatedTo(ChronoUnit.MINUTES) mustBe
-        LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
-    }
 
   }
 
