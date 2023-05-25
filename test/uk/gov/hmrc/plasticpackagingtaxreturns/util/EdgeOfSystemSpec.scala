@@ -40,19 +40,6 @@ class EdgeOfSystemSpec extends PlaySpec
     when(environment.mode) thenReturn Mode.Dev
   }
 
-  "isRunningInProduction" when {
-
-    "in dev" in {
-      when(environment.mode) thenReturn Mode.Dev
-      edgeOfSystem.isRunningInProduction mustBe false
-    }
-
-    "in prod" in {
-      when(environment.mode) thenReturn Mode.Prod
-      edgeOfSystem.isRunningInProduction mustBe true
-    }
-
-  }
 
   "localDateTimeNow" should {
 
