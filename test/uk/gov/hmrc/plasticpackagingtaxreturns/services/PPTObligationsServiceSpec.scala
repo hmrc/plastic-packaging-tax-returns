@@ -16,25 +16,26 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, EitherValues}
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
-class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAndAfterEach {
+class PPTObligationsServiceSpec extends PlaySpec
+  with MockitoSugar with EitherValues with BeforeAndAfterEach {
 
-  val appConfig: AppConfig = mock[AppConfig]
-  val sut: PPTObligationsService = new PPTObligationsService(appConfig)
-  val today: LocalDate           = LocalDate.now()
-
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(appConfig)
-  }
+  private val today: LocalDate = LocalDate.now()
+  private val overdueObligation: ObligationDetail = makeDetail(today.minusDays(20), "overdue")
+  private val dueObligation: ObligationDetail = makeDetail(today.minusDays(11), "due")
+  private val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
+  private val laterObligation: ObligationDetail = makeDetail(today.plusDays(10), "later")
+  private val appConfig = mock[AppConfig]
+  private val edgeOfSystem = mock[EdgeOfSystem]
+  private val sut = new PPTObligationsService(appConfig)(edgeOfSystem)
 
   override protected def afterEach(): Unit = super.afterEach()
 
@@ -57,11 +58,13 @@ class PPTObligationsServiceSpec extends PlaySpec with EitherValues with BeforeAn
                      periodKey = periodKey
     )
 
-  val overdueObligation: ObligationDetail  = makeDetail(today.minusDays(20), "overdue")
-  val dueObligation: ObligationDetail      = makeDetail(today.minusDays(11), "due")
-  val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
-  val laterObligation: ObligationDetail    = makeDetail(today.plusDays(10), "later")
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(appConfig, edgeOfSystem)
 
+    when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
+    when(edgeOfSystem.today) thenReturn LocalDate.now()
+  }
   "constructPPTFulfilled" must {
     "return an error message" when {
       "there are no obligations in data" in {

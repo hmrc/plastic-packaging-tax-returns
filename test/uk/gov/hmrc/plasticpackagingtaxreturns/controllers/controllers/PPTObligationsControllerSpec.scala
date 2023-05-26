@@ -32,6 +32,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsControll
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,19 +40,22 @@ import scala.concurrent.Future
 
 class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  val mockPPTObligationsService: PPTObligationsService      = mock[PPTObligationsService]
-  val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
-  val appConfig: AppConfig                                  = mock[AppConfig]
+  private val mockPPTObligationsService = mock[PPTObligationsService]
+  private val mockObligationDataConnector = mock[ObligationsDataConnector]
+  private val appConfig = mock[AppConfig]
+  private val edgeOfSystem = mock[EdgeOfSystem]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(appConfig, mockPPTObligationsService, mockObligationDataConnector)
+
+    when(edgeOfSystem.today) thenReturn LocalDate.now() // test uses actual clock
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  val sut =
-    new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService, appConfig)
+  val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector,
+    mockPPTObligationsService, appConfig, edgeOfSystem)
 
   "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
