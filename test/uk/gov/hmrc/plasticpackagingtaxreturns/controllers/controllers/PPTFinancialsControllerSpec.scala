@@ -83,8 +83,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
       await(sut.get(pptReference).apply(FakeRequest()))
 
-      //todo jenkins is failing this for being called twice, however locally it is only once. construct() has no side affects so even if is twice it is safe to call. investigate test fail on jenkins
-      verify(mockPPTFinancialsService, atLeastOnce()).construct(desResponse)
+      verify(mockPPTFinancialsService).construct(desResponse)
     }
 
     "return internal server error response" when {
