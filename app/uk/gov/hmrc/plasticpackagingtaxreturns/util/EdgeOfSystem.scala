@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.security.MessageDigest
-import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
 import java.util.Base64
 import javax.inject.Inject
 import scala.util.Try
