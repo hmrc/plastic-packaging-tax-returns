@@ -16,21 +16,21 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, spy, verify, when}
-import org.mockito.MockitoSugar.mock
+import org.mockito.ArgumentMatchersSugar._
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.OK
 import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.test.{FakeRequest, Helpers}
+import play.api.libs.json.Json.{arr, obj}
 import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -40,32 +40,68 @@ import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAfterEach{
+class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val controllerComponents = Helpers.stubControllerComponents()
   private val service = mock[AvailableCreditDateRangesService]
-  private val session = mock[SessionRepository]
+  private val sessionRepository = mock[SessionRepository]
   private val authenticator = spy(new FakeAuthenticator(controllerComponents))
-
-  val sut = new AvailableCreditDateRangesController(service, authenticator, session, controllerComponents)(ExecutionContext.global)
+  private val subscriptionsConnector = mock[SubscriptionsConnector]
+  private val subscription = mock[SubscriptionDisplayResponse]
+  private val userAnswers = mock[UserAnswers]
+  
+  val sut = new AvailableCreditDateRangesController(service, authenticator, sessionRepository, controllerComponents,
+    subscriptionsConnector)(ExecutionContext.global)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(service, authenticator)
+    reset(service, sessionRepository, authenticator, subscriptionsConnector, subscription, userAnswers)
+    
+    when(subscription.taxStartDate()) thenReturn LocalDate.of(2001, 2, 3)
+    when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
+
+    when(userAnswers.getOrFail(any[Gettable[LocalDate]]) (any, any)) thenReturn LocalDate.of(2004, 5, 6)
+    when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
+    
+    when(service.calculate(any, any)) thenReturn Seq(
+      CreditRangeOption(LocalDate.of(2007, 8, 9), LocalDate.of(2008, 11, 12)), 
+      CreditRangeOption(LocalDate.of(2009, 8, 9), LocalDate.of(2010, 11, 12)), 
+    )
   }
 
   "get" must {
 
     "use authenticator" in {
       Try(await(sut.get("pptRef")(FakeRequest())))
-      verify(authenticator).authorisedAction(any, ArgumentMatchers.eq("pptRef"))(any())
-
+      verify(authenticator).authorisedAction(any, eqTo("pptRef"))(any)
     }
+    
+    "fetch user answers and subscription" in {
+      Try(await(sut.get("ppt-ref") (FakeRequest())))
+      verify(sessionRepository).get(FakeAuthenticator.cacheKey)
+      verify(subscriptionsConnector).getSubscriptionFuture(eqTo("ppt-ref"))(any)
+    }
+    
+    "calculate available dates using return's obligation and the subscription's tax start date" in {
+      val result = await(sut.get("ppt-ref")(FakeRequest()))
+      verify(subscription).taxStartDate()
+      verify(userAnswers).getOrFail(ReturnObligationToDateGettable)
+      verify(service).calculate(
+        returnEndDate = LocalDate.of(2004, 5, 6), 
+        taxStartDate = LocalDate.of(2001, 2, 3)
+      )
+      
+      contentAsJson(Future.successful(result)) mustBe arr(
+        obj("from" -> "2007-08-09", "to" -> "2008-11-12"), 
+        obj("from" -> "2009-08-09", "to" -> "2010-11-12"), 
+      ) 
+    }
+    
     "return 200 and list of dates" in {
-      when(session.get(FakeAuthenticator.cacheKey))
+      when(sessionRepository.get(FakeAuthenticator.cacheKey))
         .thenReturn(Future.successful(Some(UserAnswers("id")
           .setOrFail(ReturnObligationToDateGettable.path, LocalDate.of(1996, 3, 27)))))
-      when(service.calculate(any)).thenReturn(
+      when(service.calculate(any, any)).thenReturn(
         Seq(
         CreditRangeOption(
           LocalDate.of(1996, 3, 27),
@@ -79,22 +115,31 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with BeforeAndAft
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.parse(dates)
-      verify(service).calculate(any)
+      verify(service).calculate(any, any)
     }
 
     "error" when {
+
       "user answers is missing" in {
-        when(session.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
+        when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
 
         val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
         ex.getMessage mustBe "UserAnswers is empty"
       }
+
       "user answers is missing the return toDate" in {
-        when(session.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(UserAnswers("blah"))))
+        when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(UserAnswers("blah"))))
 
         val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
         ex.getMessage mustBe s"${ReturnObligationToDateGettable.path} is missing from user answers"
       }
+      
+      "subscription api call failed with exception" in {
+        when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(new IllegalStateException("boom"))
+        the [IllegalStateException] thrownBy await(sut.get("pptRef")(FakeRequest())) must 
+          have message "boom"
+      }
+     
     }
   }
 

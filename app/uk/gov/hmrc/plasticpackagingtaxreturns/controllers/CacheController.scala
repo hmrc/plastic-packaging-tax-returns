@@ -36,20 +36,23 @@ class CacheController @Inject()(
   userAnswersCleaner: UserAnswersCleaner,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
-    extends BackendController(controllerComponents) with JSONResponses {
+  extends BackendController(controllerComponents) with JSONResponses {
 
   private val logger = Logger(this.getClass)
 
   def get(pptReference: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default, pptReference) { request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       sessionRepository.get(request.cacheKey).flatMap {
         case Some(ua) =>
-          val (userAnswers, hasBeenCleaned) = userAnswersCleaner.clean(ua)
-          (if (hasBeenCleaned)
-            sessionRepository.set(userAnswers)
-          else Future.successful(true)).map(_ =>
-            Ok(userAnswers)
-          )
+          userAnswersCleaner.clean(ua, request.pptReference)
+            .flatMap { tuple =>
+              val (userAnswers, hasBeenCleaned) = tuple
+              (if (hasBeenCleaned)
+                sessionRepository.set(userAnswers)
+              else Future.successful(true)).map(_ =>
+                Ok(userAnswers)
+              )
+            }
         case None => Future.successful(NotFound)
       }
     }

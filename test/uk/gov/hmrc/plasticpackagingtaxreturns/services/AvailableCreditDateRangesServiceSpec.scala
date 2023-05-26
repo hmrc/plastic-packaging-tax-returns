@@ -78,8 +78,21 @@ class AvailableCreditDateRangesServiceSpec extends PlaySpec
         CreditRangeOption(LocalDate.of(2022, 7, 1), LocalDate.of(2023, 3, 31)),
       )
     }
-    // TODO
-    // - start from account's tax start date
+    
+    "include the subscriptions tax start date" when {
+      "tax start date affects available dates" in {
+        service.calculate(returnEndDate = LocalDate.of(2023, 6, 30), taxStartDate = LocalDate.of(2022, 5, 6)) mustBe Seq(
+          CreditRangeOption(LocalDate.of(2022, 5, 6), LocalDate.of(2023, 3, 31)) 
+        )
+      }
+      
+      "tax start date is before available dates" in {
+        service.calculate(returnEndDate = LocalDate.of(2025, 6, 30), taxStartDate = LocalDate.of(2022, 4, 1)) mustBe Seq(
+          CreditRangeOption(LocalDate.of(2024, 4, 1), LocalDate.of(2025, 3, 31)),
+          CreditRangeOption(LocalDate.of(2023, 4, 1), LocalDate.of(2024, 3, 31)), 
+        )
+      }
+    }
   }
 
   "TaxQuarter" when {

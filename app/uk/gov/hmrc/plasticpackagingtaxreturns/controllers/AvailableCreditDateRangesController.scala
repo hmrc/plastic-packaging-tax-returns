@@ -17,30 +17,35 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class AvailableCreditDateRangesController @Inject()(
   availableCreditDateRangesService: AvailableCreditDateRangesService,
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
-  override val controllerComponents: ControllerComponents
-)(implicit val ec: ExecutionContext) extends BaseController{
+  override val controllerComponents: ControllerComponents,
+  subscriptionsConnector: SubscriptionsConnector,
+)(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
 
   def get(pptReference: String): Action[AnyContent] =
-    authenticator.authorisedAction(parse.default, pptReference) { request =>
+    authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
         userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
+        subscription <- subscriptionsConnector.getSubscriptionFuture(pptReference)
       } yield {
+        val taxStartDate = subscription.taxStartDate()
         val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
-        val dateRanges = availableCreditDateRangesService.calculate(returnEndDate)
+        val dateRanges = availableCreditDateRangesService.calculate(returnEndDate, taxStartDate)
         Ok(Json.toJson(dateRanges))
       }
   }

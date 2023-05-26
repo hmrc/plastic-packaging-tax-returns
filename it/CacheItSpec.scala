@@ -15,10 +15,11 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
+import com.github.tomakehurst.wiremock.client.WireMock.{anyUrl, get, ok}
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.MockitoSugar.{reset, when}
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
@@ -28,8 +29,11 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.createSubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.{returnWithLegacyCreditData, returnsWithNoCreditDataJson}
@@ -37,26 +41,44 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.{returnWi
 import scala.concurrent.Future
 
 
-class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSuite with BeforeAndAfterEach{
+class CacheItSpec extends PlaySpec 
+  with AuthTestSupport with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll {
 
-  private lazy val wsClient: WSClient        = app.injector.instanceOf[WSClient]
-  private lazy val sessionRepository = mock[SessionRepository]
-  private val url = s"http://localhost:$port/cache/get/$pptReference"
+  private val wiremockServer = new WiremockItServer()
 
   override lazy val app: Application = {
     SharedMetricRegistries.clear()
+    wiremockServer.start()
     GuiceApplicationBuilder()
-      .overrides(bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository))
+      .configure(wiremockServer.overrideConfig)
+      .overrides(
+        bind[AuthConnector].to(mockAuthConnector),
+        bind[SessionRepository].to(sessionRepository)
+      )
       .build()
   }
+  private lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  private lazy val sessionRepository = mock[SessionRepository]
+  private val url = s"http://localhost:$port/cache/get/$pptReference"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector, sessionRepository)
+    wiremockServer.reset()
+  }
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    wiremockServer.start()
+  }
+
+  override protected def afterAll(): Unit = {
+    super.afterAll()
+    wiremockServer.stop()
   }
 
   "return a user answer" when {
+    
     "credit is not available" in {
       withAuthorizedUser()
       when(sessionRepository.get(any))
@@ -68,7 +90,7 @@ class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSu
       (response.json \ "data").as[JsObject] mustBe returnsWithNoCreditDataJson
     }
 
-    "old credit is Available" in {
+    "there are answers from previous credit journey" in {
       val answer = new UserAnswers("123", Json.parse(returnWithLegacyCreditData).as[JsObject])
       withAuthorizedUser()
       setRepository(answer)
@@ -76,7 +98,7 @@ class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSu
       val response = await(wsClient.url(url).get())
 
       response.status mustBe OK
-      (response.json \ "data").as[JsObject]  shouldBe Json.parse(newCreditJsonData).as[JsObject]
+      (response.json \ "data").as[JsObject] shouldBe Json.parse(newCreditJsonData).as[JsObject]
     }
 
     "new credit is Available" in {
@@ -87,7 +109,7 @@ class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSu
       val response = await(wsClient.url(url).get())
 
       response.status mustBe OK
-      (response.json \ "data").as[JsObject]  shouldBe Json.parse(newCreditJsonData).as[JsObject]
+      (response.json \ "data").as[JsObject] shouldBe Json.parse(newCreditJsonData).as[JsObject]
     }
 
     "return 404 if user answer not found" in {
@@ -103,50 +125,57 @@ class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSu
   private def setRepository(answer: UserAnswers) = {
     when(sessionRepository.get(any)).thenReturn(Future.successful(Some(answer)))
     when(sessionRepository.set(any[UserAnswers])).thenReturn(Future.successful(true))
+
+    val subscription = createSubscriptionDisplayResponse(SubscriptionTestData.ukLimitedCompanySubscription)
+    wiremockServer
+      .stubFor(get(anyUrl())
+        .willReturn(ok().withBody(
+          Json.toJson(subscription).toString()
+        )))
   }
 
-  def newCreditJsonData =
-  """{
-  |        "obligation" : {
-  |            "fromDate" : "2023-01-01",
-  |            "toDate" : "2023-03-31",
-  |            "dueDate" : "2023-05-31",
-  |            "periodKey" : "23C1"
-  |        },
-  |        "isFirstReturn" : false,
-  |        "startYourReturn" : true,
-  |        "whatDoYouWantToDo" : true,
-  |        "credit": {
-  |          "2022-04-01-2022-12-31": {
-  |            "exportedCredits" : {
-  |              "yesNo" : true,
-  |              "weight" : 12
-  |            },
-  |            "convertedCredits" : {
-  |              "yesNo" : true,
-  |              "weight" : 34
-  |            },
-  |            "fromDate": "2022-04-01",
-  |            "toDate": "2022-12-31"
-  |          }
-  |        },
-  |        "creditAvailableYears" : [
-  |            {
-  |                "from" : "2022-04-01",
-  |                "to" : "2022-12-31"
-  |            }
-  |        ],
-  |        "manufacturedPlasticPackaging" : false,
-  |        "manufacturedPlasticPackagingWeight" : 0,
-  |        "importedPlasticPackaging" : false,
-  |        "importedPlasticPackagingWeight" : 0,
-  |        "directlyExportedComponents" : false,
-  |        "exportedPlasticPackagingWeight" : 0,
-  |        "plasticExportedByAnotherBusiness" : false,
-  |        "anotherBusinessExportWeight" : 0,
-  |        "nonExportedHumanMedicinesPlasticPackaging" : false,
-  |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
-  |        "nonExportRecycledPlasticPackaging" : false,
-  |        "nonExportRecycledPlasticPackagingWeight" : 0
-  |    }""".stripMargin
+  private def newCreditJsonData =
+    """{
+      |        "obligation" : {
+      |            "fromDate" : "2023-01-01",
+      |            "toDate" : "2023-03-31",
+      |            "dueDate" : "2023-05-31",
+      |            "periodKey" : "23C1"
+      |        },
+      |        "isFirstReturn" : false,
+      |        "startYourReturn" : true,
+      |        "whatDoYouWantToDo" : true,
+      |        "manufacturedPlasticPackaging" : false,
+      |        "manufacturedPlasticPackagingWeight" : 0,
+      |        "importedPlasticPackaging" : false,
+      |        "importedPlasticPackagingWeight" : 0,
+      |        "directlyExportedComponents" : false,
+      |        "exportedPlasticPackagingWeight" : 0,
+      |        "plasticExportedByAnotherBusiness" : false,
+      |        "anotherBusinessExportWeight" : 0,
+      |        "nonExportedHumanMedicinesPlasticPackaging" : false,
+      |        "nonExportedHumanMedicinesPlasticPackagingWeight" : 0,
+      |        "nonExportRecycledPlasticPackaging" : false,
+      |        "nonExportRecycledPlasticPackagingWeight" : 0,
+      |        "credit": {
+      |          "2022-06-03-2022-12-31": {
+      |            "exportedCredits" : {
+      |              "yesNo" : true,
+      |              "weight" : 12
+      |            },
+      |            "convertedCredits" : {
+      |              "yesNo" : true,
+      |              "weight" : 34
+      |            },
+      |            "fromDate": "2022-06-03",
+      |            "toDate": "2022-12-31"
+      |          }
+      |        },
+      |        "creditAvailableYears" : [
+      |            {
+      |                "to" : "2022-12-31", 
+      |                "from" : "2022-06-03"
+      |            }
+      |        ]
+      }""".stripMargin
 }

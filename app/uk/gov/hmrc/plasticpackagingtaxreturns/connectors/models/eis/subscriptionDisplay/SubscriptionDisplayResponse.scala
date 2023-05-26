@@ -22,6 +22,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 
+import java.time.LocalDate
+
 case class SubscriptionDisplayResponse(
   processingDate: String,
   changeOfCircumstanceDetails: Option[ChangeOfCircumstanceDetails],
@@ -47,6 +49,8 @@ case class SubscriptionDisplayResponse(
       declaration = declaration,
       groupPartnershipSubscription = groupPartnershipSubscription
     )
+    
+  def taxStartDate(): LocalDate = LocalDate.parse(taxObligationStartDate)
 }
 
 object SubscriptionDisplayResponse {
