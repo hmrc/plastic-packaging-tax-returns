@@ -170,12 +170,6 @@ class CacheItSpec extends PlaySpec
       |            "fromDate": "2022-06-03",
       |            "toDate": "2022-12-31"
       |          }
-      |        },
-      |        "creditAvailableYears" : [
-      |            {
-      |                "to" : "2022-12-31", 
-      |                "from" : "2022-06-03"
-      |            }
-      |        ]
+      |        }
       }""".stripMargin
 }

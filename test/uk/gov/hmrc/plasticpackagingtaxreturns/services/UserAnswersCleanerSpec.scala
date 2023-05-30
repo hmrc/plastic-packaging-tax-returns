@@ -233,12 +233,6 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
       |                }
       |            }
       |        },
-      |        "creditAvailableYears" : [
-      |            {
-      |                "from" : "2022-04-01",
-      |                "to" : "2022-12-31"
-      |            }
-      |        ],
       |        "manufacturedPlasticPackaging" : false,
       |        "manufacturedPlasticPackagingWeight" : 0,
       |        "importedPlasticPackaging" : false,
