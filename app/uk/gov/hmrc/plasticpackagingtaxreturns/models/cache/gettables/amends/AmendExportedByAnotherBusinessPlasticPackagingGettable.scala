@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends
 
 import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object ConvertedCreditYesNoGettable extends Gettable[Boolean] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "yesNo"
-}
-case object ConvertedCreditWeightGettable extends Gettable[Long] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "weight"
+case object AmendExportedByAnotherBusinessPlasticPackagingGettable extends Gettable[Long] {
+
+  override def path: JsPath = JsPath \ "amend" \ toString
+
+  override def toString: String = "amendExportedByAnotherBusinessPlasticPackaging"
 }

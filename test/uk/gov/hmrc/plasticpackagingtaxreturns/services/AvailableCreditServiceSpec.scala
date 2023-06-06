@@ -48,18 +48,6 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   "getBalance" must {
-    "return 0 and not call connector" when {
-      "no credit is being claimed" in {
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(
-            ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
-          )
-
-        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe BigDecimal(0)
-
-        verifyNoMoreInteractions(mockConnector)
-      }
-    }
 
     "correctly construct the parameters for the connector" in {
       val expected = BigDecimal(200)

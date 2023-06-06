@@ -23,17 +23,20 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
 
-class WeightToPoundsConversionService @Inject()(appConfig: AppConfig) {
+/*
+  Policy have advised that Rounding must always happen in favor of the customer.
+  When Calculating a credit (money given to the customer) round up.
+  When calculating a debit (money taken from the customer) round down.
 
-  /*
-    Policy have advised that Rounding must always happen in favor of the customer.
-    When Calculating a credit (money given to the customer) round up.
-    When calculating a debit (money taken from the customer) round down.
+  While the tax rate conversion is currently 0.2 this rounding does not take affect,
+   however if it were ever more than 2 d.p. this would make a difference so it is
+   important to use the correct conversion method
+ */
 
-    While the tax rate conversion is currently 0.2 this rounding does not take affect,
-     however if it were ever more than 2 d.p. this would make a difference so it is
-     important to use the correct conversion method
-   */
+class WeightToPoundsConversionService @Inject()(
+ taxRateService: TaxRateService,
+ appConfig: AppConfig
+) {
 
   /**
    * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the
@@ -43,26 +46,15 @@ class WeightToPoundsConversionService @Inject()(appConfig: AppConfig) {
    * @return the amount (in £) of tax payable, rounded-down to nearest pence
    */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): BigDecimal = {
-    val taxRateForPeriod = lookupTaxRateForPeriod(periodEndDate)
+    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(periodEndDate)
     val currency = BigDecimal(weightInKg) * taxRateForPeriod // tax rate is £ per kg
     currency.setScale(2, RoundingMode.DOWN)
   }
 
-  // TODO allow for period / rate look up somehow
   def weightToCredit(weight: Long): BigDecimal = {
-    val currency = BigDecimal(weight) * appConfig.taxRateFrom1stApril2022
+    val taxRateForPeriod = taxRateService.lookupTaxRateForPeriod(appConfig.taxRegimeStartDate) //todo: credits need to bring in a date
+    val currency = BigDecimal(weight) * taxRateForPeriod
     currency.setScale(2, RoundingMode.UP)
-  }
-
-  /** When the tax rate changes, add another if-test here
-   * @param periodEndDate the last day of the period we are finding the tax-rate for
-   * @return the tax rate for the given period
-   */
-  def lookupTaxRateForPeriod(periodEndDate: LocalDate): BigDecimal = {
-    if (periodEndDate.isBefore(appConfig.taxRegimeStartDate))
-      appConfig.taxRateBefore1stApril2022
-    else
-      appConfig.taxRateFrom1stApril2022
   }
 
 }

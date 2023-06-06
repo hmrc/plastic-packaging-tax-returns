@@ -22,9 +22,11 @@ import com.github.tomakehurst.wiremock.client.WireMock.{equalToJson, postRequest
 import com.kenshoo.play.metrics.Metrics
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.ExecutionContext
@@ -39,7 +41,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
 
   override def fakeApplication(): Application = {
     SharedMetricRegistries.clear()
-    new GuiceApplicationBuilder().configure(overrideConfig).build()
+    new GuiceApplicationBuilder()
+      .configure(overrideConfig)
+      .overrides(bind[SessionRepository].to(mock[SessionRepository]))
+      .build()
   }
 
   def overrideConfig: Map[String, Any] =

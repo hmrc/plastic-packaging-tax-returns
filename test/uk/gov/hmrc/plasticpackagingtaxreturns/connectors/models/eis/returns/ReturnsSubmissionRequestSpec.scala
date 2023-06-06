@@ -38,12 +38,13 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
           importedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 3,
           exportedPlasticWeight = 4,
+          exportedByAnotherBusinessPlasticWeight = 0,
           recycledPlasticWeight = 5,
           convertedPackagingCredit = 11,
           availableCredit = 12
         )
 
-        val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, totalRequestCreditInPounds = 10, isSubmittable = true)
+        val calc = Calculations(taxDue = 6, chargeableTotal = 7, deductionsTotal = 8, packagingTotal = 9, isSubmittable = true, taxRate = 0.123)
 
         val eisReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calc)
 

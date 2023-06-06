@@ -21,18 +21,18 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsString, Json, Reads}
-import play.api.mvc.{Action, BodyParser, Result}
+import play.api.libs.json.{JsString, Json}
+import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, TaxRate}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, TaxRateService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -41,9 +41,12 @@ import scala.concurrent.Future
 
 class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
-  val mockSessionRepo: SessionRepository = mock[SessionRepository]
-  val mockCreditsCalcService = mock[CreditsCalculationService]
-  val mockAvailableCreditsService = mock[AvailableCreditService]
+  private val mockSessionRepo: SessionRepository = mock[SessionRepository]
+  private val mockCreditsCalcService = mock[CreditsCalculationService]
+  private val mockAvailableCreditsService = mock[AvailableCreditService]
+  private val cc: ControllerComponents = Helpers.stubControllerComponents()
+
+  private val taxRateService = mock[TaxRateService]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -51,11 +54,12 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   }
 
   val sut = new ExportCreditBalanceController(
-    FakeAuthenticator,
+    new FakeAuthenticator(cc),
     mockSessionRepo,
     mockCreditsCalcService,
     mockAvailableCreditsService,
-    Helpers.stubControllerComponents(),
+    taxRateService,
+    cc,
   )(global)
 
   "get" must {
@@ -63,6 +67,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     "return 200 response with correct values" in {
       val userAnswers = UserAnswers("user-answers-id")
         .setUnsafe(ReturnObligationFromDateGettable, now)
+      .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
 
       val available = BigDecimal(200)
       val requested = Credit(100L, BigDecimal(20))
@@ -75,10 +80,16 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe Json.toJson(CreditsCalculationResponse(available, requested.moneyInPounds, requested.weight))
+      contentAsJson(result) mustBe Json.toJson(
+        CreditsCalculationResponse(
+          available,
+          requested.moneyInPounds,
+          requested.weight
+        )
+      )
 
       withClue("session repo called with the cache key"){
-        verify(mockSessionRepo).get(s"some-internal-id-test-ppt-id")
+        verify(mockSessionRepo).get(s"some-internal-ID-some-ppt-ref")
       }
 
       withClue("credits calculation service not called"){
@@ -150,16 +161,5 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         contentAsJson(result) mustBe Json.obj("message" -> JsString("test error"))
       }
     }
-  }
-
-
-  //todo the world should know this exists
-  object FakeAuthenticator extends Authenticator {
-    override def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
-      Helpers.stubControllerComponents().actionBuilder.async(bodyParser) { implicit request =>
-        body(AuthorizedRequest("test-ppt-id", request, "some-internal-id"))
-      }
-
-    override def parsingJson[T](implicit rds: Reads[T]): BodyParser[T] = ???
   }
 }

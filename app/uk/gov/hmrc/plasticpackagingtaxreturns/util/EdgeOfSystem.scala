@@ -16,11 +16,47 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import java.security.MessageDigest
-import java.util.{Base64, UUID}
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
-class EdgeOfSystem {
+import java.security.MessageDigest
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
+import java.util.{Base64, UUID}
+import javax.inject.Inject
+import scala.util.Try
+
+class EdgeOfSystem @Inject() (appConfig: AppConfig) {
+  
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
   def createUuid: UUID = UUID.randomUUID()
+  
+  /** The current system date-time, or the overridden date-time if set in config
+   *
+   * @return
+   *  - current system date-time, if no override in-place
+   *  - overridden date-time, if set
+   * @see [[AppConfig.overrideSystemDateTime]]
+   * @see [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
+   */
+  def localDateTimeNow: LocalDateTime = {
+    appConfig
+      .overrideSystemDateTime
+      .flatMap(parseDate)
+      .getOrElse(LocalDateTime.now())
+  }
+
+  private def parseDate(date: String): Option[LocalDateTime] = {
+    Try(LocalDateTime.parse(date, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+      .toOption
+  }
+
+  /** The current system date, or provides the date part of the overridden date-time, if set
+   *
+   * @return today's date, or the overridden date if set
+   * @see [[EdgeOfSystem.localDateTimeNow]]
+   */
+  def today: LocalDate = localDateTimeNow.toLocalDate
+
+  
 }

@@ -41,6 +41,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
 import java.time.{ZoneOffset, ZonedDateTime}
@@ -55,8 +56,9 @@ class SubscriptionControllerSpec
 
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(bind[AuthConnector].to(mockAuthConnector),
-               bind[SubscriptionsConnector].to(mockSubscriptionsConnector),
-               bind[NonRepudiationService].to(mockNonRepudiationService)
+      bind[SubscriptionsConnector].to(mockSubscriptionsConnector),
+      bind[NonRepudiationService].to(mockNonRepudiationService),
+      bind[SessionRepository].to(mock[SessionRepository])
     )
     .build()
 

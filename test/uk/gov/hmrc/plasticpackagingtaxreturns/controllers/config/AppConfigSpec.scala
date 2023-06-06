@@ -41,7 +41,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
         |auditing.enabled=true
         |eis.environment=ist0
         |nrs.retries=["1s", "2s", "4s"]
-        |taxRatePoundsPerKg=0.20
     """.stripMargin)
 
   private val validServicesConfiguration = Configuration(validAppConfig)
@@ -58,8 +57,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       configService.auditingEnabled mustBe true
       configService.graphiteHost mustBe "graphite"
       configService.dbTimeToLiveInSeconds mustBe 100
-
-      configService.taxRateFrom1stApril2022 mustBe BigDecimal("0.20")
     }
   }
 }

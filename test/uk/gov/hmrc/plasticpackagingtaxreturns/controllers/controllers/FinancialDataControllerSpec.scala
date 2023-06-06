@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import java.time.LocalDate
-
 import com.codahale.metrics.SharedMetricRegistries
 import org.mockito.Mockito.{reset, verifyNoInteractions}
 import org.scalatest.BeforeAndAfterEach
@@ -37,6 +36,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EnterpriseTestData, SubscriptionTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.Future
 
@@ -47,7 +47,11 @@ class FinancialDataControllerSpec
   SharedMetricRegistries.clear()
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector), bind[FinancialDataConnector].to(mockFinancialDataConnector))
+    .overrides(
+      bind[AuthConnector].to(mockAuthConnector),
+      bind[FinancialDataConnector].to(mockFinancialDataConnector),
+      bind[SessionRepository].to(mock[SessionRepository])
+    )
     .build()
 
   override def beforeEach(): Unit = {

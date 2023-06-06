@@ -42,7 +42,7 @@ case class SubscriptionUpdateRequest(
                  businessCorrespondenceDetails = this.businessCorrespondenceDetails,
                  declaration = this.declaration,
                  taxObligationStartDate = this.taxObligationStartDate,
-                 last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue(),
+                 last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue,
                  groupPartnershipSubscription = this.groupPartnershipSubscription
     )
 

@@ -27,7 +27,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.DateAndTime
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
@@ -39,8 +39,8 @@ class FinancialDataConnector @Inject() (
   httpClient: HttpClient, 
   override val appConfig: AppConfig,
   metrics: Metrics, 
-  auditConnector: AuditConnector, 
-  dateAndTime: DateAndTime
+  auditConnector: AuditConnector,
+  edgeOfSystem: EdgeOfSystem
 ) (
   implicit ec: ExecutionContext
 ) extends DESConnector {
@@ -138,7 +138,7 @@ class FinancialDataConnector @Inject() (
       .map(_.group(1))
       .flatMap(body => (Json.parse(body) \ "code").asOpt[String]) // try get code field
       .filter(_ == "NOT_FOUND") // if DES code is this -> means no financial records found 
-      .map(_ => FinancialDataResponse.inferNoTransactions(pptReference, dateAndTime.currentTime))
+      .map(_ => FinancialDataResponse.inferNoTransactions(pptReference, edgeOfSystem.localDateTimeNow))
   }
 }
     
