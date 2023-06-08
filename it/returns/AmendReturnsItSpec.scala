@@ -17,6 +17,7 @@
 package returns
 
 import com.codahale.metrics.SharedMetricRegistries
+import com.github.tomakehurst.wiremock.client.WireMock.{equalTo, matchingJsonPath, putRequestedFor, urlEqualTo}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
@@ -82,16 +83,6 @@ class AmendReturnsItSpec extends PlaySpec
   }
 
   "amend" should {
-    "return 200" in {
-      withAuthorizedUser()
-      mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      stubSubmitReturnEISRequest(pptReference)
-      setUpMockForAmend
-
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
-
-      response.status mustBe OK
-    }
 
     "return with NRS success response" in {
 
@@ -99,12 +90,20 @@ class AmendReturnsItSpec extends PlaySpec
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubmitReturnEISRequest(pptReference)
       stubNrsRequest
-      setUpMockForAmend
+      setUpMockForAmend()
 
-      val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
-
+      val response = await {
+        wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference)
+      }
       response.status mustBe OK
       response.json mustBe Json.toJson(aReturnWithNrs())
+
+      withClue("amend requests must include the original submission id") {
+        server.wireMockServer.verify(
+          putRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/7777777"))
+            .withRequestBody(matchingJsonPath("$.submissionId", equalTo("submission12")))
+        )
+      }
     }
 
     "return with NRS fail response" in {
@@ -112,7 +111,7 @@ class AmendReturnsItSpec extends PlaySpec
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubmitReturnEISRequest(pptReference)
       stubNrsFailingRequest
-      setUpMockForAmend
+      setUpMockForAmend()
 
       val response = await(wsClient.url(amendUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -130,7 +129,7 @@ class AmendReturnsItSpec extends PlaySpec
   }
 
 
-  private def setUpMockForAmend: Unit = {
+  private def setUpMockForAmend(): Unit = {
     when(cacheRepository.get(any()))
       .thenReturn(Future.successful(Option(UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
