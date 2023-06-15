@@ -193,9 +193,10 @@ class PPTFinancialsServiceSpec extends PlaySpec
     }
   }
 
-  def createItem(DDCollectionInProgress: Option[Boolean]) = {
+  private def createItem(DDCollectionInProgress: Option[Boolean]) = {
     FinancialItem(None, None, None, None, None, DDCollectionInProgress)
   }
+
   private def createFinancialTransaction(periodKey: Option[String], items: Seq[FinancialItem]) = {
     val transaction = FinancialTransaction(None, None, periodKey, None, None, None, None, items)
     FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq(transaction))

@@ -33,8 +33,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.{DateAndTime, EdgeOfSystem}
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import com.github.tomakehurst.wiremock.client.WireMock._
 
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -59,8 +61,6 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val appConfig      = mock[AppConfig]
   private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
-  private val dateAndTime    = mock[DateAndTime]
-
   private val edgeOfSystem = mock[EdgeOfSystem]
 
   private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem)
@@ -168,7 +168,6 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
         when(httpClient.GET[Any](any, any, any)(any, any, any))
           .thenReturn(Future.failed(UpstreamErrorResponse(createUpstreamMessage, NOT_FOUND)))
-
         val result = await(getFinancialData)
 
         result mustBe Right(FinancialDataResponse(

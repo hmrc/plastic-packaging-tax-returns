@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.util
+package uk.gov.hmrc.plasticpackagingtaxreturns.models
+import java.time.LocalDate
 
-import com.google.inject.ImplementedBy
+/**
+ * @param poundsPerKg - tax rate in £ per kg
+ * @param useFromDate - earliest day from which this rate applies
+ */
+case class TaxRate(poundsPerKg: BigDecimal, useFromDate: LocalDate)
 
-import java.time.LocalDateTime
-
-@ImplementedBy(classOf[DateAndTimeImpl])
-trait DateAndTime {
-  def currentTime: LocalDateTime
-}
-
-class DateAndTimeImpl extends DateAndTime {
-  override def currentTime: LocalDateTime = LocalDateTime.now()
-}

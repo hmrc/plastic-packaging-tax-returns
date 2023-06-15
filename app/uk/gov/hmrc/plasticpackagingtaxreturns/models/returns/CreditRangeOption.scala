@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{Json, OFormat}
 
 import java.time.LocalDate
 
-case class TaxRate(rate: BigDecimal, useFromDate: LocalDate) {
-  def rateCanApplyTo(localDate: LocalDate): Boolean =
-    useFromDate.isBefore(localDate) || useFromDate.isEqual(localDate)
+final case class CreditRangeOption(from: LocalDate, to: LocalDate) {
+  def key: String = from.toString + "-" + to.toString
 }
 
-object TaxRate {
-  implicit val formats: OWrites[TaxRate] = Json.writes[TaxRate]
-}
+object CreditRangeOption {
+  implicit val format: OFormat[CreditRangeOption] = Json.format[CreditRangeOption]
 
+  def apply(fromTo: (LocalDate, LocalDate)): CreditRangeOption =
+    new CreditRangeOption(fromTo._1, fromTo._2)
+}

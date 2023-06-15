@@ -22,7 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.{LocalDate, ZoneOffset}
+import java.time.LocalDate
 import javax.inject.Inject
 
 class PPTObligationsService @Inject() (appConfig: AppConfig) (implicit edgeOfSystem: EdgeOfSystem) extends Logging {

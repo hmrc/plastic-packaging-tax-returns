@@ -17,35 +17,51 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ConvertedCreditYesNoGettable, ExportedCreditWeightGettable, ExportedCreditYesNoGettable}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import play.api.libs.json.{JsObject, JsPath}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models._
 
-class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
+import java.time.LocalDate
 
-  def totalRequestedCredit(userAnswers: UserAnswers): Credit = {
-    val exportedWeight: Long = lookupWeight(userAnswers, ExportedCreditYesNoGettable, ExportedCreditWeightGettable)
-    val convertedWeight: Long = lookupWeight(userAnswers, ConvertedCreditYesNoGettable, ConvertedCreditWeightGettable)
-    val totalWeight = exportedWeight + convertedWeight
+class CreditsCalculationService @Inject()(taxCalculationService: TaxCalculationService) {
 
-    Credit(
-      totalWeight,
-      convert.weightToCredit(totalWeight)
-    )
+  // TODO replace with biggerObject
+  def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic = {
+    isClaimingCredit(userAnswers)
+      .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
+      .getOrElse(TaxablePlastic.zero)
   }
 
-  private def lookupWeight(userAnswers: UserAnswers, yesNo: Gettable[Boolean], weight: Gettable[Long]): Long = {
+  private def isClaimingCredit(userAnswers: UserAnswers) =
+    userAnswers.get[Boolean](JsPath \ "whatDoYouWantToDo")
+      .filter(_ == true)
+
+  private def currentJourney(userAnswers: UserAnswers) = {
+    val endOfFirstYearOfPpt = LocalDate.of(2023, 3, 31)
+    val exportedCredit = CreditsAnswer.readFrom(userAnswers, "exportedCredits")
+    val convertedCredit = CreditsAnswer.readFrom(userAnswers, "convertedCredits")
+    val totalWeight = exportedCredit.value + convertedCredit.value
+    taxCalculationService.weightToCredit(endOfFirstYearOfPpt, totalWeight)
+  }
+
+  private def newJourney(userAnswers: UserAnswers): Option[TaxablePlastic] = {
     userAnswers
-      .get(yesNo)
-      .filter(isYes => isYes && userAnswers.get[Boolean](JsPath \ "whatDoYouWantToDo").contains(true))
-      .flatMap(_ => userAnswers.get(weight))
-      .getOrElse(0L)
+      .get[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .flatMap { map =>
+        map.values.headOption
+      }
+      .map(singleYearClaim => singleYearClaim.calculate(taxCalculationService))
   }
-}
 
-object CreditsCalculationService {
+  def newJourney2(userAnswers: UserAnswers): Map[String, TaxablePlastic] = {
+    userAnswers
+      .get[Map[String, SingleYearClaim]](JsPath \ "credit")
+      .getOrElse(Map())
+      .view.mapValues(_.calculate(taxCalculationService))
+      .toMap
+  }
 
-  final case class Credit(weight: Long, moneyInPounds: BigDecimal)
+  def totalRequestedCredit(userAnswers: UserAnswers, availableCreditInPounds: BigDecimal): CreditCalculation = {
+    CreditCalculation.totalUp(newJourney2(userAnswers), availableCreditInPounds)
+  }
 
 }

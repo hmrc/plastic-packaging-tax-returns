@@ -34,12 +34,10 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.{IdDetails, ReturnDisplayApi, ReturnDisplayDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
@@ -88,7 +86,7 @@ class ReturnsISpec extends PlaySpec
 
   "return 200 when getting return details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse
+    stubReturnDisplayResponse()
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
 
@@ -97,7 +95,7 @@ class ReturnsISpec extends PlaySpec
 
   "return display details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse
+    stubReturnDisplayResponse()
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
     val expected = ReturnWithTaxRate(Json.parse(displayApiResponse), 0.2)
@@ -107,7 +105,7 @@ class ReturnsISpec extends PlaySpec
 
   "return an error if DES API fails when getting return" in {
     withAuthorizedUser()
-    stubReturnDisplayErrorResponse
+    stubReturnDisplayErrorResponse()
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
 
@@ -125,8 +123,8 @@ class ReturnsISpec extends PlaySpec
   "return 200 when submitting return" in {
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-    setUpStub
-    setUpMocks
+    setUpStub()
+    setUpMocks()
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -136,8 +134,8 @@ class ReturnsISpec extends PlaySpec
   "success return submit with nrs success" in {
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-    setUpStub
-    setUpMocks
+    setUpStub()
+    setUpMocks()
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -148,8 +146,8 @@ class ReturnsISpec extends PlaySpec
   "success return submit with nrs failure" in {
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-    setUpStub
-    setUpMocks
+    setUpStub()
+    setUpMocks()
     stubNrsFailingRequest
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
@@ -178,14 +176,14 @@ class ReturnsISpec extends PlaySpec
     response.status mustBe UNAUTHORIZED
   }
 
-  private def setUpStub = {
+  private def setUpStub() = {
     stubObligationDesRequest()
     stubGetBalanceEISRequest
     stubSubmitReturnEISRequest(pptReference)
     stubNrsRequest
   }
 
-  private def setUpMocks = {
+  private def setUpMocks() = {
     when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(
       data = ReturnTestHelper.returnsWithNoCreditDataJson))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
@@ -204,7 +202,7 @@ class ReturnsISpec extends PlaySpec
     )
   }
 
-  private def stubReturnDisplayResponse: Unit = {
+  private def stubReturnDisplayResponse(): Unit = {
     server.stubFor(
       get(DesUrl)
         .willReturn(
@@ -215,7 +213,7 @@ class ReturnsISpec extends PlaySpec
     )
   }
 
-  private def stubReturnDisplayErrorResponse: Unit = {
+  private def stubReturnDisplayErrorResponse(): Unit = {
     server.stubFor(
       get(DesUrl)
         .willReturn(
@@ -226,28 +224,10 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubGetBalanceEISRequest = {
-    server.stubFor(get(urlPathMatching(balanceEISURL))
+    server.stubFor(get(urlPathEqualTo(balanceEISURL))
       .willReturn(
         ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
       )
-    )
-  }
-
-  private def createDisplayApiResponse: ReturnDisplayApi = {
-    ReturnDisplayApi(
-      ReturnDisplayDetails(
-        manufacturedWeight = 250L,
-        importedWeight = 150L,
-        totalNotLiable = 180L,
-        humanMedicines = 50L,
-        directExports = 60L,
-        recycledPlastic = 70L,
-        creditForPeriod = BigDecimal(12.13),
-        debitForPeriod = BigDecimal(0),
-        totalWeight = 220L,
-        taxDue = BigDecimal(44)
-      ),
-      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "123456789012")
     )
   }
 

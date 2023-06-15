@@ -16,15 +16,23 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.TaxCalculationService
 
 import java.time.LocalDate
-import javax.inject.Singleton
 
-@Singleton
-class TaxRateValues {
-  final val taxRatesPoundsPerKg = Seq(
-    TaxRate(rate = 0.20, useFromDate = LocalDate.of(2022, 4, 1)),
-    TaxRate(rate = 0.21082, useFromDate = LocalDate.of(2023, 4, 1))
-  )
+
+case class SingleYearClaim(
+  toDate: LocalDate,
+  exportedCredits: Option[CreditsAnswer], 
+  convertedCredits: Option[CreditsAnswer]
+) {
+  def calculate(taxCalculationService: TaxCalculationService): TaxablePlastic = {
+    val totalWeight = CreditsAnswer.from(exportedCredits).value + CreditsAnswer.from(convertedCredits).value 
+    taxCalculationService.weightToCredit(toDate, totalWeight)
+  }
+}
+
+object SingleYearClaim {
+  implicit val formats: OFormat[SingleYearClaim] = Json.format[SingleYearClaim]
 }

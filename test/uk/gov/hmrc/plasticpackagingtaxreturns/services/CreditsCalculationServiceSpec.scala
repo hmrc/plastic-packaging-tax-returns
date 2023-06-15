@@ -16,107 +16,199 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{never, reset, verify, when}
+import org.mockito.ArgumentMatchersSugar._
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ConvertedCreditYesNoGettable, ExportedCreditWeightGettable, ExportedCreditYesNoGettable}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
+import play.api.libs.json.Json.obj
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, CreditsAnswer, TaxablePlastic, UserAnswers}
 
-class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
+import java.time.LocalDate
 
-  val mockConversion: WeightToPoundsConversionService = mock[WeightToPoundsConversionService]
-  val captor: ArgumentCaptor[Long] = ArgumentCaptor.forClass(classOf[Long])
+class CreditsCalculationServiceSpec extends PlaySpec
+  with BeforeAndAfterEach with MockitoSugar {
 
-  val sut = new CreditsCalculationService(mockConversion)
+  private val taxCalculationService = mock[TaxCalculationService]
+  private val sut = new CreditsCalculationService(taxCalculationService)
+
+  private val currentUserAnswers = UserAnswers("id", obj(
+    "obligation" -> obj (
+        "toDate" -> "2022-06-30"
+      ),
+      "whatDoYouWantToDo" -> true,
+    ))
+
+  private val newUserAnswers = UserAnswers("id", obj(
+    "obligation" -> obj("toDate" -> "2024-06-30"),
+    "whatDoYouWantToDo" -> true, 
+    "credit" -> obj(
+      "key-a" -> obj(
+        "toDate" -> "2024-03-31",
+        "exportedCredits" -> obj(
+          "yesNo" -> true,
+          "weight" -> 1
+        ),
+        "convertedCredits" -> obj(
+          "yesNo" -> true,
+          "weight" -> 2
+        )
+      ),
+    
+      "key-b" -> obj(
+        "toDate" -> "2025-03-31",
+        "exportedCredits" -> obj(
+          "yesNo" -> true,
+          "weight" -> 11
+        ),
+      ),
+    )
+  ))
+
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConversion)
+    reset(taxCalculationService)
+    when(taxCalculationService.weightToCredit(any, any)).thenReturn(
+      TaxablePlastic(1, 1.1, 1.11),
+      TaxablePlastic(2, 2.2, 2.22),
+    )
   }
 
-  private def converterJustAddsOne() =
-    when(mockConversion.weightToCredit(any())).thenAnswer(a => BigDecimal(a.getArgument(0).asInstanceOf[Long] + 1))
+  // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
 
-  "totalRequestCredit" must {
-    "return 0" when {
-      "both fields are empty" in {
-        converterJustAddsOne()
+  "totalRequestCredit" when {
 
-        val userAnswers = UserAnswers("user-answers-id")
+    "given current user answers" must {
 
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
+      "return the credit claimed total" in {
+        sut.totalRequestedCredit_old(currentUserAnswers)// mustBe TaxablePlastic(11, 22.3, 3.14)
+        verify(taxCalculationService).weightToCredit(any, any)
+      }
+
+      "total the weight" when {
+
+        "both answers are missing" in {
+          sut.totalRequestedCredit_old(currentUserAnswers)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+        }
+
+        "both answers answered with false" in {
+          val userAnswers2 = currentUserAnswers.setAll(
+            "exportedCredits" -> CreditsAnswer(false, None),
+            "convertedCredits" -> CreditsAnswer(false, None)
+          )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+        }
+
+        "both answers answered are only partially answered" in {
+          val userAnswers2 = currentUserAnswers.setAll(
+            "exportedCredits" -> CreditsAnswer(true, None),
+            "convertedCredits" -> CreditsAnswer(true, None)
+          )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 0L)
+        }
+
+        "converted is supplied" in {
+          val userAnswers2 = currentUserAnswers
+            .setOrFail(JsPath \ "whatDoYouWantToDo", true)
+            .setAll("convertedCredits" -> CreditsAnswer(true, Some(5L))
+            )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 5L)
+        }
+
+        "exported is supplied" in {
+          val userAnswers2 = currentUserAnswers
+            .setOrFail(JsPath \ "whatDoYouWantToDo", true)
+            .setAll("exportedCredits" -> CreditsAnswer(true, Some(7L))
+            )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 7L)
+        }
+
+        "both are supplied" in {
+          val userAnswers2 = currentUserAnswers
+            .setOrFail(JsPath \ "whatDoYouWantToDo", true)
+            .setAll(
+              "convertedCredits" -> CreditsAnswer(true, Some(5L)),
+              "exportedCredits" -> CreditsAnswer(true, Some(7L))
+            )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(LocalDate.of(2023, 3, 31), 12L)
+        }
+
+        "exported is false" in {
+          val userAnswers2 = currentUserAnswers
+            .setOrFail(JsPath \ "whatDoYouWantToDo", true)
+            .setAll("exportedCredits" -> CreditsAnswer(false, Some(7L))
+            )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(any, eqTo(0L))
+        }
+        "converted is false" in {
+          val userAnswers2 = currentUserAnswers
+            .setOrFail(JsPath \ "whatDoYouWantToDo", true)
+            .setAll("convertedCredits" -> CreditsAnswer(false, Some(5L)),
+            )
+          sut.totalRequestedCredit_old(userAnswers2)
+          verify(taxCalculationService).weightToCredit(any, eqTo(0L))
+        }
+      }
+
+      "infer the first year end date from user answers" in {
+        val userAnswers = spy(UserAnswers("user-answers-id", obj(
+          "whatDoYouWantToDo" -> true,
+          "obligation" -> obj("toDate" -> "2022-06-30")
+        )))
+        sut.totalRequestedCredit_old(userAnswers)
+
+        // Previously used this
+        verify(userAnswers, never).getOrFail[LocalDate](JsPath \ "obligation" \ "toDate")
+        verify(taxCalculationService).weightToCredit(eqTo(LocalDate.of(2023, 3, 31)), any)
       }
     }
 
-    "total the weight" when {
-      "converted is supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
-          .setUnsafe(ConvertedCreditYesNoGettable, true)
-          .setUnsafe(ConvertedCreditWeightGettable, 5L)
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(5, 6)
+    "given new user answers" must {
+      "use the correct end date for the new journey" in {
+        sut.totalRequestedCredit_old(newUserAnswers)
+        verify(taxCalculationService).weightToCredit(eqTo(LocalDate.of(2024, 3, 31)), any)
       }
-      "exported is supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
-          .setUnsafe(ExportedCreditYesNoGettable, true)
-          .setUnsafe(ExportedCreditWeightGettable, 7L)
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(7, 8)
+      "use the correct weight for the new journey" in {
+        sut.totalRequestedCredit_old(newUserAnswers)
+        verify(taxCalculationService).weightToCredit(any, eqTo(3))
       }
-      "both are supplied" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
-          .setUnsafe(ConvertedCreditYesNoGettable, true)
-          .setUnsafe(ConvertedCreditWeightGettable, 5L)
-          .setUnsafe(ExportedCreditYesNoGettable, true)
-          .setUnsafe(ExportedCreditWeightGettable, 7L)
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(12, 13)
-      }
-      "exported is false" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ExportedCreditYesNoGettable, false)
-          .setUnsafe(ExportedCreditWeightGettable, 7L)
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
-      }
-      "converted is false" in {
-        converterJustAddsOne()
-        val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(ConvertedCreditYesNoGettable, false)
-          .setUnsafe(ConvertedCreditWeightGettable, 5L)
-
-        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
+      "return the correct total" in {
+        sut.totalRequestedCredit_old(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
       }
     }
-
-    "convert the weight in to pounds(£) and return it unchanged" in {
-      val expectedPounds = 42.69
-      when(mockConversion.weightToCredit(any())).thenReturn(expectedPounds)
-      val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
-        .setUnsafe(ConvertedCreditYesNoGettable, true)
-        .setUnsafe(ConvertedCreditWeightGettable, 5L)
-        .setUnsafe(ExportedCreditYesNoGettable, true)
-        .setUnsafe(ExportedCreditWeightGettable, 7L)
-
-      sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)
-
-      verify(mockConversion).weightToCredit(12L)
-      verify(mockConversion, never()).weightToDebit(any(), any())
+    
+    "newJourney2" must {
+      
+      "calculate all years" in {
+        sut.newJourney2(newUserAnswers) mustBe Map(
+          ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+          ("key-b", TaxablePlastic(2, 2.2, 2.22))
+        )
+      }
+      
+      "do bigger object" in {
+        sut.totalRequestedCredit(newUserAnswers, 11) mustBe CreditCalculation(
+          availableCreditInPounds = 11, 
+          totalRequestedCreditInPounds = 3.3,
+          totalRequestedCreditInKilograms = 3, 
+          canBeClaimed = true, 
+          credit = Map(
+            ("key-a", TaxablePlastic(1, 1.1, 1.11)),
+            ("key-b", TaxablePlastic(2, 2.2, 2.22))
+        ))
+      }
     }
+    
+    "there is no credit claim" in {}
+    "there is claim data, but user has said no to claiming" in {}
+    
   }
-
 }

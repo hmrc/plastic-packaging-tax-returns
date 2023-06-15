@@ -18,13 +18,12 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
 import java.time.LocalDate
 
@@ -65,11 +64,13 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(credits: Credit, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
+  def apply(creditClaim: TaxablePlastic, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
-      periodKey <- userAnswers.get(PeriodKeyGettable)
-      periodEndDate <- userAnswers.get[LocalDate](ReturnObligationToDateGettable)
+      // todo which of these are must-have vs can default?
+      // todo allow exception from UserAnswers (which has name of missing element) to percolate up
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
+      periodEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
+      periodKey = userAnswers.getOrFail(PeriodKeyGettable)
       imported <- userAnswers.get(ImportedPlasticPackagingWeightGettable)
       exported <- userAnswers.get(ExportedPlasticPackagingWeightGettable)
       exportedByAnotherBusiness <- userAnswers.get(AnotherBusinessExportWeightGettable).orElse(Some(0L))
@@ -85,7 +86,7 @@ object NewReturnValues {
         exportedByAnotherBusiness,
         humanMedicines,
         recycled,
-        credits.moneyInPounds,
+        creditClaim.moneyInPounds,
         availableCredit
       )
     }
@@ -116,12 +117,13 @@ object AmendReturnValues {
 
   def apply(userAnswers: UserAnswers): Option[AmendReturnValues] = {
 
+    // TODO which of these are really must-haves vs can have default values
     val original = userAnswers.get(ReturnDisplayApiGettable)
 
     for {
       submissionID <- original.map(_.idDetails.submissionId)
-      periodKey <- userAnswers.get[String](JsPath() \ "amendSelectedPeriodKey")
-      periodEndDate <- userAnswers.get[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
+      periodKey = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
+      periodEndDate = userAnswers.getOrFail[LocalDate](JsPath \ "amend" \"obligation" \ "toDate")
       manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
       imported <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
       exported <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))

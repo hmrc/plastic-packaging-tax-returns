@@ -30,7 +30,6 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
   def createEncoder: Base64.Encoder = Base64.getEncoder
 
   /** The current system date-time, or the overridden date-time if set in config
-   *
    * @return
    *  - current system date-time, if no override in-place
    *  - overridden date-time, if set
@@ -49,8 +48,8 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
       .toOption
   }
 
+
   /** The current system date, or provides the date part of the overridden date-time, if set
-   *
    * @return today's date, or the overridden date if set
    * @see [[EdgeOfSystem.localDateTimeNow]]
    */

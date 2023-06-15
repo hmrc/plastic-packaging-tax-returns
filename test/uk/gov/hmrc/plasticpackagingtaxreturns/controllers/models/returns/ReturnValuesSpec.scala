@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 
-import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 
 import java.time.LocalDate
@@ -30,7 +29,7 @@ class ReturnValuesSpec extends PlaySpec {
   "NewReturnValues" should {
     "extract value from userAnswer" in {
 
-      val result = NewReturnValues.apply(Credit(10L, 5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
+      val result = NewReturnValues.apply(TaxablePlastic(10L, 5, 0.5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
 
       result mustBe Some(NewReturnValues(
         periodKey = "21C4",
@@ -47,20 +46,20 @@ class ReturnValuesSpec extends PlaySpec {
     }
 
     "Return None if cannot get value from useAnswer" in {
-      val result = NewReturnValues.apply(Credit(10L, 5), 10)(UserAnswers("123", ReturnTestHelper.invalidReturnsDataJson))
+      val result = NewReturnValues.apply(TaxablePlastic(10L, 5, 0.5), 10)(UserAnswers("123", ReturnTestHelper.invalidReturnsDataJson))
 
       result mustBe None
     }
 
     "get total exported plastic" in {
-      val result = NewReturnValues.apply(Credit(10L, 5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
+      val result = NewReturnValues.apply(TaxablePlastic(10L, 5, 0.5), 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
 
       result.get.totalExportedPlastic mustBe 300
     }
+    
     "return exportedByAnotherBusiness value of zero if missing" in {
       val ans = UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson - "anotherBusinessExportWeight")
-
-      val result = NewReturnValues.apply(Credit(10L, 5), 10)(ans)
+      val result = NewReturnValues.apply(TaxablePlastic(10L, 5, 0.5), 10)(ans)
 
       result mustBe Some(NewReturnValues(
         periodKey = "21C4",

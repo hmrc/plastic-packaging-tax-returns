@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsObject, JsPath, JsValue, Json, Writes}
+import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
@@ -30,14 +30,15 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnect
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService, TaxRateService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -60,7 +61,7 @@ class ReturnsController @Inject()(
   financialsService: PPTFinancialsService,
   creditsService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
-  taxRateService: TaxRateService
+  taxRateTable: TaxRateTable
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -74,7 +75,7 @@ class ReturnsController @Inject()(
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
         case Right(displayReturnJson)       => {
           val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
-          val taxRate = taxRateService.lookupTaxRateForPeriod(endDate)
+          val taxRate = taxRateTable.lookupRateFor(endDate)
 
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)
@@ -103,7 +104,7 @@ class ReturnsController @Inject()(
         isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
-              val requestedCredits = creditsService.totalRequestedCredit(userAnswer)
+              val requestedCredits = creditsService.totalRequestedCredit_old(userAnswer)
               doSubmit("ppt-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
@@ -136,7 +137,7 @@ class ReturnsController @Inject()(
   }
 
   private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
-    val periodKey = userAnswer.get(PeriodKeyGettable).get
+    val periodKey = userAnswer.getOrFail(PeriodKeyGettable)
     obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
       _.fold(
         status => throw new RuntimeException(s"Could not get Open Obligation details. Server responded with status code: $status"),

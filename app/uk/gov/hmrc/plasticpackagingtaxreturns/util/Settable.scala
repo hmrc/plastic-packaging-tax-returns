@@ -17,7 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import play.api.libs.json._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 import scala.util.{Failure, Success}
 
@@ -92,10 +93,10 @@ object Settable {
       }
 
     private def setIndexNode(
-                              node: IdxPathNode,
-                              oldValue: JsValue,
-                              newValue: JsValue
-                            ): JsResult[JsValue] = {
+      node: IdxPathNode,
+      oldValue: JsValue,
+      newValue: JsValue
+    ): JsResult[JsValue] = {
 
       val index: Int = node.idx
 
@@ -113,9 +114,9 @@ object Settable {
     }
 
     private def removeIndexNode(
-                                 node: IdxPathNode,
-                                 valueToRemoveFrom: JsArray
-                               ): JsResult[JsValue] = {
+      node: IdxPathNode,
+      valueToRemoveFrom: JsArray
+    ): JsResult[JsValue] = {
       val index: Int = node.idx
 
       valueToRemoveFrom match {
@@ -131,10 +132,10 @@ object Settable {
     }
 
     private def setKeyNode(
-                            node: KeyPathNode,
-                            oldValue: JsValue,
-                            newValue: JsValue
-                          ): JsResult[JsValue] = {
+      node: KeyPathNode,
+      oldValue: JsValue,
+      newValue: JsValue
+    ): JsResult[JsValue] = {
 
       val key = node.key
 
@@ -154,7 +155,7 @@ object Settable {
         case ((n: KeyPathNode) :: Nil, value: JsObject) if !value.keys.contains(n.key) =>
           JsError("cannot find value at path")
         case ((n: IdxPathNode) :: Nil, value: JsArray) => removeIndexNode(n, value)
-        case ((_: KeyPathNode) :: Nil, _)              => JsError(s"cannot remove a key on $jsValue")
+        case ((_: KeyPathNode) :: Nil, _) => JsError(s"cannot remove a key on $jsValue")
         case (first :: second :: rest, oldValue) =>
           Reads.optionNoError(Reads.at[JsValue](JsPath(first :: Nil)))
             .reads(oldValue).flatMap {
