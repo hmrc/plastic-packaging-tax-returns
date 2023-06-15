@@ -67,12 +67,12 @@ class NonRepudiationServiceSpec
     when(headerCarrier.authorization) thenReturn Some(Authorization("yeah go right ahead"))
     when(mockAuthConnector.authorise[NonRepudiationIdentityRetrievals](any, any)(any, any)) thenReturn 
       Future.successful(testAuthRetrievals)
-    
+
     when(edgeOfSystem.createEncoder) thenReturn Base64.getEncoder // test uses real encoder
     when(edgeOfSystem.getMessageDigestSingleton) thenReturn MessageDigest.getInstance("SHA-256") // test uses real digest
   }
   
-  
+
   "submitNonRepudiation" should {
     
     "retrieveUserAuthToken" in {

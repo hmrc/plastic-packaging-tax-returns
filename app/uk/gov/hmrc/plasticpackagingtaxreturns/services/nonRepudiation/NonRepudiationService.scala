@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
-import org.joda.time.LocalDate
 import play.api.Logging
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.EmptyPredicate
@@ -38,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
   authConnector: AuthConnector, 
-  config: AppConfig, 
+  config: AppConfig,
   edgeOfSystem: EdgeOfSystem
 )(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
 

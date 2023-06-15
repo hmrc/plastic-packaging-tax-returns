@@ -84,11 +84,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
-  /** Override the current system data-time, for coding and testing, or set to false to use system date-time. The 
+  /** Override the current system data-time, for coding and testing, or set to false to use system date-time. The
    * system date-time is also used if the config value is missing or its value fails to parse.
    * @return
    *   - [[None]] if no date-time override config value is present
-   *   - Some[ [[String]] ] if an override config value is present, needs to be a ISO_LOCAL_DATE_TIME serialised 
+   *   - Some[ [[String]] ] if an override config value is present, needs to be a ISO_LOCAL_DATE_TIME serialised
    *   date-time for override to work
    * @example {{{"2023-03-31T23:59:59"}}}
    * @example {{{"2023-04-01T00:00:00"}}}

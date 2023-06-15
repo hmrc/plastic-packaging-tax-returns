@@ -40,7 +40,7 @@ class FinancialDataConnector @Inject() (
   override val appConfig: AppConfig,
   metrics: Metrics, 
   auditConnector: AuditConnector,
-  edgeOfSystem: EdgeOfSystem,
+  edgeOfSystem: EdgeOfSystem
 ) (
   implicit ec: ExecutionContext
 ) extends DESConnector {

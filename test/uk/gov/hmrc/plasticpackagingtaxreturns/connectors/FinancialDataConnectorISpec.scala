@@ -62,7 +62,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
   private val edgeOfSystem = mock[EdgeOfSystem]
-  
+
   private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem)
 
   override protected def beforeEach(): Unit = {

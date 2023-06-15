@@ -17,10 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import org.mockito.MockitoSugar
-import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.time.{LocalDate, LocalDateTime}
@@ -37,6 +35,7 @@ class EdgeOfSystemSpec extends PlaySpec
     super.beforeEach()
     reset(appConfig)
   }
+
 
   "localDateTimeNow" should {
 
@@ -57,9 +56,10 @@ class EdgeOfSystemSpec extends PlaySpec
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
     }
 
+
   }
 
-  
+
   "today" should {
     "mimic localDateTimeNow" in {
       when(appConfig.overrideSystemDateTime) thenReturn Some("2023-04-01T12:11:10")
@@ -68,3 +68,4 @@ class EdgeOfSystemSpec extends PlaySpec
   }
 
 }
+

@@ -33,12 +33,12 @@ class PPTFinancialsServiceSpec extends PlaySpec
   with ResetMocksAfterEachTest {
 
   private val edgeOfSystem = mock[EdgeOfSystem]
-  
+
   private val sut: PPTFinancialsService = new PPTFinancialsService() (edgeOfSystem)
   private val today: LocalDate          = LocalDate.now()
   private val yesterday: LocalDate      = today.minusDays(1)
   private val lastWeek: LocalDate       = today.minusDays(7)
- 
+
   private val amount  = BigDecimal(Math.abs(Random.nextInt()))
   private val amount2 = BigDecimal(Math.abs(Random.nextInt()))
   private val amount3 = BigDecimal(Math.abs(Random.nextInt()))
@@ -196,7 +196,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
   private def createItem(DDCollectionInProgress: Option[Boolean]) = {
     FinancialItem(None, None, None, None, None, DDCollectionInProgress)
   }
-  
+
   private def createFinancialTransaction(periodKey: Option[String], items: Seq[FinancialItem]) = {
     val transaction = FinancialTransaction(None, None, periodKey, None, None, None, None, items)
     FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq(transaction))
