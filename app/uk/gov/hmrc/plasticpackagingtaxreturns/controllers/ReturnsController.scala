@@ -19,11 +19,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsObject, JsPath, JsValue, Json, Writes}
+import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
@@ -167,9 +168,17 @@ class ReturnsController @Inject()(
     if (calculations.isSubmittable) {
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
       returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
+            
         case Right(response) =>
           sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
           handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
+          
+        case Left(StatusCode.RETURN_ALREADY_SUBMITTED) => Future.successful {
+          new Status(StatusCode.RETURN_ALREADY_SUBMITTED)(
+            Json.obj("returnAlreadyReceived" -> returnValues.periodKey)
+          )
+        }
+
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     } else
@@ -297,6 +306,3 @@ object ReturnsController {
     implicit val format: Writes[ReturnWithTaxRate] = Json.writes[ReturnWithTaxRate]
   }
 }
-
-
-

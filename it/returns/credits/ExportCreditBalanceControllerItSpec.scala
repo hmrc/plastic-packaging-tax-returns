@@ -59,10 +59,10 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   private val url = s"http://localhost:$port/credits/calculate/$pptReference"
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(sessionRepository)
@@ -158,7 +158,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     val date = fromDate.minusYears(2)
     val toDate = fromDate.minusDays(1)
 
-    server.stubFor(
+    wireMock.stubFor(
       get(s"/plastic-packaging-tax/export-credits/PPT/$pptReference?fromDate=$date&toDate=$toDate")
         .willReturn(
           ok().withBody(ExportCreditBalanceDisplayResponse.format.writes(exportCreditBalanceDisplayResponse).toString())

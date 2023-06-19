@@ -61,10 +61,10 @@ class AmendReturnsItSpec extends PlaySpec
   private lazy val mockFinancialDataConnector = mock[FinancialDataConnector]
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(cacheRepository),
@@ -99,7 +99,7 @@ class AmendReturnsItSpec extends PlaySpec
       response.json mustBe Json.toJson(aReturnWithNrs())
 
       withClue("amend requests must include the original submission id") {
-        server.wireMockServer.verify(
+        wireMock.wireMockServer.verify(
           putRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/7777777"))
             .withRequestBody(matchingJsonPath("$.submissionId", equalTo("submission12")))
         )

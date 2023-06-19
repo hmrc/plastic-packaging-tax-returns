@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.ALREADY_REPORTED
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -66,7 +66,7 @@ class ReturnsConnector @Inject() (
               && (json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
                 auditConnector.sendExplicitAudit(SubmitReturn.eventType,
                   SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
-                Left(ALREADY_REPORTED)
+              Left(StatusCode.RETURN_ALREADY_SUBMITTED)
             } else
               unhappyPathSubmit(pptReference, requestBody, internalId, correlationIdHeader, jsonResponse)
         }
@@ -149,5 +149,7 @@ class ReturnsConnector @Inject() (
 }
 
 object ReturnsConnector {
-  val ALREADY_REPORTED = 208
+  object StatusCode {
+    val RETURN_ALREADY_SUBMITTED = 208
+  }
 }
