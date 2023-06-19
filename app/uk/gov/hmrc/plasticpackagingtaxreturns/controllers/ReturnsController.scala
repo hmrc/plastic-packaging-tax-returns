@@ -38,7 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -61,7 +61,8 @@ class ReturnsController @Inject()(
   financialsService: PPTFinancialsService,
   creditsService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
-  taxRateTable: TaxRateTable
+  taxRateTable: TaxRateTable,
+  edgeOfSystem: EdgeOfSystem
 )(implicit executionContext: ExecutionContext)
   extends BackendController(controllerComponents) with JSONResponses with Logging {
 
@@ -73,29 +74,34 @@ class ReturnsController @Inject()(
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
-        case Right(displayReturnJson)       => {
+        case Right(displayReturnJson)       =>
           val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
           val taxRate = taxRateTable.lookupRateFor(endDate)
 
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)
-        }
         case Left(errorStatusCode) => new Status(errorStatusCode)
       }
-
     }
 
   def amend(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request)(userAnswer =>  {
-        isDirectDebitInProgress(pptReference, userAnswer.get[String](JsPath \ "amendSelectedPeriodKey").getOrElse(throw new Exception("Cannot amend return without period Key")))
-          .flatMap( isDDInProgress =>
-            if(isDDInProgress)
-              Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
-            else 
-              doSubmit("ppt-return", pptReference, AmendReturnValues.apply, userAnswer)
-        )
-      })
+
+        if (isReturnTooOldToAmend(userAnswer))
+          Future.successful(UnprocessableEntity("Can not amend this return. Amendable period is closed."))
+        else {
+          isDirectDebitInProgress(pptReference, userAnswer.get[String](JsPath \ "amendSelectedPeriodKey")
+            .getOrElse(throw new Exception("Cannot amend return without period Key")))
+            .flatMap( isDDInProgress =>
+              if(isDDInProgress)
+                Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
+              else
+                doSubmit("ppt-return", pptReference, AmendReturnValues.apply, userAnswer)
+          )
+        }
+      }
+      )
     }
 
   def submit(pptReference: String): Action[AnyContent] =
@@ -127,12 +133,11 @@ class ReturnsController @Inject()(
     getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues],
     userAnswer: UserAnswers
   )(implicit request: AuthorizedRequest[AnyContent]) : Future[Result] = {
-
-    getValuesOutOfUserAnswers(userAnswer).map(_ -> userAnswer)
+    getValuesOutOfUserAnswers(userAnswer)
       .fold {
         Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
-      } { case (returnValues, userAnswers) =>
-        submitReturnWithNrs(nrsEventType, pptReference, userAnswers, returnValues)
+      } { returnValues =>
+        submitReturnWithNrs(nrsEventType, pptReference, userAnswer, returnValues)
       }
   }
 
@@ -155,6 +160,12 @@ class ReturnsController @Inject()(
             case Right(financialDataResponse) =>
               financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)
           }
+  }
+
+  private def isReturnTooOldToAmend(userAnswer: UserAnswers): Boolean =  {
+    val dueDate = userAnswer.getOrFail[LocalDate](JsPath \ "amend" \ "obligation" \ "dueDate")
+    val today = edgeOfSystem.localDateTimeNow.toLocalDate
+    dueDate.isBefore(today.minusYears(4))
   }
 
   private def submitReturnWithNrs(
