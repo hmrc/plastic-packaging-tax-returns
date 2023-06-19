@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
+package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.TaxRate
 
-case object ConvertedCreditYesNoGettable extends Gettable[Boolean] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "yesNo"
-}
-case object ConvertedCreditWeightGettable extends Gettable[Long] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "weight"
+import java.time.LocalDate
+import javax.inject.Singleton
+
+@Singleton
+class TaxRateValues {
+  final val taxRatesPoundsPerKg = Seq(
+    TaxRate(rate = 0.20, useFromDate = LocalDate.of(2022, 4, 1)),
+    TaxRate(rate = 0.21082, useFromDate = LocalDate.of(2023, 4, 1))
+  )
 }

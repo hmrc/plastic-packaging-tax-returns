@@ -22,8 +22,9 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ExportedCreditWeightGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ConvertedCreditYesNoGettable, ExportedCreditWeightGettable, ExportedCreditYesNoGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
@@ -57,6 +58,8 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
       "converted is supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
+          .setUnsafe(ConvertedCreditYesNoGettable, true)
           .setUnsafe(ConvertedCreditWeightGettable, 5L)
 
         sut.totalRequestedCredit(userAnswers) mustBe Credit(5, 6)
@@ -64,6 +67,8 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
       "exported is supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
+          .setUnsafe(ExportedCreditYesNoGettable, true)
           .setUnsafe(ExportedCreditWeightGettable, 7L)
 
         sut.totalRequestedCredit(userAnswers) mustBe Credit(7, 8)
@@ -71,10 +76,29 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
       "both are supplied" in {
         converterJustAddsOne()
         val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
+          .setUnsafe(ConvertedCreditYesNoGettable, true)
           .setUnsafe(ConvertedCreditWeightGettable, 5L)
+          .setUnsafe(ExportedCreditYesNoGettable, true)
           .setUnsafe(ExportedCreditWeightGettable, 7L)
 
         sut.totalRequestedCredit(userAnswers) mustBe Credit(12, 13)
+      }
+      "exported is false" in {
+        converterJustAddsOne()
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(ExportedCreditYesNoGettable, false)
+          .setUnsafe(ExportedCreditWeightGettable, 7L)
+
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
+      }
+      "converted is false" in {
+        converterJustAddsOne()
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(ConvertedCreditYesNoGettable, false)
+          .setUnsafe(ConvertedCreditWeightGettable, 5L)
+
+        sut.totalRequestedCredit(userAnswers) mustBe Credit(0, 1)
       }
     }
 
@@ -82,7 +106,10 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach {
       val expectedPounds = 42.69
       when(mockConversion.weightToCredit(any())).thenReturn(expectedPounds)
       val userAnswers = UserAnswers("user-answers-id")
+        .setUnsafe(JsPath \ "whatDoYouWantToDo", true)
+        .setUnsafe(ConvertedCreditYesNoGettable, true)
         .setUnsafe(ConvertedCreditWeightGettable, 5L)
+        .setUnsafe(ExportedCreditYesNoGettable, true)
         .setUnsafe(ExportedCreditWeightGettable, 7L)
 
       sut.totalRequestedCredit(userAnswers) mustBe Credit(12L, expectedPounds)

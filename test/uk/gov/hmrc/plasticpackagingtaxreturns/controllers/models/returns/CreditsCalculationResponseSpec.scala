@@ -18,7 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.returns
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsFalse, JsNumber, JsObject, Json}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditsCalculationResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{CreditsCalculationResponse, TaxRate}
+
+import java.time.LocalDate
 
 class CreditsCalculationResponseSpec extends PlaySpec {
 
@@ -51,6 +53,7 @@ class CreditsCalculationResponseSpec extends PlaySpec {
     }
   }
 
+  //todo: move the test in
   "json Writes" must {
     val obj = CreditsCalculationResponse(1 , 2, 3)
     val jsObject = Json.toJson(obj).as[JsObject]

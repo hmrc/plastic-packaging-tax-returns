@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.util
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
-object PurplePrint {
-  def purplePrint(string: Any): Unit = println(Console.MAGENTA + string + Console.RESET)
+import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
+
+import java.time.LocalDate
+
+case object ReturnObligationToDateGettable extends Gettable[LocalDate] {
+
+  override def path: JsPath = JsPath \ "obligation" \ "toDate"
+
 }

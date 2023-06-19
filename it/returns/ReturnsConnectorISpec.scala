@@ -106,10 +106,12 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
           s"upstream service fails with $statusCode" in {
 
-            val errors  = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
-            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: $errors"
+            val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
+            
+            // TODO I think this bit is wrong? Just log the error response?
+//            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: '$errors'"
 
-            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
+            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
 
             stubFailedReturnsSubmission(pptReference, statusCode, errors =
               Seq(EISError("Error Code", "Error Reason"))
@@ -122,6 +124,9 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             res.left.get mustBe statusCode
 
+            verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
+            
+            // TODO this (below) eats any / all output from WireMock's matchers
             eventually(timeout(Span(5, Seconds))) {
               eventSendToAudit(auditUrl, auditModel) mustBe true
             }

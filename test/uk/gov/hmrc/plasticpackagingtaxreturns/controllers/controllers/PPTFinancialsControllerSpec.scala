@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers.{any, eq => exactlyEq}
-import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.MockitoSugar
+import org.mockito.ArgumentMatchersSugar._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -55,8 +54,8 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
     val pptReference = "1234"
 
     "get PTPFinancial from service" in {
-      when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+      when(mockPPTFinancialsService.construct(any)).thenReturn(financials)
+      when(mockFinancialDataService.getFinancials(any, any)(any))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
@@ -68,18 +67,18 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "get should call Financial Connector" in {
 
-      when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+      when(mockPPTFinancialsService.construct(any)).thenReturn(financials)
+      when(mockFinancialDataService.getFinancials(any, any)(any))
         .thenReturn(Future.successful(Right(desResponse)))
 
       sut.get(pptReference).apply(FakeRequest())
 
-      verify(mockFinancialDataService).getFinancials(exactlyEq(pptReference), any())(any())
+      verify(mockFinancialDataService).getFinancials(eqTo(pptReference), any)(any)
     }
 
     "get should call the service" in {
-      when(mockPPTFinancialsService.construct(any())).thenReturn(financials)
-      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+      when(mockPPTFinancialsService.construct(any)).thenReturn(financials)
+      when(mockFinancialDataService.getFinancials(any, any)(any))
         .thenReturn(Future.successful(Right(desResponse)))
 
       await(sut.get(pptReference).apply(FakeRequest()))
@@ -89,7 +88,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
 
     "return internal server error response" when {
       "if error return from connector" in {
-        when(mockFinancialDataService.getFinancials(any(), any())(any()))
+        when(mockFinancialDataService.getFinancials(any, any)(any))
           .thenReturn(Future.successful(Left(500)))
 
         val result: Future[Result] = sut.get(pptReference).apply(FakeRequest())
@@ -102,29 +101,29 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
   "isDdInProgress" should {
     
     "respond with false" in {
-      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(false)
-      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any, any)).thenReturn(false)
+      when(mockFinancialDataService.getFinancials(any, any)(any))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", false))
-      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
-      verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(eqTo("period-key"), any)
+      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any) (any)
     }
 
     "respond with true" in {
-      when(mockPPTFinancialsService.lookUpForDdInProgress(any(), any())).thenReturn(true)
-      when(mockFinancialDataService.getFinancials(any(), any())(any()))
+      when(mockPPTFinancialsService.lookUpForDdInProgress(any, any)).thenReturn(true)
+      when(mockFinancialDataService.getFinancials(any, any)(any))
         .thenReturn(Future.successful(Right(desResponse)))
 
       val result = sut.isDdInProgress("ppt-ref", "period-key").apply(FakeRequest())
 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", true))
-      verify(mockPPTFinancialsService).lookUpForDdInProgress(exactlyEq("period-key"), any())
-      verify(mockFinancialDataService).getFinancials(exactlyEq("ppt-ref"), any()) (any())
+      verify(mockPPTFinancialsService).lookUpForDdInProgress(eqTo("period-key"), any)
+      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any) (any)
     }
   }
 }

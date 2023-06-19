@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
+package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
-import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
+import play.api.libs.json.{Json, OWrites}
 
-case object ConvertedCreditYesNoGettable extends Gettable[Boolean] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "yesNo"
+import java.time.LocalDate
+
+case class TaxRate(rate: BigDecimal, useFromDate: LocalDate) {
+  def rateCanApplyTo(localDate: LocalDate): Boolean =
+    useFromDate.isBefore(localDate) || useFromDate.isEqual(localDate)
 }
-case object ConvertedCreditWeightGettable extends Gettable[Long] {
-  override def path: JsPath = JsPath \ "convertedCredits" \ "weight"
+
+object TaxRate {
+  implicit val formats: OWrites[TaxRate] = Json.writes[TaxRate]
 }
+

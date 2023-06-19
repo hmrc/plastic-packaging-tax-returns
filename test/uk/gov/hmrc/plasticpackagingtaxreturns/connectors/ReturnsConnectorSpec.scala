@@ -51,7 +51,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   private val headerCarrier = mock[HeaderCarrier]
   private val timer = mock[Timer.Context]
   private val testLogger = mock[Logger]
-  
+
   private val connector = new ReturnsConnector(hmrcClient, appConfig, metrics, auditConnector, edgeOfSystem, eisHttpClient) {
     protected override val logger: Logger = testLogger
   }
@@ -76,7 +76,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     reset(hmrcClient, appConfig, metrics, auditConnector, edgeOfSystem, headerCarrier, timer, testLogger)
-    
+
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
@@ -86,16 +86,16 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   }
 
   private def callGet = await {
-    connector.get("ppt-ref", "period-2", "internal-id-7") (headerCarrier)
+    connector.get("ppt-ref", "period-2", "internal-id-7")(headerCarrier)
   }
 
   private def callSubmit = await {
-   connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7") (headerCarrier)
+    connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7")(headerCarrier)
   }
-  
+
   "it" must {
     "use the correct timer" when {
-      
+
       "getting a return" in {
         callGet
         verify(metrics.defaultRegistry).timer(eqTo("ppt.return.display.timer"))
@@ -106,21 +106,21 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       "submitting a return" in {
         // Timer responsibility moved to EisHttpClient
       }
-      
+
     }
   }
-  
+
   "get" must {
-    
+
     "include a correlation id" in {
       callGet
       verify(edgeOfSystem).createUuid
-      
+
       val headers = ArgCaptor[Seq[(String, String)]]
-      verify(hmrcClient).GET[HttpResponse](any, any, headers) (any, any, any)
-      headers.value must contain ("CorrelationId" -> "00000000-0000-0001-0000-000000000002")
+      verify(hmrcClient).GET[HttpResponse](any, any, headers)(any, any, any)
+      headers.value must contain("CorrelationId" -> "00000000-0000-0001-0000-000000000002")
     }
-    
+
     "call the correct url" in {
       when(appConfig.returnsDisplayUrl(any, any)) thenReturn "get-url"
       callGet
@@ -129,23 +129,23 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     }
 
     "handle responses" when {
-      
+
       "response code is 4xx" in {
-        when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(412, """{"a":"b"}"""))
+        when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(412, ""))
         callGet mustBe Left(412)
-        
+
         withClue("sends failure to audit") {
           verify(auditConnector).sendExplicitAudit(eqTo("GetReturn"), eqTo(
-            GetReturn("internal-id-7", "period-2", "Failure", None, Some("""{"a":"b"}"""))
+            GetReturn("internal-id-7", "period-2", "Failure", None, Some(""))
           ))(any, any, any)
         }
-        
+
         withClue("logs the failure") {
-          verify(testLogger).warn(startsWith("Return Display API call for correlationId")) (any)
-          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412")) (any)
+          verify(testLogger).warn(startsWith("Return Display API call for correlationId"))(any)
+          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412"))(any)
         }
       }
-      
+
       "response is 200" in {
         when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(200, """{"a":"b"}"""))
         callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
@@ -161,7 +161,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
           verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 200"))(any)
         }
       }
-      
+
       "http client fails" ignore { //todo: should we send an audit event?
         val anException = new RandoException
         when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.failed(anException)
@@ -174,23 +174,41 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
 
         withClue("logs the failure") {
-          verify(testLogger).warn(startsWith("Return Display API call for correlationId"), eqTo(anException)) (any)
-          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: exception: went wrong"), any) (any)
+          verify(testLogger).warn(startsWith("Return Display API call for correlationId"), eqTo(anException))(any)
+          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: exception: went wrong"), any)(any)
         }
       }
-      
+
       "our map clause fails" in {
         when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(200, "{}"))
-        when(auditConnector.sendExplicitAudit(any, any[SubmitReturn]) (any, any, any)) thenThrow new RandoException
-        a [RandoException] mustBe thrownBy { callGet }
-        verify(auditConnector, times(1)).sendExplicitAudit(any, any[GetReturn]) (any, any, any)
+        when(auditConnector.sendExplicitAudit(any, any[SubmitReturn])(any, any, any)) thenThrow new RandoException
+        a[RandoException] mustBe thrownBy {
+          callGet
+        }
+        verify(auditConnector, times(1)).sendExplicitAudit(any, any[GetReturn])(any, any, any)
+      }
+
+      "response body is not json" in {
+        when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(200, "<html />"))
+        callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
+
+        val auditDetail = ArgCaptor[GetReturn]
+        withClue("secure log the failure") {
+          verify(auditConnector).sendExplicitAudit[GetReturn](any, auditDetail)(any, any, any)
+        }
+
+        withClue("secure log message contains response body and exception message") {
+          auditDetail.value.error.value must include("<html />")
+          auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
+        }
+
       }
     }
-    
+
   }
-  
+
   "submit" must {
-    
+
     "send a put request" in {
       when(appConfig.returnsSubmissionUrl(any)) thenReturn "put-url"
       callSubmit
@@ -209,7 +227,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
     }
 
-    "handle responses" when {
+    "handle usual responses" when {
 
       "shouldn't log info when everything is alright" in {
         callSubmit
@@ -227,7 +245,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(404)
         verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-          "Failure", returnSubmission, None, Some("{}"))))(any, any, any)
+          "Failure", returnSubmission, None, Some("{}")))) (any, any, any)
       }
 
       "5xx response code" in {
@@ -235,20 +253,80 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(500)
       }
+    }
 
-      "Etmp already has return" ignore {
-        val example422Body = """{
-          |  "failures" : [ {
-          |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
-          |    "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
-          |  } ]
-          |}""".stripMargin
-        
+    "handle 422 UNPROCESSABLE_ENTITY responses" when {
+
+      "Etmp already has return" in {
+        val example422Body =
+          """{
+            |  "failures" : [ {
+            |    "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
+            |    "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
+            |  } ]
+            |}""".stripMargin
+
         val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body, "")
         when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
 
-        callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
+        val exampleReturn = Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None) // TODO match thing in front-end
+        callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
+
+        withClue("log success as etmp did received our call ok") {
+          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+            "Success", returnSubmission, Some(exampleReturn), None)))(any, any, any) // TODO what response body will we post to secure log
+        }
       }
+
+      "similar, but not the same has etmp saying it already has that return" in {
+        val responseBody =
+          """{
+            |  "failures" : [ {
+            |    "code" : "SOME_OTHER_REASON",
+            |    "reason" : "Some other thing happened"
+            |  } ]
+            |}""".stripMargin
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, responseBody, "correlation-id")
+        when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(putResponse)
+        callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
+
+        withClue("log as a call failure") {
+          // TODO what response body will we post to secure log, not a fake return?
+          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+            "Failure", returnSubmission, None, Some(responseBody)))) (any, any, any)
+        }
+      }
+
+      "422 response but not json, ie similar again but payload not json (seen in the wild)" in {
+        val putResponse = HttpResponse(Status.UNPROCESSABLE_ENTITY, "<html />", "correlation-id")
+        when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(putResponse)
+        callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
+
+        withClue("log as a failure because we weren't sent json") {
+          // TODO what response body will we post to secure log, not a fake return?
+          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
+            "Failure", returnSubmission, None, Some("<html />")))) (any, any, any)
+        }
+      }
+      
+      // todos
+      "log summit when unhappy" in {}
+    }
+
+    "response body is not json" in {
+      when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HttpResponse(200, "<html />", "correlation-id"))
+      callSubmit mustBe Left(Status.INTERNAL_SERVER_ERROR)
+
+      val auditDetail = ArgCaptor[SubmitReturn]
+      withClue("secure log the failure") {
+        verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail)(any, any, any)
+      }
+
+      withClue("secure log message contains response body and exception message") {
+        auditDetail.value.error.value must include("<html />")
+        auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
+      }
+
     }
   }
 }

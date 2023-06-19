@@ -17,15 +17,16 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ExportedCreditWeightGettable}
+import play.api.libs.json.JsPath
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, UserAnswers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ConvertedCreditYesNoGettable, ExportedCreditWeightGettable, ExportedCreditYesNoGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.CreditsCalculationService.Credit
 
 class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionService) {
 
   def totalRequestedCredit(userAnswers: UserAnswers): Credit = {
-    val exportedWeight: Long = userAnswers.get(ExportedCreditWeightGettable).getOrElse(0)
-    val convertedWeight: Long = userAnswers.get(ConvertedCreditWeightGettable).getOrElse(0)
+    val exportedWeight: Long = lookupWeight(userAnswers, ExportedCreditYesNoGettable, ExportedCreditWeightGettable)
+    val convertedWeight: Long = lookupWeight(userAnswers, ConvertedCreditYesNoGettable, ConvertedCreditWeightGettable)
     val totalWeight = exportedWeight + convertedWeight
 
     Credit(
@@ -34,6 +35,13 @@ class CreditsCalculationService @Inject()(convert: WeightToPoundsConversionServi
     )
   }
 
+  private def lookupWeight(userAnswers: UserAnswers, yesNo: Gettable[Boolean], weight: Gettable[Long]): Long = {
+    userAnswers
+      .get(yesNo)
+      .filter(isYes => isYes && userAnswers.get[Boolean](JsPath \ "whatDoYouWantToDo").contains(true))
+      .flatMap(_ => userAnswers.get(weight))
+      .getOrElse(0L)
+  }
 }
 
 object CreditsCalculationService {

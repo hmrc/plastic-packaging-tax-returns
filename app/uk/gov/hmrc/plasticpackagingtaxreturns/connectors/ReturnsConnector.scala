@@ -19,18 +19,21 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
-import play.api.http.Status.OK
-import play.api.libs.json.{JsValue, Json}
+import play.api.http.Status
+import play.api.http.Status.{OK, UNPROCESSABLE_ENTITY}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class ReturnsConnector @Inject() (
@@ -50,14 +53,23 @@ class ReturnsConnector @Inject() (
 
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
     eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer")
-      .map { httpResponse =>
-        if (httpResponse.status == OK)
-          happyPathSubmit(pptReference, requestBody, internalId, httpResponse)
-        else
-          unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
+      .map { jsonResponse =>
+
+        val json = Try(Json.parse(jsonResponse.body)).getOrElse(JsObject.empty)
+
+        if (jsonResponse.status == OK)
+          happyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
+
+        else if(jsonResponse.status == UNPROCESSABLE_ENTITY
+          && (json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
+          auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
+          Left(StatusCode.RETURN_ALREADY_SUBMITTED)
+        } else
+          unhappyPathSubmit(pptReference, requestBody, internalId, jsonResponse)
       }
   }
-
+  
   private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String, 
     httpResponse: HttpResponse) (implicit headerCarrier: HeaderCarrier) = {
     
@@ -74,11 +86,17 @@ class ReturnsConnector @Inject() (
 
   private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
                               jsonResponse: HttpResponse)(implicit headerCarrier: HeaderCarrier) = {
-    val returnResponse = Json.parse(jsonResponse.body).as[Return]
-    auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-      SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
-
-    Right(returnResponse)
+    Try(Json.parse(jsonResponse.body).as[Return]).toEither.fold({
+      throwable =>
+        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+          SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage)))
+        Left(Status.INTERNAL_SERVER_ERROR)
+    }, {
+      returnResponse =>
+        auditConnector.sendExplicitAudit(SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
+        Right(returnResponse)
+    })
   }
 
   def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
@@ -91,17 +109,26 @@ class ReturnsConnector @Inject() (
       .map { hmrcResponse =>
         logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${hmrcResponse.status}")
 
-        if (hmrcResponse.status == OK) {
-          auditConnector.sendExplicitAudit(GetReturn.eventType,
-            
-            GetReturn(internalId, periodKey, SUCCESS, Some(hmrcResponse.json), None))
+        if (hmrcResponse.status == OK) { // TODO use Status.isSuccessful(x) ?
 
-          Right(hmrcResponse.json)
-        }
-        else {
-          auditConnector.sendExplicitAudit(GetReturn.eventType,
+          Try(hmrcResponse.json).toEither.fold({ 
+            throwable =>
+              // Note - if response payload was not json, exception from json lib usually includes the payload too
+              auditConnector.sendExplicitAudit(GetReturn.eventType, 
+                GetReturn(internalId, periodKey, FAILURE, None, Some(throwable.getMessage)))
+              Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
+          }, { 
+            jsValue =>
+              auditConnector.sendExplicitAudit(GetReturn.eventType,
+                GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None))
+              Right(jsValue)
+          })
+
+        } else {
+          
+          // TODO currently we just parrot down-stream for non 2xx
+          auditConnector.sendExplicitAudit(GetReturn.eventType, 
             GetReturn(internalId, periodKey, FAILURE, None, Some(hmrcResponse.body)))
-
           Left(hmrcResponse.status)
         }
       }
@@ -115,5 +142,11 @@ class ReturnsConnector @Inject() (
   private def cookLogMessage(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String) = {
     s"Return Display API call for correlationId [${correlationIdHeader._2}], " +
       s"pptReference [$pptReference], periodKey [$periodKey]: " + outcomeMessage
+  }
+}
+
+object ReturnsConnector {
+  object StatusCode {
+    val RETURN_ALREADY_SUBMITTED = 208
   }
 }

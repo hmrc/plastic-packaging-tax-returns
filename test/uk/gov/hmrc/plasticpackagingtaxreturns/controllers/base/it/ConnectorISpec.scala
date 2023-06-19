@@ -22,9 +22,11 @@ import com.github.tomakehurst.wiremock.client.WireMock.{equalToJson, postRequest
 import com.kenshoo.play.metrics.Metrics
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.ExecutionContext
@@ -39,7 +41,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
 
   override def fakeApplication(): Application = {
     SharedMetricRegistries.clear()
-    new GuiceApplicationBuilder().configure(overrideConfig).build()
+    new GuiceApplicationBuilder()
+      .configure(overrideConfig)
+      .overrides(bind[SessionRepository].to(mock[SessionRepository]))
+      .build()
   }
 
   def overrideConfig: Map[String, Any] =
@@ -75,28 +80,32 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
 
   protected def eventSendToAudit(url: String, eventType: String, body: String): Boolean =
     try {
-      verify(
-        postRequestedFor(urlEqualTo(url))
-          .withRequestBody(equalToJson(s"""{
-                                          |                  "auditSource": "plastic-packaging-tax-returns",
-                                          |                  "auditType": "$eventType",
-                                          |                  "eventId": "$${json-unit.any-string}",
-                                          |                  "tags": {
-                                          |                    "clientIP": "-",
-                                          |                    "path": "-",
-                                          |                    "X-Session-ID": "-",
-                                          |                    "Akamai-Reputation": "-",
-                                          |                    "X-Request-ID": "-",
-                                          |                    "deviceID": "-",
-                                          |                    "clientPort": "-"
-                                          |                  },
-                                          |                  "detail": $body,
-                                          |                  "generatedAt": "$${json-unit.any-string}"
-                                          |                }""".stripMargin, true, true))
-      )
+      verifyAuditRequest(url, eventType, body)
       true
     } catch {
       case _: VerificationException => false
     }
 
+  protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit = {
+    verify(
+      postRequestedFor(urlEqualTo(url))
+        .withRequestBody(equalToJson(
+          s"""{
+             |                  "auditSource": "plastic-packaging-tax-returns",
+             |                  "auditType": "$eventType",
+             |                  "eventId": "$${json-unit.any-string}",
+             |                  "tags": {
+             |                    "clientIP": "-",
+             |                    "path": "-",
+             |                    "X-Session-ID": "-",
+             |                    "Akamai-Reputation": "-",
+             |                    "X-Request-ID": "-",
+             |                    "deviceID": "-",
+             |                    "clientPort": "-"
+             |                  },
+             |                  "detail": $body,
+             |                  "generatedAt": "$${json-unit.any-string}"
+             |                }""".stripMargin, true, true))
+    )
+  }
 }
