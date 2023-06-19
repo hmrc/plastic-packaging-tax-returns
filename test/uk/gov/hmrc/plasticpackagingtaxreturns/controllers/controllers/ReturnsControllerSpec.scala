@@ -393,7 +393,7 @@ class ReturnsControllerSpec
       withAuthorizedUser()
       setupMocksForAmend(userAnswersAmends)
       reset(mockEdgeOfSystem)
-      when(mockEdgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.MAX)
+      when(mockEdgeOfSystem.localDateTimeNow).thenReturn(LocalDate.of(2027, 1, 29).atStartOfDay())
       setUpFinancialApiMock(true)
 
       val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
