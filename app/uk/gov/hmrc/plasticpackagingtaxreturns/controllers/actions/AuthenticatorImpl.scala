@@ -75,7 +75,7 @@ class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc:
       )
     ).retrieve(fetch) { retrievals =>
 
-      val internalId = retrievals.b.getOrElse("AuthenticatorImpl::authorisedWithPptReference -  internalId is required")
+      val internalId = retrievals.b.getOrElse(throw new IllegalStateException("AuthenticatorImpl::authorisedWithPptReference -  internalId is required"))
 
       Future.successful(Right(AuthorizedRequest(pptReference, request, internalId)))
 
