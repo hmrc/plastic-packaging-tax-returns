@@ -18,31 +18,37 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.http.{HeaderNames, MimeTypes}
-import play.api.libs.json.Writes
+import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /** An http response that allows for equality and same-instance
  * @param status - http status code from response
  * @param body - response body as a [[String]]
  */
-case class HttpResponse(status: Int, body: String, correlationId: String) {
+case class EisHttpResponse(status: Int, body: String, correlationId: String) {
+  /** Tries to parse response body as json
+   * @return [[JsObject]] if parse successful, otherwise [[JsNull]] 
+   */
+  def json: JsValue = Try(Json.parse(body)).getOrElse(JsNull)
 }
 
-object HttpResponse {
+object EisHttpResponse {
   
   /** Create from an hmrc [[HmrcResponse]]
+   *
    * @param hmrcResponse  source
    * @param correlationId correlation id for this transaction
-   * @return [[HttpResponse]]
+   * @return [[EisHttpResponse]]
    * @note does not keep a reference to [[HmrcResponse]]
    */
-  def fromHttpResponse(correlationId: String) (hmrcResponse: HmrcResponse): HttpResponse = {
-    HttpResponse(hmrcResponse.status, hmrcResponse.body, correlationId)
+  def fromHttpResponse(correlationId: String) (hmrcResponse: HmrcResponse): EisHttpResponse = {
+    EisHttpResponse(hmrcResponse.status, hmrcResponse.body, correlationId)
   }
 }
 
@@ -69,10 +75,10 @@ class EisHttpClient @Inject() (
    * @param requestBody object to send in put-request body, must have an implicit json.Writes[A] in-scope
    * @param hc header carrier from up-stream request
    * @param ec current execution context
-   * @return [[HttpResponse]]
+   * @return [[EisHttpResponse]]
    */
   def put[HappyModel](url: String, requestBody: HappyModel, timerName: String) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
-    writes: Writes[HappyModel]): Future[HttpResponse] = {
+    writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val correlationId = edgeOfSystem.createUuid.toString
     
@@ -87,7 +93,8 @@ class EisHttpClient @Inject() (
     hmrcClient
       .PUT[HappyModel, HmrcResponse](url, requestBody, headers)
       .andThen { case _ => timer.stop() }
-      .map { HttpResponse.fromHttpResponse(correlationId) }
+      .map {
+        EisHttpResponse.fromHttpResponse(correlationId) }
   }
 
 }

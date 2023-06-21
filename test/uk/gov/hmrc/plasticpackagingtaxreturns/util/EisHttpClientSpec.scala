@@ -69,7 +69,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
     
     "send a request" in {
       val response = callPut
-      response mustBe HttpResponse(200, "{}", "00000000-0000-0001-0000-000000000002")
+      response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000002")
       verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any, 
         any, any, any)
 
@@ -92,7 +92,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
       "status is 2xx" in {
         when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
           HmrcResponse(200, """{"a": "b"}"""))
-        await { eisHttpClient.put("", exampleModel, "") } mustBe HttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
+        await { eisHttpClient.put("", exampleModel, "") } mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
       }
       // All responses the same right now
     }
@@ -106,7 +106,6 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
     
     "return the correlation id" in {
       callPut.correlationId mustBe "00000000-0000-0001-0000-000000000002"
-      
     }
 
   }
