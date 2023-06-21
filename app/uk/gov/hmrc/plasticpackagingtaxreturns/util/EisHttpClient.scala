@@ -25,6 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import scala.util.Try
 
 /** An http response that allows for equality and same-instance
@@ -32,10 +33,17 @@ import scala.util.Try
  * @param body - response body as a [[String]]
  */
 case class EisHttpResponse(status: Int, body: String, correlationId: String) {
+
   /** Tries to parse response body as json
+   *
    * @return [[JsObject]] if parse successful, otherwise [[JsNull]] 
    */
   def json: JsValue = Try(Json.parse(body)).getOrElse(JsNull)
+
+  def jsonAs[T](implicit reads: Reads[T], tt: TypeTag[T]): Try[T] = 
+    Try(Json.parse(body).as[T]).recover {
+      case exception => throw new RuntimeException(s"Response body could not be read as type ${typeOf[T]}", exception)
+  }
 }
 
 object EisHttpResponse {

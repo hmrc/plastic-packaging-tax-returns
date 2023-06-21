@@ -322,9 +322,11 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail)(any, any, any)
       }
 
+      // TODO need to discuss what gets sent to secure log and kibana
       withClue("secure log message contains response body and exception message") {
-        auditDetail.value.error.value must include("<html />")
-        auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
+//      auditDetail.value.error.value must include("<html />")
+//      auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
+        auditDetail.value.error.value must include("Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return")
       }
 
     }

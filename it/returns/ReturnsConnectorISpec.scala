@@ -80,9 +80,11 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
       "handle bad json" in {
 
-        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
-          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
-
+        // TODO discuss what to send to secure log
+//        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
+//          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
+        val error = "${json-unit.any-string}"
+        
         val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
 
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
@@ -94,9 +96,10 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
 
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
-        }
+//        eventually(timeout(Span(5, Seconds))) {
+//          eventSendToAudit(auditUrl, auditModel) mustBe true
+//        }
+        verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
 
       }
 

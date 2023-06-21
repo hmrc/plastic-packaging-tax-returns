@@ -83,8 +83,9 @@ class ReturnsConnector @Inject() (
   }
 
   private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
-                              jsonResponse: EisHttpResponse)(implicit headerCarrier: HeaderCarrier) = {
-    Try(Json.parse(jsonResponse.body).as[Return]).toEither.fold({
+                              eisHttpResponse: EisHttpResponse)(implicit headerCarrier: HeaderCarrier) = {
+
+    eisHttpResponse.jsonAs[Return].fold({
       throwable =>
         auditConnector.sendExplicitAudit(SubmitReturn.eventType,
           SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage)))
