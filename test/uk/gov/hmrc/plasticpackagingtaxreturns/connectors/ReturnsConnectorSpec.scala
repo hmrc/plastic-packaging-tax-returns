@@ -81,7 +81,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
     when(hmrcClient.GET[Any](any, any, any) (any, any, any)) thenReturn Future.successful(HmrcResponse(412, ""))
-    when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(
+    when(eisHttpClient.put[Any](any, any, any) (any, any)) thenReturn Future.successful(
       putResponseToJson)
   }
 
@@ -215,7 +215,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("to the correct url") {
         verify(appConfig).returnsSubmissionUrl("ppt-ref")
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any) (any, any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any) (any, any)
       }
 
       withClue("including a correlation id") {
@@ -223,7 +223,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       withClue("with correct body") {
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any) (any, any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any) (any, any)
       }
     }
 
@@ -242,7 +242,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "4xx response code" in {
         val putResponse = EisHttpResponse(404, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any) (any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(404)
         verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
           "Failure", returnSubmission, None, Some("{}")))) (any, any, any)
@@ -250,7 +250,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "5xx response code" in {
         val putResponse = EisHttpResponse(500, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any) (any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(500)
       }
     }
@@ -267,7 +267,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             |}""".stripMargin
 
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body, "")
-        when(eisHttpClient.put[Any](any, any, any) (any, any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any) (any, any)) thenReturn Future.successful(putResponse)
 
         val exampleReturn = Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None) // TODO match thing in front-end
         callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
@@ -287,7 +287,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             |  } ]
             |}""".stripMargin
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, responseBody, "correlation-id")
-        when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a call failure") {
@@ -299,7 +299,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "422 response but not json, ie similar again but payload not json (seen in the wild)" in {
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, "<html />", "correlation-id")
-        when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a failure because we weren't sent json") {
@@ -314,7 +314,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     }
 
     "response body is not json" in {
-      when(eisHttpClient.put[Any](any, any, any)(any, any, any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "correlation-id"))
+      when(eisHttpClient.put[Any](any, any, any)(any, any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "correlation-id"))
       callSubmit mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
       val auditDetail = ArgCaptor[SubmitReturn]

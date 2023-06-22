@@ -20,7 +20,7 @@ import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.mockito.MockitoSugar.{mock, reset, verify, when}
+import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{Json, OWrites}
@@ -66,46 +66,68 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   "put" should {
-    
+
     "send a request" in {
       val response = callPut
       response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000002")
-      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any, 
+      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(any,
         any, any, any)
 
       withClue("with these headers") {
         val headers = Seq(
-          "Environment" -> "space", 
-          "Accept" -> "application/json", 
+          "Environment" -> "space",
+          "Accept" -> "application/json",
           "Authorization" -> "do-come-in",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
-        verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers)) (any, any, any, any)
+        verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers))(any, any, any, any)
       }
-      
+
       withClue("using these implicits") {
-        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any) (eqTo(writes), eqTo(Implicits.readRaw),
+        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(eqTo(writes), eqTo(Implicits.readRaw),
           eqTo(headerCarrier), eqTo(global))
       }
     }
-    
+
     "handle responses" when {
       "status is 2xx" in {
-        when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(
+        when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(
           HmrcResponse(200, """{"a": "b"}"""))
-        await { eisHttpClient.put("", exampleModel, "") } mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
+        callPut mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
       }
       // All responses the same right now
     }
-    
+
     "time the request-response transaction" in {
       callPut
       verify(metrics.defaultRegistry).timer(eqTo("tick.tick"))
       verify(metrics.defaultRegistry.timer(eqTo("tick.tick"))).time()
       verify(timer).stop()
     }
-    
+
     "return the correlation id" in {
       callPut.correlationId mustBe "00000000-0000-0001-0000-000000000002"
+    }
+
+  }    
+    
+  "retry" should {
+    
+    "try again if the first attempt fails" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn (
+        Future.successful(HmrcResponse(500, "")),
+        Future.successful(HmrcResponse(200, "")),
+      )
+      val response = callPut
+      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any,
+        any, any, any)
+      response.status mustBe 200
+    }
+    
+    "eventually give up" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn 
+        Future.successful(HmrcResponse(500, ""))
+      val response = callPut
+      response.status mustBe 500
     }
 
   }

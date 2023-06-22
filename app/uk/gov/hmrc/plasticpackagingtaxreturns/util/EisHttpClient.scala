@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
-import play.api.http.{HeaderNames, MimeTypes}
+import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
@@ -72,7 +72,7 @@ class EisHttpClient @Inject() (
   appConfig: AppConfig,
   edgeOfSystem: EdgeOfSystem,
   metrics: Metrics,
-) {
+) (implicit executionContext: ExecutionContext) {
 
   private val EnvironmentHeaderName = "Environment"
   private val CorrelationIdHeaderName = "CorrelationId"
@@ -82,10 +82,9 @@ class EisHttpClient @Inject() (
    * @param url full url of endpoint to send put request to
    * @param requestBody object to send in put-request body, must have an implicit json.Writes[A] in-scope
    * @param hc header carrier from up-stream request
-   * @param ec current execution context
    * @return [[EisHttpResponse]]
    */
-  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String) (implicit hc: HeaderCarrier, ec: ExecutionContext, 
+  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String) (implicit hc: HeaderCarrier, 
     writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val correlationId = edgeOfSystem.createUuid.toString
@@ -97,12 +96,22 @@ class EisHttpClient @Inject() (
       CorrelationIdHeaderName -> correlationId
     )
 
+    val putFunction = () => hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+
     val timer = metrics.defaultRegistry.timer(timerName).time()
-    hmrcClient
-      .PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+    retry(2)(putFunction)
       .andThen { case _ => timer.stop() }
       .map {
-        EisHttpResponse.fromHttpResponse(correlationId) }
+        EisHttpResponse.fromHttpResponse(correlationId) 
+      }
   }
+
+  def retry(times: Int)(function: () => Future[HmrcResponse]): Future[HmrcResponse] =
+    function()
+      .flatMap {
+        case response if Status.isSuccessful(response.status) => Future.successful(response)
+        case response if times == 1 => Future.successful(response)
+        case _ => retry(times - 1)(function)
+      }
 
 }
