@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.UserAnswersNotFoundException
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
 
@@ -39,7 +40,7 @@ class ExportCreditBalanceController @Inject() (
 
       for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
-        userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
+        userAnswers = userAnswersOpt.getOrElse(throw UserAnswersNotFoundException())
         availableCredit <- availableCreditService.getBalance(userAnswers)
         creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
       } yield { 

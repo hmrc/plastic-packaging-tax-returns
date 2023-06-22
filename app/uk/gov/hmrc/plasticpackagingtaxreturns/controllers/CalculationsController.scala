@@ -21,6 +21,7 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
@@ -47,15 +48,15 @@ class CalculationsController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
         sessionRepository.get(request.cacheKey).map { optUa => {
-          
+
           val userAnswers = {
-            optUa.getOrElse(throw new IllegalStateException("No user answers found in session repo"))
+            optUa.getOrElse(throw UserAnswersNotFoundException())
           }
           val amend = AmendReturnValues(userAnswers).getOrElse {
             throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
           }
-          
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
+
+          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable),
             taxRateTable.lookupRateFor(amend.periodEndDate)) // TODO looks like a duplicate lookup?
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
@@ -65,11 +66,11 @@ class CalculationsController @Inject()(
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       sessionRepository.get(request.cacheKey).flatMap(
-        _.fold(Future.successful(UnprocessableEntity("No user answers found"))){ userAnswers =>
+        _.fold(Future.successful(UnprocessableEntity(UserAnswersErrors.notFound))){ userAnswers =>
           availableCreditService.getBalance(userAnswers).map{ availableCredit =>
             val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
             NewReturnValues(requestedCredits, availableCredit)(userAnswers)
-              .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
+              .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
                 val calculations: Calculations = calculationsService.calculate(returnValues)
                 Ok(Json.toJson(calculations))
               }

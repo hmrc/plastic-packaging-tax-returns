@@ -37,6 +37,7 @@ import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
@@ -140,7 +141,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         when(sessionRepository.get(any)).thenReturn(Future.successful(None))
         val response = await(wsClient.url(url).get)
         response.status mustBe INTERNAL_SERVER_ERROR
-        response.json mustBe obj("statusCode" -> 500, "message" -> "UserAnswers is empty")
+        response.json mustBe obj("statusCode" -> 500, "message" -> UserAnswersErrors.notFound)
       }
 
       "user is not authorized" in {

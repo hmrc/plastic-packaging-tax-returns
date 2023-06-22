@@ -29,6 +29,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
@@ -123,8 +124,8 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
       "user answers is missing" in {
         when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
 
-        val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
-        ex.getMessage mustBe "UserAnswers is empty"
+        val ex = intercept[UserAnswersNotFoundException](await(sut.get("pptRef")(FakeRequest())))
+        ex.getMessage mustBe UserAnswersErrors.notFound
       }
 
       "user answers is missing the return toDate" in {

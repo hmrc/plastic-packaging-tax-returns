@@ -28,6 +28,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, TaxablePlastic, UserAnswers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -114,10 +115,10 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
       "session repo is empty" in {
         when(mockSessionRepo.get(any)).thenReturn(Future.successful(None))
-        
-        the [Exception] thrownBy {
+
+        (the [UserAnswersNotFoundException] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
-        } must have message "UserAnswers is empty"
+        }).getMessage mustBe UserAnswersErrors.notFound
 
         withClue("available credit should not have been called"){
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)

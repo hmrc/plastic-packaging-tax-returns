@@ -20,6 +20,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.UserAnswersNotFoundException
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService
@@ -40,7 +41,7 @@ class AvailableCreditDateRangesController @Inject()(
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       for {
         userAnswersOpt <- sessionRepository.get(request.cacheKey)
-        userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
+        userAnswers = userAnswersOpt.getOrElse(throw UserAnswersNotFoundException())
         subscription <- subscriptionsConnector.getSubscriptionFuture(pptReference)
       } yield {
         val taxStartDate = subscription.taxStartDate()
