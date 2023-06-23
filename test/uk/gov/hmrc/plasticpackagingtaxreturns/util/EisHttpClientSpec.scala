@@ -144,6 +144,20 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         verify(futures, times(2)).delay(30 milliseconds)
       }
     }
+    
+    "use custom success criteria" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn
+        Future.successful(HmrcResponse(422, ""))
+
+      val response = await {
+        val isSuccessful = (response: HmrcResponse) => response.status == 422
+        eisHttpClient.put("url", exampleModel, "timer", isSuccessful)
+      }
+
+      verify(hmrcClient, times(1)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
+      verify(futures, times(0)).delay(30 milliseconds)
+      response.status mustBe 422 
+    }
 
   }
 

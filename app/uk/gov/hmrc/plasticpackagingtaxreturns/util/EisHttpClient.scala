@@ -59,6 +59,7 @@ object EisHttpResponse {
    * @note does not keep a reference to [[HmrcResponse]]
    */
   def fromHttpResponse(correlationId: String) (hmrcResponse: HmrcResponse): EisHttpResponse = {
+    // TODO possibility that we don't set the correlation id for all calls... may need to take this from response header
     EisHttpResponse(hmrcResponse.status, hmrcResponse.body, correlationId)
   }
 }
@@ -81,6 +82,9 @@ class EisHttpClient @Inject() (
   private val EnvironmentHeaderName = "Environment"
   private val CorrelationIdHeaderName = "CorrelationId"
 
+  type SuccessFun = HmrcResponse => Boolean
+  private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
+
   /**
    * @tparam HappyModel the type of the model payload / request body 
    * @param url full url of endpoint to send put request to
@@ -88,8 +92,8 @@ class EisHttpClient @Inject() (
    * @param hc header carrier from up-stream request
    * @return [[EisHttpResponse]]
    */
-  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String) (implicit hc: HeaderCarrier, 
-    writes: Writes[HappyModel]): Future[EisHttpResponse] = {
+  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String, successFun: SuccessFun = isSuccessful) 
+    (implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val correlationId = edgeOfSystem.createUuid.toString
     
@@ -103,21 +107,21 @@ class EisHttpClient @Inject() (
     val putFunction = () => hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
-    retry(3)(putFunction)
+    retry(3, putFunction, successFun)
       .andThen { case _ => timer.stop() }
       .map {
         EisHttpResponse.fromHttpResponse(correlationId) 
       }
   }
 
-  def retry(times: Int)(function: () => Future[HmrcResponse]): Future[HmrcResponse] =
+  def retry(times: Int, function: () => Future[HmrcResponse], successFun: SuccessFun): Future[HmrcResponse] =
     function()
       .flatMap {
-        case response if Status.isSuccessful(response.status) => Future.successful(response)
+        case response if successFun(response) => Future.successful(response)
         case response if times == 1 => Future.successful(response)
         case _ => futures
           .delay(30 milliseconds)
-          .flatMap { _ => retry(times - 1)(function) }
+          .flatMap { _ => retry(times - 1, function, successFun) }
       }
 
 }
