@@ -103,7 +103,7 @@ class EisHttpClient @Inject() (
     val putFunction = () => hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
-    retry(2)(putFunction)
+    retry(3)(putFunction)
       .andThen { case _ => timer.stop() }
       .map {
         EisHttpResponse.fromHttpResponse(correlationId) 
