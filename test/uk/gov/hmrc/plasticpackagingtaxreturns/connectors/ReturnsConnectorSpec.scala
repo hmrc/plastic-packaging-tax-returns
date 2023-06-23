@@ -269,12 +269,11 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body, "")
         when(eisHttpClient.put[Any](any, any, any, any) (any, any)) thenReturn Future.successful(putResponse)
 
-        val exampleReturn = Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None) // TODO match thing in front-end
         callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
 
         withClue("log success as etmp did received our call ok") {
           verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-            "Success", returnSubmission, Some(exampleReturn), None)))(any, any, any) // TODO what response body will we post to secure log
+            "Success", returnSubmission, None, None)))(any, any, any) // TODO what response body will we post to secure log
         }
       }
 

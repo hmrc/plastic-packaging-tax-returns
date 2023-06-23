@@ -71,7 +71,7 @@ class ReturnsConnector @Inject() (
         else if(httpResponse.status == UNPROCESSABLE_ENTITY
           && (httpResponse.json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")) {
           auditConnector.sendExplicitAudit(SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(Return("date", IdDetails("ppt-ref", "sub-id"), None, None, None)), None))
+            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None))
           Left(StatusCode.RETURN_ALREADY_SUBMITTED)
         } else
           unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
