@@ -16,10 +16,18 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Json, OWrites}
 
-case class RecycledPlasticWeight(totalKg: Long)
+case class TaxablePlastic(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal) {
 
-object RecycledPlasticWeight {
-  implicit val format: OFormat[RecycledPlasticWeight] = Json.format[RecycledPlasticWeight]
+  def +(other: TaxablePlastic): TaxablePlastic = TaxablePlastic(
+    weight + other.weight, moneyInPounds + other.moneyInPounds, taxRate = 0
+  )
+  
+}
+
+object TaxablePlastic {
+  def zero: TaxablePlastic = TaxablePlastic(0L, 0, 0)
+
+  implicit val writes: OWrites[TaxablePlastic] = Json.writes[TaxablePlastic]
 }

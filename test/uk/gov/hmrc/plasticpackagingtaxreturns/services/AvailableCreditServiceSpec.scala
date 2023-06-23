@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers.{any, refEq}
-import org.mockito.Mockito.{reset, verify, verifyNoInteractions, verifyNoMoreInteractions, when}
+import org.mockito.Mockito.{reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
@@ -27,7 +27,7 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ReturnObligationFromDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
@@ -37,17 +37,33 @@ import scala.concurrent.Future
 
 class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
-  val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
-  val sut = new AvailableCreditService(mockConnector)(global)
-
-  val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
-
+  private val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  private val sut = new AvailableCreditService(mockConnector)(global)
+  private val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
+ 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
   }
 
   "getBalance" must {
+    
+    "return available balance" when {
+      "no credit is being claimed" in {
+        val expected = BigDecimal(200)
+        val unUsedBigDec = mock[BigDecimal]
+        val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
+          Future.successful(Right(creditResponse)))
+
+        val userAnswers = UserAnswers("user-answers-id")
+          .setUnsafe(
+            ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
+          )
+
+        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe 200
+      }
+    }
 
     "correctly construct the parameters for the connector" in {
       val expected = BigDecimal(200)
@@ -74,16 +90,15 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "throw an exception" when {
-      "the useranswers does not contain an obligation" in {
-        val userAnswers = UserAnswers("user-answers-id")
-
-        val error = intercept[IllegalStateException](await(sut.getBalance(userAnswers)(fakeRequest)))
-
-        error.getMessage mustBe "Obligation fromDate not found in user-answers"
+      
+      "the user answers does not contain an obligation" in {
+        val userAnswers = mock[UserAnswers]
+        when(userAnswers.getOrFail(ReturnObligationFromDateGettable)) thenThrow new RuntimeException("bang")
+        the [Exception] thrownBy await(sut.getBalance(userAnswers)(fakeRequest)) must have message "bang"
       }
+      
       "the connector call fails" in {
         when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
-
 
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())

@@ -17,10 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import org.mockito.MockitoSugar
-import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.{Environment, Mode}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import java.time.{LocalDate, LocalDateTime}
@@ -28,8 +26,7 @@ import java.time.temporal.ChronoUnit
 
 class EdgeOfSystemSpec extends PlaySpec
   with MockitoSugar
-  with BeforeAndAfterEach
-  with ResetMocksAfterEachTest {
+  with BeforeAndAfterEach {
 
   private val appConfig = mock[AppConfig]
   private val edgeOfSystem = new EdgeOfSystem(appConfig)
@@ -71,3 +68,4 @@ class EdgeOfSystemSpec extends PlaySpec
   }
 
 }
+

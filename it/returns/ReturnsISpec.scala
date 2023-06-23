@@ -38,7 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
@@ -177,7 +177,7 @@ class ReturnsISpec extends PlaySpec
 
     response.status mustBe UNAUTHORIZED
   }
-  
+
   "handle ETMP saying return was already received" in {
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
@@ -198,15 +198,15 @@ class ReturnsISpec extends PlaySpec
     )
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
-    
+
     withClue("there should be no retries") {
       wireMock.verify(count = 1, putRequestedFor(urlEqualTo("/plastic-packaging-tax/returns/PPT/7777777")))
     }
-    
+
     response.status mustBe 208 // Internally used status for an already submitted return
     Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")
   }
-  
+
 
   private def setUpStub() = {
     stubObligationDesRequest()
@@ -256,7 +256,7 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubGetBalanceEISRequest = {
-    wireMock.stubFor(get(urlPathMatching(balanceEISURL))
+    wireMock.stubFor(get(urlPathEqualTo(balanceEISURL))
       .willReturn(
         ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
       )

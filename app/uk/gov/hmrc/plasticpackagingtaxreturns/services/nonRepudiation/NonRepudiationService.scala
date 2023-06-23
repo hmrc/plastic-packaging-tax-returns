@@ -46,7 +46,7 @@ case class NonRepudiationService @Inject() (
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
-    userHeaders: Map[String, String]
+    userHeaders: Map[String, String],
   )(implicit headerCarrier: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
     val nrsPayload = NrsPayload(edgeOfSystem, payloadString)

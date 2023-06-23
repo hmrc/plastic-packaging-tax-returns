@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 import com.google.inject.Inject
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvider
 
@@ -30,10 +30,7 @@ class AvailableCreditService @Inject()(
 )(implicit executionContext: ExecutionContext) extends BackendHeaderCarrierProvider {
 
   def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[BigDecimal] = {
-    val obligationFromDate = userAnswers.get(ReturnObligationFromDateGettable).getOrElse(
-      throw new IllegalStateException("Obligation fromDate not found in user-answers")
-    )
-
+    val obligationFromDate = userAnswers.getOrFail(ReturnObligationFromDateGettable)
     val fromDate = obligationFromDate.minusYears(2)
     val toDate = obligationFromDate.minusDays(1)
     exportCreditBalanceConnector
