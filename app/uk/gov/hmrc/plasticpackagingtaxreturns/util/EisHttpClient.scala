@@ -18,13 +18,16 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.http.{HeaderNames, MimeTypes, Status}
+import play.api.libs.concurrent.Futures
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.Inject
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import scala.util.Try
 
@@ -72,6 +75,7 @@ class EisHttpClient @Inject() (
   appConfig: AppConfig,
   edgeOfSystem: EdgeOfSystem,
   metrics: Metrics,
+  futures: Futures
 ) (implicit executionContext: ExecutionContext) {
 
   private val EnvironmentHeaderName = "Environment"
@@ -111,7 +115,9 @@ class EisHttpClient @Inject() (
       .flatMap {
         case response if Status.isSuccessful(response.status) => Future.successful(response)
         case response if times == 1 => Future.successful(response)
-        case _ => retry(times - 1)(function)
+        case _ => futures
+          .delay(30 milliseconds)
+          .flatMap { _ => retry(times - 1)(function) }
       }
 
 }

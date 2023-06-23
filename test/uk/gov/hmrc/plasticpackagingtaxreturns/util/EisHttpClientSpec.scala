@@ -16,13 +16,16 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
+import akka.Done
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
+import org.mockito.MockitoSugar
+import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.concurrent.Futures
 import play.api.libs.json.{Json, OWrites}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HttpReads.Implicits
@@ -32,15 +35,18 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
 
-class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
+class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with ResetMocksAfterEachTest {
 
   private val hmrcClient = mock[HmrcClient]
   private val appConfig = mock[AppConfig]
   private val edgeOfSystem = mock[EdgeOfSystem]
   private val metrics = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val futures = mock[Futures]
 
-  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem, metrics)
+  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem, metrics, futures)
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
   private val timer = mock[Timer.Context]
 
@@ -51,14 +57,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
   
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(hmrcClient, appConfig, edgeOfSystem, metrics, headerCarrier, timer)
     
     when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HmrcResponse(200, "{}"))
     when(appConfig.eisEnvironment) thenReturn "space"
     when(appConfig.bearerToken) thenReturn "do-come-in"
-    when(appConfig.bearerToken) thenReturn "do-come-in"
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
+    when(futures.delay(any)) thenReturn Future.successful(Done)
   }
   
   private def callPut = await {
@@ -117,10 +122,15 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach {
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, "")),
       )
+
       val response = callPut
       verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any,
         any, any, any)
       response.status mustBe 200
+
+      withClue("with a delay between attempt") {
+        verify(futures).delay(30 milliseconds)
+      }
     }
     
     "eventually give up" in {
