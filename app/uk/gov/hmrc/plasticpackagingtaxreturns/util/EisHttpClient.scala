@@ -82,7 +82,7 @@ class EisHttpClient @Inject() (
   private val EnvironmentHeaderName = "Environment"
   private val CorrelationIdHeaderName = "CorrelationId"
 
-  type SuccessFun = HmrcResponse => Boolean
+  type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
 
   /**
@@ -104,17 +104,18 @@ class EisHttpClient @Inject() (
       CorrelationIdHeaderName -> correlationId
     )
 
-    val putFunction = () => hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+    val putFunction = () => 
+      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+        .map {
+          EisHttpResponse.fromHttpResponse(correlationId)
+        }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
     retry(3, putFunction, successFun)
       .andThen { case _ => timer.stop() }
-      .map {
-        EisHttpResponse.fromHttpResponse(correlationId) 
-      }
   }
 
-  def retry(times: Int, function: () => Future[HmrcResponse], successFun: SuccessFun): Future[HmrcResponse] =
+  def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun): Future[EisHttpResponse] =
     function()
       .flatMap {
         case response if successFun(response) => Future.successful(response)

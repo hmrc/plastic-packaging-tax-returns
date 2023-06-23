@@ -50,9 +50,19 @@ class ReturnsConnector @Inject() (
 
   def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)
     (implicit hc: HeaderCarrier): Future[Either[Int, Return]] = {
-
+    
+    def isSuccessful(response: EisHttpResponse): Boolean = response.status match {
+      case Status.OK => true
+      case Status.UNPROCESSABLE_ENTITY =>
+        val jsLookupResult = response.json \ "failures" \ 0 \ "code"
+        jsLookupResult
+          .asOpt[String]
+          .contains("TAX_OBLIGATION_ALREADY_FULFILLED")
+      case _ => false
+    } 
+    
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
-    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer")
+    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer", isSuccessful)
       .map { httpResponse =>
 
         if (httpResponse.status == OK)

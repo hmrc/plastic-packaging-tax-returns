@@ -34,6 +34,9 @@ class WiremockItServer {
   def verify(requestPatternBuilder: RequestPatternBuilder): Unit =
     wireMockServer.verify(requestPatternBuilder)
 
+  def verify(count: Int, requestPatternBuilder: RequestPatternBuilder): Unit =
+    wireMockServer.verify(count, requestPatternBuilder)
+
   def overrideConfig: Map[String, Any] =
     Map(
       "microservice.services.eis.host" -> wireHost,

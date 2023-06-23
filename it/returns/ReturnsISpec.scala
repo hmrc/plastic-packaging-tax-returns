@@ -83,6 +83,7 @@ class ReturnsISpec extends PlaySpec
       mockAuthConnector,
       cacheRepository
     )
+    wireMock.reset()
   }
 
   "return 200 when getting return details" in {
@@ -197,7 +198,10 @@ class ReturnsISpec extends PlaySpec
     )
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
-    wireMock.verify(putRequestedFor(urlEqualTo("/plastic-packaging-tax/returns/PPT/7777777")))
+    
+    withClue("there should be no retries") {
+      wireMock.verify(count = 1, putRequestedFor(urlEqualTo("/plastic-packaging-tax/returns/PPT/7777777")))
+    }
     
     response.status mustBe 208 // Internally used status for an already submitted return
     Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")

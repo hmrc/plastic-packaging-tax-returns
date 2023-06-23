@@ -150,7 +150,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         Future.successful(HmrcResponse(422, ""))
 
       val response = await {
-        val isSuccessful = (response: HmrcResponse) => response.status == 422
+        val isSuccessful = (response: EisHttpResponse) => response.status == 422
         eisHttpClient.put("url", exampleModel, "timer", isSuccessful)
       }
 
