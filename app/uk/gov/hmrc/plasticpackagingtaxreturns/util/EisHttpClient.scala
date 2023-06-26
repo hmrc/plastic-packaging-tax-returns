@@ -23,6 +23,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
 
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
@@ -82,6 +83,7 @@ class EisHttpClient @Inject() (
   private val EnvironmentHeaderName = "Environment"
   private val CorrelationIdHeaderName = "CorrelationId"
 
+
   type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
 
@@ -92,27 +94,33 @@ class EisHttpClient @Inject() (
    * @param hc header carrier from up-stream request
    * @return [[EisHttpResponse]]
    */
-  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String, successFun: SuccessFun = isSuccessful) 
+  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String, successFun: SuccessFun = isSuccessful)
     (implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val correlationId = edgeOfSystem.createUuid.toString
-    
-    val headers = Seq(
-      EnvironmentHeaderName -> appConfig.eisEnvironment, 
-      HeaderNames.ACCEPT -> MimeTypes.JSON, 
-      HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
-      CorrelationIdHeaderName -> correlationId
-    )
 
-    val putFunction = () => 
-      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headers)
+    val putFunction = () =>
+      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, buildHeaders(correlationId))
         .map {
           EisHttpResponse.fromHttpResponse(correlationId)
         }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
-    retry(3, putFunction, successFun)
+    retry(retryAttempts, putFunction, successFun)
       .andThen { case _ => timer.stop() }
+  }
+
+  def get(url: String, queryParams: Seq[(String, String)], timerName: String)(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
+    val timer = metrics.defaultRegistry.timer(timerName).time()
+    val correlationId = edgeOfSystem.createUuid.toString
+
+    val getFunction = () =>
+      hmrcClient.GET(url, queryParams, buildHeaders(correlationId)).map {
+        EisHttpResponse.fromHttpResponse(correlationId)
+      }
+
+    retry(retryAttempts, getFunction, isSuccessful)
+      .andThen{ case _ => timer.stop() }
   }
 
   def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun): Future[EisHttpResponse] =
@@ -121,8 +129,22 @@ class EisHttpClient @Inject() (
         case response if successFun(response) => Future.successful(response)
         case response if times == 1 => Future.successful(response)
         case _ => futures
-          .delay(30 milliseconds)
+          .delay(retryDelayInMillisecond milliseconds)
           .flatMap { _ => retry(times - 1, function, successFun) }
       }
 
+  private def buildHeaders(correlationId: String): Seq[(String, String)] = {
+    Seq(
+      EnvironmentHeaderName -> appConfig.eisEnvironment,
+      HeaderNames.ACCEPT -> MimeTypes.JSON,
+      HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
+      CorrelationIdHeaderName -> correlationId
+    )
+  }
+
+}
+
+object EisHttpClient {
+  val retryDelayInMillisecond = 1000
+  val retryAttempts = 3
 }
