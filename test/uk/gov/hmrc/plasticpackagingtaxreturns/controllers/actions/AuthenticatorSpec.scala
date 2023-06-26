@@ -23,13 +23,12 @@ import org.scalatest.{BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers.await
 import play.api.test.{DefaultAwaitTimeout, FakeRequest}
-import uk.gov.hmrc.auth.core.{InsufficientEnrolments, InternalError}
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name}
+import uk.gov.hmrc.auth.core.{Enrolments, InsufficientEnrolments, InternalError}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{
-  pptEnrolmentIdentifierName,
-  pptEnrolmentKey
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction.{pptEnrolmentIdentifierName, pptEnrolmentKey}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
 import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 
 import scala.concurrent.ExecutionContext
@@ -64,6 +63,18 @@ class AuthenticatorSpec
         val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 
         result.left.value.statusCode mustBe 401
+      }
+
+      "internal id is missing" in {
+        withAuthorizedUser(
+          newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"))))
+            .copy(internalId = None)
+        )
+
+        val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
+
+        result.left.value.statusCode mustBe 500
+        result.left.value.message mustBe "Internal server error is AuthenticatorImpl::authorisedWithPptReference -  internalId is required"
       }
     }
 
