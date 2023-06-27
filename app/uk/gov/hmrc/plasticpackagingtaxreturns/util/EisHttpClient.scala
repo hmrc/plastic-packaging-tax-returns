@@ -110,12 +110,15 @@ class EisHttpClient @Inject() (
       .andThen { case _ => timer.stop() }
   }
 
+  //todo this get is for DES at the moment as it uses the bearertoken for DES.
+  // Could make this more generic and accept a bearer token for both EIS and DES
   def get(url: String, queryParams: Seq[(String, String)], timerName: String, successFun: SuccessFun = isSuccessful)(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
     val timer = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
 
+
     val getFunction = () =>
-      hmrcClient.GET(url, queryParams, buildHeaders(correlationId)).map {
+      hmrcClient.GET(url, queryParams, buildDesHeaders(correlationId)).map {
         EisHttpResponse.fromHttpResponse(correlationId)
       }
 
@@ -138,6 +141,15 @@ class EisHttpClient @Inject() (
       EnvironmentHeaderName -> appConfig.eisEnvironment,
       HeaderNames.ACCEPT -> MimeTypes.JSON,
       HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
+      CorrelationIdHeaderName -> correlationId
+    )
+  }
+
+  private def buildDesHeaders(correlationId: String): Seq[(String, String)] = {
+    Seq(
+      EnvironmentHeaderName -> appConfig.eisEnvironment,
+      HeaderNames.ACCEPT -> MimeTypes.JSON,
+      HeaderNames.AUTHORIZATION -> appConfig.desBearerToken,
       CorrelationIdHeaderName -> correlationId
     )
   }
