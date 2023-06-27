@@ -127,6 +127,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             res.left.get mustBe statusCode
 
+            // TODO this fails sometimes even when it shouldn't?
             verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
             
             // TODO this (below) eats any / all output from WireMock's matchers
