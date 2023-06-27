@@ -23,8 +23,8 @@ import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
-import play.api.http.Status.NOT_FOUND
-import play.api.libs.json.{JsResultException, Json, OWrites}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
+import play.api.libs.json.{Json, OWrites}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
@@ -34,6 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 
 import java.time.LocalDate
 
+//todo: do we really need this? This will be tested by the
 class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   lazy val connector: ObligationsDataConnector = app.injector.instanceOf[ObligationsDataConnector]
@@ -142,7 +143,8 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(auditUrl, Status.NO_CONTENT)
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
-        intercept[JsResultException](await(connector.get(pptReference, internalId, fromDate, toDate, status)))
+        val result = await(connector.get(pptReference, internalId, fromDate, toDate, status))
+        result mustBe Left(INTERNAL_SERVER_ERROR)
 
         getTimer(getObligationDataTimer).getCount mustBe 1
 

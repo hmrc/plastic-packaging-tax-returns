@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
+package returns
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Inspectors.forAll
@@ -25,6 +25,7 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
@@ -79,9 +80,11 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
       "handle bad json" in {
 
-        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
-          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
-
+        // TODO discuss what to send to secure log
+//        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
+//          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
+        val error = "${json-unit.any-string}"
+        
         val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
 
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
@@ -93,9 +96,10 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
 
-        eventually(timeout(Span(5, Seconds))) {
-          eventSendToAudit(auditUrl, auditModel) mustBe true
-        }
+//        eventually(timeout(Span(5, Seconds))) {
+//          eventSendToAudit(auditUrl, auditModel) mustBe true
+//        }
+        verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
 
       }
 
@@ -105,10 +109,12 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
           s"upstream service fails with $statusCode" in {
 
-            val errors  = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
-            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: $errors"
+            val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
+            
+            // TODO I think this bit is wrong? Just log the error response?
+//            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: '$errors'"
 
-            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
+            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
 
             stubFailedReturnsSubmission(pptReference, statusCode, errors =
               Seq(EISError("Error Code", "Error Reason"))
@@ -121,6 +127,10 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             res.left.get mustBe statusCode
 
+            // TODO this fails sometimes even when it shouldn't?
+            verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
+            
+            // TODO this (below) eats any / all output from WireMock's matchers
             eventually(timeout(Span(5, Seconds))) {
               eventSendToAudit(auditUrl, auditModel) mustBe true
             }

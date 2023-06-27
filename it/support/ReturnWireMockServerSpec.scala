@@ -25,28 +25,28 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmis
 trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with BeforeAndAfterAll {
 
   this: Suite =>
-  implicit lazy val server: WiremockItServer = WiremockItServer()
+  implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private val DesSubmitReturnUrl = s"/plastic-packaging-tax/returns/PPT"
   private val nrsUrl = "/submission"
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    server.start()
+    wireMock.start()
   }
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    server.stop()
+    wireMock.stop()
   }
 
   protected def stubSubmitReturnEISRequest(pptReference: String) = {
-    server.stubFor(put(s"$DesSubmitReturnUrl/$pptReference")
+    wireMock.stubFor(put(s"$DesSubmitReturnUrl/$pptReference")
       .willReturn(
         ok().withBody(Json.toJson(aReturn()).toString()))
     )
   }
   protected def stubNrsRequest: Any = {
-    server.stubFor(post(nrsUrl)
+    wireMock.stubFor(post(nrsUrl)
       .willReturn(
         aResponse()
           .withStatus(Status.ACCEPTED)
@@ -56,6 +56,6 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
   }
 
   protected def stubNrsFailingRequest: Any = {
-    server.stubFor(post(nrsUrl).willReturn(serverError().withBody("exception")))
+    wireMock.stubFor(post(nrsUrl).willReturn(serverError().withBody("exception")))
   }
 }

@@ -21,14 +21,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import java.security.MessageDigest
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime}
-import java.util.Base64
+import java.util.{Base64, UUID}
 import javax.inject.Inject
 import scala.util.Try
 
 class EdgeOfSystem @Inject() (appConfig: AppConfig) {
+  
   def getMessageDigestSingleton: MessageDigest = MessageDigest.getInstance("SHA-256")
   def createEncoder: Base64.Encoder = Base64.getEncoder
-
+  def createUuid: UUID = UUID.randomUUID()
+  
   /** The current system date-time, or the overridden date-time if set in config
    * @return
    *  - current system date-time, if no override in-place
@@ -55,4 +57,5 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
    */
   def today: LocalDate = localDateTimeNow.toLocalDate
 
+  
 }

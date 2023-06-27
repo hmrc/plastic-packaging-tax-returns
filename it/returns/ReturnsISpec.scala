@@ -28,6 +28,7 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json.obj
 import play.api.libs.json.{Json, OWrites}
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -65,10 +66,10 @@ class ReturnsISpec extends PlaySpec
 
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(cacheRepository)
@@ -82,6 +83,7 @@ class ReturnsISpec extends PlaySpec
       mockAuthConnector,
       cacheRepository
     )
+    wireMock.reset()
   }
 
   "return 200 when getting return details" in {
@@ -176,6 +178,36 @@ class ReturnsISpec extends PlaySpec
     response.status mustBe UNAUTHORIZED
   }
 
+  "handle ETMP saying return was already received" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    setUpStub()
+    setUpMocks()
+
+    // Taken from lIve - response when ETMP has already seen
+    wireMock.stubFor(
+      put("/plastic-packaging-tax/returns/PPT/7777777").willReturn(status(422).withBody(
+        """
+          {
+            "failures" : [ {
+              "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
+              "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
+            } ]
+          }"""
+      ))
+    )
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    withClue("there should be no retries") {
+      wireMock.verify(count = 1, putRequestedFor(urlEqualTo("/plastic-packaging-tax/returns/PPT/7777777")))
+    }
+
+    response.status mustBe 208 // Internally used status for an already submitted return
+    Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")
+  }
+
+
   private def setUpStub() = {
     stubObligationDesRequest()
     stubGetBalanceEISRequest
@@ -193,7 +225,7 @@ class ReturnsISpec extends PlaySpec
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
     implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
-    server.stubFor(get(obligationDesRequest)
+    wireMock.stubFor(get(obligationDesRequest)
       .willReturn(aResponse
         .withStatus(status)
         .withBody(Json.toJson(
@@ -203,7 +235,7 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubReturnDisplayResponse(): Unit = {
-    server.stubFor(
+    wireMock.stubFor(
       get(DesUrl)
         .willReturn(
           aResponse()
@@ -214,7 +246,7 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubReturnDisplayErrorResponse(): Unit = {
-    server.stubFor(
+    wireMock.stubFor(
       get(DesUrl)
         .willReturn(
           aResponse()
@@ -224,39 +256,41 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def stubGetBalanceEISRequest = {
-    server.stubFor(get(urlPathEqualTo(balanceEISURL))
+    wireMock.stubFor(get(urlPathEqualTo(balanceEISURL))
       .willReturn(
         ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
       )
     )
   }
 
-  def displayApiResponse: String = """{
-                                     |  "processingDate": "2022-07-03T09:30:47Z",
-                                     |  "idDetails": {
-                                     |    "pptReferenceNumber": "XMPPT0000000003",
-                                     |    "submissionId": "123456789012"
-                                     |  },
-                                     |  "chargeDetails": {
-                                     |    "periodKey": "22C2",
-                                     |    "chargeReference": "XY007000075425",
-                                     |    "periodFrom": "2022-04-01",
-                                     |    "periodTo": "2022-06-30",
-                                     |    "receiptDate": "2022-09-03T09:30:47Z",
-                                     |    "returnType": "Amend"
-                                     |  },
-                                     |  "returnDetails": {
-                                     |    "manufacturedWeight": 250,
-                                     |    "importedWeight": 150,
-                                     |    "totalNotLiable": 180,
-                                     |    "humanMedicines": 50,
-                                     |    "directExports": 60,
-                                     |    "recycledPlastic": 70,
-                                     |    "creditForPeriod": 12.13,
-                                     |    "debitForPeriod": 0,
-                                     |    "totalWeight": 220,
-                                     |    "taxDue": 44
-                                     |  }
-                                     |}""".stripMargin
+  def displayApiResponse: String = """
+    {
+      "processingDate": "2022-07-03T09:30:47Z",
+      "idDetails": {
+        "pptReferenceNumber": "XMPPT0000000003",
+        "submissionId": "123456789012"
+      },
+      "chargeDetails": {
+        "periodKey": "22C2",
+        "chargeReference": "XY007000075425",
+        "periodFrom": "2022-04-01",
+        "periodTo": "2022-06-30",
+        "receiptDate": "2022-09-03T09:30:47Z",
+        "returnType": "Amend"
+      },
+      "returnDetails": {
+        "manufacturedWeight": 250,
+        "importedWeight": 150,
+        "totalNotLiable": 180,
+        "humanMedicines": 50,
+        "directExports": 60,
+        "recycledPlastic": 70,
+        "creditForPeriod": 12.13,
+        "debitForPeriod": 0,
+        "totalWeight": 220,
+        "taxDue": 44
+      }
+    }
+    """
 
 }

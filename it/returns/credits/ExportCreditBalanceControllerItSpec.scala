@@ -52,7 +52,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   private lazy val sessionRepository = mock[SessionRepository]
 
   private val url = s"http://localhost:$port/credits/calculate/$pptReference"
-  
+
   private val userAnswerWithCredit = UserAnswers("user-answers-id", obj(
     "obligation" -> obj(
       "fromDate" -> "2023-04-01",
@@ -66,7 +66,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         "exportedCredits" -> obj("yesNo" -> true, "weight" -> 5),
     ))
   ))
-  
+
   private val exportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
     processingDate = "2021-11-17T09:32:50.345Z",
     totalPPTCharges = BigDecimal(1000),
@@ -75,7 +75,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   )
 
   private def stubGetBalanceResponse() = {
-    server.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+    wireMock.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
       .willReturn(
         ok()
           .withBody(ExportCreditBalanceDisplayResponse
@@ -87,10 +87,10 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   }
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(sessionRepository)
@@ -110,9 +110,9 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       stubGetBalanceResponse()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       val response = await(wsClient.url(url).get)
-      
+
       withClue("Check call to EIS to query credit balance") {
-        server.wireMockServer.verify(getRequestedFor(urlEqualTo(
+        wireMock.wireMockServer.verify(getRequestedFor(urlEqualTo(
           "/plastic-packaging-tax/export-credits/PPT/7777777?fromDate=2021-04-01&toDate=2023-03-31"
         )))
       }
@@ -148,6 +148,6 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         response.status mustBe UNAUTHORIZED
       }
     }
-    
+
   }
 }

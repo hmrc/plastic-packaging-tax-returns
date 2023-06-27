@@ -80,28 +80,32 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
 
   protected def eventSendToAudit(url: String, eventType: String, body: String): Boolean =
     try {
-      verify(
-        postRequestedFor(urlEqualTo(url))
-          .withRequestBody(equalToJson(s"""{
-                                          |                  "auditSource": "plastic-packaging-tax-returns",
-                                          |                  "auditType": "$eventType",
-                                          |                  "eventId": "$${json-unit.any-string}",
-                                          |                  "tags": {
-                                          |                    "clientIP": "-",
-                                          |                    "path": "-",
-                                          |                    "X-Session-ID": "-",
-                                          |                    "Akamai-Reputation": "-",
-                                          |                    "X-Request-ID": "-",
-                                          |                    "deviceID": "-",
-                                          |                    "clientPort": "-"
-                                          |                  },
-                                          |                  "detail": $body,
-                                          |                  "generatedAt": "$${json-unit.any-string}"
-                                          |                }""".stripMargin, true, true))
-      )
+      verifyAuditRequest(url, eventType, body)
       true
     } catch {
       case _: VerificationException => false
     }
 
+  protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit = {
+    verify(
+      postRequestedFor(urlEqualTo(url))
+        .withRequestBody(equalToJson(
+          s"""{
+             |                  "auditSource": "plastic-packaging-tax-returns",
+             |                  "auditType": "$eventType",
+             |                  "eventId": "$${json-unit.any-string}",
+             |                  "tags": {
+             |                    "clientIP": "-",
+             |                    "path": "-",
+             |                    "X-Session-ID": "-",
+             |                    "Akamai-Reputation": "-",
+             |                    "X-Request-ID": "-",
+             |                    "deviceID": "-",
+             |                    "clientPort": "-"
+             |                  },
+             |                  "detail": $body,
+             |                  "generatedAt": "$${json-unit.any-string}"
+             |                }""".stripMargin, true, true))
+    )
+  }
 }

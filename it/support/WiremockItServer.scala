@@ -19,15 +19,23 @@ package support
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.options
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 
 class WiremockItServer {
+
   val wireHost                            = "localhost"
   lazy val wireMockServer: WireMockServer = new WireMockServer(options().dynamicPort())
   lazy val wirePort: Int                  = wireMockServer.port()
 
   def stubFor(mappingBuilder: MappingBuilder): StubMapping =
     wireMockServer.stubFor(mappingBuilder)
+
+  def verify(requestPatternBuilder: RequestPatternBuilder): Unit =
+    wireMockServer.verify(requestPatternBuilder)
+
+  def verify(count: Int, requestPatternBuilder: RequestPatternBuilder): Unit =
+    wireMockServer.verify(count, requestPatternBuilder)
 
   def overrideConfig: Map[String, Any] =
     Map(
