@@ -26,11 +26,12 @@ import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.concurrent.Futures
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{Format, Json, OFormat, OWrites}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HttpReads.Implicits
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -53,7 +54,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   case class ExampleModel(vitalData: Int = 1)
 
   private val exampleModel = ExampleModel()
-  private implicit val writes: OWrites[ExampleModel] = Json.writes[ExampleModel]
+  private implicit val formats: OFormat[ExampleModel] = Json.format[ExampleModel]
   
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -88,7 +89,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       }
 
       withClue("using these implicits") {
-        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(eqTo(writes), eqTo(Implicits.readRaw),
+        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(eqTo(formats), eqTo(Implicits.readRaw),
           eqTo(headerCarrier), eqTo(global))
       }
     }
@@ -113,7 +114,92 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       callPut.correlationId mustBe "00000000-0000-0001-0000-000000000002"
     }
 
-  }    
+  }
+
+  "get" should {
+    "send a request" in {
+
+      when(appConfig.desBearerToken).thenReturn("do-come-in")
+      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
+        .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
+      eisHttpClient.get("/any/url", Seq("a" -> "b"), "timer-name")
+
+      verify(hmrcClient).GET(eqTo("/any/url"), eqTo(Seq("a" -> "b")), any)(any, any,any)
+
+      withClue("with these headers") {
+        val headers = Seq(
+          "Environment" -> "space",
+          "Accept" -> "application/json",
+          "Authorization" -> "do-come-in",
+          "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
+        verify(hmrcClient).GET[Any](any, any, eqTo(headers))(any, any, any)
+      }
+    }
+
+    "return an EisHttpResponse" in {
+      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
+        .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
+      val result = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+
+      result mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
+    }
+
+    "time the transaction" in {
+      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
+        .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
+
+      await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      verify(metrics.defaultRegistry.timer(eqTo("tick.tick"))).time()
+      verify(timer).stop()
+    }
+
+    "retry again if the first attempt fails" in {
+      when(hmrcClient.GET[Any](any, any, any) (any, any, any)).thenReturn(
+        Future.successful(HmrcResponse(500, "")),
+        Future.successful(HmrcResponse(200, "")),
+      )
+
+      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+
+      response.status mustBe 200
+      verify(hmrcClient, times(2)).GET[Any](eqTo("/any/url"), eqTo(Seq.empty), any) (any,
+        any, any)
+
+      withClue("with a delay between attempt") {
+        verify(futures).delay(retryDelayInMillisecond milliseconds)
+      }
+    }
+
+    "retry eventually give up" in {
+      when(hmrcClient.GET[Any](any, any, any) (any, any, any)).thenReturn(
+        Future.successful(HmrcResponse(500, ""))
+      )
+      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      response.status mustBe 500
+
+      withClue("after trying 3 times") {
+        verify(hmrcClient, times(3)).GET[Any](any, any, any) (any,
+          any, any)
+        verify(futures, times(2)).delay(1000 milliseconds)
+      }
+    }
+
+    "retry use custom success criteria" in {
+      when(hmrcClient.GET[Any](any, any, any) (any, any, any)).thenReturn(
+        Future.successful(HmrcResponse(422, ""))
+      )
+
+      val response = await {
+        val isSuccessful = (response: EisHttpResponse) => response.status == 422
+
+        eisHttpClient.get("url", Seq.empty, "timer-name", isSuccessful)
+      }
+
+      verify(hmrcClient, times(1)).GET[Any](any, any, any)(any, any, any)
+      verifyNoMoreInteractions(futures)
+      response.status mustBe 422
+    }
+  }
     
   "retry" should {
     
@@ -124,12 +210,16 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )
 
       val response = callPut
-      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any) (any,
-        any, any, any)
+      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](
+        eqTo("proto://some:port/endpoint"),
+        eqTo(exampleModel),
+        any
+      ) (any, any, any, any)
+
       response.status mustBe 200
 
       withClue("with a delay between attempt") {
-        verify(futures).delay(30 milliseconds)
+        verify(futures).delay(1000 milliseconds)
       }
     }
     
@@ -141,7 +231,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       
       withClue("after trying 3 times") {
         verify(hmrcClient, times(3)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
-        verify(futures, times(2)).delay(30 milliseconds)
+        verify(futures, times(2)).delay(1000 milliseconds)
       }
     }
     
@@ -155,7 +245,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       }
 
       verify(hmrcClient, times(1)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
-      verify(futures, times(0)).delay(30 milliseconds)
+      verifyNoMoreInteractions(futures)
       response.status mustBe 422 
     }
 
