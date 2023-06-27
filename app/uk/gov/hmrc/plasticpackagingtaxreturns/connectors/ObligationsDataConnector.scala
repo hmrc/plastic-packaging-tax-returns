@@ -18,8 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import play.api.Logging
 import play.api.http.Status
+import play.api.http.Status.INTERNAL_SERVER_ERROR
 import play.api.libs.json.{JsDefined, JsString}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
@@ -97,15 +98,12 @@ class ObligationsDataConnector @Inject()
 
         Right(obligation)
       case Failure(error) =>
-        val msg =  s"""Error returned when getting enterprise obligation data correlationId [${response.correlationId}] and """ +
-          s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
 
-        logger.error(msg)
-
+        //Todo pass the full exception instead of the message
         auditConnector.sendExplicitAudit(GetObligations.eventType,
-          GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(s"$msg, body: ${response.json.toString()}")))
+          GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(error.getMessage)))
 
-        Left(response.status)
+        Left(INTERNAL_SERVER_ERROR)
     }
   }
 

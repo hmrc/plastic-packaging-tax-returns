@@ -119,6 +119,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   "get" should {
     "send a request" in {
 
+      when(appConfig.desBearerToken).thenReturn("do-come-in")
       when(hmrcClient.GET[Any](any, any, any)(any, any, any))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
       eisHttpClient.get("/any/url", Seq("a" -> "b"), "timer-name")
