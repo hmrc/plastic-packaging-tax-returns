@@ -43,6 +43,11 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
    */
   def json: JsValue = Try(Json.parse(body)).getOrElse(JsNull)
 
+  /** Tries to read response body as json of given type
+   * @tparam T type to read json body as
+   * @return a successful [[Try]] with T, or a failed Try with exception chain 
+   * @note careful logging on failure, as exception chain may contain parts of the response body
+   */
   def jsonAs[T](implicit reads: Reads[T], tt: TypeTag[T]): Try[T] = 
     Try(Json.parse(body).as[T]).recover {
       case exception => throw new RuntimeException(s"Response body could not be read as type ${typeOf[T]}", exception)
