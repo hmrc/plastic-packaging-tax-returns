@@ -110,7 +110,7 @@ class EisHttpClient @Inject() (
       .andThen { case _ => timer.stop() }
   }
 
-  def get(url: String, queryParams: Seq[(String, String)], timerName: String)(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
+  def get(url: String, queryParams: Seq[(String, String)], timerName: String, successFun: SuccessFun = isSuccessful)(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
     val timer = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
 
@@ -119,7 +119,7 @@ class EisHttpClient @Inject() (
         EisHttpResponse.fromHttpResponse(correlationId)
       }
 
-    retry(retryAttempts, getFunction, isSuccessful)
+    retry(retryAttempts, getFunction, successFun)
       .andThen{ case _ => timer.stop() }
   }
 
