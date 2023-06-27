@@ -63,7 +63,6 @@ class ObligationsDataConnector @Inject()
       queryParams = queryParams,
       timerName
     ).map { response =>
-      println(s"==> $response")
         response.status match {
           case Status.OK => handleSuccess(pptReference, internalId, obligationStatus, queryParams, response)
           case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND"))=>
