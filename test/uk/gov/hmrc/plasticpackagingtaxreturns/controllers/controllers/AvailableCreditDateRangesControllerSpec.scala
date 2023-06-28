@@ -23,19 +23,19 @@ import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.OK
 import play.api.libs.json.Json
 import play.api.libs.json.Json.{arr, obj}
+import play.api.mvc.Results.UnprocessableEntity
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersService.notFoundMsg
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRangesService, UserAnswersService}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,24 +45,22 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
 
   private val controllerComponents = Helpers.stubControllerComponents()
   private val service = mock[AvailableCreditDateRangesService]
-  private val sessionRepository = mock[SessionRepository]
   private val authenticator = spy(new FakeAuthenticator(controllerComponents))
   private val subscriptionsConnector = mock[SubscriptionsConnector]
   private val subscription = mock[SubscriptionDisplayResponse]
   private val userAnswers = mock[UserAnswers]
+  private val userAnswersService = mock[UserAnswersService]
   
-  val sut = new AvailableCreditDateRangesController(service, authenticator, sessionRepository, controllerComponents,
+  val sut = new AvailableCreditDateRangesController(service, authenticator, userAnswersService, controllerComponents,
     subscriptionsConnector)(ExecutionContext.global)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(service, sessionRepository, authenticator, subscriptionsConnector, subscription, userAnswers)
+    reset(service, userAnswersService, authenticator, subscriptionsConnector, subscription, userAnswers)
     
     when(subscription.taxStartDate()) thenReturn LocalDate.of(2001, 2, 3)
     when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
-
     when(userAnswers.getOrFail(any[Gettable[LocalDate]]) (any, any)) thenReturn LocalDate.of(2004, 5, 6)
-    when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
     
     when(service.calculate(any, any)) thenReturn Seq(
       CreditRangeOption(LocalDate.of(2007, 8, 9), LocalDate.of(2008, 11, 12)), 
@@ -78,12 +76,14 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     }
     
     "fetch user answers and subscription" in {
+      when(userAnswersService.get(any)).thenReturn(Future.successful(Right(userAnswers)))
       Try(await(sut.get("ppt-ref") (FakeRequest())))
-      verify(sessionRepository).get(FakeAuthenticator.cacheKey)
+      verify(userAnswersService).get(FakeAuthenticator.cacheKey)
       verify(subscriptionsConnector).getSubscriptionFuture(eqTo("ppt-ref"))(any)
     }
     
     "calculate available dates using return's obligation and the subscription's tax start date" in {
+      when(userAnswersService.get(any)).thenReturn(Future.successful(Right(userAnswers)))
       val result = await(sut.get("ppt-ref")(FakeRequest()))
       verify(subscription).taxStartDate()
       verify(userAnswers).getOrFail(ReturnObligationToDateGettable)
@@ -99,8 +99,8 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     }
     
     "return 200 and list of dates" in {
-      when(sessionRepository.get(FakeAuthenticator.cacheKey))
-        .thenReturn(Future.successful(Some(UserAnswers("id")
+      when(userAnswersService.get(FakeAuthenticator.cacheKey))
+        .thenReturn(Future.successful(Right(UserAnswers("id")
           .setOrFail(ReturnObligationToDateGettable.path, LocalDate.of(1996, 3, 27)))))
       when(service.calculate(any, any)).thenReturn(
         Seq(
@@ -122,20 +122,21 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     "error" when {
 
       "user answers is missing" in {
-        when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(None))
+        when(userAnswersService.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Left(UnprocessableEntity(notFoundMsg))))
 
-        val ex = intercept[UserAnswersNotFoundException](await(sut.get("pptRef")(FakeRequest())))
-        ex.getMessage mustBe UserAnswersErrors.notFound
+        val result = await(sut.get("pptRef")(FakeRequest()))
+        result mustBe UnprocessableEntity(notFoundMsg)
       }
 
       "user answers is missing the return toDate" in {
-        when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(UserAnswers("blah"))))
+        when(userAnswersService.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Right(UserAnswers("123"))))
 
         val ex = intercept[IllegalStateException](await(sut.get("pptRef")(FakeRequest())))
         ex.getMessage mustBe s"${ReturnObligationToDateGettable.path} is missing from user answers"
       }
       
       "subscription api call failed with exception" in {
+        when(userAnswersService.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Right(userAnswers)))
         when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(new IllegalStateException("boom"))
         the [IllegalStateException] thrownBy await(sut.get("pptRef")(FakeRequest())) must 
           have message "boom"
