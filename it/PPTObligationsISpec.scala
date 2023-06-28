@@ -44,7 +44,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   def jsObject(t: (String, JsValue)*): JsObject = JsObject(t)
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  implicit lazy val server: WiremockItServer = WiremockItServer()
+  implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private lazy val sessionRepository = mock[SessionRepository]
 
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
@@ -68,10 +68,10 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   )
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(sessionRepository)
@@ -83,17 +83,17 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    server.reset()
+    wireMock.reset()
   }
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    server.start()
+    wireMock.start()
   }
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    server.stop()
+    wireMock.stop()
   }
 
   "GET /obligations/open/:pptReference" must {
@@ -162,10 +162,31 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
     "should return 500" in {
       withAuthorizedUser()
-      server.stubFor(get(anyUrl()).willReturn(serverError()))
+      wireMock.stubFor(get(anyUrl()).willReturn(serverError()))
 
       val response = await(wsClient.url(pptOpenUrl).get())
       response.status mustBe INTERNAL_SERVER_ERROR
+    }
+    
+    "retry 3 times if api call fails" in {
+      withAuthorizedUser()
+      wireMock.stubFor(get(anyUrl()).willReturn(serverError()))
+      await(wsClient.url(pptOpenUrl).get())
+      wireMock.verify(3, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
+    }
+    
+    "not retry if api call is a 200" in {
+      withAuthorizedUser()
+      stubWillReturn(noObligations)
+      await(wsClient.url(pptOpenUrl).get())
+      wireMock.verify(1, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
+    }
+    
+    "not retry if api call is a magic 404" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+      await(wsClient.url(pptOpenUrl).get())
+      wireMock.verify(1, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
     }
   }
 
@@ -178,7 +199,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
       val today       = LocalDate.now()
       val expectedUrl = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=2022-04-01&to=$today&status=F"
-      server.wireMockServer.verify(getRequestedFor(urlEqualTo(expectedUrl)))
+      wireMock.wireMockServer.verify(getRequestedFor(urlEqualTo(expectedUrl)))
     }
 
     "return 200 with no obligations" in {
@@ -231,7 +252,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
     "should return 500" in {
       withAuthorizedUser()
-      server.stubFor(get(anyUrl()).willReturn(serverError()))
+      wireMock.stubFor(get(anyUrl()).willReturn(serverError()))
 
       val response = await(wsClient.url(pptFulfilledUrl).get())
 
@@ -240,7 +261,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   }
 
   private def stubNotFound(body: String): Any =
-    server.stubFor(
+    wireMock.stubFor(
       get(anyUrl()).willReturn(notFound().withBody(body))
     )
 
@@ -249,7 +270,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
     implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
     val jsonString                                   = Json.toJson(response)(writes).toString()
-    server.stubFor(get(anyUrl()).willReturn(ok().withBody(jsonString)))
+    wireMock.stubFor(get(anyUrl()).willReturn(ok().withBody(jsonString)))
   }
 
 }

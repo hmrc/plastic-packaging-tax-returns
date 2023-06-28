@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
+import play.api.Logging
 import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
@@ -83,11 +84,10 @@ class EisHttpClient @Inject() (
   edgeOfSystem: EdgeOfSystem,
   metrics: Metrics,
   futures: Futures
-) (implicit executionContext: ExecutionContext) {
+) (implicit executionContext: ExecutionContext) extends Logging {
 
   private val EnvironmentHeaderName = "Environment"
   private val CorrelationIdHeaderName = "CorrelationId"
-
 
   type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
@@ -121,7 +121,6 @@ class EisHttpClient @Inject() (
     val timer = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
 
-
     val getFunction = () =>
       hmrcClient.GET(url, queryParams, buildDesHeaders(correlationId)).map {
         EisHttpResponse.fromHttpResponse(correlationId)
@@ -136,9 +135,11 @@ class EisHttpClient @Inject() (
       .flatMap {
         case response if successFun(response) => Future.successful(response)
         case response if times == 1 => Future.successful(response)
-        case _ => futures
-          .delay(retryDelayInMillisecond milliseconds)
-          .flatMap { _ => retry(times - 1, function, successFun) }
+        case response =>
+          logger.warn(s"PPT_RETRY retrying api call: status ${response.status} correlation-id ${response.correlationId}")
+          futures
+            .delay(retryDelayInMillisecond milliseconds)
+            .flatMap { _ => retry(times - 1, function, successFun) }
       }
 
   private def buildHeaders(correlationId: String): Seq[(String, String)] = {
