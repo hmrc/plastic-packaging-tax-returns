@@ -136,7 +136,10 @@ class FinancialDataConnector @Inject() (
           .findFirstMatchIn(httpEx.getMessage())
       }
       .map(_.group(1))
-      .flatMap(body => (Json.parse(body) \ "code").asOpt[String]) // try get code field
+      .flatMap(body => {
+        println(s"1) $body")
+        (Json.parse(body) \ "code").asOpt[String] // try get code field
+      })
       .filter(_ == "NOT_FOUND") // if DES code is this -> means no financial records found 
       .map(_ => FinancialDataResponse.inferNoTransactions(pptReference, edgeOfSystem.localDateTimeNow))
   }
