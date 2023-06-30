@@ -24,7 +24,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{CorrelationIdHeaderName, retryAttempts, retryDelayInMillisecond}
 
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
@@ -87,7 +87,6 @@ class EisHttpClient @Inject() (
 ) (implicit executionContext: ExecutionContext) extends Logging {
 
   private val EnvironmentHeaderName = "Environment"
-  private val CorrelationIdHeaderName = "CorrelationId"
 
   type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
@@ -165,4 +164,5 @@ class EisHttpClient @Inject() (
 object EisHttpClient {
   val retryDelayInMillisecond = 1000
   val retryAttempts = 3
+  val CorrelationIdHeaderName = "CorrelationId"
 }

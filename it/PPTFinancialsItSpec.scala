@@ -15,15 +15,15 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, notFound, ok}
-import org.mockito.Mockito.reset
+import com.github.tomakehurst.wiremock.client.WireMock._
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset}
 import org.mockito.MockitoSugar.when
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.http.Status
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND, OK, UNAUTHORIZED}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
@@ -51,7 +51,7 @@ class PPTFinancialsItSpec extends PlaySpec
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository = mock[SessionRepository]
-  private lazy val edgeOfSystem = mock[EdgeOfSystem]
+  private lazy val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
   private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "reason"}"""
 
   val dateFrom = LocalDate.of(2022, 4, 1)
@@ -76,10 +76,12 @@ class PPTFinancialsItSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector, edgeOfSystem)
+    server.reset()
 
     val localDateTime = LocalDateTime.of(2022, 5, 1, 0, 0)
     when(edgeOfSystem.localDateTimeNow).thenReturn(localDateTime)
     when(edgeOfSystem.today).thenReturn(localDateTime.toLocalDate)
+    when(edgeOfSystem.createUuid.toString).thenReturn("123")
   }
 
   override protected def beforeAll(): Unit = {
@@ -158,6 +160,31 @@ class PPTFinancialsItSpec extends PlaySpec
 
       response.status mustBe INTERNAL_SERVER_ERROR
     }
+    
+     "retry 3 times if api call fails" in {
+      withAuthorizedUser()
+      server.stubFor(get(DESUrl).willReturn(serverError()))
+
+      await(wsClient.url(Url).get())
+      server.verify(3, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
+    "not retry if api call is a 200" in {
+      withAuthorizedUser()
+      stubFinancialResponse(FinancialTransactionHelper.createFinancialResponseWithAmount())
+
+      await(wsClient.url(Url).get())
+      server.verify(1, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
+    "not retry if api call is a magic 404" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+
+      await(wsClient.url(Url).get())
+      server.verify(1, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
   }
 
   "isDdInProgress" should {
