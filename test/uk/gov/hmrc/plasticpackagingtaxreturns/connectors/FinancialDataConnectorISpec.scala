@@ -149,21 +149,6 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     }
   }
 
-  private def captureAndVerifyAuditConnector(): Unit = {
-    val captor = ArgCaptor[GetPaymentStatement]
-
-    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
-      eqTo(GetPaymentStatement.eventType),
-      captor
-    )(any, any, any)
-
-    val audit = captor.value
-    audit.internalId mustBe internalId
-    audit.pptReference mustBe pptReference
-    audit.result mustBe "Failure"
-    audit.response mustBe None
-  }
-
   private def getFinancialData =
     sut.get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)
 
@@ -220,6 +205,21 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
   private def getExpectedAuditModelForFailure(message: String) =
     GetPaymentStatement(internalId, pptReference, "Failure", None, Some(message))
+
+  private def captureAndVerifyAuditConnector(): Unit = {
+    val captor = ArgCaptor[GetPaymentStatement]
+
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
+      eqTo(GetPaymentStatement.eventType),
+      captor
+    )(any, any, any)
+
+    val audit = captor.value
+    audit.internalId mustBe internalId
+    audit.pptReference mustBe pptReference
+    audit.result mustBe "Failure"
+    audit.response mustBe None
+  }
 
 
 }
