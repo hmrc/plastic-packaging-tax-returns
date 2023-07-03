@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
+import play.api.http.Status.NOT_FOUND
 import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
@@ -53,6 +54,14 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
   def jsonAs[T](implicit reads: Reads[T], tt: TypeTag[T]): Try[T] = 
     Try(Json.parse(body).as[T]).recover {
       case exception => throw new RuntimeException(s"Response body could not be read as type ${typeOf[T]}", exception)
+  }
+
+  /** Detect is this is a HTTP 404 or a case of empty data
+   *
+   * @return [[true]] if data is empty, otherwise [[false]] if is an HTTP 404
+   */
+  def isMagic404: Boolean = {
+    status == NOT_FOUND && Json.parse(body) \ "code" == JsDefined(JsString("NOT_FOUND"))
   }
 }
 

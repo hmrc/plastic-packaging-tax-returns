@@ -19,9 +19,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import play.api.Logger
 import play.api.http.Status
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import play.api.libs.json.{JsDefined, JsString, Json}
-import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
+import play.api.libs.json.{JsDefined, JsString}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
@@ -84,14 +83,10 @@ class FinancialDataConnector @Inject()(
 
         response.status match {
           case Status.OK => handleSuccess(response, internalId, pptReference)
-          case Status.NOT_FOUND if isMagic404(response) => handleMagic404(internalId, pptReference)
+          case Status.NOT_FOUND if response.isMagic404 => handleMagic404(internalId, pptReference)
           case _ => handleErrorResponse(response, pptReference, internalId, queryParams)
         }
       }
-  }
-
-  private def isMagic404(response: EisHttpResponse) = {
-    response.json \ "code" == JsDefined(JsString("NOT_FOUND"))
   }
 
   private def handleSuccess

@@ -22,6 +22,7 @@ import com.kenshoo.play.metrics.Metrics
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.MockitoSugar.{mock, reset, verify, when}
+import org.mockito.captor.ArgCaptor
 import org.mockito.{Answers, ArgumentCaptor}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
@@ -29,13 +30,12 @@ import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
-import play.api.test.Helpers.{SERVICE_UNAVAILABLE, await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpResponse, UpstreamErrorResponse}
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EnterpriseTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -143,13 +143,14 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
           res mustBe Left(INTERNAL_SERVER_ERROR)
 
-          val captor: ArgumentCaptor[GetPaymentStatement] = ArgumentCaptor.forClass(classOf[GetPaymentStatement])
-          verify(auditConnector).sendExplicitAudit(
+          val captor = ArgCaptor[GetPaymentStatement]
+
+          verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
             eqTo(GetPaymentStatement.eventType),
-            captor.capture()
+            captor
           )(any, any, any)
 
-          val audit = captor.getValue
+          val audit = captor.value
           audit.error.get must not be null
           audit.copy(error = Some("")) mustBe getExpectedAuditModelForFailure("")
         }
@@ -213,22 +214,6 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
   private def getExpectedAuditModelForFailure(message: String) =
     GetPaymentStatement(internalId, pptReference, "Failure", None, Some(message))
-
-  private def createUpstreamMessage =
-    upstreamResponseMessage(
-      "GET",
-      "/url",
-      NOT_FOUND,
-      Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire").toString
-    )
-
-  private def createUpstreamMessageError(status: Int) =
-    upstreamResponseMessage(
-      "GET",
-      "/url",
-      status,
-      Json.obj("failures" -> Seq(EISError("Error Code", "Error Reason"))).toString
-    )
 
 
 }

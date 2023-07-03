@@ -73,7 +73,7 @@ class ObligationsDataConnector @Inject()
     ).map { response =>
         response.status match {
           case Status.OK => handleSuccess(pptReference, internalId, obligationStatus, queryParams, response)
-          case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND"))=>
+          case Status.NOT_FOUND if response.isMagic404 =>
             val msg =  s"""Success on retrieving enterprise obligation data correlationId [${response.correlationId}] and """ +
             s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: ${ObligationDataResponse.empty}"
 
