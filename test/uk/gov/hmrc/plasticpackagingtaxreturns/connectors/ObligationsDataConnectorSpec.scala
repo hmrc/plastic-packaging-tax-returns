@@ -48,7 +48,6 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
   private val metrics = mock[Metrics](RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
   private val testLogger = new Logger(mock[Slf4jLogger])
-  private val uuidGenerator = mock[UUIDGenerator]
   private val httpResponse = mock[HttpResponse]
 
   val emptyResponse = Json.parse(
@@ -121,7 +120,6 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
 
     when(testLogger.logger.isInfoEnabled) thenReturn true
     when(testLogger.logger.isErrorEnabled) thenReturn true
-    when(uuidGenerator.randomUUID) thenReturn "123"
     when(appConfig.eisEnvironment).thenReturn("eis")
     when(appConfig.desBearerToken).thenReturn("desBearerToken")
   }

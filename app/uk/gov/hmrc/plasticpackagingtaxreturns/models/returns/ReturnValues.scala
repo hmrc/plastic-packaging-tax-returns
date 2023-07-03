@@ -18,12 +18,11 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.JsPath
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, ReturnType}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxablePlastic, UserAnswers}
 
 import java.time.LocalDate
 

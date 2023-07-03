@@ -23,7 +23,6 @@ import play.api.libs.json.{JsDefined, JsString}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector.EmptyDataMessage
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
@@ -133,11 +132,5 @@ class ObligationsDataConnector @Inject()
     Left(response.status)
   }
 
-
-  def isEmptyObligation(message: String): Boolean =
-    message.contains(EmptyDataMessage)
 }
 
-object ObligationsDataConnector {
-  val EmptyDataMessage = "The remote endpoint has indicated that no associated data found"
-}

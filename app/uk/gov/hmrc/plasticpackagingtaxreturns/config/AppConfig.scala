@@ -20,7 +20,6 @@ import play.api.Configuration
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
@@ -71,9 +70,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val nrsRetries: Seq[FiniteDuration] = config.get[Seq[FiniteDuration]]("nrs.retries")
 
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
-
-  //todo: can we delete this? It seems this is not used any where in the source code
-  val taxRegimeStartDate: LocalDate = LocalDate.of(2022, 4, 1)
 
   // TODO change config setting name? (Might be more agro than worth it)
   // Used in QA testing to allow open returns that aren't yet due to be filed anyway

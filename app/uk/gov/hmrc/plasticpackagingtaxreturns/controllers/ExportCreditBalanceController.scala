@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository

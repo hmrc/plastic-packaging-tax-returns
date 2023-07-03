@@ -24,7 +24,7 @@ case class SubscriptionUpdateSuccessfulResponse(
   pptReferenceNumber: String,
   processingDate: ZonedDateTime,
   formBundleNumber: String
-) extends SubscriptionUpdateResponse
+)
 
 object SubscriptionUpdateSuccessfulResponse {
 
