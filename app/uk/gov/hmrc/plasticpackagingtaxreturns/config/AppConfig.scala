@@ -71,13 +71,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
 
-  // TODO change config setting name? (Might be more agro than worth it)
-  // Used in QA testing to allow open returns that aren't yet due to be filed anyway
-  val qaTestingInProgress: Boolean = {
-    config.getOptional[Boolean]("features.suppress-obligation-date-check")
-      .getOrElse(false)
-  }
-
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
   /** Override the current system data-time, for coding and testing, or set to false to use system date-time. The

@@ -43,12 +43,11 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
   private val mockPPTObligationsService = mock[PPTObligationsService]
   private val mockObligationDataConnector = mock[ObligationsDataConnector]
-  private val appConfig = mock[AppConfig]
   private val edgeOfSystem = mock[EdgeOfSystem]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig, mockPPTObligationsService, mockObligationDataConnector)
+    reset(mockPPTObligationsService, mockObligationDataConnector)
     
     when(edgeOfSystem.today) thenReturn LocalDate.now() // test uses actual clock
   }
@@ -56,7 +55,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, 
-    mockPPTObligationsService, appConfig, edgeOfSystem)
+    mockPPTObligationsService, edgeOfSystem)
 
   "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
@@ -158,43 +157,6 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
         exactlyEq(Some(ObligationStatus.FULFILLED))
       )(any())
       contentAsJson(result) mustBe Json.toJson(Seq.empty[ObligationDetail])
-    }
-
-    "get future period fulfilled obligation if flag set" in {
-      when(appConfig.qaTestingInProgress).thenReturn(true)
-      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
-      when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(desResponse)))
-
-      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
-
-      status(result) mustBe OK
-      verify(mockPPTObligationsService).constructPPTFulfilled(desResponse)
-      verify(mockObligationDataConnector).get(
-        exactlyEq(pptReference),
-        any(),
-        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
-        exactlyEq(Some(LocalDate.now.plusYears(1))),
-        exactlyEq(Some(ObligationStatus.FULFILLED))
-      )(any())
-    }
-
-    "not get future period fulfilled obligation if flag not set" in {
-      when(appConfig.qaTestingInProgress).thenReturn(false)
-      when(mockPPTObligationsService.constructPPTFulfilled(any())).thenReturn(serviceResponse)
-      when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
-        .thenReturn(Future.successful(Right(desResponse))).thenReturn(Future.successful(Right(desResponse)))
-
-      val result: Future[Result] = sut.getFulfilled(pptReference).apply(FakeRequest())
-      await(result)
-
-      verify(mockObligationDataConnector).get(
-        exactlyEq(pptReference),
-        any(),
-        exactlyEq(Some(LocalDate.of(2022, 4, 1))),
-        exactlyEq(Some(LocalDate.now)),
-        exactlyEq(Some(ObligationStatus.FULFILLED))
-      )(any())
     }
 
     "call Obligation Connector" in {
