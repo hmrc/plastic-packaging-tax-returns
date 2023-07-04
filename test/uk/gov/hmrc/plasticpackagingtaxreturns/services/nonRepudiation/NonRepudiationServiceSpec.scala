@@ -113,7 +113,7 @@ class NonRepudiationServiceSpec
       await(res) mustBe NonRepudiationSubmissionAccepted("testSubmissionId")
 
       val testEncodedPayload = Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
-      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = NotableEvent.PptReturn.id,
+      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = "ppt-return",
         "application/json", testPayloadChecksum, testDateTimeString, testNonRepudiationIdentityData, testAuthToken, 
         testUserHeaders, searchKeys = Map("pptReference" -> testPPTReference)
       )
