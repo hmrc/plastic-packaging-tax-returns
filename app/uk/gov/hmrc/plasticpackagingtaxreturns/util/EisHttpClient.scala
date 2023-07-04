@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
+import play.api.http.Status
 import play.api.http.Status.NOT_FOUND
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
@@ -152,14 +153,9 @@ class EisHttpClient @Inject() (
   def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun): Future[EisHttpResponse] =
     function()
       .flatMap {
-        case response if successFun(response) =>
-          println(s"1)")
-          Future.successful(response)
-        case response if times == 1 =>
-          println("2)")
-          Future.successful(response)
+        case response if successFun(response) => Future.successful(response)
+        case response if times == 1 => Future.successful(response)
         case response =>
-          println("3)")
           logger.warn(s"PPT_RETRY retrying api call: status ${response.status} correlation-id ${response.correlationId}")
           futures
             .delay(retryDelayInMillisecond milliseconds)
