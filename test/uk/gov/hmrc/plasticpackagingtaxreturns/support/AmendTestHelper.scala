@@ -43,7 +43,8 @@ object AmendTestHelper {
        |        "amend": {
        |           "obligation" : {
        |              "periodKey" : "21C4",
-       |              "toDate" : "2022-06-30"
+       |              "toDate" : "2022-06-30",
+       |              "dueDate" : "2023-01-28"
        |           },
        |           "amendManufacturedPlasticPackaging" : 100,
        |           "amendImportedPlasticPackaging" : 1,
@@ -76,7 +77,8 @@ object AmendTestHelper {
        |        "amend": {
        |           "obligation" : {
        |              "periodKey" : "22C2",
-       |              "toDate" : "2022-06-30"
+       |              "toDate" : "2022-06-30",
+       |              "dueDate" : "2023-01-28"
        |           },
        |           "amendManufacturedPlasticPackaging" : 100,
        |           "amendImportedPlasticPackaging" : 0,
@@ -109,7 +111,8 @@ object AmendTestHelper {
        |        "amend": {
        |           "obligation" : {
        |              "periodKey" : "22C2",
-       |              "toDate" : "2022-06-30"
+       |              "toDate" : "2022-06-30",
+       |              "dueDate" : "2023-01-28"
        |           }
        |        }
        | }""".stripMargin).asInstanceOf[JsObject]
