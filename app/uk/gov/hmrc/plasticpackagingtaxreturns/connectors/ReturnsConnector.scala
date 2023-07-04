@@ -126,34 +126,11 @@ class ReturnsConnector @Inject()
                   GetReturn(internalId, periodKey, FAILURE, None, Some(exception.getMessage)))
                 Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
             }
-          case _ => {
+          case _ =>
             auditConnector.sendExplicitAudit(GetReturn.eventType,
               GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
             Left(response.status)
-          }
         }
-//        if (response.status == OK) { // TODO use Status.isSuccessful(x) ?
-//
-//          Try(response.json).toEither.fold({
-//            throwable =>
-//              // Note - if response payload was not json, exception from json lib usually includes the payload too
-//              auditConnector.sendExplicitAudit(GetReturn.eventType,
-//                GetReturn(internalId, periodKey, FAILURE, None, Some(throwable.getMessage)))
-//              Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
-//          }, {
-//            jsValue =>
-//              auditConnector.sendExplicitAudit(GetReturn.eventType,
-//                GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None))
-//              Right(jsValue)
-//          })
-//
-//        } else {
-//
-//          // TODO currently we just parrot down-stream for non 2xx
-//          auditConnector.sendExplicitAudit(GetReturn.eventType,
-//            GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
-//          Left(response.status)
-//        }
       }
   }
 

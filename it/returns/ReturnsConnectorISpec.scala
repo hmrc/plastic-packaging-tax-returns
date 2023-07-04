@@ -96,9 +96,6 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         res.left.get mustBe Status.INTERNAL_SERVER_ERROR
 
-//        eventually(timeout(Span(5, Seconds))) {
-//          eventSendToAudit(auditUrl, auditModel) mustBe true
-//        }
         verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
 
       }
