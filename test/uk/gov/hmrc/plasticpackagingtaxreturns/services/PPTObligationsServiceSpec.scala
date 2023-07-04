@@ -33,9 +33,8 @@ class PPTObligationsServiceSpec extends PlaySpec
   private val dueObligation: ObligationDetail = makeDetail(today.minusDays(11), "due")
   private val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
   private val laterObligation: ObligationDetail = makeDetail(today.plusDays(10), "later")
-  private val appConfig = mock[AppConfig]
   private val edgeOfSystem = mock[EdgeOfSystem]
-  private val sut = new PPTObligationsService(appConfig)(edgeOfSystem)
+  private val sut = new PPTObligationsService()(edgeOfSystem)
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
@@ -58,7 +57,7 @@ class PPTObligationsServiceSpec extends PlaySpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig, edgeOfSystem)
+    reset(edgeOfSystem)
 
     when(edgeOfSystem.localDateTimeNow) thenReturn LocalDateTime.now()
     when(edgeOfSystem.today) thenReturn LocalDate.now()
@@ -250,16 +249,8 @@ class PPTObligationsServiceSpec extends PlaySpec
 
         "there is an obligation but it is not yet due" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
-          when(appConfig.qaTestingInProgress).thenReturn(false)
-          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
-          verify(appConfig).qaTestingInProgress
-        }
 
-        "there is an obligation, it is not yet due, but the bypass flag is set in app conf" in {
-          val obligationDataResponse = makeDataResponse(upcomingObligation)
-          when(appConfig.qaTestingInProgress).thenReturn(true)
-          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
-          verify(appConfig).qaTestingInProgress
+          sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe false
         }
 
         "there is 0 overdue and 1 within due period" in {

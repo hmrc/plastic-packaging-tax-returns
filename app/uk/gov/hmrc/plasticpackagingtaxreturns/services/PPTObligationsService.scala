@@ -25,7 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import java.time.LocalDate
 import javax.inject.Inject
 
-class PPTObligationsService @Inject() (appConfig: AppConfig) (implicit edgeOfSystem: EdgeOfSystem) extends Logging {
+class PPTObligationsService @Inject()(implicit edgeOfSystem: EdgeOfSystem) extends Logging {
 
   def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
     data.obligations match {
@@ -50,10 +50,7 @@ class PPTObligationsService @Inject() (appConfig: AppConfig) (implicit edgeOfSys
     val overdueObligations: Seq[ObligationDetail] =
       obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(_.inboundCorrespondenceDueDate)
 
-    val isNextObligationDue: Boolean = {
-      appConfig.qaTestingInProgress ||
-      nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
-    }
+    val isNextObligationDue: Boolean = nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 

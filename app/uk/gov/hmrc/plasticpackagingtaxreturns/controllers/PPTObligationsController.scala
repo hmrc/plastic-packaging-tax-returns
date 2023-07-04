@@ -37,7 +37,6 @@ class PPTObligationsController @Inject() (
   authenticator: Authenticator,
   obligationsDataConnector: ObligationsDataConnector,
   obligationsService: PPTObligationsService,
-  appConfig: AppConfig,
   edgeOfSystem: EdgeOfSystem
 )(implicit val executionContext: ExecutionContext)
     extends BackendController(cc) with Logging {
@@ -61,22 +60,12 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference, request.internalId, pptStartDate, Some(fulfilledToDate), Some(ObligationStatus.FULFILLED)).map {
+        obligationsDataConnector.get(pptReference, request.internalId, pptStartDate, Some(edgeOfSystem.today), Some(ObligationStatus.FULFILLED)).map {
           case Left(404)                     => NotFound("{}")
           case Left(_)                       => internalServerError
           case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)
         }
     }
-
-  private def fulfilledToDate: LocalDate = {
-    // todo see what this is about and still needed
-    // If feature flag used by E2E test threads is set, then include test obligations that are in the future
-    val today = edgeOfSystem.today
-    if (appConfig.qaTestingInProgress)
-      today.plusYears(1)
-    else
-      today
-  }
 
   def createFulfilledResponse(obligationDataResponse: ObligationDataResponse): Result =
     obligationsService.constructPPTFulfilled(obligationDataResponse) match {
