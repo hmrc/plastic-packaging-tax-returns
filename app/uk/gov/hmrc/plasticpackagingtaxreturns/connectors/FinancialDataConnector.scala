@@ -16,29 +16,25 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
 import play.api.http.Status
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import play.api.libs.json.Json
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import play.api.libs.json.{JsDefined, JsString}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, EisHttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
-import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
-class FinancialDataConnector @Inject() (
-  httpClient: HttpClient, 
+class FinancialDataConnector @Inject()(
+  eisHttpClient: EisHttpClient,
   override val appConfig: AppConfig,
-  metrics: Metrics, 
   auditConnector: AuditConnector,
   edgeOfSystem: EdgeOfSystem
 ) (
@@ -46,6 +42,9 @@ class FinancialDataConnector @Inject() (
 ) extends DESConnector {
 
   private val logger = Logger(this.getClass)
+  private val SUCCESS: String     = "Success"
+  private val FAILURE: String     = "Failure"
+
 
   def get(
     pptReference: String,
@@ -57,10 +56,8 @@ class FinancialDataConnector @Inject() (
     customerPaymentInformation: Option[Boolean],
     internalId: String
   )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
-    val timer               = metrics.defaultRegistry.timer("ppt.get.financial.data.timer").time()
-    val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
-    val SUCCESS: String     = "Success"
-    val FAILURE: String     = "Failure"
+    val timerName           = "ppt.get.financial.data.timer"
+
 
     val queryParams: Seq[(String, String)] = QueryParams.fromOptions(
       "dateFrom" -> fromDate.map(DateFormat.isoFormat),
@@ -71,74 +68,84 @@ class FinancialDataConnector @Inject() (
       "customerPaymentInformation" -> customerPaymentInformation
     )
 
-    val requestHeaders: Seq[(String, String)] = headers :+ correlationIdHeader
-
-    httpClient.GET[FinancialDataResponse](appConfig.enterpriseFinancialDataUrl(pptReference),
-                                          queryParams = queryParams,
-                                          headers = requestHeaders
+    def successFun(response: EisHttpResponse): Boolean = response.status match {
+      case Status.OK => true
+      case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND")) => true
+      case _ => false
+    }
+    eisHttpClient.get(
+      appConfig.enterpriseFinancialDataUrl(pptReference),
+      queryParams = queryParams,
+      timerName,
+      successFun
     )
-      .andThen { case _ => timer.stop() }
-      .map { response =>
-        logger.info(
-          s"Get enterprise financial data with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
-        )
+      .map { response: EisHttpResponse =>
 
-        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-          GetPaymentStatement(internalId, pptReference, SUCCESS, Some(response), None))
-
-        Right(response)
-
-      }
-      .recover {
-        case httpEx: UpstreamErrorResponse =>
-          inferResponse(httpEx, pptReference).fold[Either[Int, FinancialDataResponse]]({
-            logger.warn(
-              s"Upstream error returned when getting enterprise financial data correlationId [${correlationIdHeader._2}] and " +
-                s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
-            )
-
-            auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-              GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(httpEx.getMessage)))
-
-            Left(httpEx.statusCode)
-
-          })({
-            inferredResponse => {
-
-              auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-                GetPaymentStatement(internalId, pptReference, SUCCESS, Some(inferredResponse), None))
-
-              Right(inferredResponse)
-
-            }
-
-          })
-        case ex: Exception =>
-          logger.warn(
-            s"Failed when getting enterprise financial data with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
-            ex
-          )
-
-          auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-            GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(ex.getMessage)))
-
-          Left(INTERNAL_SERVER_ERROR)
-
+        response.status match {
+          case Status.OK => handleSuccess(response, internalId, pptReference)
+          case Status.NOT_FOUND if response.isMagic404 => handleMagic404(internalId, pptReference)
+          case _ => handleErrorResponse(response, pptReference, internalId, queryParams)
+        }
       }
   }
 
-  def inferResponse(httpEx: UpstreamErrorResponse, pptReference: String): Option[FinancialDataResponse] = {
-    Some(httpEx.statusCode)
-      .filter(_ == Status.NOT_FOUND) // only 404s
-      .flatMap { _ =>
-        upstreamResponseMessage(".*", ".*", 404, "(.*)").r // extract json payload for exception message
-          .findFirstMatchIn(httpEx.getMessage())
-      }
-      .map(_.group(1))
-      .flatMap(body => (Json.parse(body) \ "code").asOpt[String]) // try get code field
-      .filter(_ == "NOT_FOUND") // if DES code is this -> means no financial records found 
-      .map(_ => FinancialDataResponse.inferNoTransactions(pptReference, edgeOfSystem.localDateTimeNow))
+  private def handleSuccess
+  (
+    response: EisHttpResponse,
+    internalId: String,
+    pptReference: String
+  )(implicit hc: HeaderCarrier) = {
+    val triedResponse = response.jsonAs[FinancialDataResponse]
+
+    triedResponse match {
+      case Success(financialData) =>
+        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+          GetPaymentStatement(internalId, pptReference, SUCCESS, Some(financialData), None))
+
+        Right(financialData)
+      case Failure(error) =>
+        //Todo pass the full exception instead of the message
+        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+          GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error.getMessage)))
+
+        Left(INTERNAL_SERVER_ERROR)
+    }
+
+  }
+
+  def handleMagic404
+  (
+    internalId: String,
+    pptReference: String
+  )(implicit hc: HeaderCarrier) = {
+    val inferredResponse = FinancialDataResponse.inferNoTransactions(
+      pptReference,
+      edgeOfSystem.localDateTimeNow
+    )
+
+    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+      GetPaymentStatement(internalId, pptReference, SUCCESS, Some(inferredResponse), None))
+
+    Right(inferredResponse)
+  }
+
+  private def handleErrorResponse
+  (
+    response: EisHttpResponse,
+    pptReference: String,
+    internalId: String,
+    queryParams: Seq[(String, String)]
+  )(implicit hc: HeaderCarrier) = {
+
+    val message = s"Upstream error returned when getting enterprise financial data with correlationId [${response.correlationId}] and " +
+      s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
+
+    logger.warn(message)
+
+    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
+      GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(response.body)))
+
+    Left(response.status)
   }
 }
     

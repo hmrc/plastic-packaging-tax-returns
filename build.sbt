@@ -1,7 +1,6 @@
 import play.sbt.routes.RoutesKeys
 import sbt.IntegrationTest
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "plastic-packaging-tax-returns"
 
@@ -25,7 +24,6 @@ lazy val microservice = Project(appName, file("."))
               "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
             )
   )
-  .settings(publishingSettings: _*)
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")
   .settings(RoutesKeys.routesImport += "uk.gov.hmrc.plasticpackagingtaxreturns.controllers.query.QueryStringParams._")
   .configs(IntegrationTest)

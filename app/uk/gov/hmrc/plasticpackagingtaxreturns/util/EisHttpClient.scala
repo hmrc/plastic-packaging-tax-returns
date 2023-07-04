@@ -18,13 +18,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
+import play.api.http.Status.NOT_FOUND
 import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{CorrelationIdHeaderName, retryAttempts, retryDelayInMillisecond}
 
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
@@ -53,6 +54,14 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
   def jsonAs[T](implicit reads: Reads[T], tt: TypeTag[T]): Try[T] = 
     Try(Json.parse(body).as[T]).recover {
       case exception => throw new RuntimeException(s"Response body could not be read as type ${typeOf[T]}", exception)
+  }
+
+  /** Detect is this is a HTTP 404 or a case of empty data
+   *
+   * @return [[true]] if data is empty, otherwise [[false]] if is an HTTP 404
+   */
+  def isMagic404: Boolean = {
+    status == NOT_FOUND && Json.parse(body) \ "code" == JsDefined(JsString("NOT_FOUND"))
   }
 }
 
@@ -87,7 +96,6 @@ class EisHttpClient @Inject() (
 ) (implicit executionContext: ExecutionContext) extends Logging {
 
   private val EnvironmentHeaderName = "Environment"
-  private val CorrelationIdHeaderName = "CorrelationId"
 
   type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
@@ -165,4 +173,5 @@ class EisHttpClient @Inject() (
 object EisHttpClient {
   val retryDelayInMillisecond = 1000
   val retryAttempts = 3
+  val CorrelationIdHeaderName = "CorrelationId"
 }

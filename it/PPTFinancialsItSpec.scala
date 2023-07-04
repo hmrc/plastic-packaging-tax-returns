@@ -15,8 +15,9 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
-import org.mockito.Mockito.reset
+import com.github.tomakehurst.wiremock.client.WireMock._
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset}
+import org.mockito.MockitoSugar.when
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -35,9 +36,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers.FinancialTransactionHelper
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{Charge, DirectDebitDetails, PPTFinancials}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 class PPTFinancialsItSpec extends PlaySpec
   with GuiceOneServerPerSuite
@@ -49,6 +51,8 @@ class PPTFinancialsItSpec extends PlaySpec
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository = mock[SessionRepository]
+  private lazy val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "reason"}"""
 
   val dateFrom = LocalDate.of(2022, 4, 1)
   val DESUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?onlyOpenItems=true" +
@@ -63,14 +67,21 @@ class PPTFinancialsItSpec extends PlaySpec
       .configure(server.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository)
+        bind[SessionRepository].to(sessionRepository),
+        bind[EdgeOfSystem].to(edgeOfSystem)
       )
       .build()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockAuthConnector)
+    reset(mockAuthConnector, edgeOfSystem)
+    server.reset()
+
+    val localDateTime = LocalDateTime.of(2022, 5, 1, 0, 0)
+    when(edgeOfSystem.localDateTimeNow).thenReturn(localDateTime)
+    when(edgeOfSystem.today).thenReturn(localDateTime.toLocalDate)
+    when(edgeOfSystem.createUuid.toString).thenReturn("123")
   }
 
   override protected def beforeAll(): Unit = {
@@ -121,6 +132,59 @@ class PPTFinancialsItSpec extends PlaySpec
 
       response.status mustBe INTERNAL_SERVER_ERROR
     }
+
+    "handle magic 404" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+
+      val response = await(wsClient.url(Url).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(PPTFinancials(None,None,None))
+    }
+
+    "handle normal 404" in {
+      withAuthorizedUser()
+      stubNotFound("""{"code": "Anything", "reason": "reason"}""")
+
+      val response = await(wsClient.url(Url).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
+
+    "handle exception" in {
+      withAuthorizedUser()
+      stubWrongJson
+
+      val response = await(wsClient.url(Url).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
+    
+     "retry 3 times if api call fails" in {
+      withAuthorizedUser()
+      server.stubFor(get(DESUrl).willReturn(serverError()))
+
+      await(wsClient.url(Url).get())
+      server.verify(3, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
+    "not retry if api call is a 200" in {
+      withAuthorizedUser()
+      stubFinancialResponse(FinancialTransactionHelper.createFinancialResponseWithAmount())
+
+      await(wsClient.url(Url).get())
+      server.verify(1, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
+    "not retry if api call is a magic 404" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+
+      await(wsClient.url(Url).get())
+      server.verify(1, getRequestedFor(urlEqualTo(DESUrl)))
+    }
+
   }
 
   "isDdInProgress" should {
@@ -153,6 +217,33 @@ class PPTFinancialsItSpec extends PlaySpec
       response.status mustBe INTERNAL_SERVER_ERROR
     }
 
+    "handle magic 404" in {
+      withAuthorizedUser()
+      stubNotFound(DESnotFoundResponse)
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe OK
+      response.json mustBe Json.toJson(DirectDebitDetails(pptReference, "c22", false))
+    }
+
+    "handle normal 404" in {
+      withAuthorizedUser()
+      stubNotFound("""{"code": "Anything", "reason": "reason"}""")
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
+
+    "handle exception" in {
+      withAuthorizedUser()
+      stubWrongJson
+
+      val response = await(wsClient.url(ddInProgressUrl).get())
+
+      response.status mustBe INTERNAL_SERVER_ERROR
+    }
   }
 
   private def stubFinancialResponse(response: FinancialDataResponse): Unit =
@@ -175,5 +266,19 @@ class PPTFinancialsItSpec extends PlaySpec
             .withStatus(Status.BAD_REQUEST)
         )
     )
+
+  private def stubNotFound(body: String): Unit = {
+    server.stubFor(
+      get(DESUrl)
+        .willReturn(notFound().withBody(body))
+    )
+  }
+
+  private def stubWrongJson: Unit = {
+    server.stubFor(
+      get(DESUrl)
+        .willReturn(ok().withBody("{}"))
+    )
+  }
 }
 

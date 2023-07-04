@@ -16,27 +16,28 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
+import akka.Done
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.{Answers, ArgumentCaptor}
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.MockitoSugar.{mock, reset, verify, when}
+import org.mockito.captor.ArgCaptor
+import org.mockito.{Answers, ArgumentCaptor}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
+import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
-import play.api.test.Helpers.{SERVICE_UNAVAILABLE, await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.HttpReads.upstreamResponseMessage
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, UpstreamErrorResponse}
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.{EISError, EnterpriseTestData}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EnterpriseTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import com.github.tomakehurst.wiremock.client.WireMock._
 
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -61,9 +62,11 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val appConfig      = mock[AppConfig]
   private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
-  private val edgeOfSystem = mock[EdgeOfSystem]
+  private val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val futures = mock[Futures]
 
-  private val sut = new FinancialDataConnector(httpClient, appConfig, metrics, auditConnector, edgeOfSystem)
+  private val eisHttpClient = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
+  private val sut = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -71,6 +74,8 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
     when(metrics.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContext)
+    when(edgeOfSystem.createUuid.toString).thenReturn("123")
+    when(futures.delay(any)).thenReturn(Future.successful(Done))
   }
 
   "FinancialData connector" when {
@@ -78,7 +83,8 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     "get financial data" should {
 
       "handle a 200 with financial data" in {
-        when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(financialDataResponse))
+        when(httpClient.GET[Any](any, any, any)(any, any, any))
+          .thenReturn(Future.successful(HttpResponse(200, Json.toJson(financialDataResponse).toString())))
 
         val res = await(getFinancialData)
 
@@ -95,7 +101,8 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
       "call the financial api" in {
         when(appConfig.enterpriseFinancialDataUrl(any)).thenReturn("/foo")
-        when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(financialDataResponse))
+        when(httpClient.GET[Any](any, any, any)(any, any, any))
+          .thenReturn(Future.successful(HttpResponse(200, Json.toJson(financialDataResponse).toString())))
 
         await(getFinancialData)
 
@@ -110,17 +117,18 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         }
       }
 
-      "return empty financial transaction when there are none" in {}
-
       "return an error" when {
         "is upstream error" in {
           when(httpClient.GET[Any](any, any, any)(any, any, any))
-            .thenReturn(Future.failed(UpstreamErrorResponse("upstream error", NOT_FOUND, NOT_FOUND)))
+            .thenReturn(Future.successful(HttpResponse(500, "{}")))
 
           val res = await(getFinancialData)
 
-          res mustBe Left(NOT_FOUND)
-          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("upstream error")))(
+          res mustBe Left(INTERNAL_SERVER_ERROR)
+
+          verify(auditConnector).sendExplicitAudit(
+            eqTo(GetPaymentStatement.eventType),
+            eqTo(getExpectedAuditModelForFailure("{}")))(
             any,
             any,
             any
@@ -129,12 +137,13 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
         "return an exception" in {
           when(httpClient.GET[Any](any, any, any)(any, any, any))
-            .thenReturn(Future.failed(new HttpException("error", SERVICE_UNAVAILABLE)))
+            .thenReturn(Future.successful(HttpResponse(200, "{}")))
 
           val res = await(getFinancialData)
 
           res mustBe Left(INTERNAL_SERVER_ERROR)
-          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("error")))(any, any, any)
+
+          captureAndVerifyAuditConnector()
         }
       }
     }
@@ -149,11 +158,10 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
       "return " + statusCode when {
 
         statusCode + " is returned from downstream service" in {
-
-          val message  = createUpstreamMessageError(statusCode)
+          val message  = s"""{"code":"${statusCode}","reason":"fish fryer fire"}"""
 
           when(httpClient.GET[Any](any, any, any)(any, any, any))
-            .thenReturn(Future.failed(UpstreamErrorResponse(message, statusCode)))
+            .thenReturn(Future.successful(HttpResponse(statusCode, message)))
 
           val res = await(getFinancialData)
 
@@ -165,9 +173,10 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
     "it" should {
       "map special DES 404s to a zero financial records results" in {
+        val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "fish fryer fire"}"""
         when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
         when(httpClient.GET[Any](any, any, any)(any, any, any))
-          .thenReturn(Future.failed(UpstreamErrorResponse(createUpstreamMessage, NOT_FOUND)))
+          .thenReturn(Future.successful(HttpResponse(NOT_FOUND, DESnotFoundResponse)))
         val result = await(getFinancialData)
 
         result mustBe Right(FinancialDataResponse(
@@ -197,21 +206,20 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private def getExpectedAuditModelForFailure(message: String) =
     GetPaymentStatement(internalId, pptReference, "Failure", None, Some(message))
 
-  private def createUpstreamMessage =
-    upstreamResponseMessage(
-      "GET",
-      "/url",
-      NOT_FOUND,
-      Json.obj("code" -> "NOT_FOUND", "reason" -> "fish fryer fire").toString
-    )
+  private def captureAndVerifyAuditConnector(): Unit = {
+    val captor = ArgCaptor[GetPaymentStatement]
 
-  private def createUpstreamMessageError(status: Int) =
-    upstreamResponseMessage(
-      "GET",
-      "/url",
-      status,
-      Json.obj("failures" -> Seq(EISError("Error Code", "Error Reason"))).toString
-    )
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
+      eqTo(GetPaymentStatement.eventType),
+      captor
+    )(any, any, any)
+
+    val audit = captor.value
+    audit.internalId mustBe internalId
+    audit.pptReference mustBe pptReference
+    audit.result mustBe "Failure"
+    audit.response mustBe None
+  }
 
 
 }
