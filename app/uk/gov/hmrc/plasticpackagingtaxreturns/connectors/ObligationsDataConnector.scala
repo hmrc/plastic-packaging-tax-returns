@@ -25,6 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus.ObligationStatus
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildDesHeader
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -36,10 +37,9 @@ import scala.util.{Failure, Success}
 class ObligationsDataConnector @Inject()
 (
   eisHttpClient: EisHttpClient,
-  override val appConfig: AppConfig,
+  appConfig: AppConfig,
   auditConnector: AuditConnector,
-)(implicit ec: ExecutionContext)
-    extends DESConnector with Logging {
+)(implicit ec: ExecutionContext) extends Logging {
 
   val SUCCESS: String     = "Success"
   val FAILURE: String     = "Failure"
@@ -68,6 +68,7 @@ class ObligationsDataConnector @Inject()
       appConfig.enterpriseObligationDataUrl(pptReference),
       queryParams = queryParams,
       timerName,
+      buildDesHeader,
       successFun
     ).map { response =>
         response.status match {

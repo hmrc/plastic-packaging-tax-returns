@@ -18,16 +18,16 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import akka.Done
 import com.kenshoo.play.metrics.Metrics
-import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.mockito.ArgumentMatchers.{any, matches}
 import org.mockito.Mockito.{RETURNS_DEEP_STUBS, verifyNoInteractions}
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
 import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
-import play.api.http.{HeaderNames, MimeTypes, Status}
+import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -296,7 +296,11 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
     
   }
 
-  private def createExpectedHeader = {
-    Seq(("Environment", "eis"), (HeaderNames.ACCEPT, MimeTypes.JSON), (HeaderNames.AUTHORIZATION, "desBearerToken"), ("CorrelationId", "123"))
-  }
+  private def createExpectedHeader: Seq[(String, String)] =
+    Seq(
+      "Environment" -> "eis",
+      HeaderNames.ACCEPT -> MimeTypes.JSON,
+      "CorrelationId" -> "123",
+      HeaderNames.AUTHORIZATION -> "desBearerToken",
+    )
 }

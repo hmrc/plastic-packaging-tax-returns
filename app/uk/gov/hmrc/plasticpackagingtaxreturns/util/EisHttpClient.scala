@@ -19,7 +19,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status.NOT_FOUND
-import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
@@ -33,6 +32,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import scala.util.Try
+
 
 /** An http response that allows for equality and same-instance
  * @param status - http status code from response
@@ -95,8 +95,6 @@ class EisHttpClient @Inject() (
   futures: Futures
 ) (implicit executionContext: ExecutionContext) extends Logging {
 
-  private val EnvironmentHeaderName = "Environment"
-
   type SuccessFun = EisHttpResponse => Boolean
   private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
 
@@ -107,13 +105,19 @@ class EisHttpClient @Inject() (
    * @param hc header carrier from up-stream request
    * @return [[EisHttpResponse]]
    */
-  def put[HappyModel](url: String, requestBody: HappyModel, timerName: String, successFun: SuccessFun = isSuccessful)
+  def put[HappyModel]
+  (
+    url: String,
+    requestBody: HappyModel,
+    timerName: String,
+    headerFun: (String, AppConfig) => Seq[(String, String)],
+    successFun: SuccessFun = isSuccessful)
     (implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val correlationId = edgeOfSystem.createUuid.toString
 
     val putFunction = () =>
-      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, buildHeaders(correlationId))
+      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headerFun(correlationId, appConfig))
         .map {
           EisHttpResponse.fromHttpResponse(correlationId)
         }
@@ -125,12 +129,19 @@ class EisHttpClient @Inject() (
 
   //todo this get is for DES at the moment as it uses the bearertoken for DES.
   // Could make this more generic and accept a bearer token for both EIS and DES
-  def get(url: String, queryParams: Seq[(String, String)], timerName: String, successFun: SuccessFun = isSuccessful)(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
+  def get
+  (
+    url: String,
+    queryParams: Seq[(String, String)],
+    timerName: String,
+    headerFun: (String, AppConfig) =>  Seq[(String, String)],
+    successFun: SuccessFun = isSuccessful
+  )(implicit hc: HeaderCarrier):Future[EisHttpResponse]  = {
     val timer = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
 
     val getFunction = () =>
-      hmrcClient.GET(url, queryParams, buildDesHeaders(correlationId)).map {
+      hmrcClient.GET(url, queryParams, headerFun(correlationId, appConfig)).map {
         EisHttpResponse.fromHttpResponse(correlationId)
       }
 
@@ -141,32 +152,19 @@ class EisHttpClient @Inject() (
   def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun): Future[EisHttpResponse] =
     function()
       .flatMap {
-        case response if successFun(response) => Future.successful(response)
-        case response if times == 1 => Future.successful(response)
+        case response if successFun(response) =>
+          println(s"1)")
+          Future.successful(response)
+        case response if times == 1 =>
+          println("2)")
+          Future.successful(response)
         case response =>
+          println("3)")
           logger.warn(s"PPT_RETRY retrying api call: status ${response.status} correlation-id ${response.correlationId}")
           futures
             .delay(retryDelayInMillisecond milliseconds)
             .flatMap { _ => retry(times - 1, function, successFun) }
       }
-
-  private def buildHeaders(correlationId: String): Seq[(String, String)] = {
-    Seq(
-      EnvironmentHeaderName -> appConfig.eisEnvironment,
-      HeaderNames.ACCEPT -> MimeTypes.JSON,
-      HeaderNames.AUTHORIZATION -> appConfig.bearerToken,
-      CorrelationIdHeaderName -> correlationId
-    )
-  }
-
-  private def buildDesHeaders(correlationId: String): Seq[(String, String)] = {
-    Seq(
-      EnvironmentHeaderName -> appConfig.eisEnvironment,
-      HeaderNames.ACCEPT -> MimeTypes.JSON,
-      HeaderNames.AUTHORIZATION -> appConfig.desBearerToken,
-      CorrelationIdHeaderName -> correlationId
-    )
-  }
 
 }
 

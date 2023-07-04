@@ -26,12 +26,13 @@ import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.concurrent.Futures
-import play.api.libs.json.{Format, Json, OFormat, OWrites}
+import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HttpReads.Implicits
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -55,6 +56,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
   private val exampleModel = ExampleModel()
   private implicit val formats: OFormat[ExampleModel] = Json.format[ExampleModel]
+
+  private val headerFn = (a: String, b: AppConfig) => Seq(
+    "Environment" -> "space",
+    "Accept" -> "application/json",
+    "Authorization" -> "do-come-in",
+    "CorrelationId" -> "00000000-0000-0001-0000-000000000002"
+  )
   
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -68,7 +76,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   }
   
   private def callPut = await {
-    eisHttpClient.put("proto://some:port/endpoint", exampleModel, "tick.tick")
+    eisHttpClient.put("proto://some:port/endpoint", exampleModel, "tick.tick", buildEisHeader)
   }
 
   "put" should {
@@ -83,8 +91,8 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         val headers = Seq(
           "Environment" -> "space",
           "Accept" -> "application/json",
-          "Authorization" -> "do-come-in",
-          "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
+          "CorrelationId" -> "00000000-0000-0001-0000-000000000002",
+          "Authorization" -> "do-come-in")
         verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers))(any, any, any, any)
       }
 
@@ -122,7 +130,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       when(appConfig.desBearerToken).thenReturn("do-come-in")
       when(hmrcClient.GET[Any](any, any, any)(any, any, any))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
-      eisHttpClient.get("/any/url", Seq("a" -> "b"), "timer-name")
+      eisHttpClient.get("/any/url", Seq("a" -> "b"), "timer-name", headerFn)
 
       verify(hmrcClient).GET(eqTo("/any/url"), eqTo(Seq("a" -> "b")), any)(any, any,any)
 
@@ -139,7 +147,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     "return an EisHttpResponse" in {
       when(hmrcClient.GET[Any](any, any, any)(any, any, any))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
-      val result = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      val result = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name",headerFn))
 
       result mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
     }
@@ -148,7 +156,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       when(hmrcClient.GET[Any](any, any, any)(any, any, any))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
 
-      await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
       verify(metrics.defaultRegistry.timer(eqTo("tick.tick"))).time()
       verify(timer).stop()
     }
@@ -159,7 +167,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         Future.successful(HmrcResponse(200, "")),
       )
 
-      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
 
       response.status mustBe 200
       verify(hmrcClient, times(2)).GET[Any](eqTo("/any/url"), eqTo(Seq.empty), any) (any,
@@ -174,7 +182,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       when(hmrcClient.GET[Any](any, any, any) (any, any, any)).thenReturn(
         Future.successful(HmrcResponse(500, ""))
       )
-      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name"))
+      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
       response.status mustBe 500
 
       withClue("after trying 3 times") {
@@ -192,7 +200,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
 
-        eisHttpClient.get("url", Seq.empty, "timer-name", isSuccessful)
+        eisHttpClient.get("url", Seq.empty, "timer-name", headerFn, isSuccessful)
       }
 
       verify(hmrcClient, times(1)).GET[Any](any, any, any)(any, any, any)
@@ -241,7 +249,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
-        eisHttpClient.put("url", exampleModel, "timer", isSuccessful)
+        eisHttpClient.put("url", exampleModel, "timer", buildEisHeader, isSuccessful)
       }
 
       verify(hmrcClient, times(1)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)

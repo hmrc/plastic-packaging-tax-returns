@@ -165,13 +165,10 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
       "handle bad json" in {
 
-        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
-          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
-
+        val error = "Response body could not be read as type play.api.libs.json.JsValue"
         val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
 
         stubFailedReturnDisplay(pptReference, periodKey, Status.OK, "XXX")
-
         givenAuditReturns(auditUrl, Status.NO_CONTENT)
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
