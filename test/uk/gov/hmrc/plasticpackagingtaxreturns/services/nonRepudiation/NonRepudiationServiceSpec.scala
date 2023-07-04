@@ -99,7 +99,7 @@ class NonRepudiationServiceSpec
     
     val testPayloadString = "testPayloadString"
 
-    "call the nonRepudiationConnector with the correctly formatted metadata" in {
+    "call the nonRepudiationConnector with the correctly formatted metadata for ppt-return" in {
       val testPayloadChecksum = MessageDigest.getInstance("SHA-256")
         .digest(testPayloadString.getBytes(StandardCharsets.UTF_8))
         .map("%02x".format(_)).mkString 
@@ -115,6 +115,27 @@ class NonRepudiationServiceSpec
       val testEncodedPayload = Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
       val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = "ppt-return",
         "application/json", testPayloadChecksum, testDateTimeString, testNonRepudiationIdentityData, testAuthToken, 
+        testUserHeaders, searchKeys = Map("pptReference" -> testPPTReference)
+      )
+      verify(mockNonRepudiationConnector).submitNonRepudiation(testEncodedPayload, expectedMetadata)(hc)
+    }
+
+    "call the nonRepudiationConnector with the correctly formatted metadata for ppt-subscription" in {
+      val testPayloadChecksum = MessageDigest.getInstance("SHA-256")
+        .digest(testPayloadString.getBytes(StandardCharsets.UTF_8))
+        .map("%02x".format(_)).mkString
+
+      mockAuthorization(nonRepudiationIdentityRetrievals, testAuthRetrievals)
+      when(mockNonRepudiationConnector.submitNonRepudiation(any, any) (any)) thenReturn Future.successful(
+        NonRepudiationSubmissionAccepted("testSubmissionId"))
+
+      val res = nonRepudiationService.submitNonRepudiation(NotableEvent.PptSubscription, testPayloadString, testDateTime, testPPTReference,
+        testUserHeaders)
+      await(res) mustBe NonRepudiationSubmissionAccepted("testSubmissionId")
+
+      val testEncodedPayload = Base64.getEncoder.encodeToString(testPayloadString.getBytes(StandardCharsets.UTF_8))
+      val expectedMetadata = NonRepudiationMetadata(businessId = "ppt", notableEvent = "ppt-subscription",
+        "application/json", testPayloadChecksum, testDateTimeString, testNonRepudiationIdentityData, testAuthToken,
         testUserHeaders, searchKeys = Map("pptReference" -> testPPTReference)
       )
       verify(mockNonRepudiationConnector).submitNonRepudiation(testEncodedPayload, expectedMetadata)(hc)
