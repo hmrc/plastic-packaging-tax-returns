@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import java.time.ZonedDateTime
 
-trait EISSubscriptionUpdateSuccessfulResponse extends EISResponse {
+trait EISSubscriptionUpdateSuccessfulResponse {
 
   val pptReference: String
   val processingDate: ZonedDateTime

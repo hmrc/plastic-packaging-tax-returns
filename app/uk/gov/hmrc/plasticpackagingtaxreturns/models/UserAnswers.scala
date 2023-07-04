@@ -25,8 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.RichJsObject
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.runtime.universe.typeOf
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import scala.util.{Failure, Success, Try}
 
 case class UserAnswers(

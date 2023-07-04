@@ -17,8 +17,9 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns
 
 import play.api.libs.json.JsPath
-import java.time.LocalDate
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
+
+import java.time.LocalDate
 
 case object ReturnObligationFromDateGettable extends Gettable[LocalDate] {
 
