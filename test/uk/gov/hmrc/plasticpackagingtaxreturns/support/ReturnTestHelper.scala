@@ -44,7 +44,8 @@ object ReturnTestHelper {
        |        "obligation" : {
        |            "periodKey" : "21C4", 
        |            "fromDate" : "2022-10-01",
-       |            "toDate" : "2022-12-31"
+       |            "toDate" : "2022-12-31",
+       |            "dueDate" : "2023-01-28"
        |        },
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 1,
@@ -62,7 +63,8 @@ object ReturnTestHelper {
          |        "obligation" : {
          |            "periodKey" : "21C4",
          |            "fromDate" : "${LocalDate.now.minusMonths(1)}",
-         |            "toDate" : "${LocalDate.now}"
+         |            "toDate" : "${LocalDate.now}",
+         |            "dueDate" : "2023-01-28"
          |        },
          |        "importedPlasticPackagingWeight" : 0,
          |        "exportedPlasticPackagingWeight" : 0,

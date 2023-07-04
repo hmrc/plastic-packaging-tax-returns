@@ -50,14 +50,14 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudia
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.{LocalDate, LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-//todo this spec is a MESS
+//todo this spec is a MESS !
 class ReturnsControllerSpec
     extends AnyWordSpec with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockConnectors
     with ReturnsSubmissionResponseBuilder {
@@ -117,6 +117,7 @@ class ReturnsControllerSpec
   private val mockCreditsCalculationService                    = mock[CreditsCalculationService]
   private val mockAvailableCreditService                       = mock[AvailableCreditService]
   private val mockTaxRateTable                                 = mock[TaxRateTable]
+  private val mockEdgeOfSystem                                 = mock[EdgeOfSystem]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
@@ -134,7 +135,8 @@ class ReturnsControllerSpec
     mockFinancialsService,
     mockCreditsCalculationService,
     mockAvailableCreditService,
-    mockTaxRateTable
+    mockTaxRateTable,
+    mockEdgeOfSystem
   ) {
     protected override val logger: Logger = mockLogger
   }
@@ -388,6 +390,19 @@ class ReturnsControllerSpec
       verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
     }
 
+    "return an error if returns is too old to process" in {
+      withAuthorizedUser()
+      setupMocksForAmend(userAnswersAmends)
+      reset(mockEdgeOfSystem)
+      when(mockEdgeOfSystem.localDateTimeNow).thenReturn(LocalDate.of(2027, 1, 29).atStartOfDay())
+      setUpFinancialApiMock(true)
+
+      val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
+
+      status(result) mustBe UNPROCESSABLE_ENTITY
+      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+    }
+
     "amend throw an error if financial API error" in {
       withAuthorizedUser()
       setupMocksForAmend(userAnswersAmends)
@@ -489,6 +504,7 @@ class ReturnsControllerSpec
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
     when(mockPptCalculationService.calculate(any)).thenReturn(calculations)
+    when(mockEdgeOfSystem.localDateTimeNow).thenReturn(LocalDate.of(2023, 1, 28).atStartOfDay())
   }
 
   private def expectedSubmissionRequestForAmend = {
