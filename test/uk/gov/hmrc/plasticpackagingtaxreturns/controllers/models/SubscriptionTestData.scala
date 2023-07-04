@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails.Relationship
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
@@ -73,7 +74,7 @@ trait SubscriptionTestData {
     )
     
   val ukLimitedCompanyGroupMember: GroupPartnershipDetails =
-    GroupPartnershipDetails(relationship = "member",
+    GroupPartnershipDetails(relationship = Relationship.Member,
       customerIdentification1 = "abc123",
       customerIdentification2 = Some("def456"),
       organisationDetails = Some(
@@ -96,7 +97,7 @@ trait SubscriptionTestData {
     )
     
   val soleTraderGroupMember: GroupPartnershipDetails =
-    GroupPartnershipDetails(relationship = "Representative",
+    GroupPartnershipDetails(relationship = Relationship.Representative,
       customerIdentification1 = "abc123",
       customerIdentification2 = Some("def456"),
       organisationDetails = None,

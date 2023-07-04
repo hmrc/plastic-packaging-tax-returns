@@ -20,18 +20,16 @@ import akka.actor.ActorSystem
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
 import play.api.http.Status.ACCEPTED
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpReadsHttpResponse, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
-  NonRepudiationMetadata,
-  NonRepudiationSubmissionAccepted
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector._
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Retry
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.Retry
 
 @Singleton
 class NonRepudiationConnector @Inject() (
@@ -45,10 +43,10 @@ class NonRepudiationConnector @Inject() (
   def submitNonRepudiation(encodedPayloadString: String, nonRepudiationMetadata: NonRepudiationMetadata)(implicit
     hc: HeaderCarrier
   ): Future[NonRepudiationSubmissionAccepted] = {
-    val timer    = metrics.defaultRegistry.timer("ppt.nrs.submission.timer").time()
-    val jsonBody = Json.obj("payload" -> encodedPayloadString, "metadata" -> nonRepudiationMetadata)
+    val timer    = metrics.defaultRegistry.timer(TimerKey).time()
+    val jsonBody = NrsSubmittable(encodedPayloadString, nonRepudiationMetadata).toJsObject
 
-    retry(config.nrsRetries: _*)(shouldRetry, reasonForRetrying[NonRepudiationSubmissionAccepted]) {
+    retry[NonRepudiationSubmissionAccepted](config.nrsRetries: _*)(shouldRetry, _ => ReasonForRetry) {
       submit(timer, jsonBody)
     }
   }
@@ -58,14 +56,13 @@ class NonRepudiationConnector @Inject() (
   ): Future[NonRepudiationSubmissionAccepted] =
     httpClient.POST[JsObject, HttpResponse](url = config.nonRepudiationSubmissionUrl,
                                             body = jsonBody,
-                                            headers =
-                                              Seq("X-API-Key" -> config.nonRepudiationApiKey)
+                                            headers = Seq(XApiKeyHeaderKey -> config.nonRepudiationApiKey)
     ).andThen { case _ => timer.stop() }
       .map {
         response =>
           response.status match {
             case ACCEPTED =>
-              val submissionId = (response.json \ "nrSubmissionId").as[String]
+              val submissionId = response.json.as[NrsSubmission].nrSubmissionId
               NonRepudiationSubmissionAccepted(submissionId)
             case _ =>
               throw new HttpException(response.body, response.status)
@@ -79,9 +76,19 @@ class NonRepudiationConnector @Inject() (
       case _ => false
     }
 
-  private def reasonForRetrying[A](response: Try[A]): String =
-    response match {
-      case _ => "Non Repudiation Service submission failed"
-    }
+}
 
+object NonRepudiationConnector {
+
+  private val TimerKey = "ppt.nrs.submission.timer"
+  private val XApiKeyHeaderKey = "X-API-Key"
+  private val ReasonForRetry = "Non Repudiation Service submission failed"
+
+  private final case class NrsSubmittable(payload: String, metadata: NonRepudiationMetadata){
+    def toJsObject: JsObject = Json.toJson(this).as[JsObject]
+  }
+  private final case class NrsSubmission(nrSubmissionId: String)
+
+  private implicit val NrsSubmittableWrites: Writes[NrsSubmittable] = Json.writes[NrsSubmittable]
+  private implicit val NrsSubmissionReads: Reads[NrsSubmission] = Json.reads[NrsSubmission]
 }

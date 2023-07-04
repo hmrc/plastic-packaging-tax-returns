@@ -26,7 +26,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.NrsPayload
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.nonRepudiationIdentityRetrievals
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{NotableEvent, nonRepudiationIdentityRetrievals}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.ZonedDateTime
@@ -42,7 +42,7 @@ case class NonRepudiationService @Inject() (
 )(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
 
   def submitNonRepudiation(
-    notableEvent: String,
+    notableEvent: NotableEvent,
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
@@ -54,7 +54,7 @@ case class NonRepudiationService @Inject() (
     for {
       identityData <- retrieveIdentityData()
       userAuthToken = retrieveUserAuthToken(headerCarrier)
-      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent, pptReference, userHeaders, identityData, 
+      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent.id, pptReference, userHeaders, identityData,
         userAuthToken, submissionTimestamp)
       encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
@@ -114,6 +114,12 @@ case class NonRepudiationService @Inject() (
 }
 
 object NonRepudiationService {
+
+  sealed abstract class NotableEvent(val id: String)
+  object NotableEvent {
+    case object PptReturn extends NotableEvent("ppt-return")
+    case object PptSubscription extends NotableEvent("ppt-subscription")
+  }
 
   type NonRepudiationIdentityRetrievals =
     (Option[AffinityGroup] ~ Option[String]

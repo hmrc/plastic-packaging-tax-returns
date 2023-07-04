@@ -20,6 +20,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.libs.json
 import play.api.libs.json._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails.Relationship
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
@@ -60,7 +61,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.count(_.relationship == "Representative") mustBe 1
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.count(_.relationship == Relationship.Representative) mustBe 1
       withClue("members list should contain all members including representative") {
         result.groupPartnershipSubscription.get.groupPartnershipDetails.size mustBe 3
       }
@@ -258,7 +259,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
   def originalRepMember = createMember("original-rep", "Representative")
   def defaultMember: GroupPartnershipDetails = createMember("Lost Boys Ltd")
 
-  def createMember(member: String, relationship: String = "Member"): GroupPartnershipDetails =
+  def createMember(member: String, relationship: String = Relationship.Member): GroupPartnershipDetails =
     GroupPartnershipDetails(
       relationship = relationship,
       customerIdentification1 = s"$member-customerIdentification1",

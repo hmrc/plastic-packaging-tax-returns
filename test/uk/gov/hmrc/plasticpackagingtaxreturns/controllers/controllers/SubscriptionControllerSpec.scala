@@ -43,6 +43,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTes
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
@@ -159,7 +160,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("ppt-subscription"),
+            ArgumentMatchers.eq(NotableEvent.PptSubscription),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -187,7 +188,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("ppt-subscription"), 
+            ArgumentMatchers.eq(NotableEvent.PptSubscription),
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -220,7 +221,7 @@ class SubscriptionControllerSpec
           response.processingDate mustBe subscriptionUpdateResponse.processingDate
           response.nrSubmissionId mustBe nrSubmissionId
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("ppt-subscription"),
+            ArgumentMatchers.eq(NotableEvent.PptSubscription),
             ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString()),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -248,7 +249,7 @@ class SubscriptionControllerSpec
           response.nrsFailureReason mustBe nrsErrorMessage
 
           verify(mockNonRepudiationService).submitNonRepudiation(
-            ArgumentMatchers.eq("ppt-subscription"), 
+            ArgumentMatchers.eq(NotableEvent.PptSubscription),
             ArgumentMatchers.contains(Json.toJson(request.toSubscription).toString),
             any[ZonedDateTime],
             ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),
@@ -278,7 +279,7 @@ class SubscriptionControllerSpec
         response.processingDate mustBe subscriptionUpdateResponse.processingDate
         response.nrSubmissionId mustBe nrSubmissionId
         verify(mockNonRepudiationService).submitNonRepudiation(
-          ArgumentMatchers.eq("ppt-subscription"),
+          ArgumentMatchers.eq(NotableEvent.PptSubscription),
           ArgumentMatchers.eq(Json.toJson(request.toSubscription).toString),
           any[ZonedDateTime],
           ArgumentMatchers.eq(subscriptionUpdateResponse.pptReferenceNumber),

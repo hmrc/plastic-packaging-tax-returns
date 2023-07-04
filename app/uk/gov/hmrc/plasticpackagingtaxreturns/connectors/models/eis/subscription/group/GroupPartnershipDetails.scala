@@ -36,5 +36,11 @@ case class GroupPartnershipDetails(
 )
 
 object GroupPartnershipDetails {
+
+  object Relationship {
+    val Representative = "Representative"
+    val Member = "Member"
+  }
+
   implicit val format: OFormat[GroupPartnershipDetails] = Json.format[GroupPartnershipDetails]
 }
