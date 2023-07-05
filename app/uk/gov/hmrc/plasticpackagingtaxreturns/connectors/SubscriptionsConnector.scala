@@ -23,10 +23,11 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -34,7 +35,13 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val appConfig: AppConfig, metrics: Metrics)(
+class SubscriptionsConnector @Inject()
+(
+  eisHttpClient: EisHttpClient,
+  httpClient: HttpClient,
+  override val appConfig: AppConfig,
+  metrics: Metrics
+)(
   implicit ec: ExecutionContext
 ) extends EISConnector {
 
@@ -66,14 +73,13 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
       }
   }
 
-  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[HttpResponse, SubscriptionDisplayResponse]] = {
+  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
 
-    val timer               = metrics.defaultRegistry.timer("ppt.subscription.display.timer").time()
+    val timerName =  "ppt.subscription.display.timer"
     val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
     val url = appConfig.subscriptionDisplayUrl(pptReference)
-    httpClient.GET[HttpResponse](url, headers = headers :+ correlationIdHeader)
-      .andThen { case _ => timer.stop() }
+    eisHttpClient.get(url, Seq.empty, timerName)
       .map { response =>
         logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status)) {
@@ -92,5 +98,4 @@ class SubscriptionsConnector @Inject() (httpClient: HttpClient, override val app
         s"response code ${errorResponse.status}"))
     }
   }
-
 }

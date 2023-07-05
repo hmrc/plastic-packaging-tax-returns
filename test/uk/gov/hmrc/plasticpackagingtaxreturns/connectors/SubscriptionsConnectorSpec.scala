@@ -139,10 +139,12 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
       "return details of the group members" in {
         stubFor(get(anyUrl()).willReturn(ok.withBody(subscriptionResponseBodyWithGroupMembers)))
+
         val response = await(connector.getSubscription("ppt-ref"))
-        response.right.value.groupPartnershipSubscription.isDefined mustBe true
-        response.right.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length(3)
-        val iterator = response.right.value.groupPartnershipSubscription.get.groupPartnershipDetails.toIterator
+
+        response.value.groupPartnershipSubscription.isDefined mustBe true
+        response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length(3)
+        val iterator = response.value.groupPartnershipSubscription.get.groupPartnershipDetails.toIterator
         iterator.next().organisationDetails.get.organisationName mustBe "Test Company Ltd UK"
       }
       
@@ -161,8 +163,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         intercept[JsResultException] {
           await(connector.getSubscription(pptReference))
         }
-
-        getTimer(displaySubscriptionTimer).getCount mustBe 1
       }
     }
 
@@ -241,8 +241,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           val result = await(connector.getSubscription("some-ref"))
 
           wiremock.verify(getRequestedFor(urlEqualTo("/plastic-packaging-tax/subscriptions/PPT/some-ref/display")))
-          result.left.get.status mustBe 417
-          result.left.get.body mustBe """{"pass":"it-on"}"""
+          result.left.value.status mustBe 417
+          result.left.value.body mustBe """{"pass":"it-on"}"""
           getTimer(displaySubscriptionTimer).getCount mustBe 1
         }
     }

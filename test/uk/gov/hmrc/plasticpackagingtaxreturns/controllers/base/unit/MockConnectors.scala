@@ -23,14 +23,15 @@ import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -53,7 +54,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected def mockGetSubscription(
     pptReference: String,
     displayResponse: SubscriptionDisplayResponse
-  ): OngoingStubbing[Future[Either[HttpResponse, SubscriptionDisplayResponse]]] =
+  ): OngoingStubbing[Future[Either[EisHttpResponse, SubscriptionDisplayResponse]]] =
     when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
       Future.successful(Right(displayResponse))
     )

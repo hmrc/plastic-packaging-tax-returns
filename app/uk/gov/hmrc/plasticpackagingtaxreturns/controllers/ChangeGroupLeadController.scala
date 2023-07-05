@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.Logging
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
@@ -27,6 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -45,7 +46,7 @@ class ChangeGroupLeadController @Inject() (
   def change(pptReference: String): Action[AnyContent] = authenticator.authorisedAction(parse.default, pptReference) {
     implicit request: AuthorizedRequest[AnyContent] =>
       val pptReference = request.pptReference
-      val getSubF: Future[Either[HttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
+      val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
       val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
 
       {

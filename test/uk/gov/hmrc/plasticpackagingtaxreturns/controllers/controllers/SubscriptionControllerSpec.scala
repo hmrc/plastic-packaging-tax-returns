@@ -34,7 +34,7 @@ import play.api.mvc.Result
 import play.api.test.Helpers.{route, status, _}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
@@ -44,6 +44,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiati
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
@@ -111,7 +112,7 @@ class SubscriptionControllerSpec
       "get registration returns a non-successful status" in {
         withAuthorizedUser()
 
-        val mockHttpResponse: HttpResponse = mock[HttpResponse]
+        val mockHttpResponse = mock[EisHttpResponse]
         when(mockHttpResponse.status).thenReturn(417)
         when(mockHttpResponse.body).thenReturn("""{"x": "y"}""")
 
