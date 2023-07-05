@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails.Relationship
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.nonRepudiation.NrsSubscriptionUpdateSubmission
@@ -40,7 +41,7 @@ class ChangeGroupLeadService {
       .groupPartnershipSubscription
       .getOrElse(throw new IllegalStateException("Change group lead not a group"))
       .groupPartnershipDetails
-      .filterNot(_.relationship == "Representative")
+      .filterNot(_.relationship == Relationship.Representative)
 
     val newRepOrganisation = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
     val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
@@ -55,7 +56,7 @@ class ChangeGroupLeadService {
     val otherMembers = members.map{ member =>
       val memberDetails = member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
       if(memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn)
-        member.copy(relationship = "Representative")
+        member.copy(relationship = Relationship.Representative)
       else
         member
     }
@@ -92,7 +93,7 @@ class ChangeGroupLeadService {
 
   private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse): GroupPartnershipDetails = {
     GroupPartnershipDetails(
-      relationship = "Member",
+      relationship = Relationship.Member,
       customerIdentification1 = subscription.legalEntityDetails.customerIdentification1,
       customerIdentification2 = subscription.legalEntityDetails.customerIdentification2,
       organisationDetails = subscription.legalEntityDetails.customerDetails.organisationDetails,

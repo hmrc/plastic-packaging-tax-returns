@@ -47,6 +47,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxablePlastic}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
@@ -463,7 +464,7 @@ class ReturnsControllerSpec
 
   private def verifySubmitNonRepudiation(expectedNrsPayload: NrsReturnOrAmendSubmission) = {
     verify(mockNonRepudiationService).submitNonRepudiation(
-      eqTo("ppt-return"),
+      eqTo(NotableEvent.PptReturn),
       eqTo(Json.toJson(expectedNrsPayload).toString),
       any[ZonedDateTime],
       eqTo(pptReference),

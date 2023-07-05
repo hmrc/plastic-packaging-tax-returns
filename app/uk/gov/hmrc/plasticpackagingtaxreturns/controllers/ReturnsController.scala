@@ -38,6 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiat
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -98,7 +99,7 @@ class ReturnsController @Inject()(
               if(isDDInProgress)
                 Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
               else
-                doSubmit("ppt-return", pptReference, AmendReturnValues.apply, userAnswer)
+                doSubmit(NotableEvent.PptReturn, pptReference, AmendReturnValues.apply, userAnswer)
           )
         }
       }
@@ -112,7 +113,7 @@ class ReturnsController @Inject()(
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits = creditsService.totalRequestedCredit_old(userAnswer)
-              doSubmit("ppt-return", pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+              doSubmit(NotableEvent.PptReturn, pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
             sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
@@ -129,7 +130,7 @@ class ReturnsController @Inject()(
   }
 
   private def doSubmit(
-    nrsEventType: String, 
+    nrsEventType: NotableEvent,
     pptReference: String,
     getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues],
     userAnswer: UserAnswers
@@ -170,7 +171,7 @@ class ReturnsController @Inject()(
   }
 
   private def submitReturnWithNrs(
-    nrsEventType: String, 
+    nrsEventType: NotableEvent,
     pptReference: String,
     userAnswers: UserAnswers,
     returnValues: ReturnValues
@@ -198,7 +199,7 @@ class ReturnsController @Inject()(
   }
 
   private def handleNrsRequest(
-    nrsEventType: String, 
+    nrsEventType: NotableEvent,
     request: AuthorizedRequest[AnyContent],
     userAnswers: JsObject,
     returnSubmissionRequest: ReturnsSubmissionRequest,
@@ -244,7 +245,7 @@ class ReturnsController @Inject()(
   }
 
   private def submitToNrs(
-    nrsEventType: String, 
+    nrsEventType: NotableEvent,
     request: AuthorizedRequest[AnyContent],
     payload: NrsReturnOrAmendSubmission,
     eisResponse: Return
@@ -255,7 +256,7 @@ class ReturnsController @Inject()(
     )
 
     nonRepudiationService.submitNonRepudiation(
-      nrsEventType, 
+      nrsEventType,
       toJson(payload).toString,
       parseDate(eisResponse.processingDate),
       eisResponse.idDetails.pptReferenceNumber,

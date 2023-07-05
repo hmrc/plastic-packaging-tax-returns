@@ -35,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 
 import java.time.ZonedDateTime
 import scala.concurrent.ExecutionContext.global
@@ -95,7 +96,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       val processingDate = mock[ZonedDateTime]
       when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(eqTo("ppt-subscription"), any, same(processingDate), eqTo("some-ppt-ref"), any) (any)    
+      verify(nonRepudiationService).submitNonRepudiation(same(NotableEvent.PptSubscription), any, same(processingDate), eqTo("some-ppt-ref"), any) (any)
     }
 
     "pass user header to NRS" in {

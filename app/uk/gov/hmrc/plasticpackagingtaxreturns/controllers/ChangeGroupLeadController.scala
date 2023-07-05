@@ -26,6 +26,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -73,7 +74,7 @@ class ChangeGroupLeadController @Inject() (
       .andThen {case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey)}
       .map {
         subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
-          "ppt-subscription", 
+          NotableEvent.PptSubscription,
           nrsSubscriptionUpdateSubmission.toJsonString, 
           subscriptionUpdateResponse.processingDate, 
           pptReference,

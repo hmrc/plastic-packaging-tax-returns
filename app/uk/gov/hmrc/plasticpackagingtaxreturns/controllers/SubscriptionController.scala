@@ -28,6 +28,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -108,7 +109,7 @@ class SubscriptionController @Inject() (
     eisResponse: SubscriptionUpdateSuccessfulResponse
   )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationService.submitNonRepudiation(
-      "ppt-subscription", 
+      NotableEvent.PptSubscription,
       toJson(pptSubscription).toString,
       eisResponse.processingDate,
       eisResponse.pptReferenceNumber,
