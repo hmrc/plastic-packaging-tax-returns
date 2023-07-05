@@ -16,41 +16,37 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.codahale.metrics.Timer
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{OK, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{IdDetails, Return, ReturnsSubmissionRequest}
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, EisHttpResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success}
 
 @Singleton
-class ReturnsConnector @Inject() (
-  hmrcClient: HmrcClient, 
-  override val appConfig: AppConfig, 
-  metrics: Metrics, 
+class ReturnsConnector @Inject()
+(
+  appConfig: AppConfig,
   auditConnector: AuditConnector,
-  edgeOfSystem: EdgeOfSystem,
   eisHttpClient: EisHttpClient
-) (implicit ec: ExecutionContext ) extends EISConnector with Logging {
+) (implicit ec: ExecutionContext ) extends Logging {
 
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
 
   def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)
     (implicit hc: HeaderCarrier): Future[Either[Int, Return]] = {
-    
+
     def isSuccessful(response: EisHttpResponse): Boolean = response.status match {
       case Status.OK => true
       case Status.UNPROCESSABLE_ENTITY =>
@@ -59,10 +55,10 @@ class ReturnsConnector @Inject() (
           .asOpt[String]
           .contains("TAX_OBLIGATION_ALREADY_FULFILLED")
       case _ => false
-    } 
-    
+    }
+
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
-    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer", isSuccessful)
+    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer", buildEisHeader, isSuccessful)
       .map { httpResponse =>
 
         if (httpResponse.status == OK)
@@ -77,10 +73,10 @@ class ReturnsConnector @Inject() (
           unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
       }
   }
-  
-  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String, 
+
+  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String,
     httpResponse: EisHttpResponse) (implicit headerCarrier: HeaderCarrier) = {
-    
+
     logger.warn(
       s"Upstream error on returns submission with correlationId [${httpResponse.correlationId}], " +
         s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${httpResponse.status}, " +
@@ -109,47 +105,42 @@ class ReturnsConnector @Inject() (
   }
 
   def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
-    val timer: Timer.Context = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
-    val correlationIdHeader: (String, String) = correlationIdHeaderName -> edgeOfSystem.createUuid.toString
-    val requestHeaders                        = headers :+ correlationIdHeader
+    val timerName = "ppt.return.display.timer"
 
-    hmrcClient.GET[HmrcResponse](appConfig.returnsDisplayUrl(pptReference, periodKey), headers = requestHeaders)
-      .andThen { case _ => timer.stop() }
-      .map { hmrcResponse =>
-        logReturnDisplayResponse(pptReference, periodKey, correlationIdHeader, s"status: ${hmrcResponse.status}")
+    eisHttpClient.get(appConfig.returnsDisplayUrl(pptReference, periodKey), Seq.empty, timerName, buildEisHeader)
+      .map { response =>
+        logReturnDisplayResponse(pptReference, periodKey, response.correlationId, s"status: ${response.status}")
 
-        if (hmrcResponse.status == OK) { // TODO use Status.isSuccessful(x) ?
+        response.status match {
+          case Status.OK =>
+            val triedResponse = response.jsonAs[JsValue]
 
-          Try(hmrcResponse.json).toEither.fold({ 
-            throwable =>
-              // Note - if response payload was not json, exception from json lib usually includes the payload too
-              auditConnector.sendExplicitAudit(GetReturn.eventType, 
-                GetReturn(internalId, periodKey, FAILURE, None, Some(throwable.getMessage)))
-              Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
-          }, { 
-            jsValue =>
-              auditConnector.sendExplicitAudit(GetReturn.eventType,
+            triedResponse match {
+              case Success(jsValue) =>
+                auditConnector.sendExplicitAudit(GetReturn.eventType,
                 GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None))
-              Right(jsValue)
-          })
-
-        } else {
-          
-          // TODO currently we just parrot down-stream for non 2xx
-          auditConnector.sendExplicitAudit(GetReturn.eventType, 
-            GetReturn(internalId, periodKey, FAILURE, None, Some(hmrcResponse.body)))
-          Left(hmrcResponse.status)
+                Right(jsValue)
+              case Failure(exception) =>
+                // Note - if response payload was not json, exception from json lib usually includes the payload too
+                auditConnector.sendExplicitAudit(GetReturn.eventType,
+                  GetReturn(internalId, periodKey, FAILURE, None, Some(exception.getMessage)))
+                Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
+            }
+          case _ =>
+            auditConnector.sendExplicitAudit(GetReturn.eventType,
+              GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
+            Left(response.status)
         }
       }
   }
 
-  private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String): Unit = {
-    logger.warn(cookLogMessage(pptReference, periodKey, correlationIdHeader, outcomeMessage)
+  private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationId: String, outcomeMessage: String): Unit = {
+    logger.warn(cookLogMessage(pptReference, periodKey, correlationId, outcomeMessage)
     )
   }
 
-  private def cookLogMessage(pptReference: String, periodKey: String, correlationIdHeader: (String, String), outcomeMessage: String) = {
-    s"Return Display API call for correlationId [${correlationIdHeader._2}], " +
+  private def cookLogMessage(pptReference: String, periodKey: String, correlationId: String, outcomeMessage: String) = {
+    s"Return Display API call for correlationId [${correlationId}], " +
       s"pptReference [$pptReference], periodKey [$periodKey]: " + outcomeMessage
   }
 }

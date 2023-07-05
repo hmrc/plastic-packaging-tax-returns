@@ -24,6 +24,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetPaymentStatement
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildDesHeader
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, EisHttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -34,12 +35,10 @@ import scala.util.{Failure, Success}
 
 class FinancialDataConnector @Inject()(
   eisHttpClient: EisHttpClient,
-  override val appConfig: AppConfig,
+  appConfig: AppConfig,
   auditConnector: AuditConnector,
   edgeOfSystem: EdgeOfSystem
-) (
-  implicit ec: ExecutionContext
-) extends DESConnector {
+) (implicit ec: ExecutionContext)  {
 
   private val logger = Logger(this.getClass)
   private val SUCCESS: String     = "Success"
@@ -77,6 +76,7 @@ class FinancialDataConnector @Inject()(
       appConfig.enterpriseFinancialDataUrl(pptReference),
       queryParams = queryParams,
       timerName,
+      buildDesHeader,
       successFun
     )
       .map { response: EisHttpResponse =>

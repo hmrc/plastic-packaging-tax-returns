@@ -24,8 +24,8 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
+import play.api.http.{HeaderNames, Status}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.obj
@@ -34,6 +34,7 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
@@ -54,6 +55,7 @@ class ReturnsISpec extends PlaySpec
   with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
+  lazy val appConfig = app.injector.instanceOf[AppConfig]
   val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
   lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
   private val periodKey = "22C2"
@@ -207,6 +209,29 @@ class ReturnsISpec extends PlaySpec
     Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")
   }
 
+  "retry 3 times Des if api call fails where getting the returns" in {
+    withAuthorizedUser()
+    stubReturnDisplayErrorResponse()
+    await(wsClient.url(validGetReturnDisplayUrl).get())
+    wireMock.verify(3, getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey")))
+  }
+
+  "retry 1 times if des api call successful" in {
+    withAuthorizedUser()
+    stubReturnDisplayResponse()
+    await(wsClient.url(validGetReturnDisplayUrl).get())
+    wireMock.verify(1, getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey")))
+  }
+
+  "use EIS header" in {
+    withAuthorizedUser()
+    stubReturnDisplayResponse()
+    await(wsClient.url(validGetReturnDisplayUrl).get())
+
+    wireMock.verify(getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+      .withHeader(HeaderNames.AUTHORIZATION, equalTo(appConfig.bearerToken)))
+  }
+
 
   private def setUpStub() = {
     stubObligationDesRequest()
@@ -240,6 +265,7 @@ class ReturnsISpec extends PlaySpec
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
+            .withHeader(HeaderNames.AUTHORIZATION, "Gino")
             .withBody(displayApiResponse)
         )
     )
