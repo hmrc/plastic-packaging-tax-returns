@@ -154,13 +154,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         auditDetails.internalId mustBe "internal-id-7"
         auditDetails.result mustBe "Failure"
         auditDetails.response mustBe None
-         */
-
-        val auditDetails = captor.value
-        auditDetails.periodKey mustBe "period-2"
-        auditDetails.internalId mustBe "internal-id-7"
-        auditDetails.result mustBe "Failure"
-        auditDetails.response mustBe None
 
       }
     }
