@@ -149,15 +149,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
           verify(auditConnector).sendExplicitAudit[GetReturn](eqTo(GetReturn.eventType), captor)(any, any, any)
         }
 
-        //todo: For a bad json we do not get the error below anymore. With the EisHttpResponse
-        // we will get: "Response body could not be read as type play.api.libs.json.JsValue"
-        /*
-        withClue("secure log message contains response body and exception message") {
-          auditDetail.value.error.value must include("<html />")
-          auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
-        }
-         */
-
         val auditDetails = captor.value
         auditDetails.periodKey mustBe "period-2"
         auditDetails.internalId mustBe "internal-id-7"
