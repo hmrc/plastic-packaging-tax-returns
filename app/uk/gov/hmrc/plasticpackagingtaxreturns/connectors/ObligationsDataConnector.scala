@@ -74,7 +74,7 @@ class ObligationsDataConnector @Inject()
           case Status.OK => handleSuccess(pptReference, internalId, obligationStatus, queryParams, response)
           case Status.NOT_FOUND if response.isMagic404 =>
             val msg =  s"""Success on retrieving enterprise obligation data correlationId [${response.correlationId}] and """ +
-            s"pptReference [$pptReference], params [$queryParams], status: ${Status.OK}, body: ${ObligationDataResponse.empty}"
+            s"pptReference [$pptReference], params [$queryParams], status: ${Status.NOT_FOUND}, body: ${ObligationDataResponse.empty}"
 
             auditConnector.sendExplicitAudit(GetObligations.eventType,
               GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), Some(msg)))
