@@ -27,6 +27,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
 
 import java.util.UUID
@@ -76,12 +77,11 @@ class SubscriptionsConnector @Inject()
   def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
 
     val timerName =  "ppt.subscription.display.timer"
-    val correlationIdHeader = correlationIdHeaderName -> UUID.randomUUID().toString
 
     val url = appConfig.subscriptionDisplayUrl(pptReference)
-    eisHttpClient.get(url, Seq.empty, timerName)
+    eisHttpClient.get(url, Seq.empty, timerName, buildEisHeader)
       .map { response =>
-        logger.info(s"PPT view subscription with correlationId [${correlationIdHeader._2}] and pptReference [$pptReference]")
+        logger.info(s"PPT view subscription with correlationId [${response.correlationId}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status)) {
           val json = Json.parse(response.body.replaceAll("\\s", " "))//subscription data can come back un sanitised for json.
           Right(json.as[SubscriptionDisplayResponse])

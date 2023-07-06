@@ -30,7 +30,6 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{createSubscriptionDisplayResponse, soleTraderSubscription}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -44,7 +43,6 @@ class SubscriptionItSpec
     with BeforeAndAfterEach{
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  private val appConfig = app.injector.instanceOf[AppConfig]
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private lazy val sessionRepository = mock[SessionRepository]
 
@@ -126,7 +124,6 @@ class SubscriptionItSpec
 
       wireMock.verify(3, getRequestedFor(
         urlEqualTo(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"))
-        .withHeader(HeaderNames.AUTHORIZATION, equalTo(appConfig.bearerToken))
       )
     }
 
@@ -138,7 +135,17 @@ class SubscriptionItSpec
 
       wireMock.verify(1, getRequestedFor(
         urlEqualTo(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"))
-        .withHeader(HeaderNames.AUTHORIZATION, equalTo(appConfig.bearerToken))
+      )
+    }
+    "use a eis bearer token" in {
+      withAuthorizedUser()
+      stubSubscriptionDisplay(successfulDisplayResponse.toString())
+
+      await(wsClient.url(s"http://localhost:$port/subscriptions/$pptReference").get())
+
+      wireMock.verify(getRequestedFor(
+        urlEqualTo(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
       )
     }
   }
