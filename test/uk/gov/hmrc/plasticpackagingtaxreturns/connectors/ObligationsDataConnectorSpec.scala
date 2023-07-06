@@ -242,7 +242,7 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
         val expectedAudit = GetObligations("", "int-id", "ref-id", "Success", Some(ObligationDataResponse.empty), Some("""Success on retrieving enterprise obligation data correlationId [123] """
-          + s"""and pptReference [ref-id], params [List()], status: 200, body: ${ObligationDataResponse.empty}"""))
+          + s"""and pptReference [ref-id], params [List()], status: 404, body: ${ObligationDataResponse.empty}"""))
         verify(auditConnector).sendExplicitAudit(GetObligations.eventType, expectedAudit)
       }
 
