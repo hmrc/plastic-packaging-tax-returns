@@ -130,10 +130,6 @@ class ReturnsConnector @Inject()
             auditConnector.sendExplicitAudit(GetReturn.eventType,
               GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
             Left(response.status)
-            }
-            auditConnector.sendExplicitAudit(GetReturn.eventType,
-              GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
-            Left(response.status)
         }
       }
   }
