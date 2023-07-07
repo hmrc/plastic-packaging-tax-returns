@@ -264,7 +264,6 @@ class SubscriptionItSpec
       put(eisSubscriptionUpdateUrl).willReturn(serverError().withBody("error"))
     )
 
-  //todo this was taken from NonRepudiationConnectorISpec. Maybe it could be extracted and reused
   private def stubNonRepudiationSubmission: StubMapping = {
     wireMock.stubFor(
       post(s"/submission")

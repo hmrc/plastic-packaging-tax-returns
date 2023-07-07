@@ -68,21 +68,6 @@ class SubscriptionsConnector @Inject()
     }
   }
 
-  private def throwException(pptReference: String, correlationId: String, exception: Throwable) = {
-    throw new Exception(
-      s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
-      exception
-    )
-  }
-
-  private def throwException(pptReference: String, correlationId: String, body: String) = {
-    throw new Exception(
-      s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable due to [$body]",
-    )
-  }
-
   def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
 
     val timerName =  "ppt.subscription.display.timer"
@@ -106,5 +91,20 @@ class SubscriptionsConnector @Inject()
       case Left(errorResponse) => Future.failed(new RuntimeException("Failed to fetch subscription details from api, " +
         s"response code ${errorResponse.status}"))
     }
+  }
+
+  private def throwException(pptReference: String, correlationId: String, exception: Throwable) = {
+    throw new Exception(
+      s"Subscription update with correlationId [$correlationId] and " +
+        s"pptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
+      exception
+    )
+  }
+
+  private def throwException(pptReference: String, correlationId: String, body: String) = {
+    throw new Exception(
+      s"Subscription update with correlationId [$correlationId] and " +
+        s"pptReference [$pptReference] is currently unavailable due to [$body]",
+    )
   }
 }
