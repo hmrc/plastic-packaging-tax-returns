@@ -33,10 +33,13 @@ import java.util.UUID
 
 class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures with EitherValues {
 
-  lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
+  private lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
 
-  val displaySubscriptionTimer = "ppt.subscription.display.timer"
-  val updateSubscriptionTimer  = "ppt.subscription.update.timer"
+  private val displaySubscriptionTimer = "ppt.subscription.display.timer"
+  private val updateSubscriptionTimer  = "ppt.subscription.update.timer"
+
+  private val pptReference = UUID.randomUUID().toString
+  private val subscriptionUpdateUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -47,7 +50,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
     "requesting a subscription" should {
       "handle a 200 for uk company subscription" in {
 
-        val pptReference = UUID.randomUUID().toString
         stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(ukLimitedCompanySubscription))
 
         await(connector.getSubscription(pptReference))
@@ -57,7 +59,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
       "handle 200 for sole trader subscription" in {
 
-        val pptReference = UUID.randomUUID().toString
         stubSubscriptionDisplay(pptReference, createSubscriptionDisplayResponse(soleTraderSubscription))
 
         await(connector.getSubscription(pptReference))
@@ -67,7 +68,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
       "handle 200 for body with Illegal unquoted character ((CTRL-CHAR, code 9))" in {
 
-        val pptReference = UUID.randomUUID().toString
         val illegalData = "test data HQ UC	  " //due to the \t(tabb) on the end not escaped
         val body =
           s"""{
@@ -149,7 +149,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
       }
       
       "handle unexpected failure responses" in {
-        val pptReference = UUID.randomUUID().toString
 
         stubFor(
           get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
@@ -169,7 +168,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
     "requesting update subscription" should {
       "handle a 200 for updating uk company subscription" in {
 
-        val pptReference               = UUID.randomUUID().toString
         val subscriptionProcessingDate = ZonedDateTime.now(ZoneOffset.UTC).toString
         val formBundleNumber           = "1234567890"
 
@@ -178,9 +176,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         val updateDetails =
           createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
         val res: SubscriptionUpdateSuccessfulResponse =
-          await(connector.updateSubscription(pptReference, updateDetails)).asInstanceOf[
-            SubscriptionUpdateSuccessfulResponse
-          ]
+          await(connector.updateSubscription(pptReference, updateDetails))
 
         res.pptReferenceNumber mustBe pptReference
         res.formBundleNumber mustBe formBundleNumber
@@ -190,7 +186,6 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
       "handle 200 for sole trader subscription" in {
 
-        val pptReference               = UUID.randomUUID().toString
         val subscriptionProcessingDate = ZonedDateTime.now(ZoneOffset.UTC).toString
         val formBundleNumber           = "1234567890"
 
@@ -200,9 +195,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
 
         val res: SubscriptionUpdateSuccessfulResponse =
-          await(connector.updateSubscription(pptReference, updateDetails)).asInstanceOf[
-            SubscriptionUpdateSuccessfulResponse
-          ]
+          await(connector.updateSubscription(pptReference, updateDetails))
 
         res.pptReferenceNumber mustBe pptReference
         res.formBundleNumber mustBe formBundleNumber
@@ -211,15 +204,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
       }
 
       "handle unexpected exceptions thrown" in {
-        val pptReference = UUID.randomUUID().toString
 
-        stubFor(
-          put(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update")
-            .willReturn(
-              aResponse()
-                .withStatus(Status.OK)
-            )
-        )
+        stubSubscriptionUpdateFailure(500)
 
         intercept[Exception] {
           await(
@@ -227,6 +213,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           )
         }
       }
+
+
     }
   }
 
@@ -252,9 +240,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
       "return " + statusCode when {
         statusCode + " is returned from downstream service" in {
-          val pptReference = UUID.randomUUID().toString
 
-          stubSubscriptionUpdateFailure(httpStatus = statusCode, pptReference = pptReference)
+          stubSubscriptionUpdateFailure(httpStatus = statusCode)
 
           intercept[Exception] {
             await(
@@ -282,7 +269,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
     formBundleNumber: String
   ): Unit =
     stubFor(
-      put(s"/plastic-packaging-tax/subscriptions/PPT/${pptReference}/update")
+      put(subscriptionUpdateUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -295,7 +282,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         )
     )
 
-  private def stubSubscriptionUpdateFailure(pptReference: String, httpStatus: Int): Any =
+
+  private def stubSubscriptionUpdateFailure(httpStatus: Int): Any =
     stubFor(
       put(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update")
         .willReturn(
