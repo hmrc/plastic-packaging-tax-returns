@@ -56,14 +56,10 @@ class SubscriptionsConnector @Inject()
           val triedResponse = response.jsonAs[SubscriptionUpdateSuccessfulResponse]
 
           triedResponse match {
-            case Success(subscription) =>
-              logger.info(
-                s"PPT subscription update sent with correlationId [${response.correlationId}] and pptReference [$pptReference]"
-              )
-              subscription
+            case Success(subscription) => subscription
             case Failure(exception) => throwException(pptReference, response.correlationId, exception)
           }
-        case _ => throwException(pptReference, response.correlationId, response.body)
+        case _ => throwException(pptReference, response.correlationId, response.status)
       }
     }
   }
@@ -101,10 +97,10 @@ class SubscriptionsConnector @Inject()
     )
   }
 
-  private def throwException(pptReference: String, correlationId: String, body: String) = {
+  private def throwException(pptReference: String, correlationId: String, status: Int) = {
     throw new Exception(
       s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable due to [$body]",
+        s"pptReference [$pptReference] is currently unavailable. Status code is [$status]",
     )
   }
 }

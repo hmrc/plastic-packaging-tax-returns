@@ -15,14 +15,14 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, getRequestedFor, put, putRequestedFor, urlEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalTo, get, getRequestedFor, put, putRequestedFor, urlEqualTo}
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -148,12 +148,14 @@ class ChangeGroupLeadItSpec extends PlaySpec
 
       await(wsClient.url(Url).post(pptReference))
 
-      withClue("subscription display") {
-        wireMock.verify(1, getRequestedFor(urlEqualTo(subscriptionDisplayUrl)))
+      withClue("subscription display with eis bearer token") {
+        wireMock.verify(1, getRequestedFor(urlEqualTo(subscriptionDisplayUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
       }
 
-      withClue("subscription update") {
-        wireMock.verify(1, putRequestedFor(urlEqualTo(subscriptionUpdateUrl)))
+      withClue("subscription update with eis bearer token") {
+        wireMock.verify(1, putRequestedFor(urlEqualTo(subscriptionUpdateUrl))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
       }
     }
 
