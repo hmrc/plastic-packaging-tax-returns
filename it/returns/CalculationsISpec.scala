@@ -29,7 +29,7 @@ import play.api.http.Status
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.libs.json.Json.obj
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -77,10 +77,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
   "CalculationsItController" when {
     "calculating return" should {
       "return 200 when credit is not 0" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnsWithNoCreditDataJson))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, ReturnTestHelper.returnsWithNoCreditDataJson)))
 
         val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
 
@@ -88,10 +85,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return 200 when credit is available" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson)))
 
         val result = await(wsClient.url(returnUrl).get)
 
@@ -118,10 +112,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return unprocessable entity when user answer is invalid" in {
-        withAuthorizedUser()
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.invalidReturnsDataJson))))
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, ReturnTestHelper.invalidReturnsDataJson)))
 
         val result = await(wsClient.url(returnUrl).get)
 
@@ -129,10 +120,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return the calculation json" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, ReturnTestHelper.returnWithCreditsDataJson)))
 
         val result = await(wsClient.url(returnUrl).get)
 
@@ -142,31 +130,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "handle 'no credit' answers" in {
-        val json = obj (
-          "obligation" -> obj (
-            "periodKey" -> "22C4",
-            "fromDate" -> "2022-09-01",
-            "toDate" -> "2022-12-31"
-          ),
-          "manufacturedPlasticPackagingWeight" -> 13,
-          "importedPlasticPackagingWeight" -> 1,
-          "exportedPlasticPackagingWeight" -> 2,
-          "anotherBusinessExportWeight" -> 3,
-          "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
-          "nonExportRecycledPlasticPackagingWeight" -> 5,
-          "whatDoYouWantToDo" -> true,
-          "exportedCredits" -> obj (
-            "yesNo" -> true,
-            "weight" -> 0
-          ),
-          "convertedCredits" -> obj (
-            "yesNo" -> false,
-            "weight" -> 2000
-          )
-        )
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, noCreditAnswer)))
 
         val result = await(wsClient.url(returnUrl).get)
 
@@ -182,31 +146,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
       
       "handle don't claim answer" in {
-        val json = obj (
-          "obligation" -> obj (
-            "periodKey" -> "22C4",
-            "fromDate" -> "2022-09-01",
-            "toDate" -> "2022-12-31"
-          ),
-          "manufacturedPlasticPackagingWeight" -> 13,
-          "importedPlasticPackagingWeight" -> 1,
-          "exportedPlasticPackagingWeight" -> 2,
-          "anotherBusinessExportWeight" -> 3,
-          "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
-          "nonExportRecycledPlasticPackagingWeight" -> 5,
-          "whatDoYouWantToDo" -> false,
-          "exportedCredits" -> obj (
-            "yesNo" -> true,
-            "weight" -> 0
-          ),
-          "convertedCredits" -> obj (
-            "yesNo" -> true,
-            "weight" -> 2000
-          )
-        )
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(UserAnswers(pptReference, json)))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, noClaimAnswer)))
 
         val result = await(wsClient.url(returnUrl).get)
 
@@ -235,10 +175,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return a json" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends)))
 
         val result = await(wsClient.url(amendUrl).get)
 
@@ -246,10 +183,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return a 500 when cache is invalid" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference)))
 
         val result = await(wsClient.url(amendUrl).get)
 
@@ -257,14 +191,20 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       }
 
       "return a 500 when user answer is invalid" in {
-        when(sessionRepository.get(any))
-          .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataWithInvalidAmends))))
-        withAuthorizedUser()
-        stubGetBalanceRequest
+        setUpMock(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataWithInvalidAmends)))
 
         val result = await(wsClient.url(amendUrl).get)
 
         result.status mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "return a UNPROCESSABLE_ENTITY when cache is empty" in {
+        setUpMock(None)
+
+        val result = await(wsClient.url(amendUrl).get)
+
+        result.status mustBe UNPROCESSABLE_ENTITY
+        result.body mustBe "No user answers found"
       }
 
       "return unauthorised" in {
@@ -275,6 +215,62 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         result.status mustBe UNAUTHORIZED
       }
     }
+  }
+
+  private def noCreditAnswer = {
+    obj(
+      "obligation" -> obj(
+        "periodKey" -> "22C4",
+        "fromDate" -> "2022-09-01",
+        "toDate" -> "2022-12-31"
+      ),
+      "manufacturedPlasticPackagingWeight" -> 13,
+      "importedPlasticPackagingWeight" -> 1,
+      "exportedPlasticPackagingWeight" -> 2,
+      "anotherBusinessExportWeight" -> 3,
+      "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
+      "nonExportRecycledPlasticPackagingWeight" -> 5,
+      "whatDoYouWantToDo" -> true,
+      "exportedCredits" -> obj(
+        "yesNo" -> true,
+        "weight" -> 0
+      ),
+      "convertedCredits" -> obj(
+        "yesNo" -> false,
+        "weight" -> 2000
+      )
+    )
+  }
+
+  private def noClaimAnswer = {
+    obj(
+      "obligation" -> obj(
+        "periodKey" -> "22C4",
+        "fromDate" -> "2022-09-01",
+        "toDate" -> "2022-12-31"
+      ),
+      "manufacturedPlasticPackagingWeight" -> 13,
+      "importedPlasticPackagingWeight" -> 1,
+      "exportedPlasticPackagingWeight" -> 2,
+      "anotherBusinessExportWeight" -> 3,
+      "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
+      "nonExportRecycledPlasticPackagingWeight" -> 5,
+      "whatDoYouWantToDo" -> false,
+      "exportedCredits" -> obj(
+        "yesNo" -> true,
+        "weight" -> 0
+      ),
+      "convertedCredits" -> obj(
+        "yesNo" -> true,
+        "weight" -> 2000
+      )
+    )
+  }
+
+  private def setUpMock(ans: Option[UserAnswers]) = {
+    when(sessionRepository.get(any)).thenReturn(Future.successful(ans))
+    withAuthorizedUser()
+    stubGetBalanceRequest
   }
 
   private def stubGetBalanceRequest =

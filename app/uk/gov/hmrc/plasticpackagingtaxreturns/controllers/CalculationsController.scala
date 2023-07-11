@@ -22,11 +22,12 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
@@ -34,49 +35,58 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationsController @Inject()(
-                                        authenticator: Authenticator,
-                                        sessionRepository: SessionRepository,
-                                        override val controllerComponents: ControllerComponents,
-                                        calculationsService: PPTCalculationService,
-                                        creditsService: CreditsCalculationService,
-                                        availableCreditService: AvailableCreditService,
-                                        taxRateTable: TaxRateTable
-                                      )(implicit executionContext: ExecutionContext)
+  authenticator: Authenticator,
+  override val controllerComponents: ControllerComponents,
+  calculationsService: PPTCalculationService,
+  creditsService: CreditsCalculationService,
+  availableCreditService: AvailableCreditService,
+  taxRateTable: TaxRateTable,
+  userAnswersService: UserAnswersService
+)(implicit executionContext: ExecutionContext)
   extends BackendBaseController with Logging {
 
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        sessionRepository.get(request.cacheKey).map { optUa => {
 
-          val userAnswers = {
-            optUa.getOrElse(throw UserAnswersNotFoundException())
+        userAnswersService.get(request.cacheKey).map {
+          answer => answer match {
+            case Right(userAnswer) => getAmendCalculation(userAnswer)
+            case Left(result) => result
           }
-          val amend = AmendReturnValues(userAnswers).getOrElse {
-            throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
-          }
-
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable),
-            taxRateTable.lookupRateFor(amend.periodEndDate)) // TODO looks like a duplicate lookup?
-          val amendCalc = calculationsService.calculate(amend)
-          Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
-        }}
+        }
     }
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      sessionRepository.get(request.cacheKey).flatMap(
-        _.fold(Future.successful(UnprocessableEntity(UserAnswersErrors.notFound))){ userAnswers =>
-          availableCreditService.getBalance(userAnswers).map{ availableCredit =>
-            val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
-            NewReturnValues(requestedCredits, availableCredit)(userAnswers)
-              .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
-                val calculations: Calculations = calculationsService.calculate(returnValues)
-                Ok(Json.toJson(calculations))
-              }
-          }
+
+      userAnswersService.get(request.cacheKey).flatMap (
+        answer => answer match {
+          case Right(userAnswers) =>
+            availableCreditService.getBalance(userAnswers).map{ availableCredit =>
+              val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
+              NewReturnValues(requestedCredits, availableCredit)(userAnswers)
+                .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
+                  val calculations: Calculations = calculationsService.calculate(returnValues)
+                  Ok(Json.toJson(calculations))
+                }
+            }
+          case Left(error) => Future.successful(error)
         }
       )
     }
 
+  private def getAmendCalculation(userAnswers: UserAnswers) = {
+    val amend = AmendReturnValues(userAnswers).getOrElse {
+      throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
+    }
+
+    val originalCalc = Calculations.fromReturn(
+      userAnswers.getOrFail(ReturnDisplayApiGettable),
+      taxRateTable.lookupRateFor(amend.periodEndDate)
+    ) // TODO looks like a duplicate lookup?
+
+    val amendCalc = calculationsService.calculate(amend)
+    Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
+  }
 }

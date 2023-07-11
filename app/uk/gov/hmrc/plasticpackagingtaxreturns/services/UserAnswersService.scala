@@ -30,12 +30,23 @@ class UserAnswersService @Inject()(
   sessionRepository: SessionRepository
 )(implicit ce: ExecutionContext) {
 
-  def get(cachekey: String): Future[Either[Result, UserAnswers]] = {
+  def get(cacheKey: String): Future[Either[Result, UserAnswers]] = {
 
-    sessionRepository.get(cachekey).map(userAnswer => {
+    sessionRepository.get(cacheKey).map(userAnswer => {
       userAnswer match {
         case Some(answer) => Right(answer)
         case _ => Left(UnprocessableEntity(notFoundMsg))
+      }
+    })
+  }
+
+  //Todo: this may help to remove some duplication
+  def get(cacheKey: String, fn: (UserAnswers) => Result): Future[Result] = {
+
+    sessionRepository.get(cacheKey).map(userAnswer => {
+      userAnswer match {
+        case Some(answer) => fn(answer)
+        case _ => UnprocessableEntity(notFoundMsg)
       }
     })
   }
