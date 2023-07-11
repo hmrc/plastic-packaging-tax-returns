@@ -24,7 +24,6 @@ import play.api.http.Status.{IM_A_TEAPOT, INTERNAL_SERVER_ERROR, OK}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.{await, contentAsString, defaultAwaitTimeout, status}
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
@@ -36,6 +35,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 
 import java.time.ZonedDateTime
 import scala.concurrent.ExecutionContext.global
@@ -143,7 +143,7 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       }
       
       "get subscription does not return a subscription" in {
-        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Left(HttpResponse(IM_A_TEAPOT, "test"))))
+        when(mockSubscriptionsConnector.getSubscription(refEq(FakeAuthenticator.pptRef))(any)).thenReturn(Future.successful(Left(EisHttpResponse(IM_A_TEAPOT, "test", "123"))))
 
         val result = sut.change("some-ppt-ref")(FakeRequest())
 

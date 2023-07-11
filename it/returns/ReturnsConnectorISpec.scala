@@ -70,7 +70,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
-        res.right.get mustBe returnsSubmissionResponse
+        res mustBe Right(returnsSubmissionResponse)
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -94,7 +94,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        res.leftSideValue mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
         verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
 
@@ -122,7 +122,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
-            res.left.get mustBe statusCode
+            res.leftSideValue mustBe Left(statusCode)
 
             // TODO this fails sometimes even when it shouldn't?
             verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
@@ -152,7 +152,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
-        res.right.get mustBe Json.toJson(returnForDisplay)
+        res mustBe Right(Json.toJson(returnForDisplay))
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -171,7 +171,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
-        res.left.get mustBe Status.INTERNAL_SERVER_ERROR
+        res.leftSideValue mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -198,7 +198,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
-            res.left.get mustBe statusCode
+            res.leftSideValue mustBe Left(statusCode)
 
             eventually(timeout(Span(5, Seconds))) {
               eventSendToAudit(auditUrl, auditModel) mustBe true

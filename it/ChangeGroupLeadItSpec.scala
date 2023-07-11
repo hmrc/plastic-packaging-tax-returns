@@ -15,14 +15,14 @@
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, put}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalTo, get, getRequestedFor, put, putRequestedFor, urlEqualTo}
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -48,7 +48,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
   with BeforeAndAfterAll
   with BeforeAndAfterEach {
 
-  implicit lazy val server: WiremockItServer = WiremockItServer()
+  implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   private lazy val repository = mock[SessionRepository]
@@ -57,10 +57,10 @@ class ChangeGroupLeadItSpec extends PlaySpec
   private val subscriptionUpdateUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
   override lazy val app: Application = {
-    server.start()
+    wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(wireMock.overrideConfig)
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].toInstance(repository)
@@ -71,29 +71,19 @@ class ChangeGroupLeadItSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
+    wireMock.reset()
+
+    when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
   }
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    server.stop()
+    wireMock.stop()
   }
 
   "service" should {
     "return 200" in { // todo needs fixing
-      when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
-      when(repository.clear(any)).thenReturn(Future.successful(true))
-
-      // withAuthorizedUser() <-- when clause in here doesn't match call used by NonRepudiationService
-      val signedInUser: SignedInUser = newUser(Some(pptEnrolment(pptReference)))
-      val enrolments: Enrolments ~ Option[String] = new ~(signedInUser.enrolments, signedInUser.internalId)
-      when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any, any)(any, any)) thenReturn Future.successful(
-        enrolments)
-
-      stubSubscriptionDisplayRequest(
-        Status.OK,
-        Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()
-      )
-      stubSubscriptionUpdateRequest(Status.OK, createUpdateSubscriptionResponseBody)
+      setUpMock()
 
       val response = await(wsClient.url(Url).post(pptReference))
 
@@ -102,7 +92,6 @@ class ChangeGroupLeadItSpec extends PlaySpec
 
     "return error" when {
       "when no subscription available" in {
-        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(Status.NOT_FOUND)
         stubSubscriptionUpdateRequest(Status.OK, createUpdateSubscriptionResponseBody)
@@ -113,7 +102,6 @@ class ChangeGroupLeadItSpec extends PlaySpec
       }
 
       "when no user available" in {
-        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
         when(repository.clear(any)).thenReturn(Future.successful(false))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(Status.OK)
@@ -125,7 +113,6 @@ class ChangeGroupLeadItSpec extends PlaySpec
       }
 
       "when cannot update subscription" in {
-        when(repository.get(any)).thenReturn(Future.successful(Some(userAnswer)))
         when(repository.clear(any)).thenReturn(Future.successful(true))
         withAuthorizedUser()
         stubSubscriptionDisplayRequest(
@@ -148,10 +135,62 @@ class ChangeGroupLeadItSpec extends PlaySpec
       }
     }
 
+    "retry display subscription 3 times" in {
+      setUpMock(displayStatus = INTERNAL_SERVER_ERROR)
+
+      await(wsClient.url(Url).post(pptReference))
+
+      wireMock.verify(3, getRequestedFor(urlEqualTo(subscriptionDisplayUrl)))
+    }
+
+    "retry 1 times" in {
+      setUpMock()
+
+      await(wsClient.url(Url).post(pptReference))
+
+      withClue("subscription display with eis bearer token") {
+        wireMock.verify(1, getRequestedFor(urlEqualTo(subscriptionDisplayUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+      }
+
+      withClue("subscription update with eis bearer token") {
+        wireMock.verify(1, putRequestedFor(urlEqualTo(subscriptionUpdateUrl))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+      }
+    }
+
+    "retry update subscription 3 times" in {
+      setUpMock(updateStatus = Status.INTERNAL_SERVER_ERROR)
+
+      await(wsClient.url(Url).post(pptReference))
+
+      wireMock.verify(3, putRequestedFor(urlEqualTo(subscriptionUpdateUrl)))
+    }
+  }
+
+  private def setUpMock(
+    displayStatus: Int = Status.OK,
+    updateStatus: Int = Status.OK
+  ): Unit = {
+    when(repository.clear(any)).thenReturn(Future.successful(true))
+    authorisedUser
+
+    stubSubscriptionDisplayRequest(
+      displayStatus,
+      Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()
+    )
+    stubSubscriptionUpdateRequest(updateStatus, createUpdateSubscriptionResponseBody)
+  }
+
+  private def authorisedUser = {
+    val signedInUser: SignedInUser = newUser(Some(pptEnrolment(pptReference)))
+    val enrolments: Enrolments ~ Option[String] = new ~(signedInUser.enrolments, signedInUser.internalId)
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any, any)(any, any)) thenReturn Future.successful(
+      enrolments)
   }
 
   private def stubSubscriptionUpdateRequest(status: Int, body: String = ""): Unit = {
-    server.stubFor(
+    wireMock.stubFor(
       put(subscriptionUpdateUrl)
         .willReturn(
           aResponse()
@@ -171,7 +210,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
   }
 
   private def stubSubscriptionDisplayRequest(status: Int, body: String = ""): Unit = {
-    server.stubFor(
+    wireMock.stubFor(
       get(subscriptionDisplayUrl)
         .willReturn(
           aResponse()
