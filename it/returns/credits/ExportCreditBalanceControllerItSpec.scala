@@ -25,9 +25,11 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
+import play.api.http.HeaderNames
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import play.api.libs.json.Json.obj
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -74,14 +76,12 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
     totalExportCreditAvailable = BigDecimal(200)
   )
 
-  private def stubGetBalanceResponse() = {
+  private def stubGetBalanceResponse(status: Int, body: String) = {
     wireMock.stubFor(get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
       .willReturn(
-        ok()
-          .withBody(ExportCreditBalanceDisplayResponse
-            .format
-            .writes(exportCreditBalanceDisplayResponse)
-            .toString())
+        aResponse()
+          .withStatus(status)
+          .withBody(body)
       )
     )
   }
@@ -101,13 +101,14 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector, sessionRepository)
+    wireMock.reset()
   }
 
 
   "get" should {
     "return the credit calculations" in {
       withAuthorizedUser()
-      stubGetBalanceResponse()
+      stubGetBalanceResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       val response = await(wsClient.url(url).get)
 
@@ -147,6 +148,44 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         val response = await(wsClient.url(url).get)
         response.status mustBe UNAUTHORIZED
       }
+
+      "credit balance return an error" in {
+        withAuthorizedUser()
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
+        stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
+        val response = await(wsClient.url(url).get)
+        response.status mustBe INTERNAL_SERVER_ERROR
+        response.json mustBe obj("statusCode" -> 500, "message" -> "Error calling EIS export credit, status: 404")
+      }
+
+      "credit balance return invalid json" in {
+        withAuthorizedUser()
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
+        stubGetBalanceResponse(200, "booo")
+        val response = await(wsClient.url(url).get)
+        response.status mustBe INTERNAL_SERVER_ERROR
+        response.json mustBe obj("statusCode" -> 500, "message" -> "Error calling EIS export credit, status: 500")
+      }
+    }
+
+    "retry the credit balance API 3 time" in {
+      withAuthorizedUser()
+      when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
+      stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
+      val response = await(wsClient.url(url).get)
+
+      wireMock.verify(3, getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+      .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+    }
+
+    "retry the credit balance API 1 time" in {
+      withAuthorizedUser()
+      when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
+      stubGetBalanceResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())
+      val response = await(wsClient.url(url).get)
+
+      wireMock.verify(1, getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
     }
 
   }

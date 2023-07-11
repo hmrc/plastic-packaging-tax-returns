@@ -16,27 +16,26 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.codahale.metrics.Timer
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logger
+import play.api.http.Status
 import play.api.http.Status.INTERNAL_SERVER_ERROR
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, UpstreamErrorResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetExportCredits
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDate
-import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class ExportCreditBalanceConnector @Inject() (
-  httpClient: HttpClient,
+  eisHttpClient: EisHttpClient,
   override val appConfig: AppConfig,
-  metrics: Metrics,
   auditConnector: AuditConnector
 )(implicit ec: ExecutionContext)
     extends EISConnector {
@@ -44,56 +43,48 @@ class ExportCreditBalanceConnector @Inject() (
   private val logger = Logger(this.getClass)
 
   def getBalance(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String)(implicit
-    hc: HeaderCarrier
+                                                                                                   hc: HeaderCarrier
   ): Future[Either[Int, ExportCreditBalanceDisplayResponse]] = {
 
-    val timer: Timer.Context                  = metrics.defaultRegistry.timer("ppt.exportcreditbalance.display.timer").time()
-    val correlationIdHeader: (String, String) = correlationIdHeaderName -> UUID.randomUUID().toString
-    val requestHeaders: Seq[(String, String)] = headers :+ correlationIdHeader
-    val queryParams: Seq[(String, String)]    = Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
-    val SUCCESS: String                       = "Success"
-    val FAILURE: String                       = "Failure"
+    val timerName: String = "ppt.exportcreditbalance.display.timer"
+    val queryParams: Seq[(String, String)] = Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
+    val SUCCESS: String = "Success"
+    val FAILURE: String = "Failure"
 
-    httpClient.GET[ExportCreditBalanceDisplayResponse](appConfig.exportCreditBalanceDisplayUrl(pptReference),
-                                                       queryParams = queryParams,
-                                                       headers = requestHeaders
-    )
-      .andThen { case _ => timer.stop() }
-      .map { response =>
-        logger.info(
-          s"PPT view export credit balance with correlationId [$correlationIdHeader._2] pptReference [$pptReference] params [$queryParams]"
-        )
+    eisHttpClient.get(appConfig.exportCreditBalanceDisplayUrl(pptReference),
+      queryParams = queryParams,
+      timerName,
+      buildEisHeader
+    ).map { response =>
+      response.status match {
+        case Status.OK =>
+          val triedResponse = response.jsonAs[ExportCreditBalanceDisplayResponse]
 
-        auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-          GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(response), None))
+          triedResponse match {
+            case Success(balance) =>
+              auditConnector.sendExplicitAudit(GetExportCredits.eventType,
+                GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(balance), None))
 
-        Right(response)
+              Right(balance)
+            case Failure(exception) =>
 
-      }
-      .recover {
-        case httpEx: UpstreamErrorResponse =>
-          logger.warn(
-            s"Upstream error returned on viewing export credit balance with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], params [$queryParams], status: ${httpEx.statusCode}, body: ${httpEx.getMessage()}"
-          )
+              auditConnector.sendExplicitAudit(GetExportCredits.eventType,
+                GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(exception.getMessage())))
 
-          auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-            GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(httpEx.getMessage())))
+              Left(INTERNAL_SERVER_ERROR)
 
-          Left(httpEx.statusCode)
+          }
+        case _ =>
 
-        case ex: Exception =>
-          logger.warn(
-            s"Export credit balance display with correlationId [${correlationIdHeader._2}] and " +
-              s"pptReference [$pptReference], params [$queryParams] is currently unavailable due to [${ex.getMessage}]",
-            ex
-          )
+          val msg = s"Upstream error returned on viewing export credit balance with correlationId [${response.correlationId}] and " +
+            s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
+          logger.warn(msg)
 
           auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-            GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(ex.getMessage())))
+            GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(s"$msg, body: ${response.body}")))
 
-          Left(INTERNAL_SERVER_ERROR)
+          Left(response.status)
       }
+    }
   }
-
 }

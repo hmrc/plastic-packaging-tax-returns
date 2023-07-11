@@ -22,7 +22,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.Status
+import play.api.http.{HeaderNames, Status}
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -166,7 +166,8 @@ class PPTFinancialsItSpec extends PlaySpec
       server.stubFor(get(DESUrl).willReturn(serverError()))
 
       await(wsClient.url(Url).get())
-      server.verify(3, getRequestedFor(urlEqualTo(DESUrl)))
+      server.verify(3, getRequestedFor(urlEqualTo(DESUrl))
+      .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer des-test123456")))
     }
 
     "not retry if api call is a 200" in {

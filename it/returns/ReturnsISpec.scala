@@ -229,7 +229,7 @@ class ReturnsISpec extends PlaySpec
     await(wsClient.url(validGetReturnDisplayUrl).get())
 
     wireMock.verify(getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
-      .withHeader(HeaderNames.AUTHORIZATION, equalTo(appConfig.bearerToken)))
+      .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
   }
 
 
