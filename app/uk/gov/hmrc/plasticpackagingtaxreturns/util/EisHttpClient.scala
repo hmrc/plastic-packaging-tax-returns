@@ -157,12 +157,16 @@ class EisHttpClient @Inject() (
           if (times != retryAttempts)
             logger.warn(s"PPT_RETRY successful: url $url correlation-id ${response.correlationId}")
           Future.successful(response)
+          
         case response if times > 1 =>
           logger.warn(s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}")
           futures
             .delay(retryDelayInMillisecond milliseconds)
             .flatMap { _ => retry(times - 1, function, successFun, url) }
-        case response => Future.successful(response)
+          
+        case response =>
+          logger.warn(s"PPT_RETRY gave up: url $url correlation-id ${response.correlationId}")
+          Future.successful(response)
       }
 
 }
