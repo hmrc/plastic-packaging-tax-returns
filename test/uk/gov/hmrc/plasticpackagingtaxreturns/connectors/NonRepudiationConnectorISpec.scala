@@ -105,7 +105,7 @@ class NonRepudiationConnectorISpec
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(request.toString()))
-        .withHeader(NonRepudiationConnector.apiKey, equalTo(apiKey))
+        .withHeader("X-API-Key", equalTo(apiKey))
         .willReturn(
           aResponse()
             .withStatus(status)
@@ -119,7 +119,7 @@ class NonRepudiationConnectorISpec
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(requestJson.toString()))
-        .withHeader(NonRepudiationConnector.apiKey, equalTo(apiKey))
+        .withHeader("X-API-Key", equalTo(apiKey))
         .willReturn(
           aResponse()
             .withStatus(status)
@@ -136,7 +136,7 @@ class NonRepudiationConnectorISpec
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(request.toString()))
-        .withHeader(NonRepudiationConnector.apiKey, equalTo(apiKey))
+        .withHeader("X-API-Key", equalTo(apiKey))
         .inScenario(scenario)
         .whenScenarioStateIs("Started")
         .willReturn(
@@ -149,7 +149,7 @@ class NonRepudiationConnectorISpec
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(request.toString()))
-        .withHeader(NonRepudiationConnector.apiKey, equalTo(apiKey))
+        .withHeader("X-API-Key", equalTo(apiKey))
         .inScenario(scenario)
         .whenScenarioStateIs("One Failure")
         .willReturn(

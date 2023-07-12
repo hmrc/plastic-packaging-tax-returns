@@ -26,7 +26,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.http.HeaderNames
-import play.api.http.Status.{OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
