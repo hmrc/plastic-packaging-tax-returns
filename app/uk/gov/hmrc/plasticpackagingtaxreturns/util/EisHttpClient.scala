@@ -124,7 +124,7 @@ class EisHttpClient @Inject() (
         }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
-    retry(retryAttempts, putFunction, successFun)
+    retry(retryAttempts, putFunction, successFun, url)
       .andThen { case _ => timer.stop() }
   }
 
@@ -146,19 +146,19 @@ class EisHttpClient @Inject() (
         EisHttpResponse.fromHttpResponse(correlationId)
       }
 
-    retry(retryAttempts, getFunction, successFun)
+    retry(retryAttempts, getFunction, successFun, url)
       .andThen{ case _ => timer.stop() }
   }
 
-  def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun): Future[EisHttpResponse] =
+  def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun, url: String): Future[EisHttpResponse] =
     function()
       .flatMap {
         case response if successFun(response) => Future.successful(response)
         case response if times > 1 =>
-          logger.warn(s"PPT_RETRY retrying api call: status ${response.status} correlation-id ${response.correlationId}")
+          logger.warn(s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}")
           futures
             .delay(retryDelayInMillisecond milliseconds)
-            .flatMap { _ => retry(times - 1, function, successFun) }
+            .flatMap { _ => retry(times - 1, function, successFun, url) }
         case response => Future.successful(response)
       }
 
