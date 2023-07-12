@@ -21,7 +21,6 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
-import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.UserAnswersErrors
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
@@ -59,7 +58,7 @@ class CalculationsController @Inject()(
     availableCreditService.getBalance(userAnswers).map { availableCredit =>
       val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
       NewReturnValues(requestedCredits, availableCredit)(userAnswers)
-        .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
+        .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
           Ok(Json.toJson(calculations))
         }

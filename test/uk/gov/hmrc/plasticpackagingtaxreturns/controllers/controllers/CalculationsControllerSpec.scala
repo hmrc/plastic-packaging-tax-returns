@@ -32,7 +32,6 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
@@ -168,7 +167,7 @@ class CalculationsControllerSpec
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         
         val result = sut.calculateSubmit(pptReference)(FakeRequest())
-        await(result) mustBe UnprocessableEntity(UserAnswersErrors.notFound)
+        await(result) mustBe UnprocessableEntity("User answers insufficient")
       }
 
       "a must have field is missing from user answers" in {
