@@ -17,26 +17,27 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.{mock, times, verify, when}
-import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.Futures.whenReady
-import org.scalatest.flatspec.AsyncFlatSpec
+import org.mockito.MockitoSugar.{mock, reset, spyLambda, verify, verifyNoMoreInteractions, when}
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
-import play.api.mvc.Results.UnprocessableEntity
+import play.api.mvc.Result
+import play.api.mvc.Results.{Ok, UnprocessableEntity}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersService.notFoundMsg
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserAnswersServiceSpec extends PlaySpec {
+class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach{
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   val sessionRepository = mock[SessionRepository]
   val service = new UserAnswersService(sessionRepository)(ec)
 
-//  behavior of "get"
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(sessionRepository)
+  }
 
   "get" should {
     "return a userAnswers from repository" in {
@@ -53,7 +54,33 @@ class UserAnswersServiceSpec extends PlaySpec {
       when(sessionRepository.get(any)).thenReturn(Future.successful(None))
 
       val result = await(service.get("123"))
-      result mustBe Left(UnprocessableEntity(notFoundMsg))
+      result mustBe Left(UnprocessableEntity("No user answers found"))
+    }
+  }
+
+  "get with function parameter"  should {
+    val block: UserAnswers => Future[Result] = (_) => Future.successful(Ok("blah"))
+    val spyBlock = spyLambda(block)
+
+    "execute the block if userAnswer found" in {
+      val ans = UserAnswers("123")
+      when(sessionRepository.get(any)).thenReturn(Future.successful(Some(ans)))
+
+      val result = await(service.get("123", spyBlock))
+
+      result mustBe Ok("blah")
+      verify(spyBlock)(ans)
+      verify(sessionRepository).get(eqTo("123"))
+    }
+
+    "not execute the block if userAnswer not found" in {
+      when(sessionRepository.get(any)).thenReturn(Future.successful(None))
+
+      val result = await(service.get("123", spyBlock))
+
+      result mustBe UnprocessableEntity("No user answers found")
+      verifyNoMoreInteractions(spyBlock)
+      verify(sessionRepository).get(eqTo("123"))
     }
   }
 }
