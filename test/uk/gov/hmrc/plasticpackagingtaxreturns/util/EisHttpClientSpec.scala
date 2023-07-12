@@ -25,6 +25,7 @@ import org.mockito.MockitoSugar
 import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
+import play.api.Logger
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -47,10 +48,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   private val edgeOfSystem = mock[EdgeOfSystem]
   private val metrics = mock[Metrics](RETURNS_DEEP_STUBS)
   private val futures = mock[Futures]
-
-  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem, metrics, futures)
-  private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
   private val timer = mock[Timer.Context]
+  private val testLogger = mock[Logger]
+  private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
+
+  private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem, metrics, futures) {
+    protected override val logger: Logger = testLogger
+  }
 
   case class ExampleModel(vitalData: Int = 1)
 
@@ -255,6 +259,40 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(hmrcClient, times(1)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
       verifyNoMoreInteractions(futures)
       response.status mustBe 422 
+    }
+    
+    "log a retry and its eventual success" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn(
+        Future.successful(HmrcResponse(500, "")),
+        Future.successful(HmrcResponse(200, "")),
+      )
+
+      callPut
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
+
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
+    }
+
+    "not log if successful first time" in {
+      callPut
+      verify(testLogger, times(0)).warn(any)(any)
+    }
+    
+    "log when giving up" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HmrcResponse(500, ""))
+
+      callPut
+      verify(testLogger, times(2)).warn(
+        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
+
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
     }
 
   }
