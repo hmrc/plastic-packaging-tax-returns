@@ -154,12 +154,12 @@ class EisHttpClient @Inject() (
     function()
       .flatMap {
         case response if successFun(response) => Future.successful(response)
-        case response if times == 1 => Future.successful(response)
-        case response =>
+        case response if times > 1 =>
           logger.warn(s"PPT_RETRY retrying api call: status ${response.status} correlation-id ${response.correlationId}")
           futures
             .delay(retryDelayInMillisecond milliseconds)
             .flatMap { _ => retry(times - 1, function, successFun) }
+        case response => Future.successful(response)
       }
 
 }
