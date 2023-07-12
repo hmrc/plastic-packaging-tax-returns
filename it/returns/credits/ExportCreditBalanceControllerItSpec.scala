@@ -26,7 +26,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.http.HeaderNames
-import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
+import play.api.http.Status.{OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
@@ -37,7 +37,6 @@ import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
@@ -140,8 +139,8 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         withAuthorizedUser()
         when(sessionRepository.get(any)).thenReturn(Future.successful(None))
         val response = await(wsClient.url(url).get)
-        response.status mustBe INTERNAL_SERVER_ERROR
-        response.json mustBe obj("statusCode" -> 500, "message" -> UserAnswersErrors.notFound)
+        response.status mustBe UNPROCESSABLE_ENTITY
+        response.body mustBe "No user answers found"
       }
 
       "user is not authorized" in {

@@ -21,12 +21,11 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.{UserAnswersErrors, UserAnswersNotFoundException}
+import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.UserAnswersErrors
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
