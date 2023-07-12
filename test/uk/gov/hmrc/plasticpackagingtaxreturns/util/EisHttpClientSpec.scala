@@ -261,7 +261,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       response.status mustBe 422 
     }
     
-    "log a retry" in {
+    "log a retry and its eventual success" in {
       when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, "")),
@@ -270,6 +270,10 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       callPut
       verify(testLogger, times(1)).warn(
         eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
+
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
       )(any)
     }
 
