@@ -40,13 +40,12 @@ class UserAnswersService @Inject()(
     })
   }
 
-  //Todo: this may help to remove some duplication
-  def get(cacheKey: String, fn: (UserAnswers) => Result): Future[Result] = {
+  def get(cacheKey: String, fn: UserAnswers => Future[Result]): Future[Result] = {
 
-    sessionRepository.get(cacheKey).map(userAnswer => {
+    sessionRepository.get(cacheKey).flatMap(userAnswer => {
       userAnswer match {
         case Some(answer) => fn(answer)
-        case _ => UnprocessableEntity(notFoundMsg)
+        case _ => Future.successful(UnprocessableEntity(notFoundMsg))
       }
     })
   }

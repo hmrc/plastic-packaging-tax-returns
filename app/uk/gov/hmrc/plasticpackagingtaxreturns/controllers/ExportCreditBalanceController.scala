@@ -36,13 +36,7 @@ class ExportCreditBalanceController @Inject() (
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-
-      userAnswersService.get(request.cacheKey).flatMap {
-        answer => answer match {
-          case Right(userAnswer) => getCreditClaim(userAnswer)
-          case Left(result) => Future.successful(result)
-        }
-      }
+      userAnswersService.get(request.cacheKey, getCreditClaim)
     }
 
   private def getCreditClaim(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Result] = {

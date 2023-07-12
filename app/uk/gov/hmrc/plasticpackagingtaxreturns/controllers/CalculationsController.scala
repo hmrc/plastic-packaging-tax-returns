@@ -20,7 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.exceptionHandler.UserAnswersErrors
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
@@ -47,35 +47,26 @@ class CalculationsController @Inject()(
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-
-        userAnswersService.get(request.cacheKey).map {
-          answer => answer match {
-            case Right(userAnswer) => getAmendCalculation(userAnswer)
-            case Left(result) => result
-          }
-        }
+        userAnswersService.get(request.cacheKey, getAmendCalculation)
     }
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-
-      userAnswersService.get(request.cacheKey).flatMap (
-        answer => answer match {
-          case Right(userAnswers) =>
-            availableCreditService.getBalance(userAnswers).map{ availableCredit =>
-              val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
-              NewReturnValues(requestedCredits, availableCredit)(userAnswers)
-                .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
-                  val calculations: Calculations = calculationsService.calculate(returnValues)
-                  Ok(Json.toJson(calculations))
-                }
-            }
-          case Left(error) => Future.successful(error)
-        }
-      )
+      userAnswersService.get(request.cacheKey, calculateReturn)
     }
 
-  private def getAmendCalculation(userAnswers: UserAnswers) = {
+  private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) = {
+    availableCreditService.getBalance(userAnswers).map { availableCredit =>
+      val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
+      NewReturnValues(requestedCredits, availableCredit)(userAnswers)
+        .fold(UnprocessableEntity(UserAnswersErrors.notFound)) { returnValues =>
+          val calculations: Calculations = calculationsService.calculate(returnValues)
+          Ok(Json.toJson(calculations))
+        }
+    }
+  }
+
+  private def getAmendCalculation(userAnswers: UserAnswers): Future[Result] = {
     val amend = AmendReturnValues(userAnswers).getOrElse {
       throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
     }
@@ -86,6 +77,6 @@ class CalculationsController @Inject()(
     ) // TODO looks like a duplicate lookup?
 
     val amendCalc = calculationsService.calculate(amend)
-    Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
+    Future.successful(Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))))
   }
 }

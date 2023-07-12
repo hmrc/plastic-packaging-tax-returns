@@ -37,6 +37,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
+import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
@@ -59,7 +60,8 @@ class CalculationsControllerSpec
   private val pptCalculationService = mock[PPTCalculationService]
   private val creditsCalculationService = mock[CreditsCalculationService]
   private val taxRateTable = mock[TaxRateTable]
-  private val userAnswersService = mock[UserAnswersService]
+  private val sessionRepository = mock[SessionRepository]
+  private val userAnswersService = new UserAnswersService(sessionRepository)
 
   private val sut = new CalculationsController(
     new FakeAuthenticator(cc),
@@ -73,9 +75,9 @@ class CalculationsControllerSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(userAnswersService, availableCreditService, pptCalculationService, creditsCalculationService, taxRateTable)
+    reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateTable)
 
-    when(userAnswersService.get(any[String])) thenReturn Future.successful(Right(userAnswers))
+    when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
     when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
     when(taxRateTable.lookupRateFor(any)).thenReturn(0.123)
   }
@@ -108,7 +110,7 @@ class CalculationsControllerSpec
 
     "return un-processable entity" when {
       "has an incomplete cache" in {
-        when(userAnswersService.get(any[String])) thenReturn Future.successful(Right(invalidUserAnswers))
+        when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(invalidUserAnswers))
 
         val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
 
@@ -116,7 +118,7 @@ class CalculationsControllerSpec
       }
 
       "there is no cache" in {
-        when(userAnswersService.get(any[String])) thenReturn Future.successful(Left(UnprocessableEntity("boo")))
+        when(sessionRepository.get(any[String])) thenReturn Future.successful(None)
 
         val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
 
@@ -131,8 +133,8 @@ class CalculationsControllerSpec
 
       val amendCalc = Calculations(2, 3, 4, 5, false, taxRate = 0.123)
 
-      when(userAnswersService.get(any[String]))
-        .thenReturn(Future.successful(Right(UserAnswers("id", AmendTestHelper.userAnswersDataAmends))))
+      when(sessionRepository.get(any[String]))
+        .thenReturn(Future.successful(Some(UserAnswers("id", AmendTestHelper.userAnswersDataAmends))))
       when(pptCalculationService.calculate(any)).thenReturn(amendCalc)
 
       val result = sut.calculateAmends(pptReference)(FakeRequest())
@@ -144,8 +146,8 @@ class CalculationsControllerSpec
     "calculate amend return" in {
       val ans = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
 
-      when(userAnswersService.get(any[String]))
-        .thenReturn(Future.successful(Right(ans)))
+      when(sessionRepository.get(any[String]))
+        .thenReturn(Future.successful(Some(ans)))
       when(pptCalculationService.calculate(any)).thenReturn(Calculations(1,0,0,10, true, taxRate = 0.123))
 
       await(sut.calculateAmends(pptReference)(FakeRequest()))
@@ -160,7 +162,7 @@ class CalculationsControllerSpec
     "calculating a new return" when {
       
       "building ReturnValues fails" in {
-        when(userAnswersService.get(any)) thenReturn Future.successful(Right(
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
           userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight")))
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
@@ -170,7 +172,7 @@ class CalculationsControllerSpec
       }
 
       "a must have field is missing from user answers" in {
-        when(userAnswersService.get(any)) thenReturn Future.successful(Right(
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(
           userAnswers.removePath(JsPath \ Symbol("obligation") \ Symbol("toDate"))))
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
@@ -198,7 +200,7 @@ class CalculationsControllerSpec
       
       "calculations service complains" in {
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
-        when(userAnswersService.get(any)) thenReturn Future.successful(Right(userAnswers))
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         when(pptCalculationService.calculate(any)) thenThrow new RuntimeException("boom")
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "boom"
@@ -207,13 +209,13 @@ class CalculationsControllerSpec
       "building ReturnValues fails" in {
         // remove an 'optional' field
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends).removePath(JsPath \ "returnDisplayApi")
-        when(userAnswersService.get(any)) thenReturn Future.successful(Right(userAnswers))
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "Failed to build AmendReturnValues from UserAnswers"
       }
 
       "fetching the user answers fails 1" in {
-        when(userAnswersService.get(any)) thenReturn Future.successful(Left(UnprocessableEntity("boom")))
+        when(sessionRepository.get(any)) thenReturn Future.successful(None)
 
         val result = sut.calculateAmends(pptReference)(FakeRequest())
 
@@ -223,7 +225,7 @@ class CalculationsControllerSpec
       "must have field in user answers are missing" in {
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
           .removePath(JsPath \ Symbol("amend") \ Symbol("obligation") \ Symbol("toDate"))
-        when(userAnswersService.get(any)) thenReturn Future.successful(Right(userAnswers))
+        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "/amend/obligation/toDate is missing from user answers"
       }
