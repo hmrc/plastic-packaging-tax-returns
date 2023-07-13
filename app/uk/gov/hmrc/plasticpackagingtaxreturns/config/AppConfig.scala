@@ -17,10 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
@@ -82,8 +80,8 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
    * @example {{{"2023-03-31T23:59:59"}}}
    * @example {{{"2023-04-01T00:00:00"}}} sets the override
    * @example {{{"DO_NOT_OVERRIDE"}}}
-   * @see [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
-   * @see [[EdgeOfSystem.localDateTimeNow]]
+   * @see [[java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
+   * @see [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
    */
   def overrideSystemDateTime: Option[String] =
     config.getOptional[String]("features.override-system-date-time")

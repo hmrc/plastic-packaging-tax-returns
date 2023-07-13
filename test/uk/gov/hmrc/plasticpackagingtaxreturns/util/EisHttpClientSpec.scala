@@ -30,7 +30,7 @@ import play.api.libs.concurrent.Futures
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HttpReads.Implicits
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.http.{GatewayTimeoutException, HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
@@ -216,7 +216,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   "retry" should {
     
     "try again if the first attempt fails" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn (
+      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)).thenReturn (
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, "")),
       )
@@ -262,7 +262,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
     
     "log a retry and its eventual success" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn(
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, "")),
       )
@@ -295,6 +295,39 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )(any)
     }
 
+    "retry after an exception" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(new GatewayTimeoutException("exception-message"))
+      the [Exception] thrownBy callPut must have message "exception-message"
+      verify(hmrcClient, times(3)).PUT[Any, Any](any, any, any) (any, any, any, any)
+      
+      withClue("log each retry") {
+        verify(testLogger, times(2)).warn(
+          eqTo("PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")
+        )(any)
+      }
+
+      withClue("log when it gives up") {
+        verify(testLogger, times(1)).warn(
+          eqTo("PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")
+        )(any)
+      }
+    }
+
+    "stop retrying if successful after an exception" in {
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn (
+        Future.failed(new GatewayTimeoutException("exception-message")),
+        Future.successful(HmrcResponse(200, ""))
+      )
+      callPut.status mustBe 200
+      verify(hmrcClient, times(2)).PUT[Any, Any](any, any, any) (any, any, any, any)
+
+      withClue("log when it succeeds") {
+        verify(testLogger, times(1)).warn(
+          eqTo("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+        )(any)
+      }
+    }
+        
   }
 
 }
