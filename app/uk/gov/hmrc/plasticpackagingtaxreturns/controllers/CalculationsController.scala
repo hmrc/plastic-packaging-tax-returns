@@ -46,12 +46,12 @@ class CalculationsController @Inject()(
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        userAnswersService.get(request.cacheKey, getAmendCalculation)
+        userAnswersService.get(request.cacheKey)(getAmendCalculation)
     }
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      userAnswersService.get(request.cacheKey, calculateReturn)
+      userAnswersService.get(request.cacheKey)(calculateReturn)
     }
 
   private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) = {

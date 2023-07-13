@@ -30,18 +30,7 @@ class UserAnswersService @Inject()(
   sessionRepository: SessionRepository
 )(implicit ce: ExecutionContext) {
 
-  def get(cacheKey: String): Future[Either[Result, UserAnswers]] = {
-
-    sessionRepository.get(cacheKey).map(userAnswer => {
-      userAnswer match {
-        case Some(answer) => Right(answer)
-        case _ => Left(UnprocessableEntity(notFoundMsg))
-      }
-    })
-  }
-
-  def get(cacheKey: String, fn: UserAnswers => Future[Result]): Future[Result] = {
-
+  def get(cacheKey: String)(fn: UserAnswers => Future[Result]): Future[Result] = {
     sessionRepository.get(cacheKey).flatMap(userAnswer => {
       userAnswer match {
         case Some(answer) => fn(answer)

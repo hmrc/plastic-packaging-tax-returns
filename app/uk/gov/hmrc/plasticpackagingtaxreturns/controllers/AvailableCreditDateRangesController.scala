@@ -27,7 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRange
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class AvailableCreditDateRangesController @Inject()(
   availableCreditDateRangesService: AvailableCreditDateRangesService,
@@ -40,11 +40,8 @@ class AvailableCreditDateRangesController @Inject()(
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
 
-      userAnswersService.get(request.cacheKey).flatMap {
-        answer => answer match {
-          case Right(userAnswer) => getDataRange(userAnswer, pptReference)
-          case Left(result) => Future.successful(result)
-        }
+      userAnswersService.get(request.cacheKey){userAnswers: UserAnswers =>
+        getDataRange(userAnswers, pptReference)
       }
   }
 

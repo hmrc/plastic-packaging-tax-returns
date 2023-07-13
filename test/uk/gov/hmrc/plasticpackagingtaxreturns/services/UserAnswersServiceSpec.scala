@@ -39,25 +39,6 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach{
     reset(sessionRepository)
   }
 
-  "get" should {
-    "return a userAnswers from repository" in {
-      val ans = UserAnswers("123")
-      when(sessionRepository.get(any)).thenReturn(Future.successful(Some(ans)))
-
-      val result = await(service.get("123"))
-
-      result mustBe Right(ans)
-      verify(sessionRepository).get(eqTo("123"))
-    }
-
-    "return a UnprocessableEntity" in {
-      when(sessionRepository.get(any)).thenReturn(Future.successful(None))
-
-      val result = await(service.get("123"))
-      result mustBe Left(UnprocessableEntity("No user answers found"))
-    }
-  }
-
   "get with function parameter"  should {
     val block: UserAnswers => Future[Result] = (_) => Future.successful(Ok("blah"))
     val spyBlock = spyLambda(block)
@@ -66,7 +47,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach{
       val ans = UserAnswers("123")
       when(sessionRepository.get(any)).thenReturn(Future.successful(Some(ans)))
 
-      val result = await(service.get("123", spyBlock))
+      val result = await(service.get("123")(spyBlock))
 
       result mustBe Ok("blah")
       verify(spyBlock)(ans)
@@ -76,7 +57,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach{
     "not execute the block if userAnswer not found" in {
       when(sessionRepository.get(any)).thenReturn(Future.successful(None))
 
-      val result = await(service.get("123", spyBlock))
+      val result = await(service.get("123")(spyBlock))
 
       result mustBe UnprocessableEntity("No user answers found")
       verifyNoMoreInteractions(spyBlock)
