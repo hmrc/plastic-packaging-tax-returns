@@ -86,6 +86,6 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
    * @see [[EdgeOfSystem.localDateTimeNow]]
    */
   def overrideSystemDateTime: Option[String] =
-    config.getOptional[String]("features.override-system-date-time")
+    config.getOptional[String]("override-system-date-time")
 
 }
