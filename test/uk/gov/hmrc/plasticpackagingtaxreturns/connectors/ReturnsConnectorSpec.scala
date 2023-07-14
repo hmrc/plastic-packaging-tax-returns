@@ -141,7 +141,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "response body is not json" in {
         when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "123"))
-//        when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(200, "<html />"))
         callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
         val captor = ArgCaptor[GetReturn]
@@ -171,7 +170,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       withClue("including a correlation id") {
-        // moved to EisHttpClient
       }
 
       withClue("with correct body") {
@@ -257,9 +255,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             "Failure", returnSubmission, None, Some("<html />")))) (any, any, any)
         }
       }
-      
-      // todos
-      "log summit when unhappy" in {}
     }
 
     "response body is not json" in {
@@ -272,8 +267,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       withClue("secure log message contains response body and exception message") {
-//      auditDetail.value.error.value must include("<html />")
-//      auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
         auditDetail.value.error.value must include("Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return")
       }
 
