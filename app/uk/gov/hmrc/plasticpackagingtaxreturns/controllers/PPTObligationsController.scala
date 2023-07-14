@@ -19,7 +19,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator

@@ -61,7 +61,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val returnsSubmissionResponse = aReturn()
 
-        val auditModel = SubmitReturn(internalId, pptReference, "Success", aReturnsSubmissionRequest, Some(returnsSubmissionResponse), None)
+        val auditModel = SubmitReturn(internalId, pptReference, "Success", aReturnsSubmissionRequest(), Some(returnsSubmissionResponse), None)
 
         stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
 
@@ -85,7 +85,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 //          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
         val error = "${json-unit.any-string}"
         
-        val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest, None, Some(error))
+        val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
 
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
 

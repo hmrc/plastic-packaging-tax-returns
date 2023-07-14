@@ -126,7 +126,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "return server error" in {
       withAuthorizedUser()
-      stubFinancialErrorResponse
+      stubFinancialErrorResponse()
 
       val response = await(wsClient.url(Url).get())
 
@@ -211,7 +211,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "return server error" in {
       withAuthorizedUser()
-      stubFinancialErrorResponse
+      stubFinancialErrorResponse()
 
       val response = await(wsClient.url(ddInProgressUrl).get())
 
@@ -275,7 +275,7 @@ class PPTFinancialsItSpec extends PlaySpec
     )
   }
 
-  private def stubWrongJson: Unit = {
+  private def stubWrongJson(): Unit = {
     server.stubFor(
       get(DESUrl)
         .willReturn(ok().withBody("{}"))

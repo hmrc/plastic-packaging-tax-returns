@@ -25,7 +25,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{CorrelationIdHeaderName, retryAttempts, retryDelayInMillisecond}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
 
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt

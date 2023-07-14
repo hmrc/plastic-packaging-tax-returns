@@ -82,7 +82,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get)
+        val result = await(wsClient.url(s"http://localhost:$port/returns-calculate/$pptReference").get())
 
         result.status mustBe OK
       }
@@ -93,7 +93,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe OK
       }
@@ -102,7 +102,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withUnauthorizedUser(new Exception)
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe UNAUTHORIZED
       }
@@ -111,7 +111,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         when(sessionRepository.get(any)).thenReturn(Future.successful(None))
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe UNPROCESSABLE_ENTITY
 
@@ -123,7 +123,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, ReturnTestHelper.invalidReturnsDataJson))))
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe UNPROCESSABLE_ENTITY
       }
@@ -134,7 +134,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.json mustBe Json.parse(
           """{"taxDue":0,"chargeableTotal":0,"deductionsTotal":315,"packagingTotal":101,"isSubmittable":false, "taxRate":0.2}"""
@@ -168,7 +168,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe Status.OK
         result.json mustBe obj(
@@ -208,7 +208,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(returnUrl).get)
+        val result = await(wsClient.url(returnUrl).get())
 
         result.status mustBe Status.OK
         result.json mustBe obj(
@@ -229,7 +229,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
           .thenReturn(Future.successful(Some(UserAnswers(pptReference, AmendTestHelper.userAnswersDataAmends))))
         withAuthorizedUser()
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         result.status mustBe OK
       }
@@ -240,7 +240,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         Json.parse(result.body) mustBe expectedAmend
       }
@@ -251,7 +251,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         result.status mustBe INTERNAL_SERVER_ERROR
       }
@@ -262,7 +262,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         withAuthorizedUser()
         stubGetBalanceRequest
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         result.status mustBe INTERNAL_SERVER_ERROR
       }
@@ -270,7 +270,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       "return unauthorised" in {
         withUnauthorizedUser(new Exception)
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         result.status mustBe UNAUTHORIZED
       }
