@@ -72,7 +72,6 @@ class NonRepudiationConnector @Inject() (
   private def shouldRetry[A](response: Try[A]): Boolean =
     response match {
       case Failure(e) if e.asInstanceOf[HttpException].responseCode == 500 => true
-      // TODO: are there any other failure scenarios in which we would want to retry?
       case _ => false
     }
 

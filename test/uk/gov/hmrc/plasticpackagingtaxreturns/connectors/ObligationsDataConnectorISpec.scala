@@ -34,7 +34,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 
 import java.time.LocalDate
 
-//todo: do we really need this? This will be tested by the
 class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
 
   lazy val connector: ObligationsDataConnector = app.injector.instanceOf[ObligationsDataConnector]

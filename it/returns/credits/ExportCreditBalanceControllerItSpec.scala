@@ -143,7 +143,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       }
 
       "user is not authorized" in {
-        withUnauthorizedUser(new IllegalAccessException()) // TODO ehh?
+        withUnauthorizedUser(new IllegalAccessException())
         val response = await(wsClient.url(url).get)
         response.status mustBe UNAUTHORIZED
       }

@@ -75,7 +75,6 @@ class CreditsCalculationServiceSpec extends PlaySpec
     )
   }
 
-  // TODO split out tests covering a) CreditsAnswer, b) UserAnswers
 
   "totalRequestCredit" when {
 
