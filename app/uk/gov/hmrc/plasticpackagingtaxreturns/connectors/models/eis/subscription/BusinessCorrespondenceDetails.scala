@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 
-case class BusinessCorrespondenceDetails( // todo is this needed (can it be Address re-used)?
+case class BusinessCorrespondenceDetails(
   addressLine1: String,
   addressLine2: String,
   addressLine3: Option[String] = None,

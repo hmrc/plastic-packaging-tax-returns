@@ -141,7 +141,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "response body is not json" in {
         when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "123"))
-//        when(hmrcClient.GET[Any](any, any, any)(any, any, any)) thenReturn Future.successful(HmrcResponse(200, "<html />"))
         callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
         val captor = ArgCaptor[GetReturn]
@@ -171,7 +170,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       withClue("including a correlation id") {
-        // moved to EisHttpClient
       }
 
       withClue("with correct body") {
@@ -225,7 +223,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
         withClue("log success as etmp did received our call ok") {
           verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-            "Success", returnSubmission, None, None)))(any, any, any) // TODO what response body will we post to secure log
+            "Success", returnSubmission, None, None)))(any, any, any)
         }
       }
 
@@ -242,7 +240,6 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a call failure") {
-          // TODO what response body will we post to secure log, not a fake return?
           verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
             "Failure", returnSubmission, None, Some(responseBody)))) (any, any, any)
         }
@@ -254,14 +251,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a failure because we weren't sent json") {
-          // TODO what response body will we post to secure log, not a fake return?
           verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
             "Failure", returnSubmission, None, Some("<html />")))) (any, any, any)
         }
       }
-      
-      // todos
-      "log summit when unhappy" in {}
     }
 
     "response body is not json" in {
@@ -273,10 +266,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail)(any, any, any)
       }
 
-      // TODO need to discuss what gets sent to secure log and kibana
       withClue("secure log message contains response body and exception message") {
-//      auditDetail.value.error.value must include("<html />")
-//      auditDetail.value.error.value must include("Unexpected character ('<' (code 60))")
         auditDetail.value.error.value must include("Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return")
       }
 

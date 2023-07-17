@@ -342,7 +342,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
     )
   }
 
-  private def someAddressDetails2 = BusinessCorrespondenceDetails( // todo de-dupe
+  private def someAddressDetails2 = BusinessCorrespondenceDetails(
     addressLine1 = "",
     addressLine2 = "",
     addressLine3 = Some(""), // these should be shunted up 

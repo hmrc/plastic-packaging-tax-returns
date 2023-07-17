@@ -78,7 +78,6 @@ object EisHttpResponse {
    * @note does not keep a reference to [[HmrcResponse]]
    */
   def fromHttpResponse(correlationId: String) (hmrcResponse: HmrcResponse): EisHttpResponse = {
-    // TODO possibility that we don't set the correlation id for all calls... may need to take this from response header
     EisHttpResponse(hmrcResponse.status, hmrcResponse.body, correlationId)
   }
 }
@@ -130,8 +129,6 @@ class EisHttpClient @Inject() (
       .andThen { case _ => timer.stop() }
   }
 
-  //todo this get is for DES at the moment as it uses the bearertoken for DES.
-  // Could make this more generic and accept a bearer token for both EIS and DES
   def get
   (
     url: String,

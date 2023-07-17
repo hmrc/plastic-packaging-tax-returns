@@ -106,7 +106,6 @@ class ObligationsDataConnector @Inject()
         Right(obligation)
       case Failure(error) =>
 
-        //Todo pass the full exception instead of the message
         auditConnector.sendExplicitAudit(GetObligations.eventType,
           GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(error.getMessage)))
 

@@ -124,7 +124,7 @@ class ReturnsConnector @Inject()
                 // Note - if response payload was not json, exception from json lib usually includes the payload too
                 auditConnector.sendExplicitAudit(GetReturn.eventType,
                   GetReturn(internalId, periodKey, FAILURE, None, Some(exception.getMessage)))
-                Left(Status.INTERNAL_SERVER_ERROR) // TODO should be Status.UNSUPPORTED_MEDIA_TYPE?
+                Left(Status.INTERNAL_SERVER_ERROR)
             }
           case _ =>
             auditConnector.sendExplicitAudit(GetReturn.eventType,

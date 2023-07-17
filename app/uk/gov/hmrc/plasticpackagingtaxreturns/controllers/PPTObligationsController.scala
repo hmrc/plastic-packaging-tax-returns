@@ -43,7 +43,6 @@ class PPTObligationsController @Inject() (
 
   private val internalServerError = InternalServerError("{}")
 
-  // todo dedupe
 
   def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {

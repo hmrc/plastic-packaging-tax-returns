@@ -56,7 +56,7 @@ class CalculationsController @Inject()(
           }
           
           val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
-            taxRateTable.lookupRateFor(amend.periodEndDate)) // TODO looks like a duplicate lookup?
+            taxRateTable.lookupRateFor(amend.periodEndDate))
           val amendCalc = calculationsService.calculate(amend)
           Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
         }}

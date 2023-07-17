@@ -54,7 +54,6 @@ class CreditsCalculationResponseSpec extends PlaySpec {
     }
   }
 
-  //todo: move the test in
   "json Writes" must {
     val obj = CreditsCalculationResponse(1 , 2, 3, 0.20)
     val jsObject = Json.toJson(obj).as[JsObject]
