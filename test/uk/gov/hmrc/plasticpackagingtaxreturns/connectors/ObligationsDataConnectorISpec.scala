@@ -18,6 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.scalatest.EitherValues
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
@@ -35,7 +36,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 import java.time.LocalDate
 
 //todo: do we really need this? This will be tested by the
-class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
+class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
 
   lazy val connector: ObligationsDataConnector = app.injector.instanceOf[ObligationsDataConnector]
 
@@ -91,7 +92,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
-        res.right.get mustBe response
+        res.toOption.get mustBe response
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -119,7 +120,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
-        res.right.get mustBe ObligationDataResponse.empty
+        res.toOption.get mustBe ObligationDataResponse.empty
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -159,13 +160,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
       "return " + statusCode when {
 
-        statusCode + " is returned from downstream service" in {
-
-          val fullUrl = s"http://localhost:20202$url"
-          val errors  = "'{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}'"
-          val error   = s"GET of '$fullUrl' returned $statusCode. Response body: $errors"
-
-          val auditModel = GetObligations(ObligationStatus.OPEN.toString, internalId, pptReference, "Failure", None, Some(error))
+        s"$statusCode is returned from downstream service" in {
 
           stubObligationDataRequestFailure(httpStatus = statusCode,
             errors = Seq(EISError("Error Code", "Error Reason"))
@@ -176,7 +171,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
           val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
 
-          res.left.get mustBe statusCode
+          res.left.value mustBe statusCode
 
           getTimer(getObligationDataTimer).getCount mustBe 1
 

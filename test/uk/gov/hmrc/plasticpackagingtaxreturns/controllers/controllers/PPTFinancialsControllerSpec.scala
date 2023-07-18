@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers.{any, eq => exactlyEq}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchersSugar._
-import org.mockito.Mockito.{atLeastOnce, reset, verify, when}
+import org.mockito.Mockito.{atLeastOnce, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar.reset
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}

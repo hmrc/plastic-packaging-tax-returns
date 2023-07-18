@@ -18,8 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.Mockito.{reset, when}
-import org.mockito.MockitoSugar.verify
+import org.mockito.Mockito.when
+import org.mockito.MockitoSugar.{reset, verify}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.UNPROCESSABLE_ENTITY
@@ -32,8 +32,7 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.CalculationsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxablePlastic
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, UserAnswers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -172,7 +171,7 @@ class CalculationsControllerSpec
 
       "a must have field is missing from user answers" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
-          userAnswers.removePath(JsPath \ 'obligation \ 'toDate)))
+          userAnswers.removePath(JsPath \ "obligation" \ "toDate")))
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
@@ -227,7 +226,7 @@ class CalculationsControllerSpec
       
       "must have field in user answers are missing" in {
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
-          .removePath(JsPath \ 'amend \ 'obligation \ 'toDate)
+          .removePath(JsPath \ "amend" \ "obligation" \ "toDate")
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "/amend/obligation/toDate is missing from user answers"

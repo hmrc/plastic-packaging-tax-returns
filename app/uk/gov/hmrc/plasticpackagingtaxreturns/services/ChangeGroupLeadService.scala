@@ -106,11 +106,9 @@ class ChangeGroupLeadService {
     )
   }
 
-  private def firstAndLastNameSplit(name: String): (String, String) =
-    if (name.trim.nonEmpty) {
-      val first :: remaining = name.trim.split(" ").toList
+  private def firstAndLastNameSplit(name: String): (String, String) = name.trim.split(" ").toList match {
+    case first :: remaining =>
       (first, remaining.mkString(" "))
-    } else
-      ("", "")
-
+    case _ => ("", "")
+  }
 }

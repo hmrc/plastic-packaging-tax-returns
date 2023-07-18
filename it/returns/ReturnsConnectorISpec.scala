@@ -83,7 +83,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         // TODO discuss what to send to secure log
 //        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
 //          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
-        val error = "${json-unit.any-string}"
+        val error = s"$${json-unit.any-string}"
         
         val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
 

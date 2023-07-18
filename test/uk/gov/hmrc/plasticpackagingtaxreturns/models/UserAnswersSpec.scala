@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.mockito.ArgumentMatchersSugar._
 import org.mockito.MockitoSugar
-import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
+import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.TryValues.convertTryToSuccessOrFailure
 import org.scalatestplus.play.PlaySpec
@@ -69,8 +69,8 @@ class UserAnswersSpec extends PlaySpec
 
   "it" should {
     "have an id" in {
-      emptyUserAnswers must have('id ("empty"))
-      filledUserAnswers must have('id ("filled"))
+      emptyUserAnswers must have(Symbol("id") ("empty"))
+      filledUserAnswers must have(Symbol("id") ("filled"))
     }
 
     // TODO the timestamp... is it needed? (Actual timestamp for mongo in set by session repo in backend)
