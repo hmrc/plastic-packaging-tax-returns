@@ -91,7 +91,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
-        res.toOption.get mustBe response
+        res.value mustBe response
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -119,7 +119,7 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(connector.get(pptReference, internalId, fromDate, toDate, status))
-        res.toOption.get mustBe ObligationDataResponse.empty
+        res.value mustBe ObligationDataResponse.empty
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
