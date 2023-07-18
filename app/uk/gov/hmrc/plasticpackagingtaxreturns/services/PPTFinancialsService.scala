@@ -28,7 +28,7 @@ import javax.inject.Inject
 class PPTFinancialsService @Inject() (implicit edgeOfSystem: EdgeOfSystem) extends Logging {
 
   def lookUpForDdInProgress(periodKey: String, response: FinancialDataResponse): Boolean = {
-    response.financialTransactions.find(o => o.periodKey == Some(periodKey)) // todo replace with .contains?
+    response.financialTransactions.find(o => o.periodKey == Some(periodKey))
       .fold(false)(_.items.find(_.DDcollectionInProgress == Some(true)).isDefined)
   }
 

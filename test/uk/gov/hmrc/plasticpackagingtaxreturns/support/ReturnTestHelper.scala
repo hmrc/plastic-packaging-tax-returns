@@ -39,7 +39,6 @@ object ReturnTestHelper {
        |    }""".stripMargin).asInstanceOf[JsObject]
 
   val returnWithCreditsDataJson: JsObject =
-    // TODO obligation dates and period aren't consistent   
     Json.parse(s"""{
        |        "obligation" : {
        |            "periodKey" : "21C4", 

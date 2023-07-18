@@ -33,6 +33,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 
 /** An http response that allows for equality and same-instance
@@ -76,7 +78,6 @@ object EisHttpResponse {
    * @note does not keep a reference to [[HmrcResponse]]
    */
   def fromHttpResponse(correlationId: String) (hmrcResponse: HmrcResponse): EisHttpResponse = {
-    // TODO possibility that we don't set the correlation id for all calls... may need to take this from response header
     EisHttpResponse(hmrcResponse.status, hmrcResponse.body, correlationId)
   }
 }
@@ -128,8 +129,6 @@ class EisHttpClient @Inject() (
       .andThen { case _ => timer.stop() }
   }
 
-  //todo this get is for DES at the moment as it uses the bearertoken for DES.
-  // Could make this more generic and accept a bearer token for both EIS and DES
   def get
   (
     url: String,
@@ -151,24 +150,37 @@ class EisHttpClient @Inject() (
   }
 
   def retry(times: Int, function: () => Future[EisHttpResponse], successFun: SuccessFun, url: String): Future[EisHttpResponse] =
-    function()
-      .flatMap {
-        case response if successFun(response) =>
-          if (times != retryAttempts)
-            logger.warn(s"PPT_RETRY successful: url $url correlation-id ${response.correlationId}")
-          Future.successful(response)
-          
-        case response if times > 1 =>
-          logger.warn(s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}")
-          futures
-            .delay(retryDelayInMillisecond milliseconds)
-            .flatMap { _ => retry(times - 1, function, successFun, url) }
-          
-        case response =>
-          logger.warn(s"PPT_RETRY gave up: url $url correlation-id ${response.correlationId}")
-          Future.successful(response)
-      }
+    function().transformWith { t: Try[EisHttpResponse] => t match {
+        case Failure(f) => f match {
+          case exception if times > 1 =>
+            logger.warn(s"PPT_RETRY retrying: url $url exception $exception")
+            futures
+              .delay(retryDelayInMillisecond milliseconds)
+              .flatMap { _ => retry(times - 1, function, successFun, url) }
 
+          case exception =>
+            logger.warn(s"PPT_RETRY gave up: url $url exception $exception")
+            Future.failed(exception)
+        }
+        
+        case Success(r) => r match {
+          case response if successFun(response) =>
+            if (times != retryAttempts)
+              logger.warn(s"PPT_RETRY successful: url $url correlation-id ${response.correlationId}")
+            Future.successful(response)
+
+          case response if times > 1 =>
+            logger.warn(s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}")
+            futures
+              .delay(retryDelayInMillisecond milliseconds)
+              .flatMap { _ => retry(times - 1, function, successFun, url) }
+
+          case response =>
+            logger.warn(s"PPT_RETRY gave up: url $url correlation-id ${response.correlationId}")
+            Future.successful(response)
+        }
+      }
+    }
 }
 
 object EisHttpClient {

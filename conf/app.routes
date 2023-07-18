@@ -17,15 +17,9 @@ GET         /returns-submission/:pptReference/:periodKey        uk.gov.hmrc.plas
 # EIS Return Amend
 POST         /returns-amend/:pptReference          uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.amend(pptReference: String)
 
-# Raw DES obligation data
-GET         /obligation-data/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ObligationDataController.get(pptReference: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[String])
-
 # PPT obligation APIs
 GET         /obligations/open/:pptReference                     uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getOpen(pptReference)
 GET         /obligations/fulfilled/:pptReference                uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTObligationsController.getFulfilled(pptReference)
-
-# Raw DES financial data
-GET         /financial-data/:pptReference                       uk.gov.hmrc.plasticpackagingtaxreturns.controllers.FinancialDataController.get(pptReference: String, fromDate: LocalDate, toDate: LocalDate, onlyOpenItems: Option[Boolean], includeLocks: Option[Boolean], calculateAccruedInterest: Option[Boolean], customerPaymentInformation: Option[Boolean])
 
 # PPT financial APIs
 GET         /financials/open/:pptReference                      uk.gov.hmrc.plasticpackagingtaxreturns.controllers.PPTFinancialsController.get(pptReference)

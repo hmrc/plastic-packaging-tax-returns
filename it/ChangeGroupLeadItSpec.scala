@@ -82,7 +82,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
   }
 
   "service" should {
-    "return 200" in { // todo needs fixing
+    "return 200" in {
       setUpMock()
 
       val response = await(wsClient.url(Url).post(pptReference))

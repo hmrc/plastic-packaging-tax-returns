@@ -92,7 +92,6 @@ class SessionRepository @Inject()(
   private val logger = Logger(this.getClass)
 
   def clearUserAnswers(pptReference: String, cacheKey: String): Future[Boolean] = {
-    // TODO this currently removes all user answers, should perhaps just remove answers for this return
     clear(cacheKey).andThen {
       case Success(_) => logger.info(s"Successfully removed user-answers for $pptReference from cache")
       case Failure(ex) => logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)

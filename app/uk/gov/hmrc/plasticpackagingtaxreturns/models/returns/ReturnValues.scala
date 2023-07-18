@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-//todo rename this package
 package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.JsPath
@@ -65,8 +64,6 @@ object NewReturnValues {
 
   def apply(creditClaim: TaxablePlastic, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
-      // todo which of these are must-have vs can default?
-      // todo allow exception from UserAnswers (which has name of missing element) to percolate up
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       periodEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
       periodKey = userAnswers.getOrFail(PeriodKeyGettable)
@@ -116,7 +113,6 @@ object AmendReturnValues {
 
   def apply(userAnswers: UserAnswers): Option[AmendReturnValues] = {
 
-    // TODO which of these are really must-haves vs can have default values
     val original = userAnswers.get(ReturnDisplayApiGettable)
 
     for {

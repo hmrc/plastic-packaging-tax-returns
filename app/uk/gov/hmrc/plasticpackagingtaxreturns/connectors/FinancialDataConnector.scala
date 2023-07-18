@@ -104,7 +104,6 @@ class FinancialDataConnector @Inject()(
 
         Right(financialData)
       case Failure(error) =>
-        //Todo pass the full exception instead of the message
         auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
           GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error.getMessage)))
 

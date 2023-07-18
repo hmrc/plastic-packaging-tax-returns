@@ -24,7 +24,6 @@ import java.time.LocalDate
 
 class CreditsCalculationService @Inject()(taxCalculationService: TaxCalculationService) {
 
-  // TODO replace with biggerObject
   def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic = {
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))

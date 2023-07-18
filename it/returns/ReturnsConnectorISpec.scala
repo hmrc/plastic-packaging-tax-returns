@@ -80,9 +80,6 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
       "handle bad json" in {
 
-        // TODO discuss what to send to secure log
-//        val error = "Unrecognized token 'XXX': was expecting (JSON String, Number, Array, Object or token 'null', " +
-//          "'true' or 'false')\n at [Source: (String)\"XXX\"; line: 1, column: 4]"
         val error = s"$${json-unit.any-string}"
         
         val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
@@ -107,9 +104,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
           s"upstream service fails with $statusCode" in {
 
             val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
-            
-            // TODO I think this bit is wrong? Just log the error response?
-//            val error   = s"PUT of '$putUrl' returned $statusCode. Response body: '$errors'"
+
 
             val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
 
@@ -124,10 +119,8 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             res.leftSideValue mustBe Left(statusCode)
 
-            // TODO this fails sometimes even when it shouldn't?
             verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
-            
-            // TODO this (below) eats any / all output from WireMock's matchers
+
             eventually(timeout(Span(5, Seconds))) {
               eventSendToAudit(auditUrl, auditModel) mustBe true
             }

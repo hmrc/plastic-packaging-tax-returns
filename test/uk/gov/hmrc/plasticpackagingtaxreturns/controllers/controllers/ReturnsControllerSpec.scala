@@ -58,7 +58,6 @@ import java.time.{LocalDate, LocalDateTime, ZonedDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-//todo this spec is a MESS !
 class ReturnsControllerSpec
     extends AnyWordSpec with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockConnectors
     with ReturnsSubmissionResponseBuilder {

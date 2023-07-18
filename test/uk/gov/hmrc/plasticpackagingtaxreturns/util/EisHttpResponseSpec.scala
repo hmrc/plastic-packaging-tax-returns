@@ -56,11 +56,11 @@ class EisHttpResponseSpec extends PlaySpec with BeforeAndAfterEach with MockitoS
       val triedExample = EisHttpResponse(200, """{"another":"thing"}""", correlationId = "")
         .jsonAs[Example]
       triedExample.failure.exception must have message "Response body could not be read as type EisHttpResponseSpec.this.Example" 
-      triedExample.failure.exception mustBe a[RuntimeException] // TODO what type? 
+      triedExample.failure.exception mustBe a[RuntimeException]
       triedExample.failure.exception.getCause mustBe a[JsResultException]
     }
     
-    "handle not json" ignore { // TODO do we want to do something with non-json / html responses?
+    "handle not json" ignore {
       val triedExample = EisHttpResponse(200, "<html />", correlationId = "")
         .jsonAs[Example]
       triedExample.failure.exception must have message "Response body is not json"
