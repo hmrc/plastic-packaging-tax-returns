@@ -55,7 +55,7 @@ object FinancialTransactionHelper {
   private def createFinancialTransaction
   (
     amount: BigDecimal = BigDecimal(0.0),
-    periodKey: String = "period-key",
+    periodKey: String,
     items: Seq[FinancialItem]) = {
     FinancialTransaction(
       chargeType = None,

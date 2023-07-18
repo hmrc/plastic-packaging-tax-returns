@@ -19,8 +19,7 @@ package returns.credits
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.Mockito.reset
-import org.mockito.MockitoSugar.when
+import org.mockito.MockitoSugar.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -110,7 +109,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       withAuthorizedUser()
       stubGetBalanceResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
-      val response = await(wsClient.url(url).get)
+      val response = await(wsClient.url(url).get())
 
       withClue("Check call to EIS to query credit balance") {
         wireMock.wireMockServer.verify(getRequestedFor(urlEqualTo(
@@ -138,14 +137,14 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       "cannot find userAnswers" in {
         withAuthorizedUser()
         when(sessionRepository.get(any)).thenReturn(Future.successful(None))
-        val response = await(wsClient.url(url).get)
+        val response = await(wsClient.url(url).get())
         response.status mustBe UNPROCESSABLE_ENTITY
         response.body mustBe "No user answers found"
       }
 
       "user is not authorized" in {
         withUnauthorizedUser(new IllegalAccessException())
-        val response = await(wsClient.url(url).get)
+        val response = await(wsClient.url(url).get())
         response.status mustBe UNAUTHORIZED
       }
 
@@ -153,7 +152,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         withAuthorizedUser()
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
         stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
-        val response = await(wsClient.url(url).get)
+        val response = await(wsClient.url(url).get())
         response.status mustBe INTERNAL_SERVER_ERROR
         response.json mustBe obj("statusCode" -> 500, "message" -> "Error calling EIS export credit, status: 404")
       }
@@ -162,7 +161,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
         withAuthorizedUser()
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
         stubGetBalanceResponse(200, "booo")
-        val response = await(wsClient.url(url).get)
+        val response = await(wsClient.url(url).get())
         response.status mustBe INTERNAL_SERVER_ERROR
         response.json mustBe obj("statusCode" -> 500, "message" -> "Error calling EIS export credit, status: 500")
       }
@@ -172,7 +171,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       withAuthorizedUser()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
-      val response = await(wsClient.url(url).get)
+      await(wsClient.url(url).get())
 
       wireMock.verify(3, getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
       .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
@@ -182,7 +181,7 @@ class ExportCreditBalanceControllerItSpec extends PlaySpec
       withAuthorizedUser()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       stubGetBalanceResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())
-      val response = await(wsClient.url(url).get)
+      await(wsClient.url(url).get())
 
       wireMock.verify(1, getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
         .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))

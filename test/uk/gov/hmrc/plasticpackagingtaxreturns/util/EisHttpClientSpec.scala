@@ -19,10 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import akka.Done
 import com.codahale.metrics.Timer
 import com.kenshoo.play.metrics.Metrics
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.MockitoSugar
-import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
+import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.Logger
@@ -71,7 +72,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     
-    when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn Future.successful(HmrcResponse(200, "{}"))
+    when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)).thenReturn(Future.successful(HmrcResponse(200, "{}")))
     when(appConfig.eisEnvironment) thenReturn "space"
     when(appConfig.bearerToken) thenReturn "do-come-in"
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
@@ -216,7 +217,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   "retry" should {
     
     "try again if the first attempt fails" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)).thenReturn (
+      when(hmrcClient.PUT[ExampleModel, Any](any, any, any)(any, any, any, any)).thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, "")),
       )
@@ -248,8 +249,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
     
     "use custom success criteria" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)) thenReturn
+      when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)).thenReturn(
         Future.successful(HmrcResponse(422, ""))
+      )
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
@@ -262,9 +264,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
     
     "log a retry and its eventual success" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(
+      when(hmrcClient.PUT[Any, Any](anyString(), any, any)(any, any, any, any)).thenReturn(
         Future.successful(HmrcResponse(500, "")),
-        Future.successful(HmrcResponse(200, "")),
+        Future.successful(HmrcResponse(200, ""))
       )
 
       callPut
@@ -283,7 +285,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
     
     "log when giving up" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HmrcResponse(500, ""))
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(500, "")))
 
       callPut
       verify(testLogger, times(2)).warn(
@@ -299,7 +301,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(new GatewayTimeoutException("exception-message"))
       the [Exception] thrownBy callPut must have message "exception-message"
       verify(hmrcClient, times(3)).PUT[Any, Any](any, any, any) (any, any, any, any)
-      
+
       withClue("log each retry") {
         verify(testLogger, times(2)).warn(
           eqTo("PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")
@@ -327,7 +329,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         )(any)
       }
     }
-        
+
   }
 
 }

@@ -24,7 +24,6 @@ import org.mockito.MockitoSugar.{mock, reset, verify, when}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.captor.ArgCaptor
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.matchers.must.Matchers.include
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.libs.concurrent.Futures

@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.Mockito.{never, reset, verify, when}
+import org.mockito.Mockito.{never, verify, when}
+import org.mockito.MockitoSugar.reset
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers

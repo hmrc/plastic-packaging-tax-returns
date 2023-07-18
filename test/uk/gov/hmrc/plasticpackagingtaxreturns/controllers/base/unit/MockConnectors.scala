@@ -18,7 +18,8 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, when}
+import org.mockito.Mockito.when
+import org.mockito.MockitoSugar.reset
 import org.mockito.stubbing.OngoingStubbing
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar

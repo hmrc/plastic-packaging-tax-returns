@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem

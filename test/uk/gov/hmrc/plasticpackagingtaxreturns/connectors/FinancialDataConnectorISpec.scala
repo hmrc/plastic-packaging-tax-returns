@@ -157,7 +157,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
       "return " + statusCode when {
 
-        statusCode + " is returned from downstream service" in {
+        s"$statusCode is returned from downstream service" in {
           val message  = s"""{"code":"${statusCode}","reason":"fish fryer fire"}"""
 
           when(httpClient.GET[Any](any, any, any)(any, any, any))

@@ -17,10 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.MockitoSugar
-import org.mockito.integrations.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
+import org.mockito.scalatest.ResetMocksAfterEachTest
 
 import java.time.LocalDate
 

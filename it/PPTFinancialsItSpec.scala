@@ -16,8 +16,8 @@
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.Mockito.{RETURNS_DEEP_STUBS, reset}
-import org.mockito.MockitoSugar.when
+import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import org.mockito.MockitoSugar.{when, reset}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -126,7 +126,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "return server error" in {
       withAuthorizedUser()
-      stubFinancialErrorResponse
+      stubFinancialErrorResponse()
 
       val response = await(wsClient.url(Url).get())
 
@@ -154,7 +154,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "handle exception" in {
       withAuthorizedUser()
-      stubWrongJson
+      stubWrongJson()
 
       val response = await(wsClient.url(Url).get())
 
@@ -211,7 +211,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "return server error" in {
       withAuthorizedUser()
-      stubFinancialErrorResponse
+      stubFinancialErrorResponse()
 
       val response = await(wsClient.url(ddInProgressUrl).get())
 
@@ -239,7 +239,7 @@ class PPTFinancialsItSpec extends PlaySpec
 
     "handle exception" in {
       withAuthorizedUser()
-      stubWrongJson
+      stubWrongJson()
 
       val response = await(wsClient.url(ddInProgressUrl).get())
 
@@ -275,7 +275,7 @@ class PPTFinancialsItSpec extends PlaySpec
     )
   }
 
-  private def stubWrongJson: Unit = {
+  private def stubWrongJson(): Unit = {
     server.stubFor(
       get(DESUrl)
         .willReturn(ok().withBody("{}"))

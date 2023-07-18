@@ -144,7 +144,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
         response.value.groupPartnershipSubscription.isDefined mustBe true
         response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length(3)
-        val iterator = response.value.groupPartnershipSubscription.get.groupPartnershipDetails.toIterator
+        val iterator = response.value.groupPartnershipSubscription.get.groupPartnershipDetails.iterator
         iterator.next().organisationDetails.get.organisationName mustBe "Test Company Ltd UK"
       }
       
@@ -238,8 +238,8 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
   "Subscription connector for update" should {
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-      "return " + statusCode when {
-        statusCode + " is returned from downstream service" in {
+      s"return $statusCode" when {
+        s"$statusCode is returned from downstream service" in {
 
           stubSubscriptionUpdateFailure(httpStatus = statusCode)
 

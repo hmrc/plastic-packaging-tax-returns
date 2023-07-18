@@ -176,6 +176,7 @@ object Settable {
                 }
               }
           }
+        case _ => throw new RuntimeException(s"remove not possible for path: $path")
       }
 
   }
