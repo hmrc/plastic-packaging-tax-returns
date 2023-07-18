@@ -17,10 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
@@ -73,19 +71,19 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
-  /** Override the current system data-time, for coding and testing, or set to false to use system date-time. The
-   * system date-time is also used if the config value is missing or its value fails to parse.
+  /** Override the current system data-time, for coding and testing. The system date-time is used if the config value 
+   * is missing or its value fails to parse.
    * @return
    *   - [[None]] if no date-time override config value is present
    *   - Some[ [[String]] ] if an override config value is present, needs to be a ISO_LOCAL_DATE_TIME serialised
    *   date-time for override to work
    * @example {{{"2023-03-31T23:59:59"}}}
-   * @example {{{"2023-04-01T00:00:00"}}}
-   * @example {{{false}}}
-   * @see [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
-   * @see [[EdgeOfSystem.localDateTimeNow]]
+   * @example {{{"2023-04-01T00:00:00"}}} sets the override
+   * @example {{{"DO_NOT_OVERRIDE"}}}
+   * @see [[java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
+   * @see [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
    */
   def overrideSystemDateTime: Option[String] =
-    config.getOptional[String]("features.override-system-date-time")
+    config.getOptional[String]("override-system-date-time")
 
 }

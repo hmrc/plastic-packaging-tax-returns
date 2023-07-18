@@ -18,7 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 
 import play.api.libs.json.{JsValue, Json, Writes}
 
-// TODO replace / merge with newer CreditCalculation
 final case class CreditsCalculationResponse(
                                              availableCreditInPounds: BigDecimal,
                                              totalRequestedCreditInPounds: BigDecimal,

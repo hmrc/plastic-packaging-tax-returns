@@ -73,7 +73,7 @@ class UserAnswersCleaner @Inject()(
     val startedAReturn = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
     val assumableDateRange = getAssumedDateRange(userAnswers, subscription)
 
-    if (startedAReturn && assumableDateRange.isDefined) { //todo map?
+    if (startedAReturn && assumableDateRange.isDefined) {
       val taxRange = assumableDateRange.get
       val updated = userAnswers
         .migrate(JsPath \ "exportedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "yesNo")

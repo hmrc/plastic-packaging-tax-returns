@@ -62,7 +62,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
     "return override-system-date-time" when {
 
       "value is present" in {
-        val configService = createAppConfig("""features.override-system-date-time = "whatEver" """)
+        val configService = createAppConfig("""override-system-date-time = "whatEver" """)
         configService.overrideSystemDateTime mustBe Some("whatEver")
       }
 
@@ -72,7 +72,7 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       }
 
       "content is boolean" in {
-        val frontendAppConfig = createAppConfig("""features.override-system-date-time = false""")
+        val frontendAppConfig = createAppConfig("""override-system-date-time = false""")
         frontendAppConfig.overrideSystemDateTime mustBe Some("false")
       }
 

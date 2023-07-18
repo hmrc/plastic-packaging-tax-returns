@@ -35,10 +35,9 @@ import scala.util.{Failure, Success}
 @Singleton
 class ExportCreditBalanceConnector @Inject() (
   eisHttpClient: EisHttpClient,
-  override val appConfig: AppConfig,
+  appConfig: AppConfig,
   auditConnector: AuditConnector
-)(implicit ec: ExecutionContext)
-    extends EISConnector {
+)(implicit ec: ExecutionContext) {
 
   private val logger = Logger(this.getClass)
   private val SUCCESS: String = "Success"
