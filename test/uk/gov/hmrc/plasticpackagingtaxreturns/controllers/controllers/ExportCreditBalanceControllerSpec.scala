@@ -31,19 +31,20 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthentica
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, TaxablePlastic, UserAnswers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
-import scala.concurrent.ExecutionContext.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
+  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
   private val mockSessionRepo: SessionRepository = mock[SessionRepository]
   private val creditsCalculationService = mock[CreditsCalculationService]
   private val mockAvailableCreditsService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
+  private val userAnswersService = new UserAnswersService(mockSessionRepo)
   
   private val userAnswers = UserAnswers("user-answers-id")
     .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
@@ -66,11 +67,11 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
   val sut = new ExportCreditBalanceController(
     new FakeAuthenticator(cc),
-    mockSessionRepo,
     creditsCalculationService,
     mockAvailableCreditsService,
     cc,
-  )(global)
+    userAnswersService
+  )(ec)
 
   "get" must {
 
@@ -78,11 +79,9 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       when(creditsCalculationService.totalRequestedCredit(any, any)) thenReturn exampleCreditCalculation
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
-      await(result)
-      
-      verify(creditsCalculationService).totalRequestedCredit(any, any)
-      
+
       status(result) mustBe OK
+      verify(creditsCalculationService).totalRequestedCredit(any, any)
       contentAsJson(result) mustBe Json.toJson(exampleCreditCalculation)
 
       withClue("session repo called with the cache key"){
@@ -114,10 +113,10 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
       "session repo is empty" in {
         when(mockSessionRepo.get(any)).thenReturn(Future.successful(None))
-        
-        the [Exception] thrownBy {
-          await(sut.get("url-ppt-ref")(FakeRequest()))
-        } must have message "UserAnswers is empty"
+
+        val result = sut.get("url-ppt-ref")(FakeRequest())
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
 
         withClue("available credit should not have been called"){
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)

@@ -20,12 +20,12 @@ import com.google.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
@@ -33,49 +33,49 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class CalculationsController @Inject()(
-                                        authenticator: Authenticator,
-                                        sessionRepository: SessionRepository,
-                                        override val controllerComponents: ControllerComponents,
-                                        calculationsService: PPTCalculationService,
-                                        creditsService: CreditsCalculationService,
-                                        availableCreditService: AvailableCreditService,
-                                        taxRateTable: TaxRateTable
-                                      )(implicit executionContext: ExecutionContext)
+  authenticator: Authenticator,
+  override val controllerComponents: ControllerComponents,
+  calculationsService: PPTCalculationService,
+  creditsService: CreditsCalculationService,
+  availableCreditService: AvailableCreditService,
+  taxRateTable: TaxRateTable,
+  userAnswersService: UserAnswersService
+)(implicit executionContext: ExecutionContext)
   extends BackendBaseController with Logging {
 
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        sessionRepository.get(request.cacheKey).map { optUa => {
-          
-          val userAnswers = {
-            optUa.getOrElse(throw new IllegalStateException("No user answers found in session repo"))
-          }
-          val amend = AmendReturnValues(userAnswers).getOrElse {
-            throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
-          }
-          
-          val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), 
-            taxRateTable.lookupRateFor(amend.periodEndDate))
-          val amendCalc = calculationsService.calculate(amend)
-          Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc)))
-        }}
+        userAnswersService.get(request.cacheKey)(getAmendCalculation)
     }
 
   def calculateSubmit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      sessionRepository.get(request.cacheKey).flatMap(
-        _.fold(Future.successful(UnprocessableEntity("No user answers found"))){ userAnswers =>
-          availableCreditService.getBalance(userAnswers).map{ availableCredit =>
-            val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
-            NewReturnValues(requestedCredits, availableCredit)(userAnswers)
-              .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
-                val calculations: Calculations = calculationsService.calculate(returnValues)
-                Ok(Json.toJson(calculations))
-              }
-          }
-        }
-      )
+      userAnswersService.get(request.cacheKey)(calculateReturn)
     }
 
+  private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) = {
+    availableCreditService.getBalance(userAnswers).map { availableCredit =>
+      val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
+      NewReturnValues(requestedCredits, availableCredit)(userAnswers)
+        .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
+          val calculations: Calculations = calculationsService.calculate(returnValues)
+          Ok(Json.toJson(calculations))
+        }
+    }
+  }
+
+  private def getAmendCalculation(userAnswers: UserAnswers): Future[Result] = {
+    val amend = AmendReturnValues(userAnswers).getOrElse {
+      throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
+    }
+
+    val originalCalc = Calculations.fromReturn(
+      userAnswers.getOrFail(ReturnDisplayApiGettable),
+      taxRateTable.lookupRateFor(amend.periodEndDate)
+    )
+
+    val amendCalc = calculationsService.calculate(amend)
+    Future.successful(Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))))
+  }
 }

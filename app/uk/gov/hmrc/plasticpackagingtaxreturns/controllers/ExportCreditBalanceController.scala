@@ -18,34 +18,35 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, UserAnswersService}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class ExportCreditBalanceController @Inject() (
   authenticator: Authenticator,
-  sessionRepository: SessionRepository,
   creditsCalculationService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
-  override val controllerComponents: ControllerComponents
+  override val controllerComponents: ControllerComponents,
+  userAnswersService: UserAnswersService
 )(implicit executionContext: ExecutionContext) extends BaseController {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-
-      for {
-        userAnswersOpt <- sessionRepository.get(request.cacheKey)
-        userAnswers = userAnswersOpt.getOrElse(throw new IllegalStateException("UserAnswers is empty"))
-        availableCredit <- availableCreditService.getBalance(userAnswers)
-        creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
-      } yield { 
-        Ok(Json.toJson(creditClaim))
-      }
+      userAnswersService.get(request.cacheKey)(getCreditClaim)
     }
+
+  private def getCreditClaim(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Result] = {
+    for {
+      availableCredit <- availableCreditService.getBalance(userAnswers)
+      creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
+    } yield {
+      Ok(Json.toJson(creditClaim))
+    }
+  }
 
 }
 

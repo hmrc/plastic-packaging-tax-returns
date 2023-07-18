@@ -37,7 +37,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
@@ -54,21 +54,22 @@ class CalculationsControllerSpec
   private val userAnswers: UserAnswers        = UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
   private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data = ReturnTestHelper.invalidReturnsDataJson)
 
-  private val sessionRepository: SessionRepository = mock[SessionRepository]
   private val availableCreditService: AvailableCreditService = mock[AvailableCreditService]
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
   private val pptCalculationService = mock[PPTCalculationService]
   private val creditsCalculationService = mock[CreditsCalculationService]
   private val taxRateTable = mock[TaxRateTable]
+  private val sessionRepository = mock[SessionRepository]
+  private val userAnswersService = new UserAnswersService(sessionRepository)
 
   private val sut = new CalculationsController(
     new FakeAuthenticator(cc),
-    sessionRepository,
     cc,
     pptCalculationService,
     creditsCalculationService,
     availableCreditService,
-    taxRateTable
+    taxRateTable,
+    userAnswersService
   )
 
   override def beforeEach(): Unit = {
@@ -127,7 +128,6 @@ class CalculationsControllerSpec
 
   "calculateAmends" should {
     "return OK response and the calculation" in {
-
       val originalReturnAsCalc = Calculations(44,220,0,250, true, taxRate = 0.123)
 
       val amendCalc = Calculations(2, 3, 4, 5, false, taxRate = 0.123)
@@ -172,7 +172,7 @@ class CalculationsControllerSpec
 
       "a must have field is missing from user answers" in {
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(
-          userAnswers.removePath(JsPath \ 'obligation \ 'toDate)))
+          userAnswers.removePath(JsPath \ Symbol("obligation") \ Symbol("toDate"))))
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
@@ -214,20 +214,16 @@ class CalculationsControllerSpec
       }
 
       "fetching the user answers fails 1" in {
-        when(sessionRepository.get(any)) thenReturn Future.failed(new RuntimeException("boom"))
-        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
-          have message "boom"
+        when(sessionRepository.get(any)) thenReturn Future.successful(None)
+
+        val result = sut.calculateAmends(pptReference)(FakeRequest())
+
+        status(result) mustBe UNPROCESSABLE_ENTITY
       }
 
-      "fetching the user answers fails 2" in {
-        when(sessionRepository.get(any)) thenReturn Future.successful(None)
-        the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
-          have message "No user answers found in session repo"
-      }
-      
       "must have field in user answers are missing" in {
         val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends)
-          .removePath(JsPath \ 'amend \ 'obligation \ 'toDate)
+          .removePath(JsPath \ Symbol("amend") \ Symbol("obligation") \ Symbol("toDate"))
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "/amend/obligation/toDate is missing from user answers"
