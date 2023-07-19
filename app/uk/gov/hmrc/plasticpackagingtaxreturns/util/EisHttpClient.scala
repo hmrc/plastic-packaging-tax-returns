@@ -176,7 +176,7 @@ class EisHttpClient @Inject() (
               .flatMap { _ => retry(times - 1, function, successFun, url) }
 
           case response =>
-            logger.warn(s"PPT_RETRY gave up: url $url correlation-id ${response.correlationId}")
+            logger.warn(s"PPT_RETRY gave up: url $url status ${response.status} correlation-id ${response.correlationId}")
             Future.successful(response)
         }
       }

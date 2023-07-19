@@ -204,7 +204,6 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
-
         eisHttpClient.get("url", Seq.empty, "timer-name", headerFn, isSuccessful)
       }
 
@@ -293,7 +292,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )(any)
 
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
       )(any)
     }
 
