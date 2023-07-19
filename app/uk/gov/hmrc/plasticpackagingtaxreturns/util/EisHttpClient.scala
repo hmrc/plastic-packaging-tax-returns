@@ -184,7 +184,7 @@ class EisHttpClient @Inject() (
 }
 
 object EisHttpClient {
-  val retryDelayInMillisecond = 1000
+  val retryDelayInMillisecond = 2000
   val retryAttempts = 3
   val CorrelationIdHeaderName = "CorrelationId"
 }
