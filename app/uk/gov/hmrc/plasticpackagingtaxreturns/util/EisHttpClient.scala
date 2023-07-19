@@ -116,13 +116,13 @@ class EisHttpClient @Inject() (
     successFun: SuccessFun = isSuccessful)
     (implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
-    val correlationId = edgeOfSystem.createUuid.toString
-
-    val putFunction = () =>
+    val putFunction = () => {
+      val correlationId = edgeOfSystem.createUuid.toString
       hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headerFun(correlationId, appConfig))
         .map {
           EisHttpResponse.fromHttpResponse(correlationId)
         }
+    }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
     retry(retryAttempts, putFunction, successFun, url)
