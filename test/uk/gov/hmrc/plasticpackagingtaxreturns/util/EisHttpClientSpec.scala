@@ -62,11 +62,11 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   private val exampleModel = ExampleModel()
   private implicit val formats: OFormat[ExampleModel] = Json.format[ExampleModel]
 
-  private val headerFn = (a: String, b: AppConfig) => Seq(
+  private val headerFn = (correlationId: String, _: AppConfig) => Seq(
     "Environment" -> "space",
     "Accept" -> "application/json",
     "Authorization" -> "do-come-in",
-    "CorrelationId" -> "00000000-0000-0001-0000-000000000002"
+    "CorrelationId" -> correlationId
   )
   
   override protected def beforeEach(): Unit = {
@@ -75,7 +75,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     when(hmrcClient.PUT[Any, Any](any, any, any) (any, any, any, any)).thenReturn(Future.successful(HmrcResponse(200, "{}")))
     when(appConfig.eisEnvironment) thenReturn "space"
     when(appConfig.bearerToken) thenReturn "do-come-in"
-    when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
+    when(edgeOfSystem.createUuid).thenReturn(
+      UUID.fromString("00000000-0000-0001-0000-000000000001"),
+      UUID.fromString("00000000-0000-0001-0000-000000000002"),
+      UUID.fromString("00000000-0000-0001-0000-000000000003")
+
+    )
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
     when(futures.delay(any)) thenReturn Future.successful(Done)
   }
@@ -88,7 +93,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
     "send a request" in {
       val response = callPut
-      response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000002")
+      response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000001")
       verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(any,
         any, any, any)
 
@@ -96,7 +101,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         val headers = Seq(
           "Environment" -> "space",
           "Accept" -> "application/json",
-          "CorrelationId" -> "00000000-0000-0001-0000-000000000002",
+          "CorrelationId" -> "00000000-0000-0001-0000-000000000001",
           "Authorization" -> "do-come-in")
         verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers))(any, any, any, any)
       }
@@ -111,7 +116,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       "status is 2xx" in {
         when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(
           HmrcResponse(200, """{"a": "b"}"""))
-        callPut mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
+        callPut mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000001")
       }
       // All responses the same right now
     }
@@ -124,7 +129,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "return the correlation id" in {
-      callPut.correlationId mustBe "00000000-0000-0001-0000-000000000002"
+      callPut.correlationId mustBe "00000000-0000-0001-0000-000000000001"
     }
 
   }
@@ -144,7 +149,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
           "Environment" -> "space",
           "Accept" -> "application/json",
           "Authorization" -> "do-come-in",
-          "CorrelationId" -> "00000000-0000-0001-0000-000000000002")
+          "CorrelationId" -> "00000000-0000-0001-0000-000000000001")
         verify(hmrcClient).GET[Any](any, any, eqTo(headers))(any, any, any)
       }
     }
@@ -154,7 +159,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
       val result = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name",headerFn))
 
-      result mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000002")
+      result mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000001")
     }
 
     "time the transaction" in {
@@ -271,7 +276,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       callPut
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
       )(any)
 
       verify(testLogger, times(1)).warn(
@@ -288,12 +293,16 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(500, "")))
 
       callPut
-      verify(testLogger, times(2)).warn(
-        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
       )(any)
 
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      )(any)
+      
+      verify(testLogger, times(1)).warn(
+        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
       )(any)
     }
 
