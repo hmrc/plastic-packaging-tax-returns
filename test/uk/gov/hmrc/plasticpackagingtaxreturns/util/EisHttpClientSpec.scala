@@ -191,9 +191,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       response.status mustBe 500
 
       withClue("after trying 3 times") {
-        verify(hmrcClient, times(3)).GET[Any](any, any, any) (any,
-          any, any)
-        verify(futures, times(2)).delay(1000 milliseconds)
+        verify(hmrcClient, times(3)).GET[Any](any, any, any) (any, any, any)
+        verify(futures, times(1)).delay(2000 milliseconds)
+        verify(futures, times(1)).delay(4000 milliseconds)
       }
     }
 
@@ -231,7 +231,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       response.status mustBe 200
 
       withClue("with a delay between attempt") {
-        verify(futures).delay(1000 milliseconds)
+        verify(futures).delay(2000 milliseconds)
       }
     }
     
@@ -243,7 +243,8 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       
       withClue("after trying 3 times") {
         verify(hmrcClient, times(3)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
-        verify(futures, times(2)).delay(1000 milliseconds)
+        verify(futures, times(1)).delay(2000 milliseconds)
+        verify(futures, times(1)).delay(4000 milliseconds)
       }
     }
     

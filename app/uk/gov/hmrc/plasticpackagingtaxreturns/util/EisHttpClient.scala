@@ -155,7 +155,7 @@ class EisHttpClient @Inject() (
           case exception if times > 1 =>
             logger.warn(s"PPT_RETRY retrying: url $url exception $exception")
             futures
-              .delay(retryDelayInMillisecond milliseconds)
+              .delay(((retryAttempts + 1 - times) * retryDelayInMillisecond) milliseconds)
               .flatMap { _ => retry(times - 1, function, successFun, url) }
 
           case exception =>
@@ -172,7 +172,7 @@ class EisHttpClient @Inject() (
           case response if times > 1 =>
             logger.warn(s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}")
             futures
-              .delay(retryDelayInMillisecond milliseconds)
+              .delay(((retryAttempts + 1 - times) * retryDelayInMillisecond) milliseconds)
               .flatMap { _ => retry(times - 1, function, successFun, url) }
 
           case response =>
@@ -184,7 +184,7 @@ class EisHttpClient @Inject() (
 }
 
 object EisHttpClient {
-  val retryDelayInMillisecond = 1000
+  val retryDelayInMillisecond = 2000
   val retryAttempts = 3
   val CorrelationIdHeaderName = "CorrelationId"
 }
