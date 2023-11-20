@@ -112,7 +112,7 @@ class ReturnsController @Inject()(
         isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
-              val requestedCredits = creditsService.totalRequestedCredit_old(userAnswer)
+              val requestedCredits: BigDecimal = creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
               doSubmit(NotableEvent.PptReturn, pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {

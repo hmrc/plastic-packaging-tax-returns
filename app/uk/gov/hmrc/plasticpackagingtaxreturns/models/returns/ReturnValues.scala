@@ -21,7 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.ReturnType
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.PeriodKeyGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxablePlastic, UserAnswers}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, UserAnswers}
 
 import java.time.LocalDate
 
@@ -62,7 +62,7 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(creditClaim: TaxablePlastic, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
+  def apply(creditClaim: BigDecimal, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       periodEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
@@ -82,7 +82,7 @@ object NewReturnValues {
         exportedByAnotherBusiness,
         humanMedicines,
         recycled,
-        creditClaim.moneyInPounds,
+        creditClaim,
         availableCredit
       )
     }
