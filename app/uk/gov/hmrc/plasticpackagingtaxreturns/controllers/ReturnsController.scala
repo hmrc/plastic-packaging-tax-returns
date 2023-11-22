@@ -113,7 +113,6 @@ class ReturnsController @Inject()(
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits: BigDecimal = creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
-              println("=====requestedCredits======"+requestedCredits)
               doSubmit(NotableEvent.PptReturn, pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
