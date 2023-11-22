@@ -52,15 +52,11 @@ class CreditsCalculationService @Inject()(taxCalculationService: TaxCalculationS
   }
 
   def newJourney2(userAnswers: UserAnswers): Map[String, TaxablePlastic] = {
-    if(isClaimingCredit(userAnswers).contains(true)) {
       userAnswers
         .get[Map[String, SingleYearClaim]](JsPath \ "credit")
         .getOrElse(Map())
         .view.mapValues(_.calculate(taxCalculationService))
         .toMap
-    } else {
-      Map.empty
-    }
   }
 
   def totalRequestedCredit(userAnswers: UserAnswers, availableCreditInPounds: BigDecimal): CreditCalculation = {
