@@ -57,7 +57,8 @@ class CalculationsController @Inject()(
   private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) = {
     availableCreditService.getBalance(userAnswers).map { availableCredit =>
       val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
-      NewReturnValues(requestedCredits, availableCredit)(userAnswers)
+      val taxablePlasticCreditInPounds: BigDecimal = if(requestedCredits != null) requestedCredits.moneyInPounds else 0
+      NewReturnValues(taxablePlasticCreditInPounds, availableCredit)(userAnswers)
         .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
           Ok(Json.toJson(calculations))

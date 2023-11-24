@@ -41,11 +41,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.Calculations
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues, ReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.{ReturnType, TaxablePlastic}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, ReturnType, UserAnswers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
@@ -67,7 +66,7 @@ class ReturnsControllerSpec
   private val userAnswersAmends: UserAnswers         = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
   private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
   private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
-  private val calculations: Calculations = Calculations(1, 1, 1, 1,true,0.123)
+  private val calculations: Calculations = Calculations(1, 1, 1, 1,isSubmittable = true,0.123)
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
@@ -435,7 +434,7 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         setupMocksForSubmit(userAnswersReturns)
         mockReturnsSubmissionConnector(aReturn())
-        when(mockCreditsCalculationService.totalRequestedCredit_old(any)) thenThrow new RuntimeException("a field is missing")
+        when(mockCreditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException("a field is missing")
 
         the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
           have message "a field is missing"
@@ -485,8 +484,9 @@ class ReturnsControllerSpec
   }
 
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
+
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(0L, BigDecimal(0), 1.0))
+    when(mockCreditsCalculationService.totalRequestedCredit(any, any)).thenReturn(CreditCalculation(0L, 0, 0, canBeClaimed = true, Map.empty))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

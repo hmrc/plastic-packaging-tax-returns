@@ -112,7 +112,7 @@ class ReturnsController @Inject()(
         isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
-              val requestedCredits = creditsService.totalRequestedCredit_old(userAnswer)
+              val requestedCredits: BigDecimal = creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
               doSubmit(NotableEvent.PptReturn, pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
             }
           else {
@@ -181,7 +181,6 @@ class ReturnsController @Inject()(
     if (calculations.isSubmittable) {
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
       returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
-            
         case Right(response) =>
           sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
           handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
