@@ -24,23 +24,20 @@ import org.mockito.scalatest.ResetMocksAfterEachTest
 
 import java.time.LocalDate
 
-class RichLocalDateSpec extends PlaySpec
-  with MockitoSugar
-  with BeforeAndAfterEach
-  with ResetMocksAfterEachTest {
+class RichLocalDateSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with ResetMocksAfterEachTest {
 
   implicit val edgeOfSystem: EdgeOfSystem = mock[EdgeOfSystem]
 
   private val pretendThisIsTheDate = LocalDate.of(1900, 1, 2)
-  private val theDayBefore = LocalDate.of(1900, 1, 1)
-  private val theSameDay = LocalDate.of(1900, 1, 2)
-  private val theDayAfter = LocalDate.of(1900, 1, 3)
-  
+  private val theDayBefore         = LocalDate.of(1900, 1, 1)
+  private val theSameDay           = LocalDate.of(1900, 1, 2)
+  private val theDayAfter          = LocalDate.of(1900, 1, 3)
+
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     when(edgeOfSystem.today) thenReturn pretendThisIsTheDate
   }
-  
+
   "isEqualOrAfterToday and isBeforeToday" when {
 
     "it's the day before" in {

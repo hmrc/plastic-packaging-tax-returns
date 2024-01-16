@@ -22,7 +22,10 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
 
@@ -31,11 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SubscriptionsConnector @Inject()
-(
-  eisHttpClient: EisHttpClient,
-  appConfig: AppConfig
-)(implicit ec: ExecutionContext)  {
+class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig)(implicit ec: ExecutionContext) {
 
   private val logger = Logger(this.getClass)
 
@@ -44,20 +43,14 @@ class SubscriptionsConnector @Inject()
   ): Future[SubscriptionUpdateSuccessfulResponse] = {
     val timerName = "ppt.subscription.update.timer"
 
-    eisHttpClient.put(
-      appConfig.subscriptionUpdateUrl(pptReference),
-      subscriptionUpdateDetails,
-      timerName,
-      buildEisHeader
-    ).map { response =>
-
+    eisHttpClient.put(appConfig.subscriptionUpdateUrl(pptReference), subscriptionUpdateDetails, timerName, buildEisHeader).map { response =>
       response.status match {
         case Status.OK =>
           val triedResponse = response.jsonAs[SubscriptionUpdateSuccessfulResponse]
 
           triedResponse match {
             case Success(subscription) => subscription
-            case Failure(exception) => throwException(pptReference, response.correlationId, exception)
+            case Failure(exception)    => throwException(pptReference, response.correlationId, exception)
           }
         case _ => throwException(pptReference, response.correlationId, response.status)
       }
@@ -66,41 +59,43 @@ class SubscriptionsConnector @Inject()
 
   def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
 
-    val timerName =  "ppt.subscription.display.timer"
+    val timerName = "ppt.subscription.display.timer"
 
     val url = appConfig.subscriptionDisplayUrl(pptReference)
     eisHttpClient.get(url, Seq.empty, timerName, buildEisHeader)
       .map { response =>
         logger.info(s"PPT view subscription with correlationId [${response.correlationId}] and pptReference [$pptReference]")
         if (Status.isSuccessful(response.status)) {
-          val json = Json.parse(response.body.replaceAll("\\s", " "))//subscription data can come back un sanitised for json.
+          val json = Json.parse(response.body.replaceAll("\\s", " ")) //subscription data can come back un sanitised for json.
           Right(json.as[SubscriptionDisplayResponse])
-        } else {
+        } else
           Left(response)
-        }
       }
   }
 
-  def getSubscriptionFuture(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] = {
+  def getSubscriptionFuture(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] =
     getSubscription(pptReference).flatMap {
       case Right(subscription) => Future.successful(subscription)
-      case Left(errorResponse) => Future.failed(new RuntimeException("Failed to fetch subscription details from api, " +
-        s"response code ${errorResponse.status}"))
+      case Left(errorResponse) =>
+        Future.failed(
+          new RuntimeException(
+            "Failed to fetch subscription details from api, " +
+              s"response code ${errorResponse.status}"
+          )
+        )
     }
-  }
 
-  private def throwException(pptReference: String, correlationId: String, exception: Throwable) = {
+  private def throwException(pptReference: String, correlationId: String, exception: Throwable) =
     throw new Exception(
       s"Subscription update with correlationId [$correlationId] and " +
         s"pptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
       exception
     )
-  }
 
-  private def throwException(pptReference: String, correlationId: String, status: Int) = {
+  private def throwException(pptReference: String, correlationId: String, status: Int) =
     throw new Exception(
       s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable. Status code is [$status]",
+        s"pptReference [$pptReference] is currently unavailable. Status code is [$status]"
     )
-  }
+
 }

@@ -50,7 +50,7 @@ object EisReturnDetails {
       totalNotLiable = calculations.deductionsTotal,
       humanMedicines = returnValues.humanMedicinesPlasticWeight,
       directExports = returnValues.totalExportedPlastic,
-      recycledPlastic =  returnValues.recycledPlasticWeight,
+      recycledPlastic = returnValues.recycledPlasticWeight,
       creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
       totalWeight = calculations.chargeableTotal,
       taxDue = calculations.taxDue
@@ -71,12 +71,12 @@ object ReturnsSubmissionRequest {
 
   implicit val format: OFormat[ReturnsSubmissionRequest] = Json.format[ReturnsSubmissionRequest]
 
-  def apply(returnValues: ReturnValues, calculations: Calculations): ReturnsSubmissionRequest = {
+  def apply(returnValues: ReturnValues, calculations: Calculations): ReturnsSubmissionRequest =
     ReturnsSubmissionRequest(
       returnType = returnValues.returnType,
       submissionId = returnValues.submissionId,
       periodKey = returnValues.periodKey,
       returnDetails = EisReturnDetails(returnValues, calculations)
     )
-  }
+
 }

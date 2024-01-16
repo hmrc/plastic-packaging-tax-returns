@@ -40,29 +40,27 @@ import scala.concurrent.Future
 
 class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging {
 
-  private val appConfig = mock[AppConfig]
+  private val appConfig      = mock[AppConfig]
   private val auditConnector = mock[AuditConnector]
-  private val edgeOfSystem = mock[EdgeOfSystem]
-  private val eisHttpClient = mock[EisHttpClient]
-  private val headerCarrier = mock[HeaderCarrier]
-  private val testLogger = mock[Logger]
+  private val edgeOfSystem   = mock[EdgeOfSystem]
+  private val eisHttpClient  = mock[EisHttpClient]
+  private val headerCarrier  = mock[HeaderCarrier]
+  private val testLogger     = mock[Logger]
 
   private val connector = new ReturnsConnector(appConfig, auditConnector, eisHttpClient) {
     protected override val logger: Logger = testLogger
   }
-  
-  private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
-  private val returnSubmission = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
-  private val putResponse = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
-  private val putResponseToJson = EisHttpResponse(200,
-    """{
+
+  private val returnDetails     = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
+  private val returnSubmission  = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
+  private val putResponse       = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
+  private val putResponseToJson = EisHttpResponse(200, """{
       |   "processingDate" : "date",
       |   "idDetails" : {
       |     "pptReferenceNumber" : "details-ref-no",
       |     "submissionId" : "submission-id"
       |   }
-      |}""".stripMargin, 
-    "")
+      |}""".stripMargin, "")
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -74,39 +72,41 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
-    when(eisHttpClient.put[Any](any, any, any, any, any) (any, any)) thenReturn Future.successful(
-      putResponseToJson)
+    when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponseToJson)
   }
 
-  private def callGet = await {
-    connector.get("ppt-ref", "period-2", "internal-id-7")(headerCarrier)
-  }
+  private def callGet =
+    await {
+      connector.get("ppt-ref", "period-2", "internal-id-7")(headerCarrier)
+    }
 
-  private def callSubmit = await {
-    connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7")(headerCarrier)
-  }
+  private def callSubmit =
+    await {
+      connector.submitReturn("ppt-ref", returnSubmission, "internal-id-7")(headerCarrier)
+    }
 
   "get" must {
     "call with the correct parameters" in {
-      when(eisHttpClient.get(any,any, any, any, any)(any))
+      when(eisHttpClient.get(any, any, any, any, any)(any))
         .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
       when(appConfig.returnsDisplayUrl(any, any)) thenReturn "get-url"
       callGet
       verify(appConfig).returnsDisplayUrl("ppt-ref", "period-2")
-      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), any, any) (any)
+      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), any, any)(any)
     }
 
     "handle responses" when {
       "response code is 4xx" in {
-        when(eisHttpClient.get(any,any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, any, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(412, """{"a": "b"}""", "123")))
 
         callGet mustBe Left(412)
 
         withClue("sends failure to audit") {
-          verify(auditConnector).sendExplicitAudit(eqTo("GetReturn"), eqTo(
-            GetReturn("internal-id-7", "period-2", "Failure", None, Some("""{"a": "b"}"""))
-          ))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo("GetReturn"),
+            eqTo(GetReturn("internal-id-7", "period-2", "Failure", None, Some("""{"a": "b"}""")))
+          )(any, any, any)
         }
 
         withClue("logs the failure") {
@@ -116,15 +116,16 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response is 200" in {
-        when(eisHttpClient.get(any,any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, any, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
 
         callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
 
         withClue("sends success to audit") {
-          verify(auditConnector).sendExplicitAudit(eqTo("GetReturn"), eqTo(
-            GetReturn("internal-id-7", "period-2", "Success", Some(JsObject(Seq("a" -> JsString("b")))), None)
-          ))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo("GetReturn"),
+            eqTo(GetReturn("internal-id-7", "period-2", "Success", Some(JsObject(Seq("a" -> JsString("b")))), None))
+          )(any, any, any)
         }
 
         withClue("logs the success") {
@@ -166,14 +167,13 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("to the correct url") {
         verify(appConfig).returnsSubmissionUrl("ppt-ref")
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any, any, any) (any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any, any, any)(any, any)
       }
 
-      withClue("including a correlation id") {
-      }
+      withClue("including a correlation id") {}
 
       withClue("with correct body") {
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any, any, any) (any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any, any, any)(any, any)
       }
     }
 
@@ -183,24 +183,28 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit
         verify(testLogger, never).info(any)(any)
       }
-      
+
       "2xx response code" in {
         callSubmit mustBe Right(Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None))
-        verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-          "Success", returnSubmission, Some(putResponse), None)))(any, any, any)
+        verify(auditConnector).sendExplicitAudit(
+          eqTo("SubmitReturn"),
+          eqTo(SubmitReturn("internal-id-7", "ppt-ref", "Success", returnSubmission, Some(putResponse), None))
+        )(any, any, any)
       }
 
       "4xx response code" in {
         val putResponse = EisHttpResponse(404, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any, any, any) (any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(404)
-        verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-          "Failure", returnSubmission, None, Some("{}")))) (any, any, any)
+        verify(auditConnector).sendExplicitAudit(
+          eqTo("SubmitReturn"),
+          eqTo(SubmitReturn("internal-id-7", "ppt-ref", "Failure", returnSubmission, None, Some("{}")))
+        )(any, any, any)
       }
 
       "5xx response code" in {
         val putResponse = EisHttpResponse(500, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any, any, any) (any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(500)
       }
     }
@@ -217,13 +221,15 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             |}""".stripMargin
 
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body, "")
-        when(eisHttpClient.put[Any](any, any, any, any, any) (any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
 
         callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
 
         withClue("log success as etmp did received our call ok") {
-          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-            "Success", returnSubmission, None, None)))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo("SubmitReturn"),
+            eqTo(SubmitReturn("internal-id-7", "ppt-ref", "Success", returnSubmission, None, None))
+          )(any, any, any)
         }
       }
 
@@ -240,8 +246,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a call failure") {
-          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-            "Failure", returnSubmission, None, Some(responseBody)))) (any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo("SubmitReturn"),
+            eqTo(SubmitReturn("internal-id-7", "ppt-ref", "Failure", returnSubmission, None, Some(responseBody)))
+          )(any, any, any)
         }
       }
 
@@ -251,8 +259,10 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a failure because we weren't sent json") {
-          verify(auditConnector).sendExplicitAudit(eqTo("SubmitReturn"), eqTo(SubmitReturn("internal-id-7", "ppt-ref",
-            "Failure", returnSubmission, None, Some("<html />")))) (any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo("SubmitReturn"),
+            eqTo(SubmitReturn("internal-id-7", "ppt-ref", "Failure", returnSubmission, None, Some("<html />")))
+          )(any, any, any)
         }
       }
     }
@@ -267,7 +277,9 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       withClue("secure log message contains response body and exception message") {
-        auditDetail.value.error.value must include("Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return")
+        auditDetail.value.error.value must include(
+          "Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return"
+        )
       }
 
     }

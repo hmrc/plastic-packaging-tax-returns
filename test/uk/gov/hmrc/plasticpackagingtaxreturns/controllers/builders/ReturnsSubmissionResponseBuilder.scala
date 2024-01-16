@@ -21,8 +21,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 trait ReturnsSubmissionResponseBuilder {
 
   private val date = "2020-12-17T09:30:47Z"
-  private type ReturnsResponseModifier    = Return                       => Return
-  private type ReturnsResponseModifierNrs = ReturnWithNrsSuccessResponse => ReturnWithNrsSuccessResponse
+  private type ReturnsResponseModifier           = Return => Return
+  private type ReturnsResponseModifierNrs        = ReturnWithNrsSuccessResponse => ReturnWithNrsSuccessResponse
   private type ReturnsResponseModifierNrsFailure = ReturnWithNrsFailureResponse => ReturnWithNrsFailureResponse
 
   def aReturn(modifiers: ReturnsResponseModifier*): Return =
@@ -34,9 +34,11 @@ trait ReturnsSubmissionResponseBuilder {
   def aReturnWithNrsFailure(modifiers: ReturnsResponseModifierNrsFailure*): ReturnWithNrsFailureResponse =
     modifiers.foldLeft(modelWithDefaultsNrsFailure)((current, modifier) => modifier(current))
 
-  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(processingDate = date,
-    idDetails = IdDetails(pptReferenceNumber =
-      "7777777",
+  private val modelWithDefaultsNrsFailure = ReturnWithNrsFailureResponse(
+    processingDate = date,
+    idDetails = IdDetails(
+      pptReferenceNumber =
+        "7777777",
       submissionId = "1234567890AA"
     ),
     chargeDetails = None,
@@ -45,9 +47,11 @@ trait ReturnsSubmissionResponseBuilder {
     "Something went wrong"
   )
 
-  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(processingDate = date,
-    idDetails = IdDetails(pptReferenceNumber =
-      "7777777",
+  private val modelWithDefaultsNrs = ReturnWithNrsSuccessResponse(
+    processingDate = date,
+    idDetails = IdDetails(
+      pptReferenceNumber =
+        "7777777",
       submissionId = "1234567890AA"
     ),
     chargeDetails = None,
@@ -56,9 +60,11 @@ trait ReturnsSubmissionResponseBuilder {
     nrSubmissionId = "nrSubmissionId"
   )
 
-  private val modelWithDefaults = Return(processingDate = date,
-    idDetails = IdDetails(pptReferenceNumber =
-      "7777777",
+  private val modelWithDefaults = Return(
+    processingDate = date,
+    idDetails = IdDetails(
+      pptReferenceNumber =
+        "7777777",
       submissionId = "1234567890AA"
     ),
     chargeDetails = None,

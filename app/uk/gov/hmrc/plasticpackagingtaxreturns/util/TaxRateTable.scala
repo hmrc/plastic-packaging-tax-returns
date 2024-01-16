@@ -16,33 +16,31 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.localDateOrdering
 
 import java.time.LocalDate
+import javax.inject.Inject
 import scala.math.Ordering.Implicits.infixOrderingOps
 
 /**
- * The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
- * @note table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
- */
-final class TaxRateTable {
-  
-  val table: Seq[TaxRate] = Seq(
-    TaxRate(poundsPerKg = 0.21082, useFromDate = LocalDate.of(2023, 4, 1)), 
-    TaxRate(poundsPerKg = 0.20, useFromDate = LocalDate.of(2022, 4, 1))
-  )
+  * The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
+  * @note table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
+  */
+final class TaxRateTable @Inject() (implicit appConfig: AppConfig) {
+
+  val table: Seq[TaxRate] = appConfig.taxRates
 
   /**
-   * Looks up the PPT tax rate applicable to the given date
-   * @param periodEndDate the last day of the period we are finding the tax-rate for
-   * @return the tax rate for the given period
-   */
-  def lookupRateFor(periodEndDate: LocalDate): BigDecimal = {
+    * Looks up the PPT tax rate applicable to the given date
+    * @param periodEndDate the last day of the period we are finding the tax-rate for
+    * @return the tax rate for the given period
+    */
+  def lookupRateFor(periodEndDate: LocalDate): BigDecimal =
     table
       .find(_.useFromDate <= periodEndDate)
       .getOrElse(throw new IllegalStateException(s"No tax rate found for $periodEndDate"))
       .poundsPerKg
-  }
 
 }

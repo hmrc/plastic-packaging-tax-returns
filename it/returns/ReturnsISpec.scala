@@ -48,44 +48,33 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsISpec extends PlaySpec
-  with GuiceOneServerPerSuite
-  with ReturnWireMockServerSpec
-  with AuthTestSupport
-  with NrsTestData
-  with BeforeAndAfterEach {
+class ReturnsISpec
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-  lazy val appConfig = app.injector.instanceOf[AppConfig]
-  val httpClient: DefaultHttpClient = app.injector.instanceOf[DefaultHttpClient]
-  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
-  private val periodKey = "22C2"
-  private val DesUrl = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
+  lazy val appConfig                   = app.injector.instanceOf[AppConfig]
+  val httpClient: DefaultHttpClient    = app.injector.instanceOf[DefaultHttpClient]
+  lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
+  private val periodKey                = "22C2"
+  private val DesUrl                   = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
-  private val submitReturnUrl = s"http://localhost:$port/returns-submission/$pptReference"
-  private val obligationDesRequest = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
-  private val balanceEISURL = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
-  private lazy val cacheRepository = mock[SessionRepository]
-
+  private val submitReturnUrl          = s"http://localhost:$port/returns-submission/$pptReference"
+  private val obligationDesRequest     = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
+  private val balanceEISURL            = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
+  private lazy val cacheRepository     = mock[SessionRepository]
 
   override lazy val app: Application = {
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(wireMock.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(cacheRepository)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(cacheRepository))
       .build()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(
-      mockAuthConnector,
-      cacheRepository
-    )
+    reset(mockAuthConnector, cacheRepository)
     wireMock.reset()
   }
 
@@ -165,8 +154,7 @@ class ReturnsISpec extends PlaySpec
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
     stubObligationDesRequest(INTERNAL_SERVER_ERROR)
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(
-      data = ReturnTestHelper.returnWithCreditsDataJson))))
+    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson))))
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 
@@ -189,15 +177,15 @@ class ReturnsISpec extends PlaySpec
 
     // Taken from lIve - response when ETMP has already seen
     wireMock.stubFor(
-      put("/plastic-packaging-tax/returns/PPT/7777777").willReturn(status(422).withBody(
-        """
+      put("/plastic-packaging-tax/returns/PPT/7777777").willReturn(
+        status(422).withBody("""
           {
             "failures" : [ {
               "code" : "TAX_OBLIGATION_ALREADY_FULFILLED",
               "reason" : "The remote endpoint has indicated that Tax obligation already fulfilled."
             } ]
-          }"""
-      ))
+          }""")
+      )
     )
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
@@ -229,10 +217,11 @@ class ReturnsISpec extends PlaySpec
     stubReturnDisplayResponse()
     await(wsClient.url(validGetReturnDisplayUrl).get())
 
-    wireMock.verify(getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
-      .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+    wireMock.verify(
+      getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+    )
   }
-
 
   private def setUpStub() = {
     stubObligationDesRequest()
@@ -242,25 +231,27 @@ class ReturnsISpec extends PlaySpec
   }
 
   private def setUpMocks() = {
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(
-      data = ReturnTestHelper.returnsWithNoCreditDataJson))))
+    when(cacheRepository.get(any())).thenReturn(
+      Future.successful(Option(UserAnswers("id").copy(data = ReturnTestHelper.returnsWithNoCreditDataJson)))
+    )
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
   }
 
   private def stubObligationDesRequest(status: Int = Status.OK) = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation] = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse] = Json.writes[ObligationDataResponse]
-    wireMock.stubFor(get(obligationDesRequest)
-      .willReturn(aResponse
-        .withStatus(status)
-        .withBody(Json.toJson(
-          ObligationSpecHelper.createOneObligation(pptReference)
-        )(writes).toString()))
+    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
+    wireMock.stubFor(
+      get(obligationDesRequest)
+        .willReturn(
+          aResponse
+            .withStatus(status)
+            .withBody(Json.toJson(ObligationSpecHelper.createOneObligation(pptReference))(writes).toString())
+        )
     )
   }
 
-  private def stubReturnDisplayResponse(): Unit = {
+  private def stubReturnDisplayResponse(): Unit =
     wireMock.stubFor(
       get(DesUrl)
         .willReturn(
@@ -270,9 +261,8 @@ class ReturnsISpec extends PlaySpec
             .withBody(displayApiResponse)
         )
     )
-  }
 
-  private def stubReturnDisplayErrorResponse(): Unit = {
+  private def stubReturnDisplayErrorResponse(): Unit =
     wireMock.stubFor(
       get(DesUrl)
         .willReturn(
@@ -280,15 +270,12 @@ class ReturnsISpec extends PlaySpec
             .withStatus(Status.INTERNAL_SERVER_ERROR)
         )
     )
-  }
 
-  private def stubGetBalanceEISRequest = {
-    wireMock.stubFor(get(urlPathEqualTo(balanceEISURL))
-      .willReturn(
-        ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString())
-      )
+  private def stubGetBalanceEISRequest =
+    wireMock.stubFor(
+      get(urlPathEqualTo(balanceEISURL))
+        .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
-  }
 
   def displayApiResponse: String = """
     {

@@ -38,7 +38,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
   private val displaySubscriptionTimer = "ppt.subscription.display.timer"
   private val updateSubscriptionTimer  = "ppt.subscription.update.timer"
 
-  private val pptReference = UUID.randomUUID().toString
+  private val pptReference          = UUID.randomUUID().toString
   private val subscriptionUpdateUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
   override protected def beforeEach(): Unit = {
@@ -143,11 +143,11 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         val response = await(connector.getSubscription("ppt-ref"))
 
         response.value.groupPartnershipSubscription.isDefined mustBe true
-        response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length(3)
+        response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length3
         val iterator = response.value.groupPartnershipSubscription.get.groupPartnershipDetails.iterator
         iterator.next().organisationDetails.get.organisationName mustBe "Test Company Ltd UK"
       }
-      
+
       "handle unexpected failure responses" in {
 
         stubFor(
@@ -208,31 +208,26 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         stubSubscriptionUpdateFailure(500)
 
         intercept[Exception] {
-          await(
-            connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription))
-          )
+          await(connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription)))
         }
       }
-
 
     }
   }
 
   "Subscription connector for display" should {
 
-      "pass on status code and payload " when {
-        "not 2xx is returned from downstream service" in {
-          stubFor(get(anyUrl()).willReturn(
-            status(417).withBody("""{"pass":"it-on"}""")
-          ))
+    "pass on status code and payload " when {
+      "not 2xx is returned from downstream service" in {
+        stubFor(get(anyUrl()).willReturn(status(417).withBody("""{"pass":"it-on"}""")))
 
-          val result = await(connector.getSubscription("some-ref"))
+        val result = await(connector.getSubscription("some-ref"))
 
-          wiremock.verify(getRequestedFor(urlEqualTo("/plastic-packaging-tax/subscriptions/PPT/some-ref/display")))
-          result.left.value.status mustBe 417
-          result.left.value.body mustBe """{"pass":"it-on"}"""
-          getTimer(displaySubscriptionTimer).getCount mustBe 1
-        }
+        wiremock.verify(getRequestedFor(urlEqualTo("/plastic-packaging-tax/subscriptions/PPT/some-ref/display")))
+        result.left.value.status mustBe 417
+        result.left.value.body mustBe """{"pass":"it-on"}"""
+        getTimer(displaySubscriptionTimer).getCount mustBe 1
+      }
     }
   }
 
@@ -244,9 +239,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           stubSubscriptionUpdateFailure(httpStatus = statusCode)
 
           intercept[Exception] {
-            await(
-              connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription))
-            )
+            await(connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription)))
           }
         }
       }
@@ -263,25 +256,21 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         )
     )
 
-  private def stubSubscriptionUpdate(
-    pptReference: String,
-    subscriptionProcessingDate: String,
-    formBundleNumber: String
-  ): Unit =
+  private def stubSubscriptionUpdate(pptReference: String, subscriptionProcessingDate: String, formBundleNumber: String): Unit =
     stubFor(
       put(subscriptionUpdateUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
             .withBody(
-              Json.obj("pptReferenceNumber" -> pptReference,
-                       "processingDate"     -> subscriptionProcessingDate,
-                       "formBundleNumber"   -> formBundleNumber
+              Json.obj(
+                "pptReferenceNumber" -> pptReference,
+                "processingDate"     -> subscriptionProcessingDate,
+                "formBundleNumber"   -> formBundleNumber
               ).toString
             )
         )
     )
-
 
   private def stubSubscriptionUpdateFailure(httpStatus: Int): Any =
     stubFor(

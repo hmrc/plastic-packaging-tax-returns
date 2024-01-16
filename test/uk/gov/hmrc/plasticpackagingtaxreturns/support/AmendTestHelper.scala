@@ -87,8 +87,7 @@ object AmendTestHelper {
        |        }
        |    }""".stripMargin).asInstanceOf[JsObject]
 
-  val userAnswersDataWithoutAmends: JsObject = Json.parse(
-    s"""{
+  val userAnswersDataWithoutAmends: JsObject = Json.parse(s"""{
        |        "amendSelectedPeriodKey": "21C4",
        |        "returnDisplayApi" : {
        |            "idDetails" : {
@@ -117,8 +116,7 @@ object AmendTestHelper {
        |        }
        | }""".stripMargin).asInstanceOf[JsObject]
 
-  val userAnswersDataWithoutKey: JsObject = Json.parse(
-    s"""{
+  val userAnswersDataWithoutKey: JsObject = Json.parse(s"""{
        |        "returnDisplayApi" : {
        |            "idDetails" : {
        |                "pptReferenceNumber" : "pptref",

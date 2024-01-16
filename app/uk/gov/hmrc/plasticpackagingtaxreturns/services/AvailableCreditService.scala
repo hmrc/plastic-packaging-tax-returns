@@ -25,19 +25,16 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvide
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AvailableCreditService @Inject()(
-  exportCreditBalanceConnector: ExportCreditBalanceConnector
-)(implicit executionContext: ExecutionContext) extends BackendHeaderCarrierProvider {
+class AvailableCreditService @Inject() (exportCreditBalanceConnector: ExportCreditBalanceConnector)(implicit executionContext: ExecutionContext)
+    extends BackendHeaderCarrierProvider {
 
   def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[BigDecimal] = {
     val obligationFromDate = userAnswers.getOrFail(ReturnObligationFromDateGettable)
-    val fromDate = obligationFromDate.minusYears(2)
-    val toDate = obligationFromDate.minusDays(1)
+    val fromDate           = obligationFromDate.minusYears(2)
+    val toDate             = obligationFromDate.minusDays(1)
     exportCreditBalanceConnector
       .getBalance(request.pptReference, fromDate, toDate, request.internalId)
-      .map(
-        _.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable)
-      )
+      .map(_.fold(e => throw new Exception(s"Error calling EIS export credit, status: $e"), _.totalExportCreditAvailable))
   }
 
 }

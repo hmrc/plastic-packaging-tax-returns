@@ -28,20 +28,20 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach{
+class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
-  val sessionRepository = mock[SessionRepository]
-  val service = new UserAnswersService(sessionRepository)(ec)
+  val sessionRepository             = mock[SessionRepository]
+  val service                       = new UserAnswersService(sessionRepository)(ec)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(sessionRepository)
   }
 
-  "get with function parameter"  should {
+  "get with function parameter" should {
     val block: UserAnswers => Future[Result] = (_) => Future.successful(Ok("blah"))
-    val spyBlock = spyLambda(block)
+    val spyBlock                             = spyLambda(block)
 
     "execute the block if userAnswer found" in {
       val ans = UserAnswers("123")

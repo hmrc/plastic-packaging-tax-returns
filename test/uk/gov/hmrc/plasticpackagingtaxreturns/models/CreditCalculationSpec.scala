@@ -20,38 +20,32 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 
-class CreditCalculationSpec  extends PlaySpec
-  with BeforeAndAfterEach with MockitoSugar {
+class CreditCalculationSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   "Total stuff" in {
-    val credit = Map(
-      "a" -> TaxablePlastic(weight = 1, moneyInPounds = 2, taxRate = 3), 
-      "b" -> TaxablePlastic(weight = 10, moneyInPounds = 20, taxRate = 30), 
-    )
+    val credit =
+      Map("a" -> TaxablePlastic(weight = 1, moneyInPounds = 2, taxRate = 3), "b" -> TaxablePlastic(weight = 10, moneyInPounds = 20, taxRate = 30))
     CreditCalculation.totalUp(credit, availableCreditInPounds = 30) mustBe CreditCalculation(
-      availableCreditInPounds = 30, 
-      totalRequestedCreditInPounds = 22, 
-      totalRequestedCreditInKilograms = 11, 
-      canBeClaimed = true, 
+      availableCreditInPounds = 30,
+      totalRequestedCreditInPounds = 22,
+      totalRequestedCreditInKilograms = 11,
+      canBeClaimed = true,
       credit = credit
     )
   }
-  
+
   "say when a credit claim is too high" when {
     "claim is in one year" in {
       val credit = Map("a" -> TaxablePlastic(0, moneyInPounds = 2, 0))
-      CreditCalculation.totalUp(credit, availableCreditInPounds = 1).canBeClaimed mustBe false 
-      CreditCalculation.totalUp(credit, availableCreditInPounds = 2).canBeClaimed mustBe true 
-    }
-    "claim is spread across years" in {
-      val credit = Map(
-        "a" -> TaxablePlastic(0, moneyInPounds = 1, 0),
-        "b" -> TaxablePlastic(0, moneyInPounds = 1, 0),
-      )
       CreditCalculation.totalUp(credit, availableCreditInPounds = 1).canBeClaimed mustBe false
       CreditCalculation.totalUp(credit, availableCreditInPounds = 2).canBeClaimed mustBe true
     }
-    
+    "claim is spread across years" in {
+      val credit = Map("a" -> TaxablePlastic(0, moneyInPounds = 1, 0), "b" -> TaxablePlastic(0, moneyInPounds = 1, 0))
+      CreditCalculation.totalUp(credit, availableCreditInPounds = 1).canBeClaimed mustBe false
+      CreditCalculation.totalUp(credit, availableCreditInPounds = 2).canBeClaimed mustBe true
+    }
+
     "retain the available credit amount" in {
       val credit = Map("a" -> TaxablePlastic.zero)
       CreditCalculation.totalUp(credit, availableCreditInPounds = 1).availableCreditInPounds mustBe 1

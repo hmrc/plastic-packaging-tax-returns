@@ -45,20 +45,16 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AmendReturnsItSpec extends PlaySpec
-  with GuiceOneServerPerSuite
-  with ReturnWireMockServerSpec
-  with AuthTestSupport
-  with NrsTestData
-  with BeforeAndAfterEach {
+class AmendReturnsItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
-  val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
-  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
-  private val periodKey = "22C2"
-  private val amendUrl = s"http://localhost:$port/returns-amend/$pptReference"
-  private lazy val cacheRepository = mock[SessionRepository]
+  val httpClient: DefaultHttpClient           = app.injector.instanceOf[DefaultHttpClient]
+  lazy val wsClient: WSClient                 = app.injector.instanceOf[WSClient]
+  private val periodKey                       = "22C2"
+  private val amendUrl                        = s"http://localhost:$port/returns-amend/$pptReference"
+  private lazy val cacheRepository            = mock[SessionRepository]
   private lazy val mockFinancialDataConnector = mock[FinancialDataConnector]
 
   override lazy val app: Application = {
@@ -76,11 +72,7 @@ class AmendReturnsItSpec extends PlaySpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(
-      mockAuthConnector,
-      cacheRepository,
-      mockFinancialDataConnector
-    )
+    reset(mockAuthConnector, cacheRepository, mockFinancialDataConnector)
   }
 
   "amend" should {
@@ -139,14 +131,12 @@ class AmendReturnsItSpec extends PlaySpec
     }
   }
 
-
   private def setUpMockForAmend(): Unit = {
     when(cacheRepository.get(any()))
       .thenReturn(Future.successful(Option(UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
-    when(mockFinancialDataConnector.get(any(),any(),any(),any(),any(),any(),any(),any())(any()))
-      .thenReturn(Future.successful(
-        Right(FinancialTransactionHelper.createFinancialResponseWithAmount(periodKey)))
-      )
+    when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any(), any())(any()))
+      .thenReturn(Future.successful(Right(FinancialTransactionHelper.createFinancialResponseWithAmount(periodKey))))
   }
+
 }

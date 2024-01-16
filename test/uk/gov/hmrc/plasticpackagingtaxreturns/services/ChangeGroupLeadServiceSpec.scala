@@ -42,7 +42,9 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName").get
+      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(
+        _.organisationDetails.get.organisationName == "Lost Boys Ltd-organisationName"
+      ).get
       member.relationship mustBe "Representative"
     }
 
@@ -51,8 +53,12 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) must contain("original-rep-organisationName")
-      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(_.organisationDetails.get.organisationName == "original-rep-organisationName").get
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) must contain(
+        "original-rep-organisationName"
+      )
+      val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(
+        _.organisationDetails.get.organisationName == "original-rep-organisationName"
+      ).get
       member.relationship mustBe "Member"
     }
 
@@ -102,20 +108,16 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
     "error" when {
 
-      Seq(
-        ChooseNewGroupLeadGettable,
-        MainContactNameGettable,
-        MainContactJobTitleGettable,
-        NewGroupLeadEnterContactAddressGettable
-      ).foreach { gettable =>
-        s"user answers does not contain ${gettable.getClass.getSimpleName}" in {
-          val userAnswers = defaultUserAnswers
-            .setUnsafe(gettable.path, JsNull) //unset the specific default
+      Seq(ChooseNewGroupLeadGettable, MainContactNameGettable, MainContactJobTitleGettable, NewGroupLeadEnterContactAddressGettable).foreach {
+        gettable =>
+          s"user answers does not contain ${gettable.getClass.getSimpleName}" in {
+            val userAnswers = defaultUserAnswers
+              .setUnsafe(gettable.path, JsNull) //unset the specific default
 
-          val sub = createSubscription(defaultMember)
+            val sub = createSubscription(defaultMember)
 
-          an [IllegalStateException] must be thrownBy sut.createSubscriptionUpdateRequest(sub, userAnswers) 
-        }
+            an[IllegalStateException] must be thrownBy sut.createSubscriptionUpdateRequest(sub, userAnswers)
+          }
       }
 
       "the subscription is not a group" in {
@@ -146,7 +148,6 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
         val userAnswers = defaultUserAnswers.setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "unmatchable"))
 
-
         val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
       }
@@ -165,38 +166,38 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
   }
 
   "createNrsSubscriptionUpdateSubmission" must {
-    
-    "include UserAnswers" in  {
-      val userAnswers: UserAnswers = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
+
+    "include UserAnswers" in {
+      val userAnswers: UserAnswers        = UserAnswers("id").setUnsafe(json.__ \ "biscuits", "chocolate")
       val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, userAnswers)
-      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
+      val asJson: JsValue                 = Json.toJson(nrsSubscriptionUpdateSubmission)
       (asJson \ "userAnswers") mustBe JsDefined(Json.parse("""{"biscuits":"chocolate"}"""))
     }
-    
+
     "include subscription update payload" in {
       val nrsSubscriptionUpdateSubmission = sut.createNrsSubscriptionUpdateSubmission(cookOneUp, UserAnswers("id"))
-      val asJson: JsValue = Json.toJson(nrsSubscriptionUpdateSubmission)
-      val maybeJsObject = (asJson \ "subscriptionUpdateRequest").asOpt[JsObject]
+      val asJson: JsValue                 = Json.toJson(nrsSubscriptionUpdateSubmission)
+      val maybeJsObject                   = (asJson \ "subscriptionUpdateRequest").asOpt[JsObject]
       maybeJsObject must not be None
 
       val jsObject = maybeJsObject.get
-      jsObject.value.keys must contain("changeOfCircumstanceDetails") 
-      jsObject.value.keys must contain("legalEntityDetails") 
-      jsObject.value.keys must contain("groupPartnershipSubscription") 
-      jsObject.value.keys must contain("businessCorrespondenceDetails") 
+      jsObject.value.keys must contain("changeOfCircumstanceDetails")
+      jsObject.value.keys must contain("legalEntityDetails")
+      jsObject.value.keys must contain("groupPartnershipSubscription")
+      jsObject.value.keys must contain("businessCorrespondenceDetails")
     }
-    
-  }  
+
+  }
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
       .setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "Lost Boys Ltd-customerIdentification1"))
       .setUnsafe(MainContactNameGettable, "Peter Pan")
       .setUnsafe(MainContactJobTitleGettable, "Lost Boy")
-      .setUnsafe(NewGroupLeadEnterContactAddressGettable,
+      .setUnsafe(
+        NewGroupLeadEnterContactAddressGettable,
         BusinessCorrespondenceDetails("2nd Star to the right", "Straight on til morning", None, None, None, "NL")
       )
-
 
   def createSubscription(members: GroupPartnershipDetails*): SubscriptionDisplayResponse =
     SubscriptionDisplayResponse(
@@ -207,12 +208,8 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         customerDetails =
           CustomerDetails(
             CustomerType.Organisation,
-            organisationDetails = Some(
-              OrganisationDetails(
-                organisationType = Some("original-rep-organisationType"),
-                organisationName = "original-rep-organisationName"
-              )
-            )
+            organisationDetails =
+              Some(OrganisationDetails(organisationType = Some("original-rep-organisationType"), organisationName = "original-rep-organisationName"))
           ),
         groupSubscriptionFlag = true,
         regWithoutIDFlag = false
@@ -223,17 +220,12 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
             addressLine1 = "original-rep-principal-addressLine1",
             addressLine2 = "original-rep-principal-addressLine2",
             countryCode = "original-rep-principal-countryCode"
-          ), contactDetails = ContactDetails(
-            email = "original-rep-email",
-            telephone = "original-rep-telephone"
-          )
+          ),
+          contactDetails = ContactDetails(email = "original-rep-email", telephone = "original-rep-telephone")
         ),
       primaryContactDetails = PrimaryContactDetails(
         name = "original-rep-primary-contact-name",
-        contactDetails = ContactDetails(
-          email = "original-rep-primary-contact-email",
-          telephone = "original-rep-primary-contact-telephone"
-        ),
+        contactDetails = ContactDetails(email = "original-rep-primary-contact-email", telephone = "original-rep-primary-contact-telephone"),
         positionInCompany = "original-rep-primary-contact-positionInCompany"
       ),
       businessCorrespondenceDetails =
@@ -256,7 +248,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       changeOfCircumstanceDetails = None
     )
 
-  def originalRepMember = createMember("original-rep", "Representative")
+  def originalRepMember                      = createMember("original-rep", "Representative")
   def defaultMember: GroupPartnershipDetails = createMember("Lost Boys Ltd")
 
   def createMember(member: String, relationship: String = Relationship.Member): GroupPartnershipDetails =
@@ -264,105 +256,96 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       relationship = relationship,
       customerIdentification1 = s"$member-customerIdentification1",
       customerIdentification2 = Some(s"$member-customerIdentification2"),
-      organisationDetails = Some(OrganisationDetails(
-        organisationType = Some(s"$member-organisationType"),
-        organisationName = s"$member-organisationName"
-      )),
+      organisationDetails =
+        Some(OrganisationDetails(organisationType = Some(s"$member-organisationType"), organisationName = s"$member-organisationName")),
       individualDetails = None,
-      addressDetails = AddressDetails(
-        addressLine1 = s"$member-addressLine1",
-        addressLine2 = s"$member-addressLine2",
-        countryCode = s"$member-countryCode"
-      ),
-      contactDetails = ContactDetails(
-        email = s"$member-email",
-        telephone = s"$member-telephone"
-      ),
+      addressDetails =
+        AddressDetails(addressLine1 = s"$member-addressLine1", addressLine2 = s"$member-addressLine2", countryCode = s"$member-countryCode"),
+      contactDetails = ContactDetails(email = s"$member-email", telephone = s"$member-telephone"),
       regWithoutIDFlag = false
     )
-    
-  private def cookOneUp: SubscriptionUpdateRequest = {
 
+  private def cookOneUp: SubscriptionUpdateRequest =
     new SubscriptionUpdateRequest(
       changeOfCircumstanceDetails = ChangeOfCircumstanceDetails(
-        changeOfCircumstance = "", // some enum from docs - eg DEREGISTER but not that!
+        changeOfCircumstance = "",   // some enum from docs - eg DEREGISTER but not that!
         deregistrationDetails = None // as we're not de-reg here
       ),
       legalEntityDetails = LegalEntityDetails(
-        dateOfApplication = "", // stay as is
-        customerIdentification1 = "",  // copy from member details
-        customerIdentification2 = Some(""),  // copy from member details
-        customerDetails = CustomerDetails( // <-- largely copied from member details below  
+        dateOfApplication = "",                     // stay as is
+        customerIdentification1 = "",               // copy from member details
+        customerIdentification2 = Some(""),         // copy from member details
+        customerDetails = CustomerDetails(          // <-- largely copied from member details below
           customerType = CustomerType.Organisation, // Always this value?
-          individualDetails = None, // Always none as always organisation type?
-          organisationDetails = Some(OrganisationDetails(
-            organisationType = Some(""), // copy from member details
-            organisationName = "" // copy from member details
-          ))
+          individualDetails = None,                 // Always none as always organisation type?
+          organisationDetails = Some(
+            OrganisationDetails(
+              organisationType = Some(""), // copy from member details
+              organisationName = ""        // copy from member details
+            )
+          )
         ),
-        groupSubscriptionFlag = true, // stay as is - would be funny if false
-        regWithoutIDFlag = false, // stay as is
+        groupSubscriptionFlag = true,       // stay as is - would be funny if false
+        regWithoutIDFlag = false,           // stay as is
         partnershipSubscriptionFlag = false // stay as is
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
-        addressDetails = someAddressDetails, // copy from member details 
-        contactDetails = someContactDetails // copy from member details
+        addressDetails = someAddressDetails, // copy from member details
+        contactDetails = someContactDetails  // copy from member details
       ),
       primaryContactDetails = PrimaryContactDetails(
-        name = "", // from form
+        name = "",                           // from form
         contactDetails = someContactDetails, // copied from member details? Do we need a 2nd set of email, phone and mobile?
-        positionInCompany = "" // from form, job title
+        positionInCompany = ""               // from form, job title
       ),
       businessCorrespondenceDetails = someAddressDetails2, // from form for contact address
-      taxObligationStartDate = "", // stay as is
-      last12MonthTotalTonnageAmt = BigDecimal(0), // stay as is
-      declaration = Declaration(true), // stay as is
-      groupPartnershipSubscription = Some(GroupPartnershipSubscription(
-        representativeControl = Some(false), // stay as is
-        allMembersControl = Some(false), // stay as is
-        groupPartnershipDetails = List(GroupPartnershipDetails( // <------------- list of members starts here ------>
-          relationship = "", // "Member"
-          customerIdentification1 = "", // for previous rep, copy from legalEntityDetails
-          customerIdentification2 = Some(""), // for previous rep, copy from legalEntityDetails
-          organisationDetails = Some(OrganisationDetails( // for previous rep, copy from legalEntityDetails
-            organisationType = Some(""),
-            organisationName = ""
-          )),
-          individualDetails = Some(IndividualDetails(
-            title = Some(""),
-            firstName = "",
-            middleName = Some(""),
-            lastName = ""
-          )),
-          addressDetails = someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
-          contactDetails = someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
-          regWithoutIDFlag = false
-        ))
-      ))
+      taxObligationStartDate = "",                         // stay as is
+      last12MonthTotalTonnageAmt = BigDecimal(0),          // stay as is
+      declaration = Declaration(true),                     // stay as is
+      groupPartnershipSubscription = Some(
+        GroupPartnershipSubscription(
+          representativeControl = Some(false), // stay as is
+          allMembersControl = Some(false),     // stay as is
+          groupPartnershipDetails = List(
+            GroupPartnershipDetails(              // <------------- list of members starts here ------>
+              relationship = "",                  // "Member"
+              customerIdentification1 = "",       // for previous rep, copy from legalEntityDetails
+              customerIdentification2 = Some(""), // for previous rep, copy from legalEntityDetails
+              organisationDetails = Some(
+                OrganisationDetails( // for previous rep, copy from legalEntityDetails
+                  organisationType = Some(""),
+                  organisationName = ""
+                )
+              ),
+              individualDetails = Some(IndividualDetails(title = Some(""), firstName = "", middleName = Some(""), lastName = "")),
+              addressDetails = someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+              contactDetails = someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+              regWithoutIDFlag = false
+            )
+          )
+        )
+      )
     )
-  }
 
-  private def someAddressDetails2 = BusinessCorrespondenceDetails(
-    addressLine1 = "",
-    addressLine2 = "",
-    addressLine3 = Some(""), // these should be shunted up 
-    addressLine4 = Some(""), // ^  ^  ^
-    postalCode = Some(""),
-    countryCode = ""
-  )
+  private def someAddressDetails2 =
+    BusinessCorrespondenceDetails(
+      addressLine1 = "",
+      addressLine2 = "",
+      addressLine3 = Some(""), // these should be shunted up
+      addressLine4 = Some(""), // ^  ^  ^
+      postalCode = Some(""),
+      countryCode = ""
+    )
 
-  private def someAddressDetails = AddressDetails(
-    addressLine1 = "",
-    addressLine2 = "",
-    addressLine3 = Some(""), // these should be shunted up 
-    addressLine4 = Some(""), // ^  ^  ^
-    postalCode = Some(""),
-    countryCode = ""
-  )
+  private def someAddressDetails =
+    AddressDetails(
+      addressLine1 = "",
+      addressLine2 = "",
+      addressLine3 = Some(""), // these should be shunted up
+      addressLine4 = Some(""), // ^  ^  ^
+      postalCode = Some(""),
+      countryCode = ""
+    )
 
-  private def someContactDetails = ContactDetails(
-    email = "",
-    telephone = "",
-    mobileNumber = Some("")
-  )
+  private def someContactDetails = ContactDetails(email = "", telephone = "", mobileNumber = Some(""))
 }

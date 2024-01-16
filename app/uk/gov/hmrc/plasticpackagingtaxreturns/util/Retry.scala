@@ -28,9 +28,9 @@ trait Retry {
   private val logger = Logger(getClass)
   implicit protected def actorSystem: ActorSystem
 
-  def retry[A](intervals: FiniteDuration*)(shouldRetry: Try[A] => Boolean, retryReason: Try[A] => String)(
-    block: => Future[A]
-  )(implicit ec: ExecutionContext): Future[A] = {
+  def retry[A](
+    intervals: FiniteDuration*
+  )(shouldRetry: Try[A] => Boolean, retryReason: Try[A] => String)(block: => Future[A])(implicit ec: ExecutionContext): Future[A] = {
     def loop(remainingIntervals: Seq[FiniteDuration])(block: => Future[A]): Future[A] =
       block.flatMap(
         result =>

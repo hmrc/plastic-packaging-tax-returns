@@ -32,6 +32,7 @@ class CreditsAnswerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
       }
     }  
     """
+
   private val userAnswers = UserAnswers("id", data = Json.parse(json).as[JsObject])
 
   "it" should {

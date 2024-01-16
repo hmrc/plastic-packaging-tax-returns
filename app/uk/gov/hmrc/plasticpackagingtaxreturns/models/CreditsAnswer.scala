@@ -18,12 +18,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import play.api.libs.json.{JsPath, Json, OFormat}
 
-
 case class CreditsAnswer(yesNo: Boolean, private val weight: Option[Long]) {
-  def value: Long = (yesNo, weight) match {
-    case (true, Some(x)) => x
-    case _ => 0
-  }
+
+  def value: Long =
+    (yesNo, weight) match {
+      case (true, Some(x)) => x
+      case _               => 0
+    }
+
 }
 
 object CreditsAnswer {
@@ -31,13 +33,12 @@ object CreditsAnswer {
   def noClaim: CreditsAnswer = CreditsAnswer(false, None)
 
   implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]
-  
+
   def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer =
     exportedCredits.getOrElse(CreditsAnswer.noClaim)
 
-  def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer = {
+  def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer =
     userAnswers
       .get[CreditsAnswer](JsPath \ path)
-      .getOrElse(CreditsAnswer.noClaim) // therefore will be (no and zero) if missing / unanswered 
-  }
+      .getOrElse(CreditsAnswer.noClaim) // therefore will be (no and zero) if missing / unanswered
 }

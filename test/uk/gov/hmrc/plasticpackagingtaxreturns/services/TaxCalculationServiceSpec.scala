@@ -25,8 +25,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
 import java.time.LocalDate
 
-class TaxCalculationServiceSpec extends PlaySpec 
-  with MockitoSugar with BeforeAndAfterEach {
+class TaxCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val taxRateTable = mock[TaxRateTable]
 
@@ -53,7 +52,7 @@ class TaxCalculationServiceSpec extends PlaySpec
   }
 
   "weightToCredit" must {
-    
+
     behave like aConverter { (x: LocalDate, y: Long) =>
       sut.weightToCredit(x, y).moneyInPounds
     }
@@ -80,6 +79,7 @@ class TaxCalculationServiceSpec extends PlaySpec
       method(LocalDate.of(2025, 4, 3), 5L)
       verify(taxRateTable).lookupRateFor(LocalDate.of(2025, 4, 3))
     }
-    
+
   }
+
 }

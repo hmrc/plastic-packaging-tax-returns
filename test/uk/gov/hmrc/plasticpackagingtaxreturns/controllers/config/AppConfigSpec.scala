@@ -41,16 +41,19 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       |auditing.enabled=true
       |eis.environment=ist0
       |nrs.retries=["1s", "2s", "4s"]
+      |tax-rate.year.2022=0.20
+      |tax-rate.year.2023=0.21082
+      |tax-rate.year.2024=0.21785
     """.stripMargin
 
   private def createAppConfig(configString: String = "") = {
-    val config = ConfigFactory.parseString(validAppConfig + configString)
+    val config        = ConfigFactory.parseString(validAppConfig + configString)
     val configuration = Configuration(config)
     new AppConfig(configuration, new ServicesConfig(configuration))
   }
 
   "AppConfig" should {
-    
+
     "return config as object model when configuration is valid" in {
       val configService: AppConfig = createAppConfig()
       configService.authBaseUrl mustBe "http://localhostauth:9988"
@@ -77,6 +80,6 @@ class AppConfigSpec extends AnyWordSpec with Matchers with MockitoSugar {
       }
 
     }
-    
+
   }
 }

@@ -56,7 +56,7 @@ object ObligationDetail {
       (JsPath \ "fromDate").write[LocalDate] and
       (JsPath \ "toDate").write[LocalDate] and
       (JsPath \ "dueDate").write[LocalDate]
-    )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
+  )(o => (o.periodKey, o.inboundCorrespondenceFromDate, o.inboundCorrespondenceToDate, o.inboundCorrespondenceDueDate))
 
   implicit val format: Reads[ObligationDetail] = Json.reads[ObligationDetail]
 }

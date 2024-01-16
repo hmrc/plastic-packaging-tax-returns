@@ -31,12 +31,7 @@ object ChargeDetails {
   implicit val format: OFormat[ChargeDetails] = Json.format[ChargeDetails]
 }
 
-case class ExportChargeDetails(
-  chargeType: String,
-  chargeReference: Option[String],
-  amount: BigDecimal,
-  dueDate: Option[String]
-)
+case class ExportChargeDetails(chargeType: String, chargeReference: Option[String], amount: BigDecimal, dueDate: Option[String])
 
 object ExportChargeDetails {
   implicit val format: OFormat[ExportChargeDetails] = Json.format[ExportChargeDetails]
@@ -55,26 +50,26 @@ object Return {
 }
 
 case class ReturnWithNrsFailureResponse(
-                                         processingDate: String,
-                                         idDetails: IdDetails,
-                                         chargeDetails: Option[ChargeDetails],
-                                         exportChargeDetails: Option[ExportChargeDetails],
-                                         returnDetails: Option[EisReturnDetails],
-                                         override val nrsFailureReason: String
-                                       ) extends NrsFailureResponse
+  processingDate: String,
+  idDetails: IdDetails,
+  chargeDetails: Option[ChargeDetails],
+  exportChargeDetails: Option[ExportChargeDetails],
+  returnDetails: Option[EisReturnDetails],
+  override val nrsFailureReason: String
+) extends NrsFailureResponse
 
 object ReturnWithNrsFailureResponse {
   implicit val format: OFormat[ReturnWithNrsFailureResponse] = Json.format[ReturnWithNrsFailureResponse]
 }
 
 case class ReturnWithNrsSuccessResponse(
-                                         processingDate: String,
-                                         idDetails: IdDetails,
-                                         chargeDetails: Option[ChargeDetails],
-                                         exportChargeDetails: Option[ExportChargeDetails],
-                                         returnDetails: Option[EisReturnDetails],
-                                         override val nrSubmissionId: String
-                                       ) extends NrsSuccessfulResponse
+  processingDate: String,
+  idDetails: IdDetails,
+  chargeDetails: Option[ChargeDetails],
+  exportChargeDetails: Option[ExportChargeDetails],
+  returnDetails: Option[EisReturnDetails],
+  override val nrSubmissionId: String
+) extends NrsSuccessfulResponse
 
 object ReturnWithNrsSuccessResponse {
   implicit val format: OFormat[ReturnWithNrsSuccessResponse] = Json.format[ReturnWithNrsSuccessResponse]

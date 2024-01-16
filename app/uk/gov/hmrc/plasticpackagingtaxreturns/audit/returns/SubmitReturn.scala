@@ -19,12 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 
-case class SubmitReturn(internalId: String,
-                        pptReference: String,
-                        result: String,
-                        request: ReturnsSubmissionRequest,
-                        response: Option[Return],
-                        error: Option[String])
+case class SubmitReturn(
+  internalId: String,
+  pptReference: String,
+  result: String,
+  request: ReturnsSubmissionRequest,
+  response: Option[Return],
+  error: Option[String]
+)
 
 object SubmitReturn {
   implicit val format: OFormat[SubmitReturn] = Json.format[SubmitReturn]

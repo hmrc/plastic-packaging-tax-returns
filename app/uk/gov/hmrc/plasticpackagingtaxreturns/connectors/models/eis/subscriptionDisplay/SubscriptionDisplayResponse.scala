@@ -35,7 +35,7 @@ case class SubscriptionDisplayResponse(
   last12MonthTotalTonnageAmt: BigDecimal,
   declaration: Declaration,
   groupPartnershipSubscription: Option[GroupPartnershipSubscription]
-){
+) {
 
   def toUpdateRequest: SubscriptionUpdateRequest =
     SubscriptionUpdateRequest(
@@ -49,7 +49,7 @@ case class SubscriptionDisplayResponse(
       declaration = declaration,
       groupPartnershipSubscription = groupPartnershipSubscription
     )
-    
+
   def taxStartDate(): LocalDate = LocalDate.parse(taxObligationStartDate)
 }
 

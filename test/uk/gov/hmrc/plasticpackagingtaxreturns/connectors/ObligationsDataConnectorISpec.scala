@@ -71,10 +71,11 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
   )
 
   override def overrideConfig: Map[String, Any] =
-    Map("microservice.services.des.host" -> wireHost,
+    Map(
+      "microservice.services.des.host" -> wireHost,
       "microservice.services.des.port" -> wirePort,
       "auditing.consumer.baseUri.port" -> wirePort,
-      "auditing.enabled" -> true
+      "auditing.enabled"               -> true
     )
 
   "ObligationData connector" when {
@@ -111,7 +112,6 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
               WireMock
                 .status(NOT_FOUND)
                 .withBody("""{"code": "NOT_FOUND","message": "any message"}""")
-
             )
         )
 
@@ -156,14 +156,11 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
   "ObligationData connector for obligation data" should {
 
     forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
       "return " + statusCode when {
 
         s"$statusCode is returned from downstream service" in {
 
-          stubObligationDataRequestFailure(httpStatus = statusCode,
-            errors = Seq(EISError("Error Code", "Error Reason"))
-          )
+          stubObligationDataRequestFailure(httpStatus = statusCode, errors = Seq(EISError("Error Code", "Error Reason")))
 
           givenAuditReturns(auditUrl, Status.NO_CONTENT)
           givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)

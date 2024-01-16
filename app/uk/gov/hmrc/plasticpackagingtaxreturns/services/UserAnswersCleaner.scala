@@ -29,48 +29,45 @@ import javax.inject.Inject
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-
 /** A cleaner that formats user answers from old JsPaths
- * to maintain backwards compatibility for users mid journey during deployments
- */
+  * to maintain backwards compatibility for users mid journey during deployments
+  */
 
-class UserAnswersCleaner @Inject()(
+class UserAnswersCleaner @Inject() (
   availableCreditDateRangesService: AvailableCreditDateRangesService,
-  subscriptionsConnector: SubscriptionsConnector,
-) (implicit executionContext: ExecutionContext) {
-  
-  def hasOldAnswers(userAnswers: UserAnswers): Boolean = {
-    userAnswers.get[JsValue](JsPath \ "exportedCredits").isDefined || 
-      userAnswers.get[JsValue](JsPath \ "convertedCredits").isDefined
-  }
+  subscriptionsConnector: SubscriptionsConnector
+)(implicit executionContext: ExecutionContext) {
 
-  private def getAssumedDateRange(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): Option[CreditRangeOption] = {
+  def hasOldAnswers(userAnswers: UserAnswers): Boolean =
+    userAnswers.get[JsValue](JsPath \ "exportedCredits").isDefined ||
+      userAnswers.get[JsValue](JsPath \ "convertedCredits").isDefined
+
+  private def getAssumedDateRange(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): Option[CreditRangeOption] =
     userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate").flatMap { returnToDate =>
       val taxStartDate = subscription.taxStartDate()
-      val available = availableCreditDateRangesService.calculate(returnToDate, taxStartDate)
+      val available    = availableCreditDateRangesService.calculate(returnToDate, taxStartDate)
       available match {
         case Seq(claimPeriod) => Some(claimPeriod)
-        case _ => None
+        case _                => None
       }
     }
-  }
 
   def fetchSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] =
     subscriptionsConnector.getSubscriptionFuture(pptReference)
 
-  def clean(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[(UserAnswers, Boolean)] = {
+  def clean(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[(UserAnswers, Boolean)] =
     Future.unit
       .filter(_ => hasOldAnswers(userAnswers))
-      .flatMap(_ => 
-        fetchSubscription(pptReference)
-          .map(migrateOldAnswers(userAnswers, _))
+      .flatMap(
+        _ =>
+          fetchSubscription(pptReference)
+            .map(migrateOldAnswers(userAnswers, _))
       )
       .recover(_ => userAnswers -> false)
-  }
-  
+
   private def migrateOldAnswers(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): (UserAnswers, Boolean) = {
 
-    val startedAReturn = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
+    val startedAReturn     = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
     val assumableDateRange = getAssumedDateRange(userAnswers, subscription)
 
     if (startedAReturn && assumableDateRange.isDefined) {
@@ -83,13 +80,14 @@ class UserAnswersCleaner @Inject()(
         .removePath(JsPath \ "exportedCredits")
         .removePath(JsPath \ "convertedCredits")
 
-        val userAnswersChanged = updated != userAnswers
+      val userAnswersChanged = updated != userAnswers
 
-         val updatedWithMeta = if (userAnswersChanged) {
-           updated
-             .setOrFail(JsPath \ "credit" \ taxRange.key \ "toDate", taxRange.to)
-             .setOrFail(JsPath \ "credit" \ taxRange.key \ "fromDate", taxRange.from)
-         } else updated
+      val updatedWithMeta =
+        if (userAnswersChanged)
+          updated
+            .setOrFail(JsPath \ "credit" \ taxRange.key \ "toDate", taxRange.to)
+            .setOrFail(JsPath \ "credit" \ taxRange.key \ "fromDate", taxRange.from)
+        else updated
       (updatedWithMeta, userAnswersChanged)
     } else userAnswers -> false
   }
@@ -99,16 +97,16 @@ class UserAnswersCleaner @Inject()(
 object UserAnswersCleaner {
 
   implicit class CleaningUserAnswers(val userAnswers: UserAnswers) extends AnyVal {
-    def migrate(from: JsPath, to: JsPath): UserAnswers = {
-      (if (userAnswers.get[JsValue](to).isEmpty && userAnswers.get[JsValue](from).isDefined)
-          userAnswers.setOrFail(to, userAnswers.get[JsValue](from))
-      else userAnswers
-      ).removePath(from)
-    }
 
-    def setIfDefined[A](check: JsPath, setPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers = {
+    def migrate(from: JsPath, to: JsPath): UserAnswers =
+      (if (userAnswers.get[JsValue](to).isEmpty && userAnswers.get[JsValue](from).isDefined)
+         userAnswers.setOrFail(to, userAnswers.get[JsValue](from))
+       else userAnswers).removePath(from)
+
+    def setIfDefined[A](check: JsPath, setPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers =
       if (userAnswers.get[JsValue](check).isDefined) userAnswers.setOrFail(setPath, value)
       else userAnswers
-    }
+
   }
+
 }

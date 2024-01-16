@@ -27,8 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpe
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
 
-class NonRepudiationConnectorISpec
-    extends ConnectorISpec with Injector with AuthTestSupport with NrsTestData with ScalaFutures {
+class NonRepudiationConnectorISpec extends ConnectorISpec with Injector with AuthTestSupport with NrsTestData with ScalaFutures {
   lazy val config                                       = Map("microservice.services.nrs.api-key" -> testNonRepudiationApiKey)
   lazy val connector: NonRepudiationConnector           = app.injector.instanceOf[NonRepudiationConnector]
   private implicit val testNonRepudiationApiKey: String = "test-key"
@@ -40,20 +39,21 @@ class NonRepudiationConnectorISpec
     val testPayloadChecksum = "testPayloadChecksum"
     val headerData          = Map("testHeaderKey" -> "testHeaderValue")
 
-    val testNonRepudiationMetadata = NonRepudiationMetadata(businessId = "vrs",
-                                                            notableEvent = "vat-registration",
-                                                            payloadContentType =
-                                                              "application/json",
-                                                            payloadSha256Checksum =
-                                                              testPayloadChecksum,
-                                                            userSubmissionTimestamp =
-                                                              testDateTimeString,
-                                                            identityData =
-                                                              testNonRepudiationIdentityData,
-                                                            userAuthToken = testAuthToken,
-                                                            headerData = headerData,
-                                                            searchKeys =
-                                                              Map("postCode" -> testPPTReference)
+    val testNonRepudiationMetadata = NonRepudiationMetadata(
+      businessId = "vrs",
+      notableEvent = "vat-registration",
+      payloadContentType =
+        "application/json",
+      payloadSha256Checksum =
+        testPayloadChecksum,
+      userSubmissionTimestamp =
+        testDateTimeString,
+      identityData =
+        testNonRepudiationIdentityData,
+      userAuthToken = testAuthToken,
+      headerData = headerData,
+      searchKeys =
+        Map("postCode" -> testPPTReference)
     )
 
     val expectedRequestJson: JsObject =
@@ -61,10 +61,7 @@ class NonRepudiationConnectorISpec
 
     "return a success" in {
       val testNonRepudiationSubmissionId = "testNonRepudiationSubmissionId"
-      stubNonRepudiationSubmission(ACCEPTED,
-                                   expectedRequestJson,
-                                   Json.obj("nrSubmissionId" -> testNonRepudiationSubmissionId)
-      )
+      stubNonRepudiationSubmission(ACCEPTED, expectedRequestJson, Json.obj("nrSubmissionId" -> testNonRepudiationSubmissionId))
 
       val res = connector.submitNonRepudiation(testEncodedPayload, testNonRepudiationMetadata)
 
@@ -86,11 +83,7 @@ class NonRepudiationConnectorISpec
     "retry" when {
       "nrs submission fails on first attempt" in {
         val expectedSubmissionId = "nrs-submission-id"
-        expectNRSToFailOnceAndThenSucceed(INTERNAL_SERVER_ERROR,
-                                          ACCEPTED,
-                                          expectedRequestJson,
-                                          Json.obj("nrSubmissionId" -> expectedSubmissionId)
-        )
+        expectNRSToFailOnceAndThenSucceed(INTERNAL_SERVER_ERROR, ACCEPTED, expectedRequestJson, Json.obj("nrSubmissionId" -> expectedSubmissionId))
 
         await(connector.submitNonRepudiation(testEncodedPayload, testNonRepudiationMetadata))
           .submissionId must be(expectedSubmissionId)
@@ -99,9 +92,7 @@ class NonRepudiationConnectorISpec
 
   }
 
-  private def stubNonRepudiationSubmission(status: Int, request: JsValue, response: JsObject)(implicit
-    apiKey: String
-  ): StubMapping =
+  private def stubNonRepudiationSubmission(status: Int, request: JsValue, response: JsObject)(implicit apiKey: String): StubMapping =
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(request.toString()))
@@ -113,9 +104,7 @@ class NonRepudiationConnectorISpec
         )
     )
 
-  private def stubNonRepudiationSubmissionFailure(status: Int, requestJson: JsValue)(implicit
-    apiKey: String
-  ): StubMapping =
+  private def stubNonRepudiationSubmissionFailure(status: Int, requestJson: JsValue)(implicit apiKey: String): StubMapping =
     stubFor(
       post(urlMatching(s"/submission"))
         .withRequestBody(equalToJson(requestJson.toString()))
@@ -126,12 +115,9 @@ class NonRepudiationConnectorISpec
         )
     )
 
-  private def expectNRSToFailOnceAndThenSucceed(
-    failStatus: Int,
-    successStatus: Int,
-    request: JsValue,
-    response: JsObject
-  )(implicit apiKey: String): StubMapping = {
+  private def expectNRSToFailOnceAndThenSucceed(failStatus: Int, successStatus: Int, request: JsValue, response: JsObject)(implicit
+    apiKey: String
+  ): StubMapping = {
     val scenario = "Retry Scenario"
     stubFor(
       post(urlMatching(s"/submission"))

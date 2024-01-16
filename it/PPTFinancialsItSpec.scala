@@ -17,7 +17,7 @@
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.mockito.MockitoSugar.{when, reset}
+import org.mockito.MockitoSugar.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -41,20 +41,17 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import java.time.{LocalDate, LocalDateTime}
 
-class PPTFinancialsItSpec extends PlaySpec
-  with GuiceOneServerPerSuite
-  with AuthTestSupport
-  with BeforeAndAfterAll
-  with BeforeAndAfterEach {
+class PPTFinancialsItSpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
-  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
-  private lazy val sessionRepository = mock[SessionRepository]
-  private lazy val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-  private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "reason"}"""
+  lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
+  private lazy val sessionRepository         = mock[SessionRepository]
+  private lazy val edgeOfSystem              = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val DESnotFoundResponse            = """{"code": "NOT_FOUND", "reason": "reason"}"""
 
   val dateFrom = LocalDate.of(2022, 4, 1)
+
   val DESUrl = s"/enterprise/financial-data/ZPPT/$pptReference/PPT?onlyOpenItems=true" +
     s"&includeLocks=true&calculateAccruedInterest=true"
 
@@ -65,11 +62,7 @@ class PPTFinancialsItSpec extends PlaySpec
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository),
-        bind[EdgeOfSystem].to(edgeOfSystem)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(sessionRepository), bind[EdgeOfSystem].to(edgeOfSystem))
       .build()
   }
 
@@ -140,7 +133,7 @@ class PPTFinancialsItSpec extends PlaySpec
       val response = await(wsClient.url(Url).get())
 
       response.status mustBe OK
-      response.json mustBe Json.toJson(PPTFinancials(None,None,None))
+      response.json mustBe Json.toJson(PPTFinancials(None, None, None))
     }
 
     "handle normal 404" in {
@@ -160,14 +153,17 @@ class PPTFinancialsItSpec extends PlaySpec
 
       response.status mustBe INTERNAL_SERVER_ERROR
     }
-    
-     "retry 3 times if api call fails" in {
+
+    "retry 3 times if api call fails" in {
       withAuthorizedUser()
       server.stubFor(get(DESUrl).willReturn(serverError()))
 
       await(wsClient.url(Url).get())
-      server.verify(3, getRequestedFor(urlEqualTo(DESUrl))
-      .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer des-test123456")))
+      server.verify(
+        3,
+        getRequestedFor(urlEqualTo(DESUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer des-test123456"))
+      )
     }
 
     "not retry if api call is a 200" in {
@@ -253,9 +249,7 @@ class PPTFinancialsItSpec extends PlaySpec
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(
-              FinancialDataResponse.format.writes(response).toString()
-            )
+            .withBody(FinancialDataResponse.format.writes(response).toString())
         )
     )
 
@@ -268,18 +262,16 @@ class PPTFinancialsItSpec extends PlaySpec
         )
     )
 
-  private def stubNotFound(body: String): Unit = {
+  private def stubNotFound(body: String): Unit =
     server.stubFor(
       get(DESUrl)
         .willReturn(notFound().withBody(body))
     )
-  }
 
-  private def stubWrongJson(): Unit = {
+  private def stubWrongJson(): Unit =
     server.stubFor(
       get(DESUrl)
         .willReturn(ok().withBody("{}"))
     )
-  }
-}
 
+}

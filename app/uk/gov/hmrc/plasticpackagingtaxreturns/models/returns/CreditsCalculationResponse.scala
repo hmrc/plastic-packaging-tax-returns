@@ -19,26 +19,27 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.returns
 import play.api.libs.json.{JsValue, Json, Writes}
 
 final case class CreditsCalculationResponse(
-                                             availableCreditInPounds: BigDecimal,
-                                             totalRequestedCreditInPounds: BigDecimal,
-                                             totalRequestedCreditInKilograms: Long,
-                                             taxRate: BigDecimal
-                                           ){
+  availableCreditInPounds: BigDecimal,
+  totalRequestedCreditInPounds: BigDecimal,
+  totalRequestedCreditInKilograms: Long,
+  taxRate: BigDecimal
+) {
   val canBeClaimed: Boolean = totalRequestedCreditInPounds <= availableCreditInPounds
 }
 
 object CreditsCalculationResponse {
 
   implicit val writes: Writes[CreditsCalculationResponse] = new Writes[CreditsCalculationResponse] {
-    def writes(calc: CreditsCalculationResponse): JsValue = {
+
+    def writes(calc: CreditsCalculationResponse): JsValue =
       Json.obj(
-        "availableCreditInPounds" -> calc.availableCreditInPounds,
-        "totalRequestedCreditInPounds" -> calc.totalRequestedCreditInPounds,
+        "availableCreditInPounds"         -> calc.availableCreditInPounds,
+        "totalRequestedCreditInPounds"    -> calc.totalRequestedCreditInPounds,
         "totalRequestedCreditInKilograms" -> calc.totalRequestedCreditInKilograms,
-        "canBeClaimed" -> calc.canBeClaimed,
-        "taxRate" -> calc.taxRate
+        "canBeClaimed"                    -> calc.canBeClaimed,
+        "taxRate"                         -> calc.taxRate
       )
-    }
+
   }
 
 }

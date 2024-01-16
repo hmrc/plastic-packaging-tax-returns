@@ -31,40 +31,40 @@ import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{createSubscriptionDisplayResponse, createSubscriptionUpdateRequest, soleTraderSubscription, ukLimitedCompanySubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{
+  createSubscriptionDisplayResponse,
+  createSubscriptionUpdateRequest,
+  soleTraderSubscription,
+  ukLimitedCompanySubscription
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
 import java.time.{ZoneOffset, ZonedDateTime}
 
 class SubscriptionItSpec
-  extends PlaySpec
-    with GuiceOneServerPerSuite
-    with AuthTestSupport
-    with NrsTestData
-    with BeforeAndAfterAll
-    with BeforeAndAfterEach{
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with NrsTestData with BeforeAndAfterAll with BeforeAndAfterEach {
 
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
-  private lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  private lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
 
   private val successfulDisplayResponse = Json.toJson(createSubscriptionDisplayResponse(soleTraderSubscription))
-  private val subscriptionUrl = s"http://localhost:$port/subscriptions/$pptReference"
+  private val subscriptionUrl           = s"http://localhost:$port/subscriptions/$pptReference"
   private val eisSubscriptionDisplayUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
-  private val eisSubscriptionUpdateUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
+  private val eisSubscriptionUpdateUrl  = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
   override lazy val app: Application = {
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(wireMock.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(mock[SessionRepository])
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(mock[SessionRepository]))
       .build()
   }
 
@@ -146,9 +146,9 @@ class SubscriptionItSpec
 
       await(wsClient.url(subscriptionUrl).get())
 
-      wireMock.verify(getRequestedFor(
-        urlEqualTo(eisSubscriptionDisplayUrl))
-        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+      wireMock.verify(
+        getRequestedFor(urlEqualTo(eisSubscriptionDisplayUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
       )
     }
   }
@@ -170,8 +170,7 @@ class SubscriptionItSpec
 
       withClue("return a json") {
         response.json mustBe Json.toJson(
-          SubscriptionUpdateWithNrsSuccessfulResponse(
-            pptReference, processingDate, "123", "testNonRepudiationSubmissionId")
+          SubscriptionUpdateWithNrsSuccessfulResponse(pptReference, processingDate, "123", "testNonRepudiationSubmissionId")
         )
       }
     }
@@ -184,9 +183,7 @@ class SubscriptionItSpec
 
       await(updateSubscription(updateDetails))
 
-      wireMock.verify(3, putRequestedFor(
-        urlEqualTo(eisSubscriptionUpdateUrl))
-      )
+      wireMock.verify(3, putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl)))
     }
 
     "retry 1 times" in {
@@ -197,9 +194,7 @@ class SubscriptionItSpec
 
       await(updateSubscription(updateDetails))
 
-      wireMock.verify(1, putRequestedFor(
-        urlEqualTo(eisSubscriptionUpdateUrl))
-      )
+      wireMock.verify(1, putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl)))
     }
 
     "use a eis bearer token" in {
@@ -209,9 +204,9 @@ class SubscriptionItSpec
 
       await(updateSubscription(updateDetails))
 
-      wireMock.verify(putRequestedFor(
-        urlEqualTo(eisSubscriptionUpdateUrl))
-        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+      wireMock.verify(
+        putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
       )
     }
 
@@ -226,23 +221,15 @@ class SubscriptionItSpec
     }
   }
 
-  private def updateSubscription(updateDetails: SubscriptionUpdateRequest) = {
+  private def updateSubscription(updateDetails: SubscriptionUpdateRequest) =
     wsClient.url(subscriptionUrl).addHttpHeaders("Authorization" -> "TOKEN")
       .put(Json.toJson(updateDetails))
-  }
 
-  def stubSubscriptionDisplay(body: String) = {
-    wireMock.stubFor(
-      get(eisSubscriptionDisplayUrl).willReturn(ok().withBody(body))
-    )
-  }
+  def stubSubscriptionDisplay(body: String) =
+    wireMock.stubFor(get(eisSubscriptionDisplayUrl).willReturn(ok().withBody(body)))
 
-  def stubSubscriptionErrorDisplay = {
-
-    wireMock.stubFor(
-      get(eisSubscriptionDisplayUrl).willReturn(notFound().withBody({"""{"a": "test-a", "b": "test-b"}"""}))
-    )
-  }
+  def stubSubscriptionErrorDisplay =
+    wireMock.stubFor(get(eisSubscriptionDisplayUrl).willReturn(notFound().withBody("""{"a": "test-a", "b": "test-b"}""")))
 
   private def stubSubscriptionUpdate(processingDate: ZonedDateTime, formBuildNUmber: String): Unit =
     wireMock.stubFor(
@@ -251,7 +238,8 @@ class SubscriptionItSpec
           aResponse()
             .withStatus(Status.OK)
             .withBody(
-              Json.obj("pptReferenceNumber" -> pptReference,
+              Json.obj(
+                "pptReferenceNumber" -> pptReference,
                 "processingDate"     -> processingDate.toString,
                 "formBundleNumber"   -> formBuildNUmber
               ).toString
@@ -260,20 +248,18 @@ class SubscriptionItSpec
     )
 
   private def stubSubscriptionUpdateError(): Unit =
-    wireMock.stubFor(
-      put(eisSubscriptionUpdateUrl).willReturn(serverError().withBody("error"))
-    )
+    wireMock.stubFor(put(eisSubscriptionUpdateUrl).willReturn(serverError().withBody("error")))
 
-  private def stubNonRepudiationSubmission: StubMapping = {
+  private def stubNonRepudiationSubmission: StubMapping =
     wireMock.stubFor(
       post(s"/submission")
         .withRequestBody(matchingJsonPath("payload"))
         .withHeader("X-API-Key", equalTo("test-key"))
-        .willReturn(aResponse()
-          .withStatus(202)
-          .withBody(Json.obj("nrSubmissionId" -> "testNonRepudiationSubmissionId").toString())
+        .willReturn(
+          aResponse()
+            .withStatus(202)
+            .withBody(Json.obj("nrSubmissionId" -> "testNonRepudiationSubmissionId").toString())
         )
     )
-  }
 
 }

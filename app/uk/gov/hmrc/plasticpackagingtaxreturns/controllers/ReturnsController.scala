@@ -39,7 +39,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues,
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditService,
+  CreditsCalculationService,
+  FinancialDataService,
+  PPTCalculationService,
+  PPTFinancialsService
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -49,7 +55,7 @@ import java.time.{LocalDate, ZoneId, ZonedDateTime}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ReturnsController @Inject()(
+class ReturnsController @Inject() (
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
   nonRepudiationService: NonRepudiationService,
@@ -66,7 +72,7 @@ class ReturnsController @Inject()(
   taxRateTable: TaxRateTable,
   edgeOfSystem: EdgeOfSystem
 )(implicit executionContext: ExecutionContext)
-  extends BackendController(controllerComponents) with JSONResponses with Logging {
+    extends BackendController(controllerComponents) with JSONResponses with Logging {
 
   private def parseDate(date: String): ZonedDateTime = {
     val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))
@@ -76,8 +82,8 @@ class ReturnsController @Inject()(
   def get(pptReference: String, periodKey: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       returnsConnector.get(pptReference = pptReference, periodKey = periodKey, internalId = request.internalId).map {
-        case Right(displayReturnJson)       =>
-          val endDate = (displayReturnJson\"chargeDetails" \"periodTo").get.as[LocalDate]
+        case Right(displayReturnJson) =>
+          val endDate = (displayReturnJson \ "chargeDetails" \ "periodTo").get.as[LocalDate]
           val taxRate = taxRateTable.lookupRateFor(endDate)
 
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
@@ -88,28 +94,29 @@ class ReturnsController @Inject()(
 
   def amend(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      getUserAnswer(request)(userAnswer =>  {
-
+      getUserAnswer(request) { userAnswer =>
         if (isReturnTooOldToAmend(userAnswer))
           Future.successful(UnprocessableEntity("Can not amend this return. Amendable period is closed."))
-        else {
-          isDirectDebitInProgress(pptReference, userAnswer.get[String](JsPath \ "amendSelectedPeriodKey")
-            .getOrElse(throw new Exception("Cannot amend return without period Key")))
-            .flatMap( isDDInProgress =>
-              if(isDDInProgress)
-                Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
-              else
-                doSubmit(NotableEvent.PptReturn, pptReference, AmendReturnValues.apply, userAnswer)
+        else
+          isDirectDebitInProgress(
+            pptReference,
+            userAnswer.get[String](JsPath \ "amendSelectedPeriodKey")
+              .getOrElse(throw new Exception("Cannot amend return without period Key"))
           )
-        }
+            .flatMap(
+              isDDInProgress =>
+                if (isDDInProgress)
+                  Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
+                else
+                  doSubmit(NotableEvent.PptReturn, pptReference, AmendReturnValues.apply, userAnswer)
+            )
       }
-      )
     }
 
   def submit(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request) { userAnswer =>
-        isPeriodStillOpen(pptReference, userAnswer).flatMap{ periodIsOpen =>
+        isPeriodStillOpen(pptReference, userAnswer).flatMap { periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
               val requestedCredits: BigDecimal = creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
@@ -123,25 +130,23 @@ class ReturnsController @Inject()(
       }
     }
 
-  private def getUserAnswer(request: AuthorizedRequest[AnyContent])(fun: UserAnswers => Future[Result]): Future[Result] = {
+  private def getUserAnswer(request: AuthorizedRequest[AnyContent])(fun: UserAnswers => Future[Result]): Future[Result] =
     sessionRepository.get(request.cacheKey).flatMap {
       _.fold(Future.successful(UnprocessableEntity("UserAnswer is empty")))(fun(_))
     }
-  }
 
   private def doSubmit(
     nrsEventType: NotableEvent,
     pptReference: String,
     getValuesOutOfUserAnswers: UserAnswers => Option[ReturnValues],
     userAnswer: UserAnswers
-  )(implicit request: AuthorizedRequest[AnyContent]) : Future[Result] = {
+  )(implicit request: AuthorizedRequest[AnyContent]): Future[Result] =
     getValuesOutOfUserAnswers(userAnswer)
       .fold {
         Future.successful(UnprocessableEntity("Unable to build ReturnsSubmissionRequest from UserAnswers"))
       } { returnValues =>
         submitReturnWithNrs(nrsEventType, pptReference, userAnswer, returnValues)
       }
-  }
 
   private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
     val periodKey = userAnswer.getOrFail(PeriodKeyGettable)
@@ -153,29 +158,22 @@ class ReturnsController @Inject()(
     }
   }
 
-  private def isDirectDebitInProgress(
-    pptReference: String,
-    periodKey: String
-  ) (implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
-          financialDataService.getFinancials(pptReference, request.internalId).map {
-            case Left(status) => throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status")
-            case Right(financialDataResponse) =>
-              financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)
-          }
-  }
+  private def isDirectDebitInProgress(pptReference: String, periodKey: String)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] =
+    financialDataService.getFinancials(pptReference, request.internalId).map {
+      case Left(status) => throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status")
+      case Right(financialDataResponse) =>
+        financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)
+    }
 
-  private def isReturnTooOldToAmend(userAnswer: UserAnswers): Boolean =  {
+  private def isReturnTooOldToAmend(userAnswer: UserAnswers): Boolean = {
     val dueDate = userAnswer.getOrFail[LocalDate](JsPath \ "amend" \ "obligation" \ "dueDate")
-    val today = edgeOfSystem.localDateTimeNow.toLocalDate
+    val today   = edgeOfSystem.localDateTimeNow.toLocalDate
     dueDate.isBefore(today.minusYears(4))
   }
 
-  private def submitReturnWithNrs(
-    nrsEventType: NotableEvent,
-    pptReference: String,
-    userAnswers: UserAnswers,
-    returnValues: ReturnValues
-  )(implicit request: AuthorizedRequest[AnyContent]): Future[Result] = {
+  private def submitReturnWithNrs(nrsEventType: NotableEvent, pptReference: String, userAnswers: UserAnswers, returnValues: ReturnValues)(implicit
+    request: AuthorizedRequest[AnyContent]
+  ): Future[Result] = {
     val calculations: Calculations = calculationsService.calculate(returnValues)
 
     if (calculations.isSubmittable) {
@@ -184,12 +182,11 @@ class ReturnsController @Inject()(
         case Right(response) =>
           sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
           handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
-          
-        case Left(StatusCode.RETURN_ALREADY_SUBMITTED) => Future.successful {
-          new Status(StatusCode.RETURN_ALREADY_SUBMITTED)(
-            Json.obj("returnAlreadyReceived" -> returnValues.periodKey)
-          )
-        }
+
+        case Left(StatusCode.RETURN_ALREADY_SUBMITTED) =>
+          Future.successful {
+            new Status(StatusCode.RETURN_ALREADY_SUBMITTED)(Json.obj("returnAlreadyReceived" -> returnValues.periodKey))
+          }
 
         case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
@@ -209,14 +206,10 @@ class ReturnsController @Inject()(
 
     submitToNrs(nrsEventType, request, payload, eisResponse).map {
       case NonRepudiationSubmissionAccepted(nrSubmissionId) =>
-
         auditConnector.sendExplicitAudit(
           NrsSubmitReturnEvent.eventType,
           NrsSubmitReturnEvent(
-            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-              returnSubmissionRequest = returnSubmissionRequest,
-              nrsFailureResponse = None
-            ),
+            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId), returnSubmissionRequest = returnSubmissionRequest, nrsFailureResponse = None),
             pptReference = Some(request.pptReference),
             processingDateTime = Some(parseDate(eisResponse.processingDate))
           )
@@ -229,7 +222,8 @@ class ReturnsController @Inject()(
         auditConnector.sendExplicitAudit(
           NrsSubmitReturnEvent.eventType,
           NrsSubmitReturnEvent(
-            updateNrsDetails(nrsSubmissionId = None,
+            updateNrsDetails(
+              nrsSubmissionId = None,
               returnSubmissionRequest = returnSubmissionRequest,
               nrsFailureResponse = Some(exception.getMessage)
             ),
@@ -263,10 +257,7 @@ class ReturnsController @Inject()(
     )
   }
 
-  private def handleNrsFailure(
-                                eisResponse: Return,
-                                exception: Exception
-                              ): Future[Result] = {
+  private def handleNrsFailure(eisResponse: Return, exception: Exception): Future[Result] = {
 
     logger.error(s"NRS submission failed for: ${eisResponse.idDetails.pptReferenceNumber}")
 
@@ -301,20 +292,22 @@ class ReturnsController @Inject()(
   }
 
   private def updateNrsDetails(
-                                nrsSubmissionId: Option[String],
-                                nrsFailureResponse: Option[String],
-                                returnSubmissionRequest: ReturnsSubmissionRequest
-                              ): ReturnsSubmissionRequest =
+    nrsSubmissionId: Option[String],
+    nrsFailureResponse: Option[String],
+    returnSubmissionRequest: ReturnsSubmissionRequest
+  ): ReturnsSubmissionRequest =
     returnSubmissionRequest.copy(nrsDetails =
-      Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse)))
+      Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse))
+    )
 
 }
+
 object ReturnsController {
 
-  case class ReturnWithTaxRate(displayReturnJson: JsValue,
-                               taxRate: BigDecimal)
+  case class ReturnWithTaxRate(displayReturnJson: JsValue, taxRate: BigDecimal)
 
   object ReturnWithTaxRate {
     implicit val format: Writes[ReturnWithTaxRate] = Json.writes[ReturnWithTaxRate]
   }
+
 }

@@ -32,13 +32,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
 @Singleton
-class NonRepudiationConnector @Inject() (
-  httpClient: HttpClient,
-  val config: AppConfig,
-  metrics: Metrics,
-  override val actorSystem: ActorSystem
-)(implicit ec: ExecutionContext)
-    extends HttpReadsHttpResponse with Retry {
+class NonRepudiationConnector @Inject() (httpClient: HttpClient, val config: AppConfig, metrics: Metrics, override val actorSystem: ActorSystem)(
+  implicit ec: ExecutionContext
+) extends HttpReadsHttpResponse with Retry {
 
   def submitNonRepudiation(encodedPayloadString: String, nonRepudiationMetadata: NonRepudiationMetadata)(implicit
     hc: HeaderCarrier
@@ -51,12 +47,11 @@ class NonRepudiationConnector @Inject() (
     }
   }
 
-  private def submit(timer: Timer.Context, jsonBody: JsObject)(implicit
-    hc: HeaderCarrier
-  ): Future[NonRepudiationSubmissionAccepted] =
-    httpClient.POST[JsObject, HttpResponse](url = config.nonRepudiationSubmissionUrl,
-                                            body = jsonBody,
-                                            headers = Seq(XApiKeyHeaderKey -> config.nonRepudiationApiKey)
+  private def submit(timer: Timer.Context, jsonBody: JsObject)(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
+    httpClient.POST[JsObject, HttpResponse](
+      url = config.nonRepudiationSubmissionUrl,
+      body = jsonBody,
+      headers = Seq(XApiKeyHeaderKey -> config.nonRepudiationApiKey)
     ).andThen { case _ => timer.stop() }
       .map {
         response =>
@@ -72,22 +67,23 @@ class NonRepudiationConnector @Inject() (
   private def shouldRetry[A](response: Try[A]): Boolean =
     response match {
       case Failure(e) if e.asInstanceOf[HttpException].responseCode == 500 => true
-      case _ => false
+      case _                                                               => false
     }
 
 }
 
 object NonRepudiationConnector {
 
-  private val TimerKey = "ppt.nrs.submission.timer"
+  private val TimerKey         = "ppt.nrs.submission.timer"
   private val XApiKeyHeaderKey = "X-API-Key"
-  private val ReasonForRetry = "Non Repudiation Service submission failed"
+  private val ReasonForRetry   = "Non Repudiation Service submission failed"
 
-  private final case class NrsSubmittable(payload: String, metadata: NonRepudiationMetadata){
+  private final case class NrsSubmittable(payload: String, metadata: NonRepudiationMetadata) {
     def toJsObject: JsObject = Json.toJson(this).as[JsObject]
   }
+
   private final case class NrsSubmission(nrSubmissionId: String)
 
   private implicit val NrsSubmittableWrites: Writes[NrsSubmittable] = Json.writes[NrsSubmittable]
-  private implicit val NrsSubmissionReads: Reads[NrsSubmission] = Json.reads[NrsSubmission]
+  private implicit val NrsSubmissionReads: Reads[NrsSubmission]     = Json.reads[NrsSubmission]
 }

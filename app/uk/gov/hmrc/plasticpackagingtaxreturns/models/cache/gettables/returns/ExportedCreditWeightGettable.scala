@@ -22,6 +22,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 case object ExportedCreditYesNoGettable extends Gettable[Boolean] {
   override def path: JsPath = JsPath \ "exportedCredits" \ "yesNo"
 }
+
 case object ExportedCreditWeightGettable extends Gettable[Long] {
   override def path: JsPath = JsPath \ "exportedCredits" \ "weight"
 }

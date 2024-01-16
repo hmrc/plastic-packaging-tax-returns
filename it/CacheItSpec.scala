@@ -40,9 +40,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.{returnWi
 
 import scala.concurrent.Future
 
-
-class CacheItSpec extends PlaySpec 
-  with AuthTestSupport with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll {
+class CacheItSpec extends PlaySpec with AuthTestSupport with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll {
 
   private val wiremockServer = new WiremockItServer()
 
@@ -51,15 +49,13 @@ class CacheItSpec extends PlaySpec
     wiremockServer.start()
     GuiceApplicationBuilder()
       .configure(wiremockServer.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(sessionRepository))
       .build()
   }
+
   private lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
-  private lazy val sessionRepository = mock[SessionRepository]
-  private val url = s"http://localhost:$port/cache/get/$pptReference"
+  private lazy val sessionRepository  = mock[SessionRepository]
+  private val url                     = s"http://localhost:$port/cache/get/$pptReference"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -78,7 +74,7 @@ class CacheItSpec extends PlaySpec
   }
 
   "return a user answer" when {
-    
+
     "credit is not available" in {
       withAuthorizedUser()
       when(sessionRepository.get(any))
@@ -128,10 +124,10 @@ class CacheItSpec extends PlaySpec
 
     val subscription = createSubscriptionDisplayResponse(SubscriptionTestData.ukLimitedCompanySubscription)
     wiremockServer
-      .stubFor(get(anyUrl())
-        .willReturn(ok().withBody(
-          Json.toJson(subscription).toString()
-        )))
+      .stubFor(
+        get(anyUrl())
+          .willReturn(ok().withBody(Json.toJson(subscription).toString()))
+      )
   }
 
   private def newCreditJsonData =
@@ -172,4 +168,5 @@ class CacheItSpec extends PlaySpec
       |          }
       |        }
       }""".stripMargin
+
 }

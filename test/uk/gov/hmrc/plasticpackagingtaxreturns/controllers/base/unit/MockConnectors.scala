@@ -30,7 +30,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 
@@ -70,14 +73,10 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     subscription: SubscriptionUpdateSuccessfulResponse
   ): OngoingStubbing[Future[SubscriptionUpdateSuccessfulResponse]] =
     when(
-      mockSubscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
-        any[HeaderCarrier]
-      )
+      mockSubscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(any[HeaderCarrier])
     ).thenReturn(Future.successful(subscription))
 
-  protected def mockNonRepudiationSubmissionFailure(
-    ex: Exception
-  ): OngoingStubbing[Future[NonRepudiationSubmissionAccepted]] =
+  protected def mockNonRepudiationSubmissionFailure(ex: Exception): OngoingStubbing[Future[NonRepudiationSubmissionAccepted]] =
     when(mockNonRepudiationConnector.submitNonRepudiation(any(), any())(any()))
       .thenThrow(ex)
 
@@ -86,12 +85,9 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     displayResponse: ExportCreditBalanceDisplayResponse
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(
-        ArgumentMatchers.eq(pptReference),
-        any[LocalDate](),
-        any[LocalDate](),
-        any[String]
-      )(any[HeaderCarrier])
+      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference), any[LocalDate](), any[LocalDate](), any[String])(
+        any[HeaderCarrier]
+      )
     ).thenReturn(Future.successful(Right(displayResponse)))
 
   protected def mockGetExportCreditBalanceFailure(
@@ -99,12 +95,9 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     statusCode: Int
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(
-        ArgumentMatchers.eq(pptReference),
-        any[LocalDate](),
-        any[LocalDate](),
-        any[String]
-      )(any[HeaderCarrier])
+      mockExportCreditBalanceConnector.getBalance(ArgumentMatchers.eq(pptReference), any[LocalDate](), any[LocalDate](), any[String])(
+        any[HeaderCarrier]
+      )
     ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockReturnsSubmissionConnector(resp: Return) =
@@ -120,57 +113,39 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     when(mockReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockGetObligationData(
-                                       pptReference: String,
-                                       displayResponse: ObligationDataResponse
-                                     ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
-    when(
-      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-        any(),
-        any(),
-        any(),
-        any()
-      )(any[HeaderCarrier])
-    ).thenReturn(Future.successful(Right(displayResponse)))
-
-  protected def mockGetObligationDataPeriodKey(
-                                       pptReference: String,
-                                       periodKey: String
-                                     ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
-    when(
-      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-        any(),
-        any(),
-        any(),
-        any()
-      )(any[HeaderCarrier])
-    ).thenReturn(
-      Future.successful(Right(
-          ObligationDataResponse(Seq(
-            Obligation(None, Seq(
-              ObligationDetail(ObligationStatus.OPEN, LocalDate.now(), LocalDate.now(), None, LocalDate.now(), periodKey))
-            )))
-      ))
+    pptReference: String,
+    displayResponse: ObligationDataResponse
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference), any(), any(), any(), any())(any[HeaderCarrier])).thenReturn(
+      Future.successful(Right(displayResponse))
     )
 
-  protected def mockGetObligationDataFailure(
-                                              pptReference: String,
-                                              statusCode: Int
-                                            ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
-    when(
-      mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference),
-        any(),
-        any(),
-        any(),
-        any()
-      )(any[HeaderCarrier])
-    ).thenReturn(Future.successful(Left(statusCode)))
+  protected def mockGetObligationDataPeriodKey(
+    pptReference: String,
+    periodKey: String
+  ): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference), any(), any(), any(), any())(any[HeaderCarrier])).thenReturn(
+      Future.successful(
+        Right(
+          ObligationDataResponse(
+            Seq(Obligation(None, Seq(ObligationDetail(ObligationStatus.OPEN, LocalDate.now(), LocalDate.now(), None, LocalDate.now(), periodKey))))
+          )
+        )
+      )
+    )
+
+  protected def mockGetObligationDataFailure(pptReference: String, statusCode: Int): OngoingStubbing[Future[Either[Int, ObligationDataResponse]]] =
+    when(mockObligationDataConnector.get(ArgumentMatchers.eq(pptReference), any(), any(), any(), any())(any[HeaderCarrier])).thenReturn(
+      Future.successful(Left(statusCode))
+    )
 
   protected def mockGetFinancialData(
-                                      pptReference: String,
-                                      response: FinancialDataResponse
-                                    ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+    pptReference: String,
+    response: FinancialDataResponse
+  ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
-      mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
+      mockFinancialDataConnector.get(
+        ArgumentMatchers.eq(pptReference),
         any[Option[LocalDate]](),
         any[Option[LocalDate]](),
         any[Option[Boolean]](),
@@ -181,12 +156,10 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
       )(any[HeaderCarrier])
     ).thenReturn(Future.successful(Right(response)))
 
-  protected def mockGetFinancialDataFailure(
-                                             pptReference: String,
-                                             statusCode: Int
-                                           ): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
+  protected def mockGetFinancialDataFailure(pptReference: String, statusCode: Int): OngoingStubbing[Future[Either[Int, FinancialDataResponse]]] =
     when(
-      mockFinancialDataConnector.get(ArgumentMatchers.eq(pptReference),
+      mockFinancialDataConnector.get(
+        ArgumentMatchers.eq(pptReference),
         any[Option[LocalDate]](),
         any[Option[LocalDate]](),
         any[Option[Boolean]](),

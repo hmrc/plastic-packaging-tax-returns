@@ -17,8 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
@@ -71,18 +73,24 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
-  /** Override the current system data-time, for coding and testing. The system date-time is used if the config value 
-   * is missing or its value fails to parse.
-   * @return
-   *   - [[None]] if no date-time override config value is present
-   *   - Some[ [[String]] ] if an override config value is present, needs to be a ISO_LOCAL_DATE_TIME serialised
-   *   date-time for override to work
-   * @example {{{"2023-03-31T23:59:59"}}}
-   * @example {{{"2023-04-01T00:00:00"}}} sets the override
-   * @example {{{"DO_NOT_OVERRIDE"}}}
-   * @see [[java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
-   * @see [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
-   */
+  val taxRates: Seq[TaxRate] = Seq(
+    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2024"), useFromDate = LocalDate.of(2024, 4, 1)),
+    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2023"), useFromDate = LocalDate.of(2023, 4, 1)),
+    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2022"), useFromDate = LocalDate.of(2022, 4, 1))
+  )
+
+  /** Override the current system data-time, for coding and testing. The system date-time is used if the config value
+    * is missing or its value fails to parse.
+    * @return
+    *   - [[None]] if no date-time override config value is present
+    *   - Some[ [[String]] ] if an override config value is present, needs to be a ISO_LOCAL_DATE_TIME serialised
+    *   date-time for override to work
+    * @example {{{"2023-03-31T23:59:59"}}}
+    * @example {{{"2023-04-01T00:00:00"}}} sets the override
+    * @example {{{"DO_NOT_OVERRIDE"}}}
+    * @see [[java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
+    * @see [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
+    */
   def overrideSystemDateTime: Option[String] =
     config.getOptional[String]("override-system-date-time")
 

@@ -47,10 +47,11 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
   val putUrl = s"http://localhost:20202/plastic-packaging-tax/returns/PPT/$pptReference"
 
   override def overrideConfig: Map[String, Any] =
-    Map("microservice.services.eis.host" -> wireHost,
+    Map(
+      "microservice.services.eis.host" -> wireHost,
       "microservice.services.eis.port" -> wirePort,
       "auditing.consumer.baseUri.port" -> wirePort,
-      "auditing.enabled" -> true
+      "auditing.enabled"               -> true
     )
 
   "Returns Connector" when {
@@ -81,7 +82,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       "handle bad json" in {
 
         val error = s"$${json-unit.any-string}"
-        
+
         val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
 
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
@@ -98,18 +99,19 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       }
 
       forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
         s"return $statusCode" when {
 
           s"upstream service fails with $statusCode" in {
 
             val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
 
-
             val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
 
-            stubFailedReturnsSubmission(pptReference, statusCode, errors =
-              Seq(EISError("Error Code", "Error Reason"))
+            stubFailedReturnsSubmission(
+              pptReference,
+              statusCode,
+              errors =
+                Seq(EISError("Error Code", "Error Reason"))
             )
 
             givenAuditReturns(auditUrl, Status.NO_CONTENT)
@@ -155,7 +157,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
       "handle bad json" in {
 
-        val error = "Response body could not be read as type play.api.libs.json.JsValue"
+        val error      = "Response body could not be read as type play.api.libs.json.JsValue"
         val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
 
         stubFailedReturnDisplay(pptReference, periodKey, Status.OK, "XXX")
@@ -173,18 +175,15 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       }
 
       forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
-
         s"return $statusCode" when {
 
           s"upstream service fails with $statusCode" in {
 
-            val error   = "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
+            val error = "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
 
             val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
 
-            stubFailedReturnDisplay(pptReference, periodKey, statusCode,
-              "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
-            )
+            stubFailedReturnDisplay(pptReference, periodKey, statusCode, "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))")
 
             givenAuditReturns(auditUrl, Status.NO_CONTENT)
             givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
@@ -204,43 +203,38 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
   }
 
   private def aReturn() =
-    Return(processingDate = LocalDate.now().toString,
-           idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
-           chargeDetails = Some(
-             ChargeDetails(chargeType = "Plastic Tax",
-                           chargeReference = "ABC123",
-                           amount = 1234.56,
-                           dueDate = LocalDate.now().plusDays(30).toString
-             )
-           ),
-           exportChargeDetails = None,
-           returnDetails = None
+    Return(
+      processingDate = LocalDate.now().toString,
+      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
+      chargeDetails = Some(
+        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
+      ),
+      exportChargeDetails = None,
+      returnDetails = None
     )
 
   private def aReturnWithReturnDetails() =
-    Return(processingDate = LocalDate.now().toString,
-           idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
-           chargeDetails = Some(
-             ChargeDetails(chargeType = "Plastic Tax",
-                           chargeReference = "ABC123",
-                           amount = 1234.56,
-                           dueDate = LocalDate.now().plusDays(30).toString
-             )
-           ),
-           exportChargeDetails = None,
-           returnDetails = Some(
-             EisReturnDetails(manufacturedWeight = BigDecimal(256.12),
-                              importedWeight = BigDecimal(352.15),
-                              totalNotLiable = BigDecimal(546.42),
-                              humanMedicines = BigDecimal(1234.15),
-                              directExports = BigDecimal(12121.16),
-                              recycledPlastic = BigDecimal(4345.72),
-                              creditForPeriod =
-                                BigDecimal(1560000.12),
-                              totalWeight = BigDecimal(16466.88),
-                              taxDue = BigDecimal(4600)
-             )
-           )
+    Return(
+      processingDate = LocalDate.now().toString,
+      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
+      chargeDetails = Some(
+        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
+      ),
+      exportChargeDetails = None,
+      returnDetails = Some(
+        EisReturnDetails(
+          manufacturedWeight = BigDecimal(256.12),
+          importedWeight = BigDecimal(352.15),
+          totalNotLiable = BigDecimal(546.42),
+          humanMedicines = BigDecimal(1234.15),
+          directExports = BigDecimal(12121.16),
+          recycledPlastic = BigDecimal(4345.72),
+          creditForPeriod =
+            BigDecimal(1560000.12),
+          totalWeight = BigDecimal(16466.88),
+          taxDue = BigDecimal(4600)
+        )
+      )
     )
 
   private def stubSuccessfulReturnsSubmission(returnId: String, resp: Return) =
@@ -274,19 +268,21 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
     )
 
   private def aReturnsSubmissionRequest() =
-    ReturnsSubmissionRequest(returnType = ReturnType.NEW,
-                             submissionId = None,
-                             periodKey = "AA22",
-                             returnDetails = EisReturnDetails(manufacturedWeight = 12000,
-                                                              importedWeight = 1000,
-                                                              totalNotLiable = 2000,
-                                                              humanMedicines = 3000,
-                                                              directExports = 4000,
-                                                              recycledPlastic = 5000,
-                                                              creditForPeriod = 10000,
-                                                              totalWeight = 20000,
-                                                              taxDue = 90000
-                             )
+    ReturnsSubmissionRequest(
+      returnType = ReturnType.NEW,
+      submissionId = None,
+      periodKey = "AA22",
+      returnDetails = EisReturnDetails(
+        manufacturedWeight = 12000,
+        importedWeight = 1000,
+        totalNotLiable = 2000,
+        humanMedicines = 3000,
+        directExports = 4000,
+        recycledPlastic = 5000,
+        creditForPeriod = 10000,
+        totalWeight = 20000,
+        taxDue = 90000
+      )
     )
 
   private def stubSuccessfulReturnDisplay(pptReference: String, periodKey: String, response: Return) =

@@ -31,6 +31,7 @@ package object services {
 
     def isBeforeToday(implicit edgeOfSystem: EdgeOfSystem): Boolean =
       localDate.isBefore(edgeOfSystem.today)
+
   }
 
 }

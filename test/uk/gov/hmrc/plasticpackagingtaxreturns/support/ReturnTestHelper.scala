@@ -71,9 +71,8 @@ object ReturnTestHelper {
          |        "nonExportRecycledPlasticPackagingWeight" : 5
          |    }""".stripMargin).asInstanceOf[JsObject]
 
-
-  def   returnWithLegacyCreditData: String =
-  """{
+  def returnWithLegacyCreditData: String =
+    """{
   |        "obligation" : {
   |            "fromDate" : "2023-01-01",
   |            "toDate" : "2023-03-31",

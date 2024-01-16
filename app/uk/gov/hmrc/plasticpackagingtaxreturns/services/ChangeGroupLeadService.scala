@@ -27,12 +27,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroup
 
 class ChangeGroupLeadService {
 
-  def createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest: SubscriptionUpdateRequest, 
-    userAnswers: UserAnswers): NrsSubscriptionUpdateSubmission = {
-    
+  def createNrsSubscriptionUpdateSubmission(
+    subscriptionUpdateRequest: SubscriptionUpdateRequest,
+    userAnswers: UserAnswers
+  ): NrsSubscriptionUpdateSubmission =
     NrsSubscriptionUpdateSubmission(userAnswers, subscriptionUpdateRequest)
-  }
-  
+
   def createSubscriptionUpdateRequest(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers): SubscriptionUpdateRequest = {
 
     val oldRepresentativeAsStandardMember: GroupPartnershipDetails = createMemberFromPreviousRepresentative(subscription)
@@ -43,19 +43,22 @@ class ChangeGroupLeadService {
       .groupPartnershipDetails
       .filterNot(_.relationship == Relationship.Representative)
 
-    val newRepOrganisation = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
-    val newRepContactName = userAnswers.getOrFail(MainContactNameGettable)
+    val newRepOrganisation    = userAnswers.getOrFail(ChooseNewGroupLeadGettable)
+    val newRepContactName     = userAnswers.getOrFail(MainContactNameGettable)
     val newRepContactJobTitle = userAnswers.getOrFail(MainContactJobTitleGettable)
-    val newRepContactAddress = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)
+    val newRepContactAddress  = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)
 
     val newRepOriginalMemberDetails = members
-      .find(member => member.organisationDetails.exists(_.organisationName == newRepOrganisation.organisationName)
-        && member.customerIdentification1 == newRepOrganisation.crn)
+      .find(
+        member =>
+          member.organisationDetails.exists(_.organisationName == newRepOrganisation.organisationName)
+            && member.customerIdentification1 == newRepOrganisation.crn
+      )
       .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
 
-    val otherMembers = members.map{ member =>
+    val otherMembers = members.map { member =>
       val memberDetails = member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
-      if(memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn)
+      if (memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn)
         member.copy(relationship = Relationship.Representative)
       else
         member
@@ -68,7 +71,7 @@ class ChangeGroupLeadService {
         customerDetails = CustomerDetails(
           customerType = CustomerType.Organisation,
           individualDetails = None,
-          organisationDetails = newRepOriginalMemberDetails.organisationDetails,
+          organisationDetails = newRepOriginalMemberDetails.organisationDetails
         ),
         customerIdentification1 = newRepOriginalMemberDetails.customerIdentification1,
         customerIdentification2 = newRepOriginalMemberDetails.customerIdentification2,
@@ -81,34 +84,30 @@ class ChangeGroupLeadService {
       primaryContactDetails = PrimaryContactDetails(
         name = newRepContactName,
         contactDetails = newRepOriginalMemberDetails.contactDetails,
-        positionInCompany = newRepContactJobTitle,
+        positionInCompany = newRepContactJobTitle
       ),
       businessCorrespondenceDetails = newRepContactAddress,
-      groupPartnershipSubscription = subscription.groupPartnershipSubscription.map(
-        _.copy(
-          groupPartnershipDetails = newMembersList
-        ))
+      groupPartnershipSubscription = subscription.groupPartnershipSubscription.map(_.copy(groupPartnershipDetails = newMembersList))
     ).toUpdateRequest
   }
 
-  private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse): GroupPartnershipDetails = {
+  private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse): GroupPartnershipDetails =
     GroupPartnershipDetails(
       relationship = Relationship.Member,
       customerIdentification1 = subscription.legalEntityDetails.customerIdentification1,
       customerIdentification2 = subscription.legalEntityDetails.customerIdentification2,
       organisationDetails = subscription.legalEntityDetails.customerDetails.organisationDetails,
-      individualDetails = Some(IndividualDetails(
-        firstAndLastNameSplit(subscription.primaryContactDetails.name)
-      )),
+      individualDetails = Some(IndividualDetails(firstAndLastNameSplit(subscription.primaryContactDetails.name))),
       addressDetails = subscription.principalPlaceOfBusinessDetails.addressDetails,
       contactDetails = subscription.principalPlaceOfBusinessDetails.contactDetails,
       regWithoutIDFlag = subscription.legalEntityDetails.regWithoutIDFlag
     )
-  }
 
-  private def firstAndLastNameSplit(name: String): (String, String) = name.trim.split(" ").toList match {
-    case first :: remaining =>
-      (first, remaining.mkString(" "))
-    case _ => ("", "")
-  }
+  private def firstAndLastNameSplit(name: String): (String, String) =
+    name.trim.split(" ").toList match {
+      case first :: remaining =>
+        (first, remaining.mkString(" "))
+      case _ => ("", "")
+    }
+
 }

@@ -44,24 +44,21 @@ object ChangeSubscriptionEvent {
   implicit val format: OFormat[ChangeSubscriptionEvent] = Json.format[ChangeSubscriptionEvent]
   val eventType: String                                 = "changePPTRegistration"
 
-  def apply(
-    subscription: Subscription,
-    pptReference: Option[String],
-    processingDateTime: Option[ZonedDateTime]
-  ): ChangeSubscriptionEvent =
-    ChangeSubscriptionEvent(changeOfCircumstanceDetails = subscription.changeOfCircumstanceDetails,
-                            legalEntityDetails = subscription.legalEntityDetails,
-                            principalPlaceOfBusinessDetails = subscription.principalPlaceOfBusinessDetails,
-                            primaryContactDetails = subscription.primaryContactDetails,
-                            businessCorrespondenceDetails = subscription.businessCorrespondenceDetails,
-                            taxObligationStartDate = subscription.taxObligationStartDate,
-                            last12MonthTotalTonnageAmt =
-                              BigDecimal(subscription.last12MonthTotalTonnageAmt),
-                            declaration = subscription.declaration,
-                            groupSubscription = subscription.groupPartnershipSubscription,
-                            pptReference = pptReference,
-                            processingDateTime = processingDateTime,
-                            nrsDetails = subscription.nrsDetails
+  def apply(subscription: Subscription, pptReference: Option[String], processingDateTime: Option[ZonedDateTime]): ChangeSubscriptionEvent =
+    ChangeSubscriptionEvent(
+      changeOfCircumstanceDetails = subscription.changeOfCircumstanceDetails,
+      legalEntityDetails = subscription.legalEntityDetails,
+      principalPlaceOfBusinessDetails = subscription.principalPlaceOfBusinessDetails,
+      primaryContactDetails = subscription.primaryContactDetails,
+      businessCorrespondenceDetails = subscription.businessCorrespondenceDetails,
+      taxObligationStartDate = subscription.taxObligationStartDate,
+      last12MonthTotalTonnageAmt =
+        BigDecimal(subscription.last12MonthTotalTonnageAmt),
+      declaration = subscription.declaration,
+      groupSubscription = subscription.groupPartnershipSubscription,
+      pptReference = pptReference,
+      processingDateTime = processingDateTime,
+      nrsDetails = subscription.nrsDetails
     )
 
 }

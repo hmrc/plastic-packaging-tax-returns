@@ -21,13 +21,15 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcredit
 
 import java.time.LocalDate
 
-case class GetExportCredits(internalId: String,
-                            pptReference: String,
-                            fromDate: LocalDate,
-                            toDate: LocalDate,
-                            result: String,
-                            response: Option[ExportCreditBalanceDisplayResponse],
-                            error: Option[String])
+case class GetExportCredits(
+  internalId: String,
+  pptReference: String,
+  fromDate: LocalDate,
+  toDate: LocalDate,
+  result: String,
+  response: Option[ExportCreditBalanceDisplayResponse],
+  error: Option[String]
+)
 
 object GetExportCredits {
   implicit val format: OFormat[GetExportCredits] = Json.format[GetExportCredits]

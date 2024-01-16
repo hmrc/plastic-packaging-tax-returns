@@ -29,32 +29,28 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class AvailableCreditDateRangesController @Inject()(
+class AvailableCreditDateRangesController @Inject() (
   availableCreditDateRangesService: AvailableCreditDateRangesService,
   authenticator: Authenticator,
   userAnswersService: UserAnswersService,
   override val controllerComponents: ControllerComponents,
-  subscriptionsConnector: SubscriptionsConnector,
-)(implicit val ec: ExecutionContext) extends BackendController(controllerComponents) {
+  subscriptionsConnector: SubscriptionsConnector
+)(implicit val ec: ExecutionContext)
+    extends BackendController(controllerComponents) {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-
-      userAnswersService.get(request.cacheKey){userAnswers: UserAnswers =>
+      userAnswersService.get(request.cacheKey) { userAnswers: UserAnswers =>
         getDataRange(userAnswers, pptReference)
       }
-  }
+    }
 
-
-  private def getDataRange(
-    userAnswers: UserAnswers,
-    pptReference: String
-  )(implicit hc: HeaderCarrier): Future[Result] = {
-    subscriptionsConnector.getSubscriptionFuture(pptReference).map {subscription =>
-      val taxStartDate = subscription.taxStartDate()
+  private def getDataRange(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[Result] =
+    subscriptionsConnector.getSubscriptionFuture(pptReference).map { subscription =>
+      val taxStartDate  = subscription.taxStartDate()
       val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
-      val dateRanges = availableCreditDateRangesService.calculate(returnEndDate, taxStartDate)
+      val dateRanges    = availableCreditDateRangesService.calculate(returnEndDate, taxStartDate)
       Ok(Json.toJson(dateRanges))
     }
-  }
+
 }

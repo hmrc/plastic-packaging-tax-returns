@@ -30,11 +30,11 @@ class EisHttpResponseSpec extends PlaySpec with BeforeAndAfterEach with MockitoS
   private implicit val exampleFormat: OFormat[Example] = Json.format[Example]
 
   ".json" should {
-    
+
     "parse json body" in {
-      EisHttpResponse(200, """{"a": "b"}""", correlationId = "").json mustBe Json.obj("a" -> "b") 
+      EisHttpResponse(200, """{"a": "b"}""", correlationId = "").json mustBe Json.obj("a" -> "b")
     }
-    
+
     "handle not json" in {
       EisHttpResponse(200, "<html />", correlationId = "").json mustBe JsNull
     }
@@ -42,29 +42,29 @@ class EisHttpResponseSpec extends PlaySpec with BeforeAndAfterEach with MockitoS
     "handle empty body" in {
       EisHttpResponse(200, body = "", correlationId = "").json mustBe JsNull
     }
-    
+
   }
-  
+
   ".jsonAs" should {
 
     "parse json body as given type" in {
       EisHttpResponse(200, """{"test1":1,"test2":"2"}""", correlationId = "")
         .jsonAs[Example].success mustBe Success(Example(1, "2"))
     }
-    
+
     "handle json, but the wrong type" in {
       val triedExample = EisHttpResponse(200, """{"another":"thing"}""", correlationId = "")
         .jsonAs[Example]
-      triedExample.failure.exception must have message "Response body could not be read as type EisHttpResponseSpec.this.Example" 
+      triedExample.failure.exception must have message "Response body could not be read as type EisHttpResponseSpec.this.Example"
       triedExample.failure.exception mustBe a[RuntimeException]
       triedExample.failure.exception.getCause mustBe a[JsResultException]
     }
-    
+
     "handle not json" ignore {
       val triedExample = EisHttpResponse(200, "<html />", correlationId = "")
         .jsonAs[Example]
       triedExample.failure.exception must have message "Response body is not json"
     }
-    
+
   }
 }

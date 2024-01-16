@@ -37,8 +37,8 @@ class HeadersSpec extends PlaySpec with BeforeAndAfterEach {
       when(appConfig.bearerToken).thenReturn("EIS_TOKEN")
 
       buildEisHeader("123", appConfig) mustBe Seq(
-        "Environment" -> "eis",
-        "Accept" -> "application/json",
+        "Environment"   -> "eis",
+        "Accept"        -> "application/json",
         "CorrelationId" -> "123",
         "Authorization" -> "EIS_TOKEN"
       )
@@ -50,8 +50,8 @@ class HeadersSpec extends PlaySpec with BeforeAndAfterEach {
       when(appConfig.bearerToken).thenReturn("DES_TOKEN")
 
       buildEisHeader("123", appConfig) mustBe Seq(
-        "Environment" -> "eis",
-        "Accept" -> "application/json",
+        "Environment"   -> "eis",
+        "Accept"        -> "application/json",
         "CorrelationId" -> "123",
         "Authorization" -> "DES_TOKEN"
       )

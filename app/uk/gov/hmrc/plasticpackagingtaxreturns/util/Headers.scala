@@ -22,22 +22,15 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 object Headers {
 
   val correlationIdHeaderName = "CorrelationId"
-  val environmentHeaderName = "Environment"
+  val environmentHeaderName   = "Environment"
 
-
-  def buildEisHeader(correlationId: String, appConfig: AppConfig): Seq[(String, String)] = {
+  def buildEisHeader(correlationId: String, appConfig: AppConfig): Seq[(String, String)] =
     headers(correlationId, appConfig) :+ HeaderNames.AUTHORIZATION -> appConfig.bearerToken
-  }
 
-  def buildDesHeader(correlationId: String, appConfig: AppConfig): Seq[(String, String)] = {
+  def buildDesHeader(correlationId: String, appConfig: AppConfig): Seq[(String, String)] =
     headers(correlationId, appConfig) :+ HeaderNames.AUTHORIZATION -> appConfig.desBearerToken
-  }
 
-  private def headers(correlationId: String, appConfig: AppConfig): Seq[(String, String)] = {
-    Seq(environmentHeaderName -> appConfig.eisEnvironment,
-      HeaderNames.ACCEPT -> MimeTypes.JSON,
-      correlationIdHeaderName -> correlationId
-    )
-  }
+  private def headers(correlationId: String, appConfig: AppConfig): Seq[(String, String)] =
+    Seq(environmentHeaderName -> appConfig.eisEnvironment, HeaderNames.ACCEPT -> MimeTypes.JSON, correlationIdHeaderName -> correlationId)
 
 }

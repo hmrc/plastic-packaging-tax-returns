@@ -23,7 +23,12 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.ChangeSubscriptionEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse,
+  SubscriptionUpdateWithNrsFailureResponse,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
@@ -48,7 +53,7 @@ class SubscriptionController @Inject() (
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       subscriptionsConnector.getSubscription(pptReference).map {
-        case Right(response)  => Ok(response)
+        case Right(response) => Ok(response)
         case Left(errorResponse) =>
           val bodyAsJson = Json.parse(errorResponse.body)
           new Status(errorResponse.status)(bodyAsJson)
@@ -75,12 +80,10 @@ class SubscriptionController @Inject() (
         auditConnector.sendExplicitAudit(
           ChangeSubscriptionEvent.eventType,
           ChangeSubscriptionEvent(
-            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId),
-              pptSubscription = pptSubscription,
-              nrsFailureResponse = None
-            ),
+            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId), pptSubscription = pptSubscription, nrsFailureResponse = None),
             pptReference = Some(eisResponse.pptReferenceNumber),
-            processingDateTime = Some(eisResponse.processingDate))
+            processingDateTime = Some(eisResponse.processingDate)
+          )
         )
 
         handleNrsSuccess(eisResponse, nrSubmissionId)
@@ -90,10 +93,7 @@ class SubscriptionController @Inject() (
         auditConnector.sendExplicitAudit(
           ChangeSubscriptionEvent.eventType,
           ChangeSubscriptionEvent(
-            updateNrsDetails(nrsSubmissionId = None,
-              pptSubscription = pptSubscription,
-              nrsFailureResponse = Some(exception.getMessage)
-            ),
+            updateNrsDetails(nrsSubmissionId = None, pptSubscription = pptSubscription, nrsFailureResponse = Some(exception.getMessage)),
             pptReference = Some(eisResponse.pptReferenceNumber),
             None
           )
@@ -116,34 +116,29 @@ class SubscriptionController @Inject() (
       request.body.userHeaders.getOrElse(Map.empty)
     )
 
-  private def handleNrsFailure(
-    eisResponse: SubscriptionUpdateSuccessfulResponse,
-    exception: Exception
-  ): Future[Result] =
+  private def handleNrsFailure(eisResponse: SubscriptionUpdateSuccessfulResponse, exception: Exception): Future[Result] =
     Future.successful(
       Ok(
-        SubscriptionUpdateWithNrsFailureResponse(eisResponse.pptReferenceNumber,
-                                                 eisResponse.processingDate,
-                                                 eisResponse.formBundleNumber,
-                                                 exception.getMessage
+        SubscriptionUpdateWithNrsFailureResponse(
+          eisResponse.pptReferenceNumber,
+          eisResponse.processingDate,
+          eisResponse.formBundleNumber,
+          exception.getMessage
         )
       )
     )
 
   private def handleNrsSuccess(eisResponse: SubscriptionUpdateSuccessfulResponse, nrSubmissionId: String): Result =
     Ok(
-      SubscriptionUpdateWithNrsSuccessfulResponse(eisResponse.pptReferenceNumber,
-                                                  eisResponse.processingDate,
-                                                  eisResponse.formBundleNumber,
-                                                  nrSubmissionId
+      SubscriptionUpdateWithNrsSuccessfulResponse(
+        eisResponse.pptReferenceNumber,
+        eisResponse.processingDate,
+        eisResponse.formBundleNumber,
+        nrSubmissionId
       )
     )
 
-  private def updateNrsDetails(
-    nrsSubmissionId: Option[String],
-    nrsFailureResponse: Option[String],
-    pptSubscription: Subscription
-  ): Subscription =
+  private def updateNrsDetails(nrsSubmissionId: Option[String], nrsFailureResponse: Option[String], pptSubscription: Subscription): Subscription =
     pptSubscription.copy(nrsDetails =
       Some(NrsDetails(nrsSubmissionId = nrsSubmissionId, failureReason = nrsFailureResponse))
     )

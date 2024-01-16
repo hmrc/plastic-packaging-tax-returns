@@ -24,16 +24,17 @@ import java.time.LocalDate
 
 class PPTObligationDetailsSpec extends PlaySpec {
 
-  val someObligationDetail: ObligationDetail = ObligationDetail(status = ObligationStatus.OPEN,
-                                                                inboundCorrespondenceFromDate =
-                                                                  LocalDate.now().plusDays(1),
-                                                                inboundCorrespondenceToDate =
-                                                                  LocalDate.now().plusDays(2),
-                                                                inboundCorrespondenceDateReceived =
-                                                                  Some(LocalDate.now().plusDays(3)),
-                                                                inboundCorrespondenceDueDate =
-                                                                  LocalDate.now().plusDays(4),
-                                                                periodKey = "#001"
+  val someObligationDetail: ObligationDetail = ObligationDetail(
+    status = ObligationStatus.OPEN,
+    inboundCorrespondenceFromDate =
+      LocalDate.now().plusDays(1),
+    inboundCorrespondenceToDate =
+      LocalDate.now().plusDays(2),
+    inboundCorrespondenceDateReceived =
+      Some(LocalDate.now().plusDays(3)),
+    inboundCorrespondenceDueDate =
+      LocalDate.now().plusDays(4),
+    periodKey = "#001"
   )
 
   "customWrites" must {

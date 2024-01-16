@@ -19,12 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationDataResponse
 
-case class GetObligations(obligationType: String,
-                          internalId: String,
-                          pptReference: String,
-                          result: String,
-                          response: Option[ObligationDataResponse],
-                          error: Option[String])
+case class GetObligations(
+  obligationType: String,
+  internalId: String,
+  pptReference: String,
+  result: String,
+  response: Option[ObligationDataResponse],
+  error: Option[String]
+)
 
 object GetObligations {
   implicit val format: OFormat[GetObligations] = Json.format[GetObligations]

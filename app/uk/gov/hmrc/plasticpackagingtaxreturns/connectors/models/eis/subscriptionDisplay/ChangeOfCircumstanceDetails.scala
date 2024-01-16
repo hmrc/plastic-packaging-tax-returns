@@ -18,15 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 
-case class ChangeOfCircumstanceDetails(
-  changeOfCircumstance: String,
-  deregistrationDetails: Option[DeregistrationDetails] = None
-)
+case class ChangeOfCircumstanceDetails(changeOfCircumstance: String, deregistrationDetails: Option[DeregistrationDetails] = None)
 
 object ChangeOfCircumstanceDetails {
 
   //changeOfCircumstance reasons:
-  val Update = "Update to details"
+  val Update         = "Update to details"
   val ManualToOnline = "Manual to Online"
 
   implicit val format: OFormat[ChangeOfCircumstanceDetails] =
@@ -34,11 +31,7 @@ object ChangeOfCircumstanceDetails {
 
 }
 
-case class DeregistrationDetails(
-  deregistrationReason: String,
-  deregistrationDate: String,
-  deregistrationDeclarationBox1: Boolean
-)
+case class DeregistrationDetails(deregistrationReason: String, deregistrationDate: String, deregistrationDeclarationBox1: Boolean)
 
 object DeregistrationDetails {
 

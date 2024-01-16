@@ -18,17 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 
-case class IndividualDetails(
-  title: Option[String] = None,
-  firstName: String,
-  middleName: Option[String] = None,
-  lastName: String
-)
+case class IndividualDetails(title: Option[String] = None, firstName: String, middleName: Option[String] = None, lastName: String)
 
 object IndividualDetails {
 
-  def apply(firstAndLast: (String,String)) =
-   new IndividualDetails(firstName = firstAndLast._1, lastName = firstAndLast._2)
+  def apply(firstAndLast: (String, String)) =
+    new IndividualDetails(firstName = firstAndLast._1, lastName = firstAndLast._2)
 
   implicit val format: OFormat[IndividualDetails] = Json.format[IndividualDetails]
 }

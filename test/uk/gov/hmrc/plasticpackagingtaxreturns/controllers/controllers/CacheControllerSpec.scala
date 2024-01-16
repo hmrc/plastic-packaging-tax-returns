@@ -45,7 +45,8 @@ import java.time.Instant
 import scala.concurrent.Future
 
 class CacheControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockReturnsRepository {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport
+    with MockReturnsRepository {
 
   SharedMetricRegistries.clear()
 
@@ -55,7 +56,7 @@ class CacheControllerSpec
     .overrides(
       bind[AuthConnector].to(mockAuthConnector),
       bind[SessionRepository].to(mockSessionRepository),
-      bind[UserAnswersCleaner].to(mockUserAnswersCleaner),
+      bind[UserAnswersCleaner].to(mockUserAnswersCleaner)
     ).build()
 
   override def beforeEach(): Unit = {
@@ -71,7 +72,7 @@ class CacheControllerSpec
     "return 201" when {
       "request is valid" in {
         withAuthorizedUser(newUser(Some(pptEnrolment("test1"))))
-        val request   = UserAnswers("id")
+        val request = UserAnswers("id")
         given(mockSessionRepository.set(any[UserAnswers])).willReturn(Future.successful(true))
 
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
@@ -97,7 +98,7 @@ class CacheControllerSpec
       "unauthorized" in {
         withUnauthorizedUser(new RuntimeException())
 
-        val request   = UserAnswers("id")
+        val request = UserAnswers("id")
 
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 

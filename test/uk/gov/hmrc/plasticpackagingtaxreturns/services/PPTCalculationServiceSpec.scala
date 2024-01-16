@@ -30,17 +30,15 @@ import java.time.LocalDate
 class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val taxCalculationService = mock[TaxCalculationService]
-  private val calculationService = new PPTCalculationService(taxCalculationService)
-  private val allZeroReturn = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, 0, 0)
+  private val calculationService    = new PPTCalculationService(taxCalculationService)
+  private val allZeroReturn         = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, 0, 0)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(taxCalculationService)
-    when(taxCalculationService.weightToDebit(any, any)) thenReturn TaxablePlastic(weight = 0, moneyInPounds = 0.0, 
-      taxRate = 1.1)
+    when(taxCalculationService.weightToDebit(any, any)) thenReturn TaxablePlastic(weight = 0, moneyInPounds = 0.0, taxRate = 1.1)
   }
 
-  
   "calculate" must {
 
     "add up liabilities" when {
@@ -56,21 +54,21 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
       "has a manufactured amount" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 5)
-        val expected = 5L
+        val expected  = 5L
 
         calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
 
       "has a imported amount" in {
         val taxReturn = allZeroReturn.copy(importedPlasticWeight = 8)
-        val expected = 8L
+        val expected  = 8L
 
         calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
 
       "has a manufactured and imported amount" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3, importedPlasticWeight = 5)
-        val expected = BigDecimal(8)
+        val expected  = BigDecimal(8)
 
         calculationService.calculate(taxReturn).packagingTotal mustBe expected
       }
@@ -87,36 +85,34 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
       "has an exported amount" in {
         val taxReturn = allZeroReturn.copy(exportedPlasticWeight = 10)
-        val expected = 10L
+        val expected  = 10L
 
         calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has an exported by another business amount" in {
         val taxReturn = allZeroReturn.copy(exportedByAnotherBusinessPlasticWeight = 10, exportedPlasticWeight = 10)
-        val expected = 20L
+        val expected  = 20L
 
         calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has a human medicines amount" in {
         val taxReturn = allZeroReturn.copy(humanMedicinesPlasticWeight = 10)
-        val expected = 10L
+        val expected  = 10L
 
         calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has a recycled plastic amount" in {
         val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 6)
-        val expected = 6L
+        val expected  = 6L
 
         calculationService.calculate(taxReturn).deductionsTotal mustBe expected
       }
 
       "has all deductions" in {
-        val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 3,
-          humanMedicinesPlasticWeight = 5,
-          exportedPlasticWeight = 11)
+        val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 3, humanMedicinesPlasticWeight = 5, exportedPlasticWeight = 11)
 
         val expected = 19L
 
@@ -141,17 +137,19 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
       "when has a non zero packaging total" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3)
-        val expected = 3L
+        val expected  = 3L
 
         calculationService.calculate(taxReturn).chargeableTotal mustBe expected
       }
 
       "has non zero packaging total and non zero deductions" in {
-        val taxReturn = allZeroReturn.copy(importedPlasticWeight = 8,
+        val taxReturn = allZeroReturn.copy(
+          importedPlasticWeight = 8,
           manufacturedPlasticWeight = 3,
           exportedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 1,
-          recycledPlasticWeight = 2)
+          recycledPlasticWeight = 2
+        )
 
         val expected = 6L
 
@@ -167,9 +165,9 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       calculations.taxRate mustBe BigDecimal(3.14)
       verify(taxCalculationService).weightToDebit(eqTo(LocalDate.of(1900, 11, 22)), eqTo(0))
     }
-    
+
     "sum up the taxable plastic total" when {
-      
+
       "All zero (nil return)" in {
         calculationService.calculate(allZeroReturn)
         verify(taxCalculationService).weightToDebit(any, eqTo(0))
@@ -182,11 +180,13 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       }
 
       "has non zero packaging total and non zero deductions" in {
-        val taxReturn = allZeroReturn.copy(importedPlasticWeight = 8,
+        val taxReturn = allZeroReturn.copy(
+          importedPlasticWeight = 8,
           manufacturedPlasticWeight = 3,
           exportedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 1,
-          recycledPlasticWeight = 2)
+          recycledPlasticWeight = 2
+        )
         calculationService.calculate(taxReturn)
         verify(taxCalculationService).weightToDebit(any, eqTo(6)) //(8 + 3 - 2 - 1 - 2) = 6
       }
@@ -199,27 +199,25 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       }
 
       "the values balance, nil return" in {
-        val taxReturn = allZeroReturn.copy(
-          manufacturedPlasticWeight = 1,
-          exportedPlasticWeight = 1
-        )
+        val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 1, exportedPlasticWeight = 1)
 
         calculationService.calculate(taxReturn).isSubmittable mustBe true
       }
 
       "normal return non zero values" in {
-        val taxReturn = allZeroReturn.copy(importedPlasticWeight = 8,
+        val taxReturn = allZeroReturn.copy(
+          importedPlasticWeight = 8,
           manufacturedPlasticWeight = 3,
           exportedPlasticWeight = 2,
           humanMedicinesPlasticWeight = 1,
-          recycledPlasticWeight = 2)
+          recycledPlasticWeight = 2
+        )
 
         calculationService.calculate(taxReturn).isSubmittable mustBe true
       }
 
       "the deductions are greater than the accretions" in {
-        val taxReturn = allZeroReturn.copy(
-          recycledPlasticWeight = 2)
+        val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 2)
 
         calculationService.calculate(taxReturn).isSubmittable mustBe false
       }
@@ -232,17 +230,16 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           _.copy(exportedPlasticWeight = -1),
           _.copy(recycledPlasticWeight = -1),
           _.copy(humanMedicinesPlasticWeight = -1)
-        ).map(_(allZeroReturn)).foreach{taxReturn =>
-
+        ).map(_(allZeroReturn)).foreach { taxReturn =>
           calculationService.calculate(taxReturn).isSubmittable mustBe false
 
         }
       }
     }
-    
+
     "complain if period end-date is missing" in {
       when(taxCalculationService.weightToDebit(any, any)) thenThrow new RuntimeException("a field is missing")
-      the [Exception] thrownBy calculationService.calculate(allZeroReturn) must have message "a field is missing"
+      the[Exception] thrownBy calculationService.calculate(allZeroReturn) must have message "a field is missing"
     }
   }
 

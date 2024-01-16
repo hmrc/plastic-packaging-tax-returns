@@ -42,7 +42,6 @@ class PPTObligationsController @Inject() (
 
   private val internalServerError = InternalServerError("{}")
 
-
   def getOpen(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>

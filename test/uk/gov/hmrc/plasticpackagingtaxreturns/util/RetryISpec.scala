@@ -24,12 +24,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.RetryISpec.{
-  neverRetry,
-  noParticularReason,
-  retryFailures,
-  someRetries
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.RetryISpec.{neverRetry, noParticularReason, retryFailures, someRetries}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -67,9 +62,7 @@ class RetryISpec extends AnyWordSpec with Matchers with DefaultAwaitTimeout with
         val consistentlyFailingOperation = ConsistentlyFailingOperation()
 
         intercept[IllegalStateException] {
-          await(
-            retryable.retry(someRetries: _*)(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt())
-          )
+          await(retryable.retry(someRetries: _*)(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt()))
         }
 
         consistentlyFailingOperation.invocationCount mustBe (someRetries.length + 1)
@@ -107,9 +100,7 @@ class RetryISpec extends AnyWordSpec with Matchers with DefaultAwaitTimeout with
 
       intercept[IllegalStateException] {
         await(
-          retryable.retry(FiniteDuration(retryDelayMs, TimeUnit.MILLISECONDS))(retryFailures, noParticularReason)(
-            consistentlyFailingOperation.doIt()
-          )
+          retryable.retry(FiniteDuration(retryDelayMs, TimeUnit.MILLISECONDS))(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt())
         )
       }
 
@@ -148,10 +139,7 @@ object RetryISpec {
   def noParticularReason[A](value: Try[A]): String = "no particular reason"
 
   def someRetries =
-    List(FiniteDuration(1, TimeUnit.MILLISECONDS),
-         FiniteDuration(2, TimeUnit.MILLISECONDS),
-         FiniteDuration(3, TimeUnit.MILLISECONDS)
-    )
+    List(FiniteDuration(1, TimeUnit.MILLISECONDS), FiniteDuration(2, TimeUnit.MILLISECONDS), FiniteDuration(3, TimeUnit.MILLISECONDS))
 
 }
 

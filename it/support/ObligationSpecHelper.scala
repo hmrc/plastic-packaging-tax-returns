@@ -16,7 +16,13 @@
 
 package support
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Identification, Obligation, ObligationDataResponse, ObligationDetail, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  Identification,
+  Obligation,
+  ObligationDataResponse,
+  ObligationDetail,
+  ObligationStatus
+}
 
 import java.time.LocalDate
 
@@ -41,4 +47,5 @@ object ObligationSpecHelper {
         )
       )
     )
+
 }

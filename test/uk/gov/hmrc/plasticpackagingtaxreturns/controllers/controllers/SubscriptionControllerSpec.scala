@@ -36,7 +36,12 @@ import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateSuccessfulResponse,
+  SubscriptionUpdateWithNrsFailureResponse,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
@@ -50,14 +55,15 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
-    with AuthTestSupport with SubscriptionTestData with MockConnectors {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport
+    with SubscriptionTestData with MockConnectors {
 
   SharedMetricRegistries.clear()
   protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
 
   override lazy val app: Application = GuiceApplicationBuilder()
-    .overrides(bind[AuthConnector].to(mockAuthConnector),
+    .overrides(
+      bind[AuthConnector].to(mockAuthConnector),
       bind[SubscriptionsConnector].to(mockSubscriptionsConnector),
       bind[NonRepudiationService].to(mockNonRepudiationService),
       bind[SessionRepository].to(mock[SessionRepository])
@@ -116,9 +122,7 @@ class SubscriptionControllerSpec
         when(mockHttpResponse.status).thenReturn(417)
         when(mockHttpResponse.body).thenReturn("""{"x": "y"}""")
 
-        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(
-          Future.successful(Left(mockHttpResponse))
-        )
+        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(Future.successful(Left(mockHttpResponse)))
 
         val result: Result = await(route(app, getRequest(pptReference)).get)
         result.header.status mustBe 417

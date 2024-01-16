@@ -28,15 +28,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.FinancialDataConnector
 import java.time.LocalDate
 import scala.concurrent.Future
 
-class FinancialDataServiceSpec
-    extends PlaySpec with MockitoSugar with BeforeAndAfterEach with FutureAwaits with DefaultAwaitTimeout {
+class FinancialDataServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with FutureAwaits with DefaultAwaitTimeout {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
-    when(mockConnector.get(any(), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(
-      Future.successful(Left(0))
-    )
+    when(mockConnector.get(any(), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(0)))
   }
 
   val mockConnector: FinancialDataConnector = mock[FinancialDataConnector]
@@ -48,15 +45,7 @@ class FinancialDataServiceSpec
     "just pass through params" in {
       await(sut.getRaw("pptRef", LocalDate.now(), LocalDate.now(), Some(true), Some(false), Some(true), None, "someId")(hc))
 
-      verify(mockConnector).get("pptRef",
-        Some(LocalDate.now()),
-        Some(LocalDate.now()),
-        Some(true),
-        Some(false),
-        Some(true),
-        None,
-        "someId"
-      )(hc)
+      verify(mockConnector).get("pptRef", Some(LocalDate.now()), Some(LocalDate.now()), Some(true), Some(false), Some(true), None, "someId")(hc)
     }
   }
 

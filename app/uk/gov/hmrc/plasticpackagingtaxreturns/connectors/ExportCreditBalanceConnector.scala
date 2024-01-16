@@ -33,31 +33,22 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ExportCreditBalanceConnector @Inject() (
-  eisHttpClient: EisHttpClient,
-  appConfig: AppConfig,
-  auditConnector: AuditConnector
-)(implicit ec: ExecutionContext) {
+class ExportCreditBalanceConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig, auditConnector: AuditConnector)(implicit
+  ec: ExecutionContext
+) {
 
-  private val logger = Logger(this.getClass)
+  private val logger          = Logger(this.getClass)
   private val SUCCESS: String = "Success"
   private val FAILURE: String = "Failure"
 
   def getBalance(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String)(implicit
-                                                                                                   hc: HeaderCarrier
+    hc: HeaderCarrier
   ): Future[Either[Int, ExportCreditBalanceDisplayResponse]] = {
 
-    val timerName: String = "ppt.exportcreditbalance.display.timer"
-    val queryParams: Seq[(String, String)] = Seq(
-      "fromDate" -> DateFormat.isoFormat(fromDate),
-      "toDate" -> DateFormat.isoFormat(toDate)
-    )
+    val timerName: String                  = "ppt.exportcreditbalance.display.timer"
+    val queryParams: Seq[(String, String)] = Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
 
-    eisHttpClient.get(appConfig.exportCreditBalanceDisplayUrl(pptReference),
-      queryParams = queryParams,
-      timerName,
-      buildEisHeader
-    ).map { response =>
+    eisHttpClient.get(appConfig.exportCreditBalanceDisplayUrl(pptReference), queryParams = queryParams, timerName, buildEisHeader).map { response =>
       response.status match {
         case Status.OK =>
           handleSuccess(pptReference, fromDate, toDate, internalId, response)
@@ -80,33 +71,35 @@ class ExportCreditBalanceConnector @Inject() (
       s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
     logger.warn(msg)
 
-    auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-      GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(s"$msg, body: ${response.body}")))
+    auditConnector.sendExplicitAudit(
+      GetExportCredits.eventType,
+      GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(s"$msg, body: ${response.body}"))
+    )
 
     Left(response.status)
   }
 
-  private def handleSuccess(
-    pptReference: String,
-    fromDate: LocalDate,
-    toDate: LocalDate,
-    internalId: String,
-    response: EisHttpResponse
-  )(implicit hc: HeaderCarrier): Either[Int, ExportCreditBalanceDisplayResponse] = {
+  private def handleSuccess(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String, response: EisHttpResponse)(implicit
+    hc: HeaderCarrier
+  ): Either[Int, ExportCreditBalanceDisplayResponse] = {
     val triedResponse = response.jsonAs[ExportCreditBalanceDisplayResponse]
 
     triedResponse match {
       case Success(balance) =>
-        auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-          GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(balance), None))
+        auditConnector.sendExplicitAudit(
+          GetExportCredits.eventType,
+          GetExportCredits(internalId, pptReference, fromDate, toDate, SUCCESS, Some(balance), None)
+        )
 
         Right(balance)
       case Failure(exception) =>
-
-        auditConnector.sendExplicitAudit(GetExportCredits.eventType,
-          GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(exception.getMessage())))
+        auditConnector.sendExplicitAudit(
+          GetExportCredits.eventType,
+          GetExportCredits(internalId, pptReference, fromDate, toDate, FAILURE, None, Some(exception.getMessage()))
+        )
 
         Left(INTERNAL_SERVER_ERROR)
     }
   }
+
 }

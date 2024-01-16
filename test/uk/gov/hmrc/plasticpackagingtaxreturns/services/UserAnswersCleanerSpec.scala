@@ -28,7 +28,12 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ConvertedCreditYesNoGettable, ExportedCreditWeightGettable, ExportedCreditYesNoGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{
+  ConvertedCreditWeightGettable,
+  ConvertedCreditYesNoGettable,
+  ExportedCreditWeightGettable,
+  ExportedCreditYesNoGettable
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersCleaner.CleaningUserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper.returnWithLegacyCreditData
@@ -40,34 +45,29 @@ import scala.concurrent.Future
 class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
-  private val subscriptionConnector = mock[SubscriptionsConnector]
-  private val mockAvailService = mock[AvailableCreditDateRangesService]
+  private val subscriptionConnector                 = mock[SubscriptionsConnector]
+  private val mockAvailService                      = mock[AvailableCreditDateRangesService]
 
   private val sut = new UserAnswersCleaner(mockAvailService, subscriptionConnector)
 
-  private val userAnswers = UserAnswers("id", data = obj(
-    "obligation" -> obj(
-      "fromDate" -> "2023-01-01",
-      "toDate" -> "2023-03-31",
-      "dueDate" -> "2023-05-31",
-      "periodKey" -> "23C1"
-    ),
-    "isFirstReturn" -> false
-  ))
+  private val userAnswers = UserAnswers(
+    "id",
+    data = obj(
+      "obligation"    -> obj("fromDate" -> "2023-01-01", "toDate" -> "2023-03-31", "dueDate" -> "2023-05-31", "periodKey" -> "23C1"),
+      "isFirstReturn" -> false
+    )
+  )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAvailService)
 
-    when(mockAvailService.calculate(any, any)) thenReturn Seq(
-      CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))
-    )
+    when(mockAvailService.calculate(any, any)) thenReturn Seq(CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31)))
 
     val subscription = mock[SubscriptionDisplayResponse]
     when(subscription.taxStartDate()) thenReturn LocalDate.of(1, 2, 3)
     when(subscriptionConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
   }
-
 
   "clean" must {
     "do nothing" when {
@@ -85,14 +85,14 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
       }
 
       "a return, using the current journey, has started" in {
-        await(sut.clean(userAnswers, "ppt-ref")) mustBe(userAnswers, false)
+        await(sut.clean(userAnswers, "ppt-ref")) mustBe (userAnswers, false)
         verifyNoInteractions(mockAvailService)
         verifyNoInteractions(subscriptionConnector)
       }
     }
-    
+
     "convert and old userAnswers in to a new one" in {
-      val oldUserAnswers = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
+      val oldUserAnswers      = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
       val expectedUserAnswers = oldUserAnswers.copy(data = Json.parse(newUserAnswerData).as[JsObject])
 
       val (userAnswers, hasBeenCleaned) = await(sut.clean(oldUserAnswers, "ppt-ref"))
@@ -115,7 +115,7 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
 
       "available years is 2+" in {
         val userAnswers = UserAnswers("test-id", Json.parse(returnWithLegacyCreditData).as[JsObject])
-        val opt = CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))
+        val opt         = CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31))
         when(mockAvailService.calculate(any, any))
           .thenReturn(Seq(opt, opt))
 
@@ -127,13 +127,13 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
   }
 
   "migrate" must {
-    val to = JsPath \ "to"
+    val to   = JsPath \ "to"
     val from = JsPath \ "from"
 
     "do nothing" when {
       "there is no old value" in {
         val userAnswers = UserAnswers("test")
-        val result = userAnswers.migrate(from, to)
+        val result      = userAnswers.migrate(from, to)
 
         result.get[String](from) mustBe None
         result.get[String](to) mustBe None
@@ -141,7 +141,7 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
 
       "there is only new" in {
         val userAnswers = UserAnswers("test").setOrFail(to, "DO_NOT_OVERRIDE")
-        val result = userAnswers.migrate(from, to)
+        val result      = userAnswers.migrate(from, to)
 
         result.get[String](from) mustBe None
         result.get[String](to) mustBe Some("DO_NOT_OVERRIDE")
@@ -151,14 +151,14 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
     "move the old to the new" when {
       "the new is empty" in {
         val userAnswers = UserAnswers("test").setOrFail(from, "TEST")
-        val result = userAnswers.migrate(from, to)
+        val result      = userAnswers.migrate(from, to)
 
         result.get[String](to) mustBe Some("TEST")
       }
     }
     "not override existing new value with old" in {
       val userAnswers = UserAnswers("test").setOrFail(from, "TEST").setOrFail(to, "DO_NOT_OVERRIDE")
-      val result = userAnswers.migrate(from, to)
+      val result      = userAnswers.migrate(from, to)
 
       result.get[String](to) mustBe Some("DO_NOT_OVERRIDE")
     }
@@ -166,14 +166,14 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
     "remove the old value" when {
       "it has been moved to the new" in {
         val userAnswers = UserAnswers("test").setOrFail(from, "TEST")
-        val result = userAnswers.migrate(from, to)
+        val result      = userAnswers.migrate(from, to)
 
         result.get[String](from) mustBe None
         result.get[String](to) mustBe Some("TEST")
       }
       "the new is already populated" in {
         val userAnswers = UserAnswers("test").setOrFail(from, "TEST").setOrFail(to, "DO_NOT_OVERRIDE")
-        val result = userAnswers.migrate(from, to)
+        val result      = userAnswers.migrate(from, to)
 
         result.get[String](from) mustBe None
         result.get[String](to) mustBe Some("DO_NOT_OVERRIDE")
@@ -183,15 +183,13 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
 
   "hasOldAnswers" must {
 
-    val userAnswers = UserAnswers("id", data = obj(
-      "obligation" -> obj(
-        "fromDate" -> "2022-10-01",
-        "toDate" -> "2022-12-31",
-        "dueDate" -> "2023-02-28",
-        "periodKey" -> "22C4"
-      ),
-      "isFirstReturn" -> false
-    ))
+    val userAnswers = UserAnswers(
+      "id",
+      data = obj(
+        "obligation"    -> obj("fromDate" -> "2022-10-01", "toDate" -> "2022-12-31", "dueDate" -> "2023-02-28", "periodKey" -> "22C4"),
+        "isFirstReturn" -> false
+      )
+    )
 
     "be false if there's no old answers" in {
       sut.hasOldAnswers(userAnswers) mustBe false

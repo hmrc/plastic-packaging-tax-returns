@@ -24,18 +24,15 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import java.time.{LocalDate, LocalDateTime}
 import java.time.temporal.ChronoUnit
 
-class EdgeOfSystemSpec extends PlaySpec
-  with MockitoSugar
-  with BeforeAndAfterEach {
+class EdgeOfSystemSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  private val appConfig = mock[AppConfig]
+  private val appConfig    = mock[AppConfig]
   private val edgeOfSystem = new EdgeOfSystem(appConfig)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     reset(appConfig)
   }
-
 
   "localDateTimeNow" should {
 
@@ -56,9 +53,7 @@ class EdgeOfSystemSpec extends PlaySpec
         LocalDateTime.now.truncatedTo(ChronoUnit.MINUTES)
     }
 
-
   }
-
 
   "today" should {
     "mimic localDateTimeNow" in {
@@ -68,4 +63,3 @@ class EdgeOfSystemSpec extends PlaySpec
   }
 
 }
-

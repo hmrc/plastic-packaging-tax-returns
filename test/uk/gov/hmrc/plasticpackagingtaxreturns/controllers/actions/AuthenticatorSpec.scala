@@ -32,8 +32,7 @@ import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 import scala.concurrent.ExecutionContext
 
 class AuthenticatorSpec
-    extends AnyWordSpec with Matchers with MockitoSugar with AuthTestSupport with DefaultAwaitTimeout with EitherValues
-    with BeforeAndAfterEach {
+    extends AnyWordSpec with Matchers with MockitoSugar with AuthTestSupport with DefaultAwaitTimeout with EitherValues with BeforeAndAfterEach {
 
   private val mcc           = stubMessagesControllerComponents()
   private val hc            = HeaderCarrier()
@@ -78,9 +77,7 @@ class AuthenticatorSpec
 
     "return right and populate verified ppt reference" when {
       "ppt enrolment exists" in {
-        withAuthorizedUser(
-          newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1"))))
-        )
+        withAuthorizedUser(newUser(Some(newEnrolments(newEnrolment(pptEnrolmentKey, pptEnrolmentIdentifierName, "val1")))))
 
         val result = await(authenticator.authorisedWithPptReference("val1")(hc, request))
 

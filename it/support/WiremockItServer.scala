@@ -45,7 +45,7 @@ class WiremockItServer {
       "microservice.services.nrs.port" -> wirePort,
       "microservice.services.des.host" -> wireHost,
       "microservice.services.des.port" -> wirePort,
-      "auditing.enabled" -> false
+      "auditing.enabled"               -> false
     )
 
   def start(): Unit = {

@@ -24,24 +24,20 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NrsDetails
 import java.time.ZonedDateTime
 
 case class NrsSubmitReturnEvent(
-                              returnType: ReturnType,
-                              submissionId: Option[String] = None,
-                              periodKey: String,
-                              returnDetails: EisReturnDetails,
-                              pptReference: Option[String],
-                              processingDateTime: Option[ZonedDateTime],
-                              nrsDetails: Option[NrsDetails] = None
-                            )
+  returnType: ReturnType,
+  submissionId: Option[String] = None,
+  periodKey: String,
+  returnDetails: EisReturnDetails,
+  pptReference: Option[String],
+  processingDateTime: Option[ZonedDateTime],
+  nrsDetails: Option[NrsDetails] = None
+)
 
 object NrsSubmitReturnEvent {
   implicit val format: OFormat[NrsSubmitReturnEvent] = Json.format[NrsSubmitReturnEvent]
   val eventType: String                              = "nrsSubmitOrAmendReturn"
 
-  def apply(
-             submission: ReturnsSubmissionRequest,
-             pptReference: Option[String],
-             processingDateTime: Option[ZonedDateTime]
-           ): NrsSubmitReturnEvent =
+  def apply(submission: ReturnsSubmissionRequest, pptReference: Option[String], processingDateTime: Option[ZonedDateTime]): NrsSubmitReturnEvent =
     NrsSubmitReturnEvent(
       submission.returnType,
       submission.submissionId,
@@ -51,4 +47,5 @@ object NrsSubmitReturnEvent {
       processingDateTime,
       submission.nrsDetails
     )
+
 }

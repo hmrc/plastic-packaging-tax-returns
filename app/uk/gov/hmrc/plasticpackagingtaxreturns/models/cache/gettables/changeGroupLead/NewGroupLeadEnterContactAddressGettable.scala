@@ -20,7 +20,7 @@ import play.api.libs.json.JsPath
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.BusinessCorrespondenceDetails
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
-case object NewGroupLeadEnterContactAddressGettable extends Gettable[BusinessCorrespondenceDetails]{
+case object NewGroupLeadEnterContactAddressGettable extends Gettable[BusinessCorrespondenceDetails] {
 
   override def path: JsPath = JsPath \ "changeGroupLead" \ toString
 

@@ -42,13 +42,13 @@ import scala.concurrent.Future
 
 class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach {
 
-  protected implicit val hc: HeaderCarrier    = HeaderCarrier()
-  val internalId: String       = "someId"
-  val pptReference: String     = "XXPPTP103844123"
-  val fromDate: LocalDate      = LocalDate.parse("2021-10-01")
-  val toDate: LocalDate        = LocalDate.parse("2021-10-31")
-  val auditUrl: String         = "/write/audit"
-  val implicitAuditUrl: String = s"$auditUrl/merged"
+  protected implicit val hc: HeaderCarrier = HeaderCarrier()
+  val internalId: String                   = "someId"
+  val pptReference: String                 = "XXPPTP103844123"
+  val fromDate: LocalDate                  = LocalDate.parse("2021-10-01")
+  val toDate: LocalDate                    = LocalDate.parse("2021-10-31")
+  val auditUrl: String                     = "/write/audit"
+  val implicitAuditUrl: String             = s"$auditUrl/merged"
 
   val exportCreditBalanceDisplayResponse: ExportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
     processingDate = "2021-11-17T09:32:50.345Z",
@@ -57,24 +57,20 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
     totalExportCreditAvailable = BigDecimal(200)
   )
 
-  private val timerContent = mock[Timer.Context]
-  private val timer = mock[Timer]
-  private val httpClient = mock[HttpClient]
-  private val config = mock[AppConfig]
-  private val metric = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val timerContent   = mock[Timer.Context]
+  private val timer          = mock[Timer]
+  private val httpClient     = mock[HttpClient]
+  private val config         = mock[AppConfig]
+  private val metric         = mock[Metrics](RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
-  private val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-  private val futures = mock[Futures]
-
+  private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val futures        = mock[Futures]
 
   private val eisHttpClient = {
     new EisHttpClient(httpClient, config, edgeOfSystem, metric, futures)
   }
-  private val sut = new ExportCreditBalanceConnector(
-    eisHttpClient,
-    config,
-    auditConnector
-  )
+
+  private val sut = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -93,7 +89,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())))
         when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("/balanceUrl")
 
-        await {sut.getBalance(pptReference, fromDate, toDate, internalId)}
+        await(sut.getBalance(pptReference, fromDate, toDate, internalId))
 
         val captor = ArgCaptor[Seq[(String, String)]]
         verify(httpClient).GET(
@@ -102,7 +98,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
           captor.capture
         )(any, any, any)
 
-        withClue("stop the timer") {verify(timerContent).stop()}
+        withClue("stop the timer")(verify(timerContent).stop())
 
         withClue("have a correlation id in the header") {
           val correlationId = captor.value.filter(o => o._1.equals("CorrelationId"))
@@ -125,8 +121,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
       "handle error" when {
         "exception is returned when cannot parse json" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).
-            thenReturn(Future.successful(HttpResponse(200, "{oops}")))
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(200, "{oops}")))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)
@@ -137,8 +132,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
         }
 
         "when there is an upstream error response" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).
-            thenReturn(Future.successful(HttpResponse(NOT_FOUND, "error message")))
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "error message")))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)
@@ -151,27 +145,20 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
     }
   }
 
-  private def verifyAuditIsSent(credits: GetExportCredits) = {
-    verify(auditConnector).sendExplicitAudit(
-      eqTo(GetExportCredits.eventType),
-      eqTo(credits)
-    )(any, any, any)
-  }
+  private def verifyAuditIsSent(credits: GetExportCredits) =
+    verify(auditConnector).sendExplicitAudit(eqTo(GetExportCredits.eventType), eqTo(credits))(any, any, any)
 
   private def verifyAuditIsSent(msg: Option[String] = None) = {
 
     val captor = ArgCaptor[GetExportCredits]
-    verify(auditConnector).sendExplicitAudit(
-      eqTo(GetExportCredits.eventType),
-      captor.capture
-    )(any, any, any)
+    verify(auditConnector).sendExplicitAudit(eqTo(GetExportCredits.eventType), captor.capture)(any, any, any)
 
     val exportedCredit = captor.value
     exportedCredit.internalId mustBe internalId
     exportedCredit.pptReference mustBe pptReference
     exportedCredit.fromDate mustBe fromDate
     exportedCredit.toDate mustBe toDate
-    exportedCredit.result mustBe  "Failure"
+    exportedCredit.result mustBe "Failure"
     msg.map(m => exportedCredit.error.value must include(m))
   }
 

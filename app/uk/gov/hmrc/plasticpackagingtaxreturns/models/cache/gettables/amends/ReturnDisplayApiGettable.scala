@@ -20,17 +20,17 @@ import play.api.libs.json.{JsPath, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.Gettable
 
 final case class ReturnDisplayDetails(
-                                 manufacturedWeight: Long,
-                                 importedWeight: Long,
-                                 totalNotLiable: Long,
-                                 humanMedicines: Long,
-                                 directExports: Long,
-                                 recycledPlastic: Long,
-                                 creditForPeriod: BigDecimal,
-                                 debitForPeriod: BigDecimal,
-                                 totalWeight: Long,
-                                 taxDue: BigDecimal
-                               )
+  manufacturedWeight: Long,
+  importedWeight: Long,
+  totalNotLiable: Long,
+  humanMedicines: Long,
+  directExports: Long,
+  recycledPlastic: Long,
+  creditForPeriod: BigDecimal,
+  debitForPeriod: BigDecimal,
+  totalWeight: Long,
+  taxDue: BigDecimal
+)
 
 object ReturnDisplayDetails {
   implicit val format: OFormat[ReturnDisplayDetails] = Json.format[ReturnDisplayDetails]
@@ -42,10 +42,7 @@ object IdDetails {
   implicit val format: OFormat[IdDetails] = Json.format[IdDetails]
 }
 
-final case class ReturnDisplayApi(
-                             returnDetails: ReturnDisplayDetails,
-                             idDetails: IdDetails
-                           )
+final case class ReturnDisplayApi(returnDetails: ReturnDisplayDetails, idDetails: IdDetails)
 
 object ReturnDisplayApi {
   implicit val format: OFormat[ReturnDisplayApi] = Json.format[ReturnDisplayApi]

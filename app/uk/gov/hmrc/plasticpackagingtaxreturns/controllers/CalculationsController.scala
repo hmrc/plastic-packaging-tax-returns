@@ -32,7 +32,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class CalculationsController @Inject()(
+class CalculationsController @Inject() (
   authenticator: Authenticator,
   override val controllerComponents: ControllerComponents,
   calculationsService: PPTCalculationService,
@@ -41,7 +41,7 @@ class CalculationsController @Inject()(
   taxRateTable: TaxRateTable,
   userAnswersService: UserAnswersService
 )(implicit executionContext: ExecutionContext)
-  extends BackendBaseController with Logging {
+    extends BackendBaseController with Logging {
 
   def calculateAmends(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
@@ -54,29 +54,26 @@ class CalculationsController @Inject()(
       userAnswersService.get(request.cacheKey)(calculateReturn)
     }
 
-  private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) = {
+  private def calculateReturn(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]) =
     availableCreditService.getBalance(userAnswers).map { availableCredit =>
-      val requestedCredits = creditsService.totalRequestedCredit_old(userAnswers)
-      val taxablePlasticCreditInPounds: BigDecimal = if(requestedCredits != null) requestedCredits.moneyInPounds else 0
+      val requestedCredits                         = creditsService.totalRequestedCredit_old(userAnswers)
+      val taxablePlasticCreditInPounds: BigDecimal = if (requestedCredits != null) requestedCredits.moneyInPounds else 0
       NewReturnValues(taxablePlasticCreditInPounds, availableCredit)(userAnswers)
         .fold(UnprocessableEntity("User answers insufficient")) { returnValues =>
           val calculations: Calculations = calculationsService.calculate(returnValues)
           Ok(Json.toJson(calculations))
         }
     }
-  }
 
   private def getAmendCalculation(userAnswers: UserAnswers): Future[Result] = {
     val amend = AmendReturnValues(userAnswers).getOrElse {
       throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
     }
 
-    val originalCalc = Calculations.fromReturn(
-      userAnswers.getOrFail(ReturnDisplayApiGettable),
-      taxRateTable.lookupRateFor(amend.periodEndDate)
-    )
+    val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), taxRateTable.lookupRateFor(amend.periodEndDate))
 
     val amendCalc = calculationsService.calculate(amend)
     Future.successful(Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))))
   }
+
 }

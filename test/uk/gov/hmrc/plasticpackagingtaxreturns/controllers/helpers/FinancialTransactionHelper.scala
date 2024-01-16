@@ -21,6 +21,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
 import java.time.{LocalDate, LocalDateTime}
 
 object FinancialTransactionHelper {
+
   def createResponseWithDdInProgressFlag(periodKey: String) = {
 
     val items = Seq(
@@ -36,27 +37,18 @@ object FinancialTransactionHelper {
       financialTransactions = Seq(createFinancialTransaction(periodKey = periodKey, items = items))
     )
   }
-  def createFinancialResponseWithAmount(periodKey: String = "period-key", amount: BigDecimal = BigDecimal(0.0)) = {
+
+  def createFinancialResponseWithAmount(periodKey: String = "period-key", amount: BigDecimal = BigDecimal(0.0)) =
     FinancialDataResponse(
       idType = None,
       idNumber = None,
       regimeType = None,
       processingDate = LocalDateTime.now(),
       financialTransactions =
-        Seq(
-          createFinancialTransaction(
-            periodKey = periodKey,
-            amount = amount,
-            items = Seq(createDdFinancialItem(amount)))
-        )
+        Seq(createFinancialTransaction(periodKey = periodKey, amount = amount, items = Seq(createDdFinancialItem(amount))))
     )
-  }
 
-  private def createFinancialTransaction
-  (
-    amount: BigDecimal = BigDecimal(0.0),
-    periodKey: String,
-    items: Seq[FinancialItem]) = {
+  private def createFinancialTransaction(amount: BigDecimal = BigDecimal(0.0), periodKey: String, items: Seq[FinancialItem]) =
     FinancialTransaction(
       chargeType = None,
       mainType = None,
@@ -67,9 +59,8 @@ object FinancialTransactionHelper {
       outstandingAmount = Some(amount),
       items = items
     )
-  }
 
-  private def createDdFinancialItem(amount: BigDecimal = BigDecimal(0.0), DDcollectionInProgress: Option[Boolean] = None) = {
+  private def createDdFinancialItem(amount: BigDecimal = BigDecimal(0.0), DDcollectionInProgress: Option[Boolean] = None) =
     FinancialItem(
       subItem = None,
       dueDate = Some(LocalDate.now()),
@@ -78,6 +69,5 @@ object FinancialTransactionHelper {
       clearingReason = None,
       DDcollectionInProgress = DDcollectionInProgress
     )
-  }
 
 }

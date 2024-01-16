@@ -26,10 +26,11 @@ class QueryParamsSpec extends AnyWordSpec {
   "QueryParams" should {
     "create query params with optional data" in {
 
-      val params = QueryParams.fromOptions("p1" -> Some("value1"),
-                                           "p2" -> Some(true),
-                                           "p3" -> None,
-                                           "p4" -> Some(DateFormat.isoFormat(LocalDate.of(2020, 11, 26)))
+      val params = QueryParams.fromOptions(
+        "p1" -> Some("value1"),
+        "p2" -> Some(true),
+        "p3" -> None,
+        "p4" -> Some(DateFormat.isoFormat(LocalDate.of(2020, 11, 26)))
       )
 
       params mustBe Seq("p1" -> "value1", "p2" -> "true", "p4" -> "2020-11-26")

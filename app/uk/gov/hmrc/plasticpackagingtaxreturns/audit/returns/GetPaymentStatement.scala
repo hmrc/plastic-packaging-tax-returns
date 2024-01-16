@@ -19,11 +19,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 import play.api.libs.json.{Json, OWrites}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.FinancialDataResponse
 
-case class GetPaymentStatement(internalId: String,
-                               pptReference: String,
-                               result: String,
-                               response: Option[FinancialDataResponse],
-                               error: Option[String])
+case class GetPaymentStatement(
+  internalId: String,
+  pptReference: String,
+  result: String,
+  response: Option[FinancialDataResponse],
+  error: Option[String]
+)
 
 object GetPaymentStatement {
   implicit val formats: OWrites[GetPaymentStatement] = Json.writes[GetPaymentStatement]

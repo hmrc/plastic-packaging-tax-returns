@@ -40,13 +40,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach {
 
-  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
+  implicit val ec: ExecutionContext              = ExecutionContext.Implicits.global
   private val mockSessionRepo: SessionRepository = mock[SessionRepository]
-  private val creditsCalculationService = mock[CreditsCalculationService]
-  private val mockAvailableCreditsService = mock[AvailableCreditService]
-  private val cc: ControllerComponents = Helpers.stubControllerComponents()
-  private val userAnswersService = new UserAnswersService(mockSessionRepo)
-  
+  private val creditsCalculationService          = mock[CreditsCalculationService]
+  private val mockAvailableCreditsService        = mock[AvailableCreditService]
+  private val cc: ControllerComponents           = Helpers.stubControllerComponents()
+  private val userAnswersService                 = new UserAnswersService(mockSessionRepo)
+
   private val userAnswers = UserAnswers("user-answers-id")
     .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now)
     .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
@@ -66,13 +66,8 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
   }
 
-  val sut = new ExportCreditBalanceController(
-    new FakeAuthenticator(cc),
-    creditsCalculationService,
-    mockAvailableCreditsService,
-    cc,
-    userAnswersService
-  )(ec)
+  val sut =
+    new ExportCreditBalanceController(new FakeAuthenticator(cc), creditsCalculationService, mockAvailableCreditsService, cc, userAnswersService)(ec)
 
   "get" must {
 
@@ -85,13 +80,13 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       verify(creditsCalculationService).totalRequestedCredit(any, any)
       contentAsJson(result) mustBe Json.toJson(exampleCreditCalculation)
 
-      withClue("session repo called with the cache key"){
+      withClue("session repo called with the cache key") {
         verify(mockSessionRepo).get(s"some-internal-ID-some-ppt-ref")
       }
-      withClue("fetch available credit balance"){
+      withClue("fetch available credit balance") {
         verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any)
       }
-      withClue("credits calculation service is called"){
+      withClue("credits calculation service is called") {
         verify(creditsCalculationService).totalRequestedCredit(userAnswers, availableCreditInPounds = 200)
       }
     }
@@ -100,14 +95,14 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
       "session repo fails" in {
         when(mockSessionRepo.get(any)).thenReturn(Future.failed(new Exception("boom")))
 
-        the [Exception] thrownBy {
+        the[Exception] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
         } must have message "boom"
 
-        withClue("available credit should not have been called"){
+        withClue("available credit should not have been called") {
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)
         }
-        withClue("calculator should not have been called"){
+        withClue("calculator should not have been called") {
           verify(creditsCalculationService, never()).totalRequestedCredit(any, any)
         }
       }
@@ -119,10 +114,10 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
 
         status(result) mustBe UNPROCESSABLE_ENTITY
 
-        withClue("available credit should not have been called"){
+        withClue("available credit should not have been called") {
           verify(mockAvailableCreditsService, never()).getBalance(any)(any)
         }
-        withClue("calculator should not have been called"){
+        withClue("calculator should not have been called") {
           verify(creditsCalculationService, never()).totalRequestedCredit_old(any)
         }
       }
@@ -131,18 +126,18 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         when(mockSessionRepo.get(any)).thenReturn(Future.successful(Some(UserAnswers(""))))
         when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.failed(new Exception("test message")))
 
-        the [Exception] thrownBy {
+        the[Exception] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
         } must have message "test message"
 
-        withClue("calculator should not have been called"){
+        withClue("calculator should not have been called") {
           verify(creditsCalculationService, never()).totalRequestedCredit_old(any)
         }
       }
 
       "complain about missing period end-date / credits calculation fails for some other reason" in {
         when(creditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException("bang")
-        the [Exception] thrownBy {
+        the[Exception] thrownBy {
           await(sut.get("url-ppt-ref")(FakeRequest()))
         } must have message "bang"
       }
