@@ -21,6 +21,7 @@ import org.mockito.MockitoSugar
 import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.TryValues.convertTryToSuccessOrFailure
+import org.scalatest.matchers.must.Matchers.theSameInstanceAs
 import org.scalatestplus.play.PlaySpec
 import play.api.data.Form
 import play.api.libs.json.Json.obj
@@ -215,7 +216,7 @@ class UserAnswersSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar
     }
 
     "save changed answers" in {
-      await(filledUserAnswers.save(saveFunction)) must be theSameInstanceAsfilledUserAnswers
+      await(filledUserAnswers.save(saveFunction)) must be theSameInstanceAs filledUserAnswers
         verify(saveFunction).apply(any, any)
     }
 
