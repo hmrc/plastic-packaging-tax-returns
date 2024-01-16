@@ -143,7 +143,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         val response = await(connector.getSubscription("ppt-ref"))
 
         response.value.groupPartnershipSubscription.isDefined mustBe true
-        response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length3
+        response.value.groupPartnershipSubscription.get.groupPartnershipDetails must have length 3
         val iterator = response.value.groupPartnershipSubscription.get.groupPartnershipDetails.iterator
         iterator.next().organisationDetails.get.organisationName mustBe "Test Company Ltd UK"
       }
