@@ -26,30 +26,22 @@ import scala.concurrent.Future
 
 class FinancialDataService @Inject() (connector: FinancialDataConnector) {
 
-  def getRaw(pptReference: String,
-             fromDate: LocalDate,
-             toDate: LocalDate,
-             onlyOpenItems: Option[Boolean],
-             includeLocks: Option[Boolean],
-             calculateAccruedInterest: Option[Boolean],
-             customerPaymentInformation: Option[Boolean],
-             internalId: String
-            )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
+  def getRaw(
+    pptReference: String,
+    fromDate: LocalDate,
+    toDate: LocalDate,
+    onlyOpenItems: Option[Boolean],
+    includeLocks: Option[Boolean],
+    calculateAccruedInterest: Option[Boolean],
+    customerPaymentInformation: Option[Boolean],
+    internalId: String
+  )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] =
     connector
-      .get(pptReference,
-        Some(fromDate),
-        Some(toDate),
-        onlyOpenItems,
-        includeLocks,
-        calculateAccruedInterest,
-        customerPaymentInformation,
-        internalId
-      )
-  }
+      .get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)
 
-  def getFinancials(pptReference: String, internalId: String)
-                   (implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
-    connector.get(pptReference = pptReference,
+  def getFinancials(pptReference: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] =
+    connector.get(
+      pptReference = pptReference,
       fromDate = None,
       toDate = None,
       onlyOpenItems = Some(true),
@@ -58,6 +50,5 @@ class FinancialDataService @Inject() (connector: FinancialDataConnector) {
       customerPaymentInformation = None,
       internalId
     )
-  }
 
 }

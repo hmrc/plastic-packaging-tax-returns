@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter
 trait SubscriptionTestData {
 
   val pptUserHeaders: Map[String, String] = Map("testHeaderKey" -> "testHeaderValue")
-  
+
   val ukLimitedCompanySubscription: Subscription =
     Subscription(
       legalEntityDetails = LegalEntityDetails(
@@ -39,20 +39,15 @@ trait SubscriptionTestData {
         customerIdentification2 = Some("1234567890"),
         customerDetails = CustomerDetails(
           customerType = CustomerType.Organisation,
-          organisationDetails = Some(subscription.OrganisationDetails(
-            organisationName = "Plastics Ltd",
-            organisationType = Some("UK Limited Company")
-          )),
+          organisationDetails =
+            Some(subscription.OrganisationDetails(organisationName = "Plastics Ltd", organisationType = Some("UK Limited Company")))
         ),
         regWithoutIDFlag = false
       ),
       principalPlaceOfBusinessDetails =
         PrincipalPlaceOfBusinessDetails(
-          addressDetails = AddressDetails(addressLine1 = "2-3 Scala Street",
-            addressLine2 = "London",
-            postalCode = Some("W1T 2HN"),
-            countryCode = "GB"
-          ),
+          addressDetails =
+            AddressDetails(addressLine1 = "2-3 Scala Street", addressLine2 = "London", postalCode = Some("W1T 2HN"), countryCode = "GB"),
           contactDetails = ContactDetails(email = "test@test.com", telephone = "02034567890")
         ),
       primaryContactDetails =
@@ -62,72 +57,65 @@ trait SubscriptionTestData {
             ContactDetails(email = "test@test.com", telephone = "02034567890"),
           positionInCompany = "Director"
         ),
-      businessCorrespondenceDetails = BusinessCorrespondenceDetails(addressLine1 = "2-3 Scala Street",
-        addressLine2 = "London",
-        postalCode = Some("W1T 2HN"),
-        countryCode = "GB"
-      ),
+      businessCorrespondenceDetails =
+        BusinessCorrespondenceDetails(addressLine1 = "2-3 Scala Street", addressLine2 = "London", postalCode = Some("W1T 2HN"), countryCode = "GB"),
       taxObligationStartDate = "2022-06-03",
       last12MonthTotalTonnageAmt = 15000,
       declaration = Declaration(declarationBox1 = true),
       groupPartnershipSubscription = None
     )
-    
+
   val ukLimitedCompanyGroupMember: GroupPartnershipDetails =
-    GroupPartnershipDetails(relationship = Relationship.Member,
+    GroupPartnershipDetails(
+      relationship = Relationship.Member,
       customerIdentification1 = "abc123",
       customerIdentification2 = Some("def456"),
-      organisationDetails = Some(
-        OrganisationDetails(Some("UK Limited Company"),
-          "Subsidiary 1"
-        )
-      ),
+      organisationDetails = Some(OrganisationDetails(Some("UK Limited Company"), "Subsidiary 1")),
       individualDetails = None,
       addressDetails =
-        AddressDetails(addressLine1 =
-          "2-3 Scala Street",
+        AddressDetails(
+          addressLine1 =
+            "2-3 Scala Street",
           addressLine2 = "Soho",
           countryCode = "GB"
         ),
       contactDetails =
-        ContactDetails(email = "man@firm.com",
-          telephone = "01274 873264"
-        ),
+        ContactDetails(email = "man@firm.com", telephone = "01274 873264"),
       regWithoutIDFlag = false
     )
-    
+
   val soleTraderGroupMember: GroupPartnershipDetails =
-    GroupPartnershipDetails(relationship = Relationship.Representative,
+    GroupPartnershipDetails(
+      relationship = Relationship.Representative,
       customerIdentification1 = "abc123",
       customerIdentification2 = Some("def456"),
       organisationDetails = None,
-      individualDetails = Some(
-        IndividualDetails(firstName = "Andrew",
-          lastName = "Man"
-        )
-      ),
-      addressDetails = AddressDetails(addressLine1 =
-        "2-3 Scala Street",
+      individualDetails = Some(IndividualDetails(firstName = "Andrew", lastName = "Man")),
+      addressDetails = AddressDetails(
+        addressLine1 =
+          "2-3 Scala Street",
         addressLine2 = "Soho",
         countryCode = "GB"
       ),
-      contactDetails = ContactDetails(email = "aman@firm.com",
+      contactDetails = ContactDetails(
+        email = "aman@firm.com",
         telephone =
           "01274 873264"
       ),
       regWithoutIDFlag = false
     )
-    
+
   val ukLimitedCompanyGroupSubscription: Subscription =
     ukLimitedCompanySubscription.copy(groupPartnershipSubscription =
       Some(
-        GroupPartnershipSubscription(representativeControl = Some(true),
+        GroupPartnershipSubscription(
+          representativeControl = Some(true),
           allMembersControl = Some(true),
           groupPartnershipDetails = List(ukLimitedCompanyGroupMember, soleTraderGroupMember)
         )
       )
     )
-    
+
   val soleTraderSubscription: Subscription = {
     val subscription = ukLimitedCompanySubscription.copy(legalEntityDetails =
       LegalEntityDetails(
@@ -145,7 +133,8 @@ trait SubscriptionTestData {
   }
 
   def createSubscriptionDisplayResponse(subscription: Subscription): SubscriptionDisplayResponse =
-    SubscriptionDisplayResponse(processingDate = "2020-05-05",
+    SubscriptionDisplayResponse(
+      processingDate = "2020-05-05",
       changeOfCircumstanceDetails =
         Some(
           ChangeOfCircumstanceDetails(changeOfCircumstance =

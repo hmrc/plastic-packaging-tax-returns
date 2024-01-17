@@ -27,14 +27,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import java.time.{LocalDate, LocalDateTime}
 import scala.util.Random
 
-class PPTFinancialsServiceSpec extends PlaySpec
-  with MockitoSugar
-  with BeforeAndAfterEach
-  with ResetMocksAfterEachTest {
+class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with ResetMocksAfterEachTest {
 
   private val edgeOfSystem = mock[EdgeOfSystem]
 
-  private val sut: PPTFinancialsService = new PPTFinancialsService() (edgeOfSystem)
+  private val sut: PPTFinancialsService = new PPTFinancialsService()(edgeOfSystem)
   private val today: LocalDate          = LocalDate.now()
   private val yesterday: LocalDate      = today.minusDays(1)
   private val lastWeek: LocalDate       = today.minusDays(7)
@@ -79,10 +76,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
         sut.construct(makeData(amount -> today)) mustBe PPTFinancials.debitDue(amount, today)
       }
       "there is credit on the due debit" in {
-        sut.construct(makeData(BigDecimal(-10) -> yesterday, amount -> today)) mustBe PPTFinancials.debitDue(
-          amount - 10,
-          today
-        )
+        sut.construct(makeData(BigDecimal(-10) -> yesterday, amount -> today)) mustBe PPTFinancials.debitDue(amount - 10, today)
       }
     }
     "return overdue" when {
@@ -101,9 +95,10 @@ class PPTFinancialsServiceSpec extends PlaySpec
         sut.construct(makeData(due, overdue)) mustBe PPTFinancials.debitAndOverdue(amount + amount2, today, amount2)
       }
       "there is a due and multiple overdue FinancialTransaction" in {
-        sut.construct(makeData(due, overdue, anotherOverdue)) mustBe PPTFinancials.debitAndOverdue(amount + amount2 + amount3,
-                                                                                                   today,
-                                                                                                   amount2 + amount3
+        sut.construct(makeData(due, overdue, anotherOverdue)) mustBe PPTFinancials.debitAndOverdue(
+          amount + amount2 + amount3,
+          today,
+          amount2 + amount3
         )
       }
     }
@@ -117,9 +112,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
       }
       "overdue in credit more than due is due" in {
         val fullCredit = BigDecimal.valueOf(Double.MinValue)
-        sut.construct(makeData(fullCredit -> yesterday, amount -> today)) mustBe PPTFinancials.inCredit(
-          fullCredit + amount
-        )
+        sut.construct(makeData(fullCredit -> yesterday, amount -> today)) mustBe PPTFinancials.inCredit(fullCredit + amount)
       }
     }
 
@@ -146,9 +139,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
 
       "FinancialTransactions is missing a FinancialItem" in {
         intercept[Exception](
-          sut.construct(
-            emptyData.copy(financialTransactions = Seq(emptyTransaction.copy(outstandingAmount = Some(amount))))
-          )
+          sut.construct(emptyData.copy(financialTransactions = Seq(emptyTransaction.copy(outstandingAmount = Some(amount)))))
         ).getMessage mustBe "Failed to extract charge from financialTransaction"
       }
     }
@@ -157,11 +148,7 @@ class PPTFinancialsServiceSpec extends PlaySpec
   "isDDInProgress" must {
     "return true" when {
       "financial response DDCollectionInProgress is true" in {
-        val items = Seq(
-          createItem(Some(false)),
-          createItem(Some(true)),
-          createItem(Some(false))
-        )
+        val items = Seq(createItem(Some(false)), createItem(Some(true)), createItem(Some(false)))
 
         sut.lookUpForDdInProgress("123", createFinancialTransaction(Some("123"), items)) mustBe true
       }
@@ -169,36 +156,27 @@ class PPTFinancialsServiceSpec extends PlaySpec
 
     "return false" when {
       "financial response DDCollectionInProgress is false" in {
-        val items = Seq(
-          createItem(Some(false)),
-          createItem(Some(false)),
-          createItem(Some(false))
-        )
+        val items = Seq(createItem(Some(false)), createItem(Some(false)), createItem(Some(false)))
 
         sut.lookUpForDdInProgress("123", createFinancialTransaction(Some("123"), items)) mustBe false
       }
 
       "if transaction for period key not found" in {
-        sut.lookUpForDdInProgress(
-          "123",
-          createFinancialTransaction(None, Seq(createItem(Some(true))))
-        ) mustBe false
+        sut.lookUpForDdInProgress("123", createFinancialTransaction(None, Seq(createItem(Some(true))))) mustBe false
       }
 
       "if DDCollectionInProgress not found" in {
-        sut.lookUpForDdInProgress(
-          "123",
-          createFinancialTransaction(Some("123"), Seq(createItem(None)))) mustBe false
+        sut.lookUpForDdInProgress("123", createFinancialTransaction(Some("123"), Seq(createItem(None)))) mustBe false
       }
     }
   }
 
-  private def createItem(DDCollectionInProgress: Option[Boolean]) = {
+  private def createItem(DDCollectionInProgress: Option[Boolean]) =
     FinancialItem(None, None, None, None, None, DDCollectionInProgress)
-  }
 
   private def createFinancialTransaction(periodKey: Option[String], items: Seq[FinancialItem]) = {
     val transaction = FinancialTransaction(None, None, periodKey, None, None, None, None, items)
     FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq(transaction))
   }
+
 }

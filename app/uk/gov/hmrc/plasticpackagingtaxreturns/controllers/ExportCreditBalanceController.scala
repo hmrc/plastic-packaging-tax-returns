@@ -32,21 +32,18 @@ class ExportCreditBalanceController @Inject() (
   availableCreditService: AvailableCreditService,
   override val controllerComponents: ControllerComponents,
   userAnswersService: UserAnswersService
-)(implicit executionContext: ExecutionContext) extends BaseController {
+)(implicit executionContext: ExecutionContext)
+    extends BaseController {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       userAnswersService.get(request.cacheKey)(getCreditClaim)
     }
 
-  private def getCreditClaim(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Result] = {
+  private def getCreditClaim(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Result] =
     for {
       availableCredit <- availableCreditService.getBalance(userAnswers)
       creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
-    } yield {
-      Ok(Json.toJson(creditClaim))
-    }
-  }
+    } yield Ok(Json.toJson(creditClaim))
 
 }
-

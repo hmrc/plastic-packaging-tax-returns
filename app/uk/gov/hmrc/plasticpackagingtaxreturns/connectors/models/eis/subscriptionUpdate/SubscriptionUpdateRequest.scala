@@ -35,15 +35,16 @@ case class SubscriptionUpdateRequest(
 ) {
 
   def toSubscription: Subscription =
-    Subscription(changeOfCircumstanceDetails = Some(this.changeOfCircumstanceDetails),
-                 legalEntityDetails = this.legalEntityDetails,
-                 principalPlaceOfBusinessDetails = this.principalPlaceOfBusinessDetails,
-                 primaryContactDetails = this.primaryContactDetails,
-                 businessCorrespondenceDetails = this.businessCorrespondenceDetails,
-                 declaration = this.declaration,
-                 taxObligationStartDate = this.taxObligationStartDate,
-                 last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue,
-                 groupPartnershipSubscription = this.groupPartnershipSubscription
+    Subscription(
+      changeOfCircumstanceDetails = Some(this.changeOfCircumstanceDetails),
+      legalEntityDetails = this.legalEntityDetails,
+      principalPlaceOfBusinessDetails = this.principalPlaceOfBusinessDetails,
+      primaryContactDetails = this.primaryContactDetails,
+      businessCorrespondenceDetails = this.businessCorrespondenceDetails,
+      declaration = this.declaration,
+      taxObligationStartDate = this.taxObligationStartDate,
+      last12MonthTotalTonnageAmt = this.last12MonthTotalTonnageAmt.longValue,
+      groupPartnershipSubscription = this.groupPartnershipSubscription
     )
 
 }

@@ -43,18 +43,17 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   implicit def toJsString(s: String): JsString  = JsString(s)
   def jsObject(t: (String, JsValue)*): JsObject = JsObject(t)
 
-  val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
+  val httpClient: DefaultHttpClient            = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
-  private lazy val sessionRepository = mock[SessionRepository]
+  private lazy val sessionRepository           = mock[SessionRepository]
 
-  lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
+  lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
 
   val open: ObligationStatus.Value      = ObligationStatus.OPEN
   val fulfilled: ObligationStatus.Value = ObligationStatus.FULFILLED
 
   val pptOpenUrl      = s"http://localhost:$port/obligations/open/$pptReference"
   val pptFulfilledUrl = s"http://localhost:$port/obligations/fulfilled/$pptReference"
-
 
   private val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "The remote endpoint has indicated that no associated data found"}"""
 
@@ -72,13 +71,9 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(wireMock.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(sessionRepository))
       .build()
   }
-
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -116,7 +111,12 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
       response.status mustBe OK
       response.json mustBe jsObject(
-        "nextObligation"           -> jsObject("periodKey" -> "22C2", "fromDate" -> LocalDate.now().toString, "toDate" -> "+999999999-12-31", "dueDate" -> LocalDate.now().plusMonths(1).toString),
+        "nextObligation" -> jsObject(
+          "periodKey" -> "22C2",
+          "fromDate"  -> LocalDate.now().toString,
+          "toDate"    -> "+999999999-12-31",
+          "dueDate"   -> LocalDate.now().plusMonths(1).toString
+        ),
         "overdueObligationCount"   -> JsNumber(0),
         "isNextObligationDue"      -> JsFalse,
         "displaySubmitReturnsLink" -> JsFalse
@@ -142,7 +142,6 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       response.status mustBe NOT_FOUND
     }
 
-
     "should return 404 if not Found with wrong body" in {
       withAuthorizedUser()
       stubNotFound("""{"code": "PAN", "reason": "ANDY"}""")
@@ -167,21 +166,21 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       val response = await(wsClient.url(pptOpenUrl).get())
       response.status mustBe INTERNAL_SERVER_ERROR
     }
-    
+
     "retry 3 times if api call fails" in {
       withAuthorizedUser()
       wireMock.stubFor(get(anyUrl()).willReturn(serverError()))
       await(wsClient.url(pptOpenUrl).get())
       wireMock.verify(3, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
     }
-    
+
     "not retry if api call is a 200" in {
       withAuthorizedUser()
       stubWillReturn(noObligations)
       await(wsClient.url(pptOpenUrl).get())
       wireMock.verify(1, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
     }
-    
+
     "not retry if api call is a magic 404" in {
       withAuthorizedUser()
       stubNotFound(DESnotFoundResponse)
@@ -220,7 +219,14 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
 
       response.status mustBe OK
       response.json mustBe JsArray(
-        Seq(jsObject("periodKey" -> "22C2", "fromDate" -> LocalDate.now().toString, "toDate" -> "+999999999-12-31", "dueDate" -> LocalDate.now().plusMonths(1).toString))
+        Seq(
+          jsObject(
+            "periodKey" -> "22C2",
+            "fromDate"  -> LocalDate.now().toString,
+            "toDate"    -> "+999999999-12-31",
+            "dueDate"   -> LocalDate.now().plusMonths(1).toString
+          )
+        )
       )
     }
 
@@ -261,9 +267,7 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
   }
 
   private def stubNotFound(body: String): Any =
-    wireMock.stubFor(
-      get(anyUrl()).willReturn(notFound().withBody(body))
-    )
+    wireMock.stubFor(get(anyUrl()).willReturn(notFound().withBody(body)))
 
   private def stubWillReturn(response: ObligationDataResponse): Unit = {
     implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]

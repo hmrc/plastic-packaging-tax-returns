@@ -26,7 +26,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.NrsPayload
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{NotableEvent, nonRepudiationIdentityRetrievals}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{nonRepudiationIdentityRetrievals, NotableEvent}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.ZonedDateTime
@@ -36,34 +36,34 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 case class NonRepudiationService @Inject() (
   nonRepudiationConnector: NonRepudiationConnector,
-  authConnector: AuthConnector, 
+  authConnector: AuthConnector,
   config: AppConfig,
   edgeOfSystem: EdgeOfSystem
-)(implicit ec: ExecutionContext) extends AuthorisedFunctions with Logging {
+)(implicit ec: ExecutionContext)
+    extends AuthorisedFunctions with Logging {
 
   def submitNonRepudiation(
     notableEvent: NotableEvent,
     payloadString: String,
     submissionTimestamp: ZonedDateTime,
     pptReference: String,
-    userHeaders: Map[String, String],
+    userHeaders: Map[String, String]
   )(implicit headerCarrier: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
 
     val nrsPayload = NrsPayload(edgeOfSystem, payloadString)
 
     for {
       identityData <- retrieveIdentityData()
-      userAuthToken = retrieveUserAuthToken(headerCarrier)
-      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent.id, pptReference, userHeaders, identityData,
-        userAuthToken, submissionTimestamp)
-      encodedPayloadString = nrsPayload.encodePayload()
+      userAuthToken          = retrieveUserAuthToken(headerCarrier)
+      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent.id, pptReference, userHeaders, identityData, userAuthToken, submissionTimestamp)
+      encodedPayloadString   = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
   }
 
-  private def retrieveNonRepudiationResponse(nonRepudiationMetadata: NonRepudiationMetadata, encodedPayloadString: String
-    ) (implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] = {
-
+  private def retrieveNonRepudiationResponse(nonRepudiationMetadata: NonRepudiationMetadata, encodedPayloadString: String)(implicit
+    hc: HeaderCarrier
+  ): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationConnector
       .submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
       .recoverWith {
@@ -71,7 +71,6 @@ case class NonRepudiationService @Inject() (
           logger.error(s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
           Future.failed(exception)
       }
-  }
 
   def retrieveUserAuthToken(hc: HeaderCarrier): String =
     hc.authorization match {
@@ -91,23 +90,24 @@ case class NonRepudiationService @Inject() (
           mdtpInfo ~ itmpName ~
           itmpAddress ~
           credentialStrength =>
-        IdentityData(internalId = internalId,
-                     externalId = externalId,
-                     agentCode = agentCode,
-                     optionalCredentials = credentials,
-                     confidenceLevel = confidenceLevel,
-                     nino = nino,
-                     saUtr = saUtr,
-                     optionalName = name,
-                     email = email,
-                     agentInformation = agentInfo,
-                     groupIdentifier = groupId,
-                     credentialRole = credentialRole,
-                     mdtpInformation = mdtpInfo,
-                     optionalItmpName = itmpName,
-                     optionalItmpAddress = itmpAddress,
-                     affinityGroup = affinityGroup,
-                     credentialStrength = credentialStrength
+        IdentityData(
+          internalId = internalId,
+          externalId = externalId,
+          agentCode = agentCode,
+          optionalCredentials = credentials,
+          confidenceLevel = confidenceLevel,
+          nino = nino,
+          saUtr = saUtr,
+          optionalName = name,
+          email = email,
+          agentInformation = agentInfo,
+          groupIdentifier = groupId,
+          credentialRole = credentialRole,
+          mdtpInformation = mdtpInfo,
+          optionalItmpName = itmpName,
+          optionalItmpAddress = itmpAddress,
+          affinityGroup = affinityGroup,
+          credentialStrength = credentialStrength
         )
     }
 
@@ -116,8 +116,9 @@ case class NonRepudiationService @Inject() (
 object NonRepudiationService {
 
   sealed abstract class NotableEvent(val id: String)
+
   object NotableEvent {
-    case object PptReturn extends NotableEvent("ppt-return")
+    case object PptReturn       extends NotableEvent("ppt-return")
     case object PptSubscription extends NotableEvent("ppt-subscription")
   }
 

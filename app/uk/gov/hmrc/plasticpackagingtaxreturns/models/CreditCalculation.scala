@@ -22,12 +22,12 @@ case class CreditCalculation(
   availableCreditInPounds: BigDecimal,
   totalRequestedCreditInPounds: BigDecimal,
   totalRequestedCreditInKilograms: Long,
-  canBeClaimed: Boolean, 
-  credit: Map[String, TaxablePlastic],
+  canBeClaimed: Boolean,
+  credit: Map[String, TaxablePlastic]
 )
 
 object CreditCalculation {
-  
+
   def totalUp(credit: Map[String, TaxablePlastic], availableCreditInPounds: BigDecimal): CreditCalculation = {
     val totals = credit.foldLeft(TaxablePlastic.zero) {
       case (accumulator, (_, taxablePlastic)) => accumulator + taxablePlastic

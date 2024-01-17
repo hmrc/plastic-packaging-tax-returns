@@ -18,8 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns
 
 import play.api.libs.json.{JsObject, Json, OFormat}
 
-case class NrsReturnOrAmendSubmission(userAnswers: JsObject,
-                                      eisRequest: ReturnsSubmissionRequest)
+case class NrsReturnOrAmendSubmission(userAnswers: JsObject, eisRequest: ReturnsSubmissionRequest)
 
 object NrsReturnOrAmendSubmission {
   implicit val format: OFormat[NrsReturnOrAmendSubmission] = Json.format[NrsReturnOrAmendSubmission]

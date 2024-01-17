@@ -29,7 +29,7 @@ import play.api.http.Status.{BAD_REQUEST, EXPECTATION_FAILED, NOT_FOUND, UNPROCE
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.Helpers.{OK, SERVICE_UNAVAILABLE, await, contentAsJson, defaultAwaitTimeout, status}
+import play.api.test.Helpers.{await, contentAsJson, defaultAwaitTimeout, status, OK, SERVICE_UNAVAILABLE}
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
@@ -48,7 +48,13 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, ReturnT
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, FinancialDataService, PPTCalculationService, PPTFinancialsService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditService,
+  CreditsCalculationService,
+  FinancialDataService,
+  PPTCalculationService,
+  PPTFinancialsService
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, TaxRateTable}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -66,7 +72,7 @@ class ReturnsControllerSpec
   private val userAnswersAmends: UserAnswers         = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
   private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
   private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
-  private val calculations: Calculations = Calculations(1, 1, 1, 1,isSubmittable = true,0.123)
+  private val calculations: Calculations             = Calculations(1, 1, 1, 1, isSubmittable = true, 0.123)
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
@@ -154,21 +160,22 @@ class ReturnsControllerSpec
       mockFinancialsService,
       mockCreditsCalculationService,
       mockAvailableCreditService,
-      mockTaxRateTable)
+      mockTaxRateTable
+    )
   }
 
   "get" should {
 
     "return OK response" in {
       withAuthorizedUser()
-      val periodKey = "22CC"
-      val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" ->JsString(LocalDate.of(2020, 5, 14).toString)))))
+      val periodKey             = "22CC"
+      val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" -> JsString(LocalDate.of(2020, 5, 14).toString)))))
 
       mockReturnDisplayConnector(returnDisplayResponse)
       when(mockTaxRateTable.lookupRateFor(any)).thenReturn(0.133)
 
       val result: Future[Result] = sut.get(pptReference, periodKey).apply(FakeRequest())
-      val returnWithTaxRate = ReturnWithTaxRate(returnDisplayResponse, 0.133)
+      val returnWithTaxRate      = ReturnWithTaxRate(returnDisplayResponse, 0.133)
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnWithTaxRate)
       verify(mockTaxRateTable).lookupRateFor(LocalDate.of(2020, 5, 14))
@@ -198,7 +205,7 @@ class ReturnsControllerSpec
 
       "periodTo is not a local date" in {
         withAuthorizedUser()
-        val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" ->JsString("marcy")))))
+        val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" -> JsString("marcy")))))
 
         mockReturnDisplayConnector(returnDisplayResponse)
 
@@ -207,7 +214,6 @@ class ReturnsControllerSpec
       }
     }
   }
-
 
   "submit" should {
     "propagate status code when failure occurs" in {
@@ -219,8 +225,13 @@ class ReturnsControllerSpec
         sut.submit(pptReference).apply(FakeRequest())
       }
 
-      verify(mockObligationDataConnector).get(eqTo(pptReference), eqTo("some-internal-ID"), eqTo(None), eqTo(None), 
-        eqTo(Some(ObligationStatus.OPEN)))(any)
+      verify(mockObligationDataConnector).get(
+        eqTo(pptReference),
+        eqTo("some-internal-ID"),
+        eqTo(None),
+        eqTo(None),
+        eqTo(Some(ObligationStatus.OPEN))
+      )(any)
 
       result.header.status mustBe BAD_REQUEST
     }
@@ -241,9 +252,7 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -261,9 +270,7 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -303,15 +310,10 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
-      verify(mockReturnsConnector).submitReturn(
-        ArgumentMatchers.eq(pptReference),
-        ArgumentMatchers.eq(expectedSubmissionRequestForReturns),
-        any)(any)
+      verify(mockReturnsConnector).submitReturn(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(expectedSubmissionRequestForReturns), any)(any)
     }
   }
 
@@ -334,9 +336,7 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.amend(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -354,9 +354,7 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.amend(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -369,9 +367,7 @@ class ReturnsControllerSpec
       setupMocksForAmend(userAnswersAmends)
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.amend(pptReference).apply(
-        FakeRequest().withHeaders(newHeaders = ("foo", "bar"))
-      )
+      val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -425,7 +421,7 @@ class ReturnsControllerSpec
       verify(mockReturnsConnector).submitReturn(any, any, any)(any)
     }
   }
-  
+
   "it should complain about missing period end-date" when {
 
     "calculating a new return" when {
@@ -436,7 +432,7 @@ class ReturnsControllerSpec
         mockReturnsSubmissionConnector(aReturn())
         when(mockCreditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException("a field is missing")
 
-        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
+        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must
           have message "a field is missing"
       }
 
@@ -444,11 +440,11 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         setupMocksForSubmit(userAnswersReturns.removePath(JsPath \ "obligation"))
         mockReturnsSubmissionConnector(aReturn())
-        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must 
+        the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must
           have message "/obligation/periodKey is missing from user answers"
       }
 
-    }    
+    }
 
     "calculating an amended return" in {
       withAuthorizedUser()
@@ -456,12 +452,12 @@ class ReturnsControllerSpec
       mockReturnsSubmissionConnector(aReturn())
       when(mockPptCalculationService.calculate(any)) thenThrow new RuntimeException("a field is missing")
 
-      the [Exception] thrownBy await(sut.amend(pptReference)(FakeRequest())) must 
+      the[Exception] thrownBy await(sut.amend(pptReference)(FakeRequest())) must
         have message "a field is missing"
     }
   }
 
-  private def verifySubmitNonRepudiation(expectedNrsPayload: NrsReturnOrAmendSubmission) = {
+  private def verifySubmitNonRepudiation(expectedNrsPayload: NrsReturnOrAmendSubmission) =
     verify(mockNonRepudiationService).submitNonRepudiation(
       eqTo(NotableEvent.PptReturn),
       eqTo(Json.toJson(expectedNrsPayload).toString),
@@ -469,7 +465,6 @@ class ReturnsControllerSpec
       eqTo(pptReference),
       eqTo(Map("Host" -> "localhost", "foo" -> "bar"))
     )(any[HeaderCarrier])
-  }
 
   private def createNrsPayload(returnValue: ReturnValues, userAnswer: UserAnswers) = {
     val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValue, calculations)

@@ -26,8 +26,8 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
 
   this: Suite =>
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
-  private val DesSubmitReturnUrl = s"/plastic-packaging-tax/returns/PPT"
-  private val nrsUrl = "/submission"
+  private val DesSubmitReturnUrl               = s"/plastic-packaging-tax/returns/PPT"
+  private val nrsUrl                           = "/submission"
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -39,23 +39,23 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
     wireMock.stop()
   }
 
-  protected def stubSubmitReturnEISRequest(pptReference: String) = {
-    wireMock.stubFor(put(s"$DesSubmitReturnUrl/$pptReference")
-      .willReturn(
-        ok().withBody(Json.toJson(aReturn()).toString()))
+  protected def stubSubmitReturnEISRequest(pptReference: String) =
+    wireMock.stubFor(
+      put(s"$DesSubmitReturnUrl/$pptReference")
+        .willReturn(ok().withBody(Json.toJson(aReturn()).toString()))
     )
-  }
-  protected def stubNrsRequest: Any = {
-    wireMock.stubFor(post(nrsUrl)
-      .willReturn(
-        aResponse()
-          .withStatus(Status.ACCEPTED)
-          .withBody("""{"nrSubmissionId": "nrSubmissionId"}""")
-      )
-    )
-  }
 
-  protected def stubNrsFailingRequest: Any = {
+  protected def stubNrsRequest: Any =
+    wireMock.stubFor(
+      post(nrsUrl)
+        .willReturn(
+          aResponse()
+            .withStatus(Status.ACCEPTED)
+            .withBody("""{"nrSubmissionId": "nrSubmissionId"}""")
+        )
+    )
+
+  protected def stubNrsFailingRequest: Any =
     wireMock.stubFor(post(nrsUrl).willReturn(serverError().withBody("exception")))
-  }
+
 }

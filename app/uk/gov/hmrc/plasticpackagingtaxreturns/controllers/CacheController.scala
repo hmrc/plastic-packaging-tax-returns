@@ -30,13 +30,13 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class CacheController @Inject()(
+class CacheController @Inject() (
   authenticator: Authenticator,
   sessionRepository: SessionRepository,
   userAnswersCleaner: UserAnswersCleaner,
   override val controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext)
-  extends BackendController(controllerComponents) with JSONResponses {
+    extends BackendController(controllerComponents) with JSONResponses {
 
   private val logger = Logger(this.getClass)
 
@@ -48,10 +48,8 @@ class CacheController @Inject()(
             .flatMap { tuple =>
               val (userAnswers, hasBeenCleaned) = tuple
               (if (hasBeenCleaned)
-                sessionRepository.set(userAnswers)
-              else Future.successful(true)).map(_ =>
-                Ok(userAnswers)
-              )
+                 sessionRepository.set(userAnswers)
+               else Future.successful(true)).map(_ => Ok(userAnswers))
             }
         case None => Future.successful(NotFound)
       }
@@ -70,4 +68,5 @@ class CacheController @Inject()(
     logger.debug(s"$prefix, Payload: ${Json.toJson(payload)}")
     payload
   }
+
 }

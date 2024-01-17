@@ -48,7 +48,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val timer                               = mock[Timer]
-  private val timerContext = mock[Timer.Context]
+  private val timerContext                        = mock[Timer.Context]
   val internalId: String                          = "someId"
   val pptReference: String                        = "XXPPTP103844123"
   val fromDate: LocalDate                         = LocalDate.parse("2021-10-01")
@@ -62,11 +62,11 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val appConfig      = mock[AppConfig]
   private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
-  private val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-  private val futures = mock[Futures]
+  private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val futures        = mock[Futures]
 
   private val eisHttpClient = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
-  private val sut = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
+  private val sut           = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -126,13 +126,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
           res mustBe Left(INTERNAL_SERVER_ERROR)
 
-          verify(auditConnector).sendExplicitAudit(
-            eqTo(GetPaymentStatement.eventType),
-            eqTo(getExpectedAuditModelForFailure("{}")))(
-            any,
-            any,
-            any
-          )
+          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("{}")))(any, any, any)
         }
 
         "return an exception" in {
@@ -158,7 +152,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
       "return " + statusCode when {
 
         s"$statusCode is returned from downstream service" in {
-          val message  = s"""{"code":"${statusCode}","reason":"fish fryer fire"}"""
+          val message = s"""{"code":"${statusCode}","reason":"fish fryer fire"}"""
 
           when(httpClient.GET[Any](any, any, any)(any, any, any))
             .thenReturn(Future.successful(HttpResponse(statusCode, message)))
@@ -179,13 +173,15 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
           .thenReturn(Future.successful(HttpResponse(NOT_FOUND, DESnotFoundResponse)))
         val result = await(getFinancialData)
 
-        result mustBe Right(FinancialDataResponse(
-          idType = Some("ZPPT"),
-          idNumber = Some("XXPPTP103844123"),
-          regimeType = Some("PPT"),
-          processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3),
-          financialTransactions = Seq()
-        ))
+        result mustBe Right(
+          FinancialDataResponse(
+            idType = Some("ZPPT"),
+            idNumber = Some("XXPPTP103844123"),
+            regimeType = Some("PPT"),
+            processingDate = LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3),
+            financialTransactions = Seq()
+          )
+        )
       }
     }
   }
@@ -209,10 +205,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private def captureAndVerifyAuditConnector(): Unit = {
     val captor = ArgCaptor[GetPaymentStatement]
 
-    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
-      eqTo(GetPaymentStatement.eventType),
-      captor
-    )(any, any, any)
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor)(any, any, any)
 
     val audit = captor.value
     audit.internalId mustBe internalId
@@ -220,6 +213,5 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     audit.result mustBe "Failure"
     audit.response mustBe None
   }
-
 
 }

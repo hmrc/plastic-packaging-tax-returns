@@ -48,10 +48,9 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
   }
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
-  private val sut = new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, 
-    mockPPTFinancialsService)
-  private val financials = PPTFinancials(None, None, None)
-  private val desResponse = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
+  private val sut                      = new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, mockPPTFinancialsService)
+  private val financials               = PPTFinancials(None, None, None)
+  private val desResponse              = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
 
   "get" must {
     val pptReference = "1234"
@@ -100,9 +99,9 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
       }
     }
   }
-  
+
   "isDdInProgress" should {
-    
+
     "respond with false" in {
       when(mockPPTFinancialsService.lookUpForDdInProgress(any, any)).thenReturn(false)
       when(mockFinancialDataService.getFinancials(any, any)(any))
@@ -113,7 +112,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", false))
       verify(mockPPTFinancialsService).lookUpForDdInProgress(eqTo("period-key"), any)
-      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any) (any)
+      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any)(any)
     }
 
     "respond with true" in {
@@ -126,7 +125,7 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
       status(result) mustBe OK
       contentAsJson(result) mustBe Json.toJson(DirectDebitDetails("ppt-ref", "period-key", true))
       verify(mockPPTFinancialsService).lookUpForDdInProgress(eqTo("period-key"), any)
-      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any) (any)
+      verify(mockFinancialDataService).getFinancials(eqTo("ppt-ref"), any)(any)
     }
   }
 }

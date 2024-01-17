@@ -33,17 +33,16 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class FinancialDataConnector @Inject()(
+class FinancialDataConnector @Inject() (
   eisHttpClient: EisHttpClient,
   appConfig: AppConfig,
   auditConnector: AuditConnector,
   edgeOfSystem: EdgeOfSystem
-) (implicit ec: ExecutionContext)  {
+)(implicit ec: ExecutionContext) {
 
-  private val logger = Logger(this.getClass)
-  private val SUCCESS: String     = "Success"
-  private val FAILURE: String     = "Failure"
-
+  private val logger          = Logger(this.getClass)
+  private val SUCCESS: String = "Success"
+  private val FAILURE: String = "Failure"
 
   def get(
     pptReference: String,
@@ -55,96 +54,78 @@ class FinancialDataConnector @Inject()(
     customerPaymentInformation: Option[Boolean],
     internalId: String
   )(implicit hc: HeaderCarrier): Future[Either[Int, FinancialDataResponse]] = {
-    val timerName           = "ppt.get.financial.data.timer"
-
+    val timerName = "ppt.get.financial.data.timer"
 
     val queryParams: Seq[(String, String)] = QueryParams.fromOptions(
-      "dateFrom" -> fromDate.map(DateFormat.isoFormat),
-      "dateTo" -> toDate.map(DateFormat.isoFormat),
-      "onlyOpenItems" -> onlyOpenItems,
-      "includeLocks" -> includeLocks,
-      "calculateAccruedInterest" -> calculateAccruedInterest,
+      "dateFrom"                   -> fromDate.map(DateFormat.isoFormat),
+      "dateTo"                     -> toDate.map(DateFormat.isoFormat),
+      "onlyOpenItems"              -> onlyOpenItems,
+      "includeLocks"               -> includeLocks,
+      "calculateAccruedInterest"   -> calculateAccruedInterest,
       "customerPaymentInformation" -> customerPaymentInformation
     )
 
-    def successFun(response: EisHttpResponse): Boolean = response.status match {
-      case Status.OK => true
-      case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND")) => true
-      case _ => false
-    }
-    eisHttpClient.get(
-      appConfig.enterpriseFinancialDataUrl(pptReference),
-      queryParams = queryParams,
-      timerName,
-      buildDesHeader,
-      successFun
-    )
+    def successFun(response: EisHttpResponse): Boolean =
+      response.status match {
+        case Status.OK                                                                      => true
+        case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND")) => true
+        case _                                                                              => false
+      }
+    eisHttpClient.get(appConfig.enterpriseFinancialDataUrl(pptReference), queryParams = queryParams, timerName, buildDesHeader, successFun)
       .map { response: EisHttpResponse =>
-
         response.status match {
-          case Status.OK => handleSuccess(response, internalId, pptReference)
+          case Status.OK                               => handleSuccess(response, internalId, pptReference)
           case Status.NOT_FOUND if response.isMagic404 => handleMagic404(internalId, pptReference)
-          case _ => handleErrorResponse(response, pptReference, internalId, queryParams)
+          case _                                       => handleErrorResponse(response, pptReference, internalId, queryParams)
         }
       }
   }
 
-  private def handleSuccess
-  (
-    response: EisHttpResponse,
-    internalId: String,
-    pptReference: String
-  )(implicit hc: HeaderCarrier) = {
+  private def handleSuccess(response: EisHttpResponse, internalId: String, pptReference: String)(implicit hc: HeaderCarrier) = {
     val triedResponse = response.jsonAs[FinancialDataResponse]
 
     triedResponse match {
       case Success(financialData) =>
-        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-          GetPaymentStatement(internalId, pptReference, SUCCESS, Some(financialData), None))
+        auditConnector.sendExplicitAudit(
+          GetPaymentStatement.eventType,
+          GetPaymentStatement(internalId, pptReference, SUCCESS, Some(financialData), None)
+        )
 
         Right(financialData)
       case Failure(error) =>
-        auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-          GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error.getMessage)))
+        auditConnector.sendExplicitAudit(
+          GetPaymentStatement.eventType,
+          GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(error.getMessage))
+        )
 
         Left(INTERNAL_SERVER_ERROR)
     }
 
   }
 
-  def handleMagic404
-  (
-    internalId: String,
-    pptReference: String
-  )(implicit hc: HeaderCarrier) = {
-    val inferredResponse = FinancialDataResponse.inferNoTransactions(
-      pptReference,
-      edgeOfSystem.localDateTimeNow
-    )
+  def handleMagic404(internalId: String, pptReference: String)(implicit hc: HeaderCarrier) = {
+    val inferredResponse = FinancialDataResponse.inferNoTransactions(pptReference, edgeOfSystem.localDateTimeNow)
 
-    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-      GetPaymentStatement(internalId, pptReference, SUCCESS, Some(inferredResponse), None))
+    auditConnector.sendExplicitAudit(
+      GetPaymentStatement.eventType,
+      GetPaymentStatement(internalId, pptReference, SUCCESS, Some(inferredResponse), None)
+    )
 
     Right(inferredResponse)
   }
 
-  private def handleErrorResponse
-  (
-    response: EisHttpResponse,
-    pptReference: String,
-    internalId: String,
-    queryParams: Seq[(String, String)]
-  )(implicit hc: HeaderCarrier) = {
+  private def handleErrorResponse(response: EisHttpResponse, pptReference: String, internalId: String, queryParams: Seq[(String, String)])(implicit
+    hc: HeaderCarrier
+  ) = {
 
     val message = s"Upstream error returned when getting enterprise financial data with correlationId [${response.correlationId}] and " +
       s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
 
     logger.warn(message)
 
-    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType,
-      GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(response.body)))
+    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(response.body)))
 
     Left(response.status)
   }
+
 }
-    

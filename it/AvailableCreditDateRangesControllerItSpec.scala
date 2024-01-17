@@ -31,7 +31,10 @@ import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{createSubscriptionDisplayResponse, ukLimitedCompanyGroupSubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{
+  createSubscriptionDisplayResponse,
+  ukLimitedCompanyGroupSubscription
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
@@ -42,14 +45,16 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import java.time.LocalDate
 import scala.concurrent.Future
 
-class AvailableCreditDateRangesControllerItSpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach{
+class AvailableCreditDateRangesControllerItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val httpClient: DefaultHttpClient          = app.injector.instanceOf[DefaultHttpClient]
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
-  private lazy val sessionRepository = mock[SessionRepository]
+  private lazy val sessionRepository         = mock[SessionRepository]
 
   private val url = s"http://localhost:$port/credits/available-years/$pptReference"
+
   private val userAnswers = UserAnswers("user-answers-id")
     .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(2022, 5, 1))
     .setUnsafe(ReturnObligationToDateGettable, LocalDate.of(2023, 5, 1))
@@ -59,10 +64,7 @@ class AvailableCreditDateRangesControllerItSpec extends PlaySpec with GuiceOneSe
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(server.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].to(sessionRepository)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(sessionRepository))
       .build()
   }
 
@@ -100,10 +102,7 @@ class AvailableCreditDateRangesControllerItSpec extends PlaySpec with GuiceOneSe
 
       val response = await(wsClient.url(url).get())
 
-      response.json mustBe Json.toJson(Seq(CreditRangeOption(
-        LocalDate.of(2022, 6, 3),
-        LocalDate.of(2023, 3, 31)
-      )))
+      response.json mustBe Json.toJson(Seq(CreditRangeOption(LocalDate.of(2022, 6, 3), LocalDate.of(2023, 3, 31))))
     }
 
     "return unprosessable status" in {
@@ -139,20 +138,23 @@ class AvailableCreditDateRangesControllerItSpec extends PlaySpec with GuiceOneSe
     }
   }
 
-  private def stubSubscriptionDisplay = {
+  private def stubSubscriptionDisplay =
     server.stubFor(
       get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
-        .willReturn(aResponse()
-          .withStatus(OK)
-          .withBody(Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()))
+        .willReturn(
+          aResponse()
+            .withStatus(OK)
+            .withBody(Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString())
+        )
     )
-  }
 
-  private def stubSubscriptionDisplayError = {
+  private def stubSubscriptionDisplayError =
     server.stubFor(
       get(s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display")
-        .willReturn(aResponse()
-          .withStatus(NOT_FOUND))
+        .willReturn(
+          aResponse()
+            .withStatus(NOT_FOUND)
+        )
     )
-  }
+
 }

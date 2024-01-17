@@ -31,9 +31,8 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc: ControllerComponents)(implicit
-                                                                                                       ec: ExecutionContext
-) extends BackendController(cc) with AuthorisedFunctions with Authenticator {
+class AuthenticatorImpl @Inject() (override val authConnector: AuthConnector, cc: ControllerComponents)(implicit ec: ExecutionContext)
+    extends BackendController(cc) with AuthorisedFunctions with Authenticator {
 
   private val logger = Logger(this.getClass)
 
@@ -51,9 +50,7 @@ class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc:
       }
     }
 
-  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(
-    body: AuthorizedRequest[A] => Future[Result]
-  ): Action[A] =
+  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(body: AuthorizedRequest[A] => Future[Result]): Action[A] =
     Action.async(bodyParser) { implicit request =>
       authorisedWithPptReference(pptReference).flatMap {
         case Right(authorisedRequest) =>
@@ -66,16 +63,13 @@ class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc:
     }
 
   def authorisedWithPptReference[A](
-                                     pptReference: String
-                                   )(implicit hc: HeaderCarrier, request: Request[A]):
-  Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
-    authorised(
-      Enrolment(pptEnrolmentKey).withDelegatedAuthRule("ppt-auth").withIdentifier(pptEnrolmentIdentifierName,
-        pptReference
-      )
-    ).retrieve(fetch) { retrievals =>
-
-      val internalId = retrievals.b.getOrElse(throw new IllegalStateException("AuthenticatorImpl::authorisedWithPptReference -  internalId is required"))
+    pptReference: String
+  )(implicit hc: HeaderCarrier, request: Request[A]): Future[Either[ErrorResponse, AuthorizedRequest[A]]] =
+    authorised(Enrolment(pptEnrolmentKey).withDelegatedAuthRule("ppt-auth").withIdentifier(pptEnrolmentIdentifierName, pptReference)).retrieve(
+      fetch
+    ) { retrievals =>
+      val internalId =
+        retrievals.b.getOrElse(throw new IllegalStateException("AuthenticatorImpl::authorisedWithPptReference -  internalId is required"))
 
       Future.successful(Right(AuthorizedRequest(pptReference, request, internalId)))
 
@@ -92,7 +86,7 @@ class AuthenticatorImpl @Inject()(override val authConnector: AuthConnector, cc:
 }
 
 object AuthAction {
-  val pptEnrolmentKey = "HMRC-PPT-ORG"
+  val pptEnrolmentKey            = "HMRC-PPT-ORG"
   val pptEnrolmentIdentifierName = "EtmpRegistrationNumber"
 }
 
@@ -103,9 +97,7 @@ case class AuthorizedRequest[A](pptReference: String, request: Request[A], inter
 @ImplementedBy(classOf[AuthenticatorImpl])
 trait Authenticator {
 
-  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(
-    body: AuthorizedRequest[A] => Future[Result]
-  ): Action[A]
+  def authorisedAction[A](bodyParser: BodyParser[A], pptReference: String)(body: AuthorizedRequest[A] => Future[Result]): Action[A]
 
   def parsingJson[T](implicit rds: Reads[T]): BodyParser[T]
 }

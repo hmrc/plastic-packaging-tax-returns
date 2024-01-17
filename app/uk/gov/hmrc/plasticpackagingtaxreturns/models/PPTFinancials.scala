@@ -26,11 +26,7 @@ object Charge {
   implicit val writes: OWrites[Charge] = Json.writes[Charge]
 }
 
-final case class PPTFinancials(
-  creditAmount: Option[BigDecimal],
-  debitAmount: Option[Charge],
-  overdueAmount: Option[BigDecimal]
-)
+final case class PPTFinancials(creditAmount: Option[BigDecimal], debitAmount: Option[Charge], overdueAmount: Option[BigDecimal])
 
 object PPTFinancials {
 

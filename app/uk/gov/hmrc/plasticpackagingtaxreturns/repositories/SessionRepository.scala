@@ -33,20 +33,17 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SessionRepository @Inject()(
-  mongoComponent: MongoComponent,
-  appConfig: AppConfig,
-  clock: Clock
-)(implicit ec: ExecutionContext)
+class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig, clock: Clock)(implicit ec: ExecutionContext)
     extends PlayMongoRepository[UserAnswers](
       collectionName = "user-answers",
       mongoComponent = mongoComponent,
       domainFormat = UserAnswers.format,
       indexes = Seq(
-        IndexModel(Indexes.ascending("lastUpdated"),
-                   IndexOptions()
-                     .name("lastUpdatedIdx")
-                     .expireAfter(appConfig.dbTimeToLiveInSeconds, TimeUnit.SECONDS)
+        IndexModel(
+          Indexes.ascending("lastUpdated"),
+          IndexOptions()
+            .name("lastUpdatedIdx")
+            .expireAfter(appConfig.dbTimeToLiveInSeconds, TimeUnit.SECONDS)
         )
       ),
       replaceIndexes = true
@@ -75,10 +72,7 @@ class SessionRepository @Inject()(
     val updatedAnswers = answers copy (lastUpdated = Instant.now(clock))
 
     collection
-      .replaceOne(filter = byId(updatedAnswers.id),
-                  replacement = updatedAnswers,
-                  options = ReplaceOptions().upsert(true)
-      )
+      .replaceOne(filter = byId(updatedAnswers.id), replacement = updatedAnswers, options = ReplaceOptions().upsert(true))
       .toFuture()
       .map(_ => true)
   }
@@ -91,11 +85,10 @@ class SessionRepository @Inject()(
 
   private val logger = Logger(this.getClass)
 
-  def clearUserAnswers(pptReference: String, cacheKey: String): Future[Boolean] = {
+  def clearUserAnswers(pptReference: String, cacheKey: String): Future[Boolean] =
     clear(cacheKey).andThen {
-      case Success(_) => logger.info(s"Successfully removed user-answers for $pptReference from cache")
+      case Success(_)  => logger.info(s"Successfully removed user-answers for $pptReference from cache")
       case Failure(ex) => logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)
     }
-  }
 
 }

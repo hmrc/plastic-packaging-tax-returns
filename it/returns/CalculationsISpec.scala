@@ -47,8 +47,8 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository         = mock[SessionRepository]
-  private val returnUrl = s"http://localhost:$port/returns-calculate/$pptReference"
-  private val amendUrl = s"http://localhost:$port/amends-calculate/$pptReference"
+  private val returnUrl                      = s"http://localhost:$port/returns-calculate/$pptReference"
+  private val amendUrl                       = s"http://localhost:$port/amends-calculate/$pptReference"
 
   override lazy val app: Application = {
     server.start()
@@ -136,15 +136,15 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
         result.status mustBe Status.OK
         result.json mustBe obj(
-          "taxDue" -> 0,
+          "taxDue"          -> 0,
           "chargeableTotal" -> 0,
           "deductionsTotal" -> 14,
-          "packagingTotal" -> 14,
-          "isSubmittable" -> true,
-          "taxRate" -> 0.2
+          "packagingTotal"  -> 14,
+          "isSubmittable"   -> true,
+          "taxRate"         -> 0.2
         )
       }
-      
+
       "handle don't claim answer" in {
         setUpMock(Some(UserAnswers(pptReference, noClaimAnswer)))
 
@@ -152,12 +152,12 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
         result.status mustBe Status.OK
         result.json mustBe obj(
-          "taxDue" -> 0,
+          "taxDue"          -> 0,
           "chargeableTotal" -> 0,
           "deductionsTotal" -> 14,
-          "packagingTotal" -> 14,
-          "isSubmittable" -> true,
-          "taxRate" -> 0.2
+          "packagingTotal"  -> 14,
+          "isSubmittable"   -> true,
+          "taxRate"         -> 0.2
         )
       }
 
@@ -217,55 +217,33 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
     }
   }
 
-  private def noCreditAnswer = {
+  private def noCreditAnswer =
     obj(
-      "obligation" -> obj(
-        "periodKey" -> "22C4",
-        "fromDate" -> "2022-09-01",
-        "toDate" -> "2022-12-31"
-      ),
-      "manufacturedPlasticPackagingWeight" -> 13,
-      "importedPlasticPackagingWeight" -> 1,
-      "exportedPlasticPackagingWeight" -> 2,
-      "anotherBusinessExportWeight" -> 3,
+      "obligation"                                      -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
+      "manufacturedPlasticPackagingWeight"              -> 13,
+      "importedPlasticPackagingWeight"                  -> 1,
+      "exportedPlasticPackagingWeight"                  -> 2,
+      "anotherBusinessExportWeight"                     -> 3,
       "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
-      "nonExportRecycledPlasticPackagingWeight" -> 5,
-      "whatDoYouWantToDo" -> true,
-      "exportedCredits" -> obj(
-        "yesNo" -> true,
-        "weight" -> 0
-      ),
-      "convertedCredits" -> obj(
-        "yesNo" -> false,
-        "weight" -> 2000
-      )
+      "nonExportRecycledPlasticPackagingWeight"         -> 5,
+      "whatDoYouWantToDo"                               -> true,
+      "exportedCredits"                                 -> obj("yesNo" -> true, "weight" -> 0),
+      "convertedCredits"                                -> obj("yesNo" -> false, "weight" -> 2000)
     )
-  }
 
-  private def noClaimAnswer = {
+  private def noClaimAnswer =
     obj(
-      "obligation" -> obj(
-        "periodKey" -> "22C4",
-        "fromDate" -> "2022-09-01",
-        "toDate" -> "2022-12-31"
-      ),
-      "manufacturedPlasticPackagingWeight" -> 13,
-      "importedPlasticPackagingWeight" -> 1,
-      "exportedPlasticPackagingWeight" -> 2,
-      "anotherBusinessExportWeight" -> 3,
+      "obligation"                                      -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
+      "manufacturedPlasticPackagingWeight"              -> 13,
+      "importedPlasticPackagingWeight"                  -> 1,
+      "exportedPlasticPackagingWeight"                  -> 2,
+      "anotherBusinessExportWeight"                     -> 3,
       "nonExportedHumanMedicinesPlasticPackagingWeight" -> 4,
-      "nonExportRecycledPlasticPackagingWeight" -> 5,
-      "whatDoYouWantToDo" -> false,
-      "exportedCredits" -> obj(
-        "yesNo" -> true,
-        "weight" -> 0
-      ),
-      "convertedCredits" -> obj(
-        "yesNo" -> true,
-        "weight" -> 2000
-      )
+      "nonExportRecycledPlasticPackagingWeight"         -> 5,
+      "whatDoYouWantToDo"                               -> false,
+      "exportedCredits"                                 -> obj("yesNo" -> true, "weight" -> 0),
+      "convertedCredits"                                -> obj("yesNo" -> true, "weight" -> 2000)
     )
-  }
 
   private def setUpMock(ans: Option[UserAnswers]) = {
     when(sessionRepository.get(any)).thenReturn(Future.successful(ans))
@@ -279,8 +257,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
         .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
 
-  private def expectedAmend = Json.parse(
-    """{"original":{
+  private def expectedAmend = Json.parse("""{"original":{
       | "taxDue":44,
       | "chargeableTotal":220,
       | "deductionsTotal":0,
@@ -296,6 +273,5 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       |   "isSubmittable":true,
       |   "taxRate":0.2
       | }
-      |}""".stripMargin
-  )
+      |}""".stripMargin)
 }

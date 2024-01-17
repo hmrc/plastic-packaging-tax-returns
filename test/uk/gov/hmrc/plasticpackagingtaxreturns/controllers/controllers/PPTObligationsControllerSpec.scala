@@ -40,21 +40,20 @@ import scala.concurrent.Future
 
 class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  private val mockPPTObligationsService = mock[PPTObligationsService]
+  private val mockPPTObligationsService   = mock[PPTObligationsService]
   private val mockObligationDataConnector = mock[ObligationsDataConnector]
-  private val edgeOfSystem = mock[EdgeOfSystem]
+  private val edgeOfSystem                = mock[EdgeOfSystem]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockPPTObligationsService, mockObligationDataConnector)
-    
+
     when(edgeOfSystem.today) thenReturn LocalDate.now() // test uses actual clock
   }
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, 
-    mockPPTObligationsService, edgeOfSystem)
+  val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService, edgeOfSystem)
 
   "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
@@ -90,7 +89,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     "get should call the service when response is successful" in {
       val desResponse = ObligationDataResponse(Seq(Obligation(Some(Identification(Some(""), "", "")), Nil)))
 
-      when(mockObligationDataConnector.get(any(), any(), any(), any() ,any())(any()))
+      when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(Right(desResponse)))
       when(mockPPTObligationsService.constructPPTObligations(any())).thenReturn(rightObligations)
 
@@ -102,7 +101,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
     "return internal server error response" when {
       "if error return from connector" in {
 
-        when(mockObligationDataConnector.get(any(), any(), any(), any() ,any())(any()))
+        when(mockObligationDataConnector.get(any(), any(), any(), any(), any())(any()))
           .thenReturn(Future.successful(Left(500)))
 
         val result: Future[Result] = sut.getOpen(pptReference).apply(FakeRequest())

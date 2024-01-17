@@ -25,7 +25,7 @@ import play.api.Logger
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.{EmptyPredicate, Predicate}
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{allEnrolments, internalId}
-import uk.gov.hmrc.auth.core.retrieve.{Credentials, Name, Retrieval, ~}
+import uk.gov.hmrc.auth.core.retrieve.{~, Credentials, Name, Retrieval}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthAction._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SignedInUser
@@ -41,18 +41,12 @@ trait AuthTestSupport extends MockitoSugar {
   val pptReference = "7777777"
 
   def enrolmentWithDelegatedAuth(pptReference: String) =
-    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule(
-      "ppt-auth"
-    )
+    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule("ppt-auth")
 
   def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit = {
     val fetch = allEnrolments and internalId
 
-    when(
-      mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
-                                  ArgumentMatchers.eq(fetch)
-      )(any(), any())
-    )
+    when(mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)), ArgumentMatchers.eq(fetch))(any(), any()))
       .thenReturn(Future.successful(new ~(user.enrolments, user.internalId)))
   }
 
@@ -62,19 +56,19 @@ trait AuthTestSupport extends MockitoSugar {
   def pptEnrollmentMatcherForPptUser(user: SignedInUser): ArgumentMatcher[Predicate] = {
     val pptEnrolment = user.enrolments.getEnrolment(pptEnrolmentKey).get
     val pptReference = pptEnrolment.getIdentifier(pptEnrolmentIdentifierName).get.value
-    (p: Predicate) =>
-      p == enrolmentWithDelegatedAuth(pptReference) && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+    (p: Predicate) => p == enrolmentWithDelegatedAuth(pptReference) && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
   }
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
-    SignedInUser(Credentials("123123123", "Plastic Limited"),
-                 name = Name(Some("Aldo"), Some("Rain")),
-                 email = Some("amina@hmrc.co.uk"),
-                 externalId = "123",
-                 internalId = Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
-                 cacheId = "Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-test02",
-                 affinityGroup = Some(AffinityGroup.Organisation),
-                 enrolments = enrolments.getOrElse(Enrolments(Set()))
+    SignedInUser(
+      Credentials("123123123", "Plastic Limited"),
+      name = Name(Some("Aldo"), Some("Rain")),
+      email = Some("amina@hmrc.co.uk"),
+      externalId = "123",
+      internalId = Some("Int-ba17b467-90f3-42b6-9570-73be7b78eb2b"),
+      cacheId = "Int-ba17b467-90f3-42b6-9570-73be7b78eb2b-test02",
+      affinityGroup = Some(AffinityGroup.Organisation),
+      enrolments = enrolments.getOrElse(Enrolments(Set()))
     )
 
   def pptEnrolment(pptEnrolmentId: String) =
@@ -90,11 +84,8 @@ trait AuthTestSupport extends MockitoSugar {
     nrsIdentityRetrievals: Retrieval[NonRepudiationIdentityRetrievals],
     authRetrievalsResponse: NonRepudiationIdentityRetrievals
   ): OngoingStubbing[Future[NonRepudiationIdentityRetrievals]] =
-    when(
-      mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(
-        any(),
-        any()
-      )
-    ).thenReturn(Future.successful(authRetrievalsResponse))
+    when(mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(any(), any())).thenReturn(
+      Future.successful(authRetrievalsResponse)
+    )
 
 }

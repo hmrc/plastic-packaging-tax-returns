@@ -41,46 +41,51 @@ class ChangeGroupLeadController @Inject() (
   changeGroupLeadService: ChangeGroupLeadService,
   subscriptionsConnector: SubscriptionsConnector,
   nonRepudiationService: NonRepudiationService
-) (implicit executionContext: ExecutionContext) extends BackendController(cc) with Logging {
+)(implicit executionContext: ExecutionContext)
+    extends BackendController(cc) with Logging {
 
-  def change(pptReference: String): Action[AnyContent] = authenticator.authorisedAction(parse.default, pptReference) {
-    implicit request: AuthorizedRequest[AnyContent] =>
-      val pptReference = request.pptReference
-      val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
-      val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
+  def change(pptReference: String): Action[AnyContent] =
+    authenticator.authorisedAction(parse.default, pptReference) {
+      implicit request: AuthorizedRequest[AnyContent] =>
+        val pptReference                                                          = request.pptReference
+        val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
+        val getUAF: Future[Option[UserAnswers]]                                   = sessionRepository.get(request.cacheKey)
 
-      {
-        for {
-          subscriptionEither <- getSubF
-          maybeUserAnswers <- getUAF
-        } yield {
-          (maybeUserAnswers, subscriptionEither) match {
+        {
+          for {
+            subscriptionEither <- getSubF
+            maybeUserAnswers   <- getUAF
+          } yield (maybeUserAnswers, subscriptionEither) match {
             case (_, Left(_)) => Future.successful(InternalServerError("Subscription not found for Change Group Lead"))
-            case (None, _) => Future.successful(InternalServerError("User Answers not found for Change Group Lead"))
+            case (None, _)    => Future.successful(InternalServerError("User Answers not found for Change Group Lead"))
             case (Some(userAnswers), Right(subscription)) =>
               changeGroupRep(pptReference, userAnswers, subscription, request)
-              .map(_ => Ok("Updated Group Lead as per userAnswers"))
+                .map(_ => Ok("Updated Group Lead as per userAnswers"))
           }
-        }
-      }.flatten
+        }.flatten
     }
 
-  private def changeGroupRep(pptReference: String, userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse, 
-    request: AuthorizedRequest[_]) (implicit hc: HeaderCarrier) = {
+  private def changeGroupRep(
+    pptReference: String,
+    userAnswers: UserAnswers,
+    subscription: SubscriptionDisplayResponse,
+    request: AuthorizedRequest[_]
+  )(implicit hc: HeaderCarrier) = {
 
-    val subscriptionUpdateRequest = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
+    val subscriptionUpdateRequest       = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
     val nrsSubscriptionUpdateSubmission = changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
-      .andThen {case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey)}
+      .andThen { case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey) }
       .map {
-        subscriptionUpdateResponse => nonRepudiationService.submitNonRepudiation(
-          NotableEvent.PptSubscription,
-          nrsSubscriptionUpdateSubmission.toJsonString, 
-          subscriptionUpdateResponse.processingDate, 
-          pptReference,
-          request.headers.headers.toMap
-        )
+        subscriptionUpdateResponse =>
+          nonRepudiationService.submitNonRepudiation(
+            NotableEvent.PptSubscription,
+            nrsSubscriptionUpdateSubmission.toJsonString,
+            subscriptionUpdateResponse.processingDate,
+            pptReference,
+            request.headers.headers.toMap
+          )
       }
   }
 

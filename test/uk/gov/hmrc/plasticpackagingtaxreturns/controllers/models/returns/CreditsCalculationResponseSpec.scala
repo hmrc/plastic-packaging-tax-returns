@@ -55,7 +55,7 @@ class CreditsCalculationResponseSpec extends PlaySpec {
   }
 
   "json Writes" must {
-    val obj = CreditsCalculationResponse(1 , 2, 3, 0.20)
+    val obj      = CreditsCalculationResponse(1, 2, 3, 0.20)
     val jsObject = Json.toJson(obj).as[JsObject]
 
     "contain the availableCreditInPounds field" in {

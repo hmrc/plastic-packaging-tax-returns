@@ -33,18 +33,16 @@ trait ReturnsTestData {
   private type ReturnsResponseModifier = Return => Return
 
   val aReturnWithReturnDetails =
-    Return(processingDate = LocalDate.now().toString,
+    Return(
+      processingDate = LocalDate.now().toString,
       idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
       chargeDetails = Some(
-        ChargeDetails(chargeType = "Plastic Tax",
-          chargeReference = "ABC123",
-          amount = 1234.56,
-          dueDate = LocalDate.now().plusDays(30).toString
-        )
+        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
       ),
       exportChargeDetails = None,
       returnDetails = Some(
-        EisReturnDetails(manufacturedWeight = BigDecimal(256.12),
+        EisReturnDetails(
+          manufacturedWeight = BigDecimal(256.12),
           importedWeight = BigDecimal(352.15),
           totalNotLiable = BigDecimal(546.42),
           humanMedicines = BigDecimal(1234.15),
@@ -61,7 +59,8 @@ trait ReturnsTestData {
   val nrsDetailsSuccess = NrsDetails(Some(nrsSubmissionId), None)
   val nrsDetailsFailure = NrsDetails(None, Some("Error"))
 
-  val exportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(processingDate = "2021-11-17T09:32:50.345Z",
+  val exportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
+    processingDate = "2021-11-17T09:32:50.345Z",
     totalPPTCharges = BigDecimal(1000),
     totalExportCreditClaimed = BigDecimal(100),
     totalExportCreditAvailable = BigDecimal(200)
@@ -72,10 +71,12 @@ trait ReturnsTestData {
       Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
     obligationDetails = Nil
   )
+
   val obligationDataResponse: ObligationDataResponse =
     ObligationDataResponse(Seq(obligation, obligation))
 
-  val financials = FinancialDataResponse(idType = Some("idType"),
+  val financials = FinancialDataResponse(
+    idType = Some("idType"),
     idNumber = Some("idNumber"),
     regimeType = Some("regimeType"),
     processingDate = LocalDateTime.now(),
@@ -96,7 +97,7 @@ trait ReturnsTestData {
             dueDate = Some(LocalDate.now()),
             amount = Some(BigDecimal(1000)),
             clearingDate = Some(LocalDate.now()),
-            clearingReason = Some("clearingReason"), 
+            clearingReason = Some("clearingReason"),
             DDcollectionInProgress = None
           )
         )
@@ -107,9 +108,11 @@ trait ReturnsTestData {
   def aReturn(modifiers: ReturnsResponseModifier*): Return =
     modifiers.foldLeft(modelWithDefaults)((current, modifier) => modifier(current))
 
-  private val modelWithDefaults = Return(processingDate = date,
-    idDetails = IdDetails(pptReferenceNumber =
-      "7777777",
+  private val modelWithDefaults = Return(
+    processingDate = date,
+    idDetails = IdDetails(
+      pptReferenceNumber =
+        "7777777",
       submissionId = "1234567890AA"
     ),
     chargeDetails = None,
@@ -118,10 +121,12 @@ trait ReturnsTestData {
   )
 
   val aReturnsSubmissionRequest =
-    ReturnsSubmissionRequest(returnType = ReturnType.NEW,
+    ReturnsSubmissionRequest(
+      returnType = ReturnType.NEW,
       submissionId = None,
       periodKey = "AA22",
-      returnDetails = EisReturnDetails(manufacturedWeight = 12000,
+      returnDetails = EisReturnDetails(
+        manufacturedWeight = 12000,
         importedWeight = 1000,
         totalNotLiable = 2000,
         humanMedicines = 3000,
@@ -134,10 +139,12 @@ trait ReturnsTestData {
     )
 
   val anAmendsSubmissionRequest =
-    ReturnsSubmissionRequest(returnType = ReturnType.AMEND,
+    ReturnsSubmissionRequest(
+      returnType = ReturnType.AMEND,
       submissionId = Some("someId"),
       periodKey = "AA22",
-      returnDetails = EisReturnDetails(manufacturedWeight = 12000,
+      returnDetails = EisReturnDetails(
+        manufacturedWeight = 12000,
         importedWeight = 1000,
         totalNotLiable = 2000,
         humanMedicines = 3000,
@@ -148,4 +155,5 @@ trait ReturnsTestData {
         taxDue = 90000
       )
     )
+
 }

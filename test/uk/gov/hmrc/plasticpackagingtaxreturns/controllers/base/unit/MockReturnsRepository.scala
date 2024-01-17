@@ -37,4 +37,5 @@ trait MockReturnsRepository extends MockitoSugar with BeforeAndAfterEach {
 
   protected def mockGetCache(userAnswers: Option[UserAnswers]) =
     when(mockSessionRepository.get(any())).thenReturn(Future.successful(userAnswers))
+
 }

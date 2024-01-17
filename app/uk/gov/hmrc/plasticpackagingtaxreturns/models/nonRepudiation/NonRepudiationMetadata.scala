@@ -34,10 +34,17 @@ case class NonRepudiationMetadata(
 )
 
 object NonRepudiationMetadata {
-  
-  def create(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData, 
-    userAuthToken: String, payloadChecksum: String, submissionTimestamp: ZonedDateTime): NonRepudiationMetadata = {
-    
+
+  def create(
+    notableEvent: String,
+    pptReference: String,
+    userHeaders: Map[String, String],
+    identityData: IdentityData,
+    userAuthToken: String,
+    payloadChecksum: String,
+    submissionTimestamp: ZonedDateTime
+  ): NonRepudiationMetadata = {
+
     val submissionTimestampAsString: String = submissionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     NonRepudiationMetadata(
       businessId = "ppt",
@@ -53,5 +60,5 @@ object NonRepudiationMetadata {
   }
 
   implicit val format: OFormat[NonRepudiationMetadata] = Json.format[NonRepudiationMetadata]
-  
+
 }

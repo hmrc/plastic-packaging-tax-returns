@@ -38,46 +38,41 @@ import scala.concurrent.Future
 class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   private val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
-  private val sut = new AvailableCreditService(mockConnector)(global)
-  private val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
- 
+  private val sut                                         = new AvailableCreditService(mockConnector)(global)
+  private val fakeRequest                                 = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockConnector)
   }
 
   "getBalance" must {
-    
+
     "return available balance" when {
       "no credit is being claimed" in {
-        val expected = BigDecimal(200)
-        val unUsedBigDec = mock[BigDecimal]
+        val expected       = BigDecimal(200)
+        val unUsedBigDec   = mock[BigDecimal]
         val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
-        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
-          Future.successful(Right(creditResponse)))
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
 
         val userAnswers = UserAnswers("user-answers-id")
-          .setUnsafe(
-            ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
-          )
+          .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27))
 
         await(sut.getBalance(userAnswers)(fakeRequest)) mustBe 200
       }
     }
 
     "correctly construct the parameters for the connector" in {
-      val expected = BigDecimal(200)
-      val unUsedBigDec = mock[BigDecimal]
+      val expected       = BigDecimal(200)
+      val unUsedBigDec   = mock[BigDecimal]
       val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
 
       when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
 
       val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(
-          ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)
-        ).setUnsafe(ConvertedCreditWeightGettable, 5L)
+        .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)).setUnsafe(ConvertedCreditWeightGettable, 5L)
 
-     await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
+      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
 
       verify(mockConnector).getBalance(
         refEq("request-ppt-id"),
@@ -90,13 +85,13 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "throw an exception" when {
-      
+
       "the user answers does not contain an obligation" in {
         val userAnswers = mock[UserAnswers]
         when(userAnswers.getOrFail(ReturnObligationFromDateGettable)) thenThrow new RuntimeException("bang")
-        the [Exception] thrownBy await(sut.getBalance(userAnswers)(fakeRequest)) must have message "bang"
+        the[Exception] thrownBy await(sut.getBalance(userAnswers)(fakeRequest)) must have message "bang"
       }
-      
+
       "the connector call fails" in {
         when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
 

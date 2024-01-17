@@ -38,41 +38,33 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
     )
 
   private def doCalculation(
-                             periodEndDate: LocalDate,
-                             importedPlasticWeight: Long,
-                             manufacturedPlasticWeight: Long,
-                             humanMedicinesPlasticWeight: Long,
-                             recycledPlasticWeight: Long,
-                             totalExportedPlasticWeight: Long,
-                             convertedPackagingCredit: BigDecimal,
-                             availableCredit: BigDecimal
+    periodEndDate: LocalDate,
+    importedPlasticWeight: Long,
+    manufacturedPlasticWeight: Long,
+    humanMedicinesPlasticWeight: Long,
+    recycledPlasticWeight: Long,
+    totalExportedPlasticWeight: Long,
+    convertedPackagingCredit: BigDecimal,
+    availableCredit: BigDecimal
   ): Calculations = {
 
-    val packagingTotal: Long = importedPlasticWeight + manufacturedPlasticWeight
+    val packagingTotal: Long  = importedPlasticWeight + manufacturedPlasticWeight
     val deductionsTotal: Long = totalExportedPlasticWeight + humanMedicinesPlasticWeight + recycledPlasticWeight
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
-    val taxPayable = taxCalculationService.weightToDebit(periodEndDate, chargeableTotal)
+    val taxPayable            = taxCalculationService.weightToDebit(periodEndDate, chargeableTotal)
 
     val isSubmittable: Boolean = {
       manufacturedPlasticWeight >= 0 &&
-        importedPlasticWeight >= 0 &&
-        totalExportedPlasticWeight >= 0 &&
-        recycledPlasticWeight >= 0 &&
-        humanMedicinesPlasticWeight >= 0 &&
-        packagingTotal >= deductionsTotal &&
-        chargeableTotal >= 0 &&
-        convertedPackagingCredit <= availableCredit
+      importedPlasticWeight >= 0 &&
+      totalExportedPlasticWeight >= 0 &&
+      recycledPlasticWeight >= 0 &&
+      humanMedicinesPlasticWeight >= 0 &&
+      packagingTotal >= deductionsTotal &&
+      chargeableTotal >= 0 &&
+      convertedPackagingCredit <= availableCredit
     }
 
-    Calculations(
-      taxPayable.moneyInPounds,
-      chargeableTotal,
-      deductionsTotal,
-      packagingTotal,
-      isSubmittable,
-      taxPayable.taxRate
-    )
+    Calculations(taxPayable.moneyInPounds, chargeableTotal, deductionsTotal, packagingTotal, isSubmittable, taxPayable.taxRate)
   }
-
 
 }

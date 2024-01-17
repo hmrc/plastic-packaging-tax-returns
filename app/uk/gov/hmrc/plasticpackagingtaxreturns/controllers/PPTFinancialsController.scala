@@ -54,11 +54,7 @@ class PPTFinancialsController @Inject() (
           case Left(_) =>
             InternalServerError("{}")
           case Right(financialDataResponse) =>
-            Ok(Json.toJson(DirectDebitDetails(
-              pptReference,
-              periodKey,
-              financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)))
-            )
+            Ok(Json.toJson(DirectDebitDetails(pptReference, periodKey, financialsService.lookUpForDdInProgress(periodKey, financialDataResponse))))
         }
     }
 

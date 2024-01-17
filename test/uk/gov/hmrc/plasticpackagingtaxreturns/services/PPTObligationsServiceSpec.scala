@@ -24,29 +24,30 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.{LocalDate, LocalDateTime}
 
-class PPTObligationsServiceSpec extends PlaySpec
-  with MockitoSugar with EitherValues with BeforeAndAfterEach {
+class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherValues with BeforeAndAfterEach {
 
-  private val today: LocalDate = LocalDate.now()
-  private val overdueObligation: ObligationDetail = makeDetail(today.minusDays(20), "overdue")
-  private val dueObligation: ObligationDetail = makeDetail(today.minusDays(11), "due")
+  private val today: LocalDate                     = LocalDate.now()
+  private val overdueObligation: ObligationDetail  = makeDetail(today.minusDays(20), "overdue")
+  private val dueObligation: ObligationDetail      = makeDetail(today.minusDays(11), "due")
   private val upcomingObligation: ObligationDetail = makeDetail(today, "upcoming")
-  private val laterObligation: ObligationDetail = makeDetail(today.plusDays(10), "later")
-  private val edgeOfSystem = mock[EdgeOfSystem]
-  private val sut = new PPTObligationsService()(edgeOfSystem)
+  private val laterObligation: ObligationDetail    = makeDetail(today.plusDays(10), "later")
+  private val edgeOfSystem                         = mock[EdgeOfSystem]
+  private val sut                                  = new PPTObligationsService()(edgeOfSystem)
 
   def makeDataResponse(obligationDetail: ObligationDetail*): ObligationDataResponse =
     ObligationDataResponse(
       Seq(
-        Obligation(identification =
-          Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+        Obligation(
+          identification =
+            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
           obligationDetails = obligationDetail
         )
       )
     )
 
   def makeDetail(fromDate: LocalDate = today, periodKey: String = "#001"): ObligationDetail =
-    ObligationDetail(status = ObligationStatus.OPEN,
+    ObligationDetail(
+      status = ObligationStatus.OPEN,
       inboundCorrespondenceFromDate = fromDate,
       inboundCorrespondenceToDate = fromDate.plusDays(10),
       inboundCorrespondenceDateReceived = Some(fromDate),
@@ -64,7 +65,7 @@ class PPTObligationsServiceSpec extends PlaySpec
 
   "constructPPTFulfilled" must {
     "return an error message" when {
-      
+
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
         sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
@@ -176,11 +177,9 @@ class PPTObligationsServiceSpec extends PlaySpec
       }
 
       "there is more than one overdue" in {
-        val veryOverdueObligation = makeDetail(today.minusDays(50), "very overdue")
+        val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
-        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(
-          veryOverdueObligation
-        )
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(veryOverdueObligation)
       }
     }
 
@@ -191,7 +190,7 @@ class PPTObligationsServiceSpec extends PlaySpec
       }
 
       "an obligation is due today" in {
-        val obligationDueToday = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
+        val obligationDueToday     = makeDetail().copy(inboundCorrespondenceDueDate = LocalDate.now)
         val obligationDataResponse = makeDataResponse(obligationDueToday)
         sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe None
       }
@@ -207,27 +206,27 @@ class PPTObligationsServiceSpec extends PlaySpec
         val overdueObligationsResponse = makeDataResponse(overdueObligation)
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 1
       }
-      
+
       "we have multiple overdue obligations" in {
-        val veryOverdueObligation: ObligationDetail = makeDetail(today.minusDays(120), "very-overdue")
+        val veryOverdueObligation: ObligationDetail     = makeDetail(today.minusDays(120), "very-overdue")
         val tardiestOverdueObligation: ObligationDetail = makeDetail(today.minusDays(220), "tardiest-overdue")
         val overdueObligationsResponse =
           makeDataResponse(overdueObligation, veryOverdueObligation, tardiestOverdueObligation)
 
         sut.constructPPTObligations(overdueObligationsResponse).value.overdueObligationCount mustBe 3
       }
-      
+
       "we have both one due and one overdue obligations" in {
         val obligationDataResponse = makeDataResponse(overdueObligation, upcomingObligation)
         sut.constructPPTObligations(obligationDataResponse).value.overdueObligationCount mustBe 1
       }
-      
+
       "return whether there is Next Obligation Due" when {
         "we have no obligations" in {
           val noObligationsResponse = makeDataResponse()
           sut.constructPPTObligations(noObligationsResponse).value.isNextObligationDue mustBe false
         }
-        
+
         "we have one upcoming obligation that is not within due period" in {
           val obligationDataResponse = makeDataResponse(upcomingObligation)
           sut.constructPPTObligations(obligationDataResponse).value.isNextObligationDue mustBe false
@@ -261,13 +260,13 @@ class PPTObligationsServiceSpec extends PlaySpec
           val obligationDataResponse = makeDataResponse(overdueObligation)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
-        
+
         "there is 1 overdue and 1 within due period" in {
           val obligationDataResponse = makeDataResponse(overdueObligation, dueObligation)
           sut.constructPPTObligations(obligationDataResponse).value.displaySubmitReturnsLink mustBe true
         }
       }
-      
+
     }
   }
 }

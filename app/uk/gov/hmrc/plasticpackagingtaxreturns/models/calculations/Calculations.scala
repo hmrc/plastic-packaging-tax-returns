@@ -19,22 +19,20 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApi
 
-case class AmendsCalculations(
-                               original: Calculations,
-                               amend: Calculations
-                             )
+case class AmendsCalculations(original: Calculations, amend: Calculations)
 
 object AmendsCalculations {
   implicit val format: OFormat[AmendsCalculations] = Json.format[AmendsCalculations]
 }
 
-case class Calculations(taxDue: BigDecimal,
-                        chargeableTotal: Long,
-                        deductionsTotal: Long,
-                        packagingTotal: Long,
-                        isSubmittable: Boolean,
-                        taxRate: BigDecimal
-                       )
+case class Calculations(
+  taxDue: BigDecimal,
+  chargeableTotal: Long,
+  deductionsTotal: Long,
+  packagingTotal: Long,
+  isSubmittable: Boolean,
+  taxRate: BigDecimal
+)
 
 object Calculations {
   implicit val format: OFormat[Calculations] = Json.format[Calculations]
@@ -48,4 +46,5 @@ object Calculations {
       true,
       taxRate
     )
+
 }

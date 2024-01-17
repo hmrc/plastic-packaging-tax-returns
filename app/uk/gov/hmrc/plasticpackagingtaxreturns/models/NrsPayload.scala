@@ -24,12 +24,17 @@ import java.time.ZonedDateTime
 
 class NrsPayload(edgeOfSystem: EdgeOfSystem, payload: Array[Byte]) {
 
-  def createMetadata(notableEvent: String, pptReference: String, userHeaders: Map[String, String], identityData: IdentityData,
-    userAuthToken: String, submissionTimestamp: ZonedDateTime): NonRepudiationMetadata = {
-    
+  def createMetadata(
+    notableEvent: String,
+    pptReference: String,
+    userHeaders: Map[String, String],
+    identityData: IdentityData,
+    userAuthToken: String,
+    submissionTimestamp: ZonedDateTime
+  ): NonRepudiationMetadata = {
+
     val payloadChecksum = calculatePayloadChecksum()
-    NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData,
-      userAuthToken, payloadChecksum, submissionTimestamp)
+    NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, userAuthToken, payloadChecksum, submissionTimestamp)
   }
 
   def encodePayload(): String =
@@ -50,4 +55,5 @@ object NrsPayload {
     val payloadBytes: Array[Byte] = payloadString.getBytes(StandardCharsets.UTF_8)
     new NrsPayload(edgeOfSystem, payloadBytes)
   }
+
 }

@@ -48,14 +48,15 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
   }
 
   def overrideConfig: Map[String, Any] =
-    Map("microservice.services.eis.host" -> wireHost,
-        "microservice.services.eis.port" -> wirePort,
-        "microservice.services.nrs.host" -> wireHost,
-        "microservice.services.nrs.port" -> wirePort,
-        "microservice.services.des.host" -> wireHost,
-        "microservice.services.des.port" -> wirePort,
-        "auditing.consumer.baseUri.port" -> wirePort,
-        "auditing.enabled" -> false
+    Map(
+      "microservice.services.eis.host" -> wireHost,
+      "microservice.services.eis.port" -> wirePort,
+      "microservice.services.nrs.host" -> wireHost,
+      "microservice.services.nrs.port" -> wirePort,
+      "microservice.services.des.host" -> wireHost,
+      "microservice.services.des.port" -> wirePort,
+      "auditing.consumer.baseUri.port" -> wirePort,
+      "auditing.enabled"               -> false
     )
 
   def getTimer(name: String): Timer =
@@ -86,11 +87,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
       case _: VerificationException => false
     }
 
-  protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit = {
+  protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit =
     verify(
       postRequestedFor(urlEqualTo(url))
-        .withRequestBody(equalToJson(
-          s"""{
+        .withRequestBody(equalToJson(s"""{
              |                  "auditSource": "plastic-packaging-tax-returns",
              |                  "auditType": "$eventType",
              |                  "eventId": "$${json-unit.any-string}",
@@ -107,5 +107,5 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
              |                  "generatedAt": "$${json-unit.any-string}"
              |                }""".stripMargin, true, true))
     )
-  }
+
 }

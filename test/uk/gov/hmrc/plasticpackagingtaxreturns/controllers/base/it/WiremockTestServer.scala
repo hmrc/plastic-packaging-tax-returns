@@ -24,12 +24,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
 
-trait WiremockTestServer
-    extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfterAll with BeforeAndAfterEach {
+trait WiremockTestServer extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val wireHost = "localhost"
 
-  val wirePort       = 20202
+  val wirePort = 20202
   val wiremock = new WireMockServer(wirePort)
 
   protected def stubFor(mappingBuilder: MappingBuilder): StubMapping =

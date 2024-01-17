@@ -41,30 +41,23 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
 
-class ChangeGroupLeadItSpec extends PlaySpec
-  with GuiceOneServerPerSuite
-  with AuthTestSupport
-  with SubscriptionTestData
-  with BeforeAndAfterAll
-  with BeforeAndAfterEach {
+class ChangeGroupLeadItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with SubscriptionTestData with BeforeAndAfterAll with BeforeAndAfterEach {
 
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
-  private lazy val wsClient: WSClient = app.injector.instanceOf[WSClient]
+  private lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
 
-  private lazy val repository = mock[SessionRepository]
-  private val Url = s"http://localhost:$port/change-group-lead/$pptReference"
+  private lazy val repository        = mock[SessionRepository]
+  private val Url                    = s"http://localhost:$port/change-group-lead/$pptReference"
   private val subscriptionDisplayUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
-  private val subscriptionUpdateUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
+  private val subscriptionUpdateUrl  = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
   override lazy val app: Application = {
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
       .configure(wireMock.overrideConfig)
-      .overrides(
-        bind[AuthConnector].to(mockAuthConnector),
-        bind[SessionRepository].toInstance(repository)
-      )
+      .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].toInstance(repository))
       .build()
   }
 
@@ -115,10 +108,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
       "when cannot update subscription" in {
         when(repository.clear(any)).thenReturn(Future.successful(true))
         withAuthorizedUser()
-        stubSubscriptionDisplayRequest(
-          Status.OK,
-          Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()
-        )
+        stubSubscriptionDisplayRequest(Status.OK, Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString())
         stubSubscriptionUpdateRequest(Status.NOT_FOUND)
 
         val response = await(wsClient.url(Url).post(pptReference))
@@ -149,13 +139,19 @@ class ChangeGroupLeadItSpec extends PlaySpec
       await(wsClient.url(Url).post(pptReference))
 
       withClue("subscription display with eis bearer token") {
-        wireMock.verify(1, getRequestedFor(urlEqualTo(subscriptionDisplayUrl))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+        wireMock.verify(
+          1,
+          getRequestedFor(urlEqualTo(subscriptionDisplayUrl))
+            .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        )
       }
 
       withClue("subscription update with eis bearer token") {
-        wireMock.verify(1, putRequestedFor(urlEqualTo(subscriptionUpdateUrl))
-        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456")))
+        wireMock.verify(
+          1,
+          putRequestedFor(urlEqualTo(subscriptionUpdateUrl))
+            .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        )
       }
     }
 
@@ -168,28 +164,21 @@ class ChangeGroupLeadItSpec extends PlaySpec
     }
   }
 
-  private def setUpMock(
-    displayStatus: Int = Status.OK,
-    updateStatus: Int = Status.OK
-  ): Unit = {
+  private def setUpMock(displayStatus: Int = Status.OK, updateStatus: Int = Status.OK): Unit = {
     when(repository.clear(any)).thenReturn(Future.successful(true))
     authorisedUser
 
-    stubSubscriptionDisplayRequest(
-      displayStatus,
-      Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString()
-    )
+    stubSubscriptionDisplayRequest(displayStatus, Json.toJson(createSubscriptionDisplayResponse(ukLimitedCompanyGroupSubscription)).toString())
     stubSubscriptionUpdateRequest(updateStatus, createUpdateSubscriptionResponseBody)
   }
 
   private def authorisedUser = {
-    val signedInUser: SignedInUser = newUser(Some(pptEnrolment(pptReference)))
+    val signedInUser: SignedInUser              = newUser(Some(pptEnrolment(pptReference)))
     val enrolments: Enrolments ~ Option[String] = new ~(signedInUser.enrolments, signedInUser.internalId)
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any, any)(any, any)) thenReturn Future.successful(
-      enrolments)
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any, any)(any, any)) thenReturn Future.successful(enrolments)
   }
 
-  private def stubSubscriptionUpdateRequest(status: Int, body: String = ""): Unit = {
+  private def stubSubscriptionUpdateRequest(status: Int, body: String = ""): Unit =
     wireMock.stubFor(
       put(subscriptionUpdateUrl)
         .willReturn(
@@ -198,7 +187,6 @@ class ChangeGroupLeadItSpec extends PlaySpec
             .withBody(body)
         )
     )
-  }
 
   private def createUpdateSubscriptionResponseBody = {
     val subscriptionUpdateResponse: SubscriptionUpdateSuccessfulResponse = SubscriptionUpdateSuccessfulResponse(
@@ -209,7 +197,7 @@ class ChangeGroupLeadItSpec extends PlaySpec
     Json.toJson(subscriptionUpdateResponse).toString()
   }
 
-  private def stubSubscriptionDisplayRequest(status: Int, body: String = ""): Unit = {
+  private def stubSubscriptionDisplayRequest(status: Int, body: String = ""): Unit =
     wireMock.stubFor(
       get(subscriptionDisplayUrl)
         .willReturn(
@@ -218,12 +206,9 @@ class ChangeGroupLeadItSpec extends PlaySpec
             .withBody(body)
         )
     )
-  }
 
-  private def userAnswer = {
-    UserAnswers(
-      id = pptReference,
-      data = Json.parse(s"""
+  private def userAnswer =
+    UserAnswers(id = pptReference, data = Json.parse(s"""
       |{
       |  "obligation":
       |  {
@@ -251,8 +236,6 @@ class ChangeGroupLeadItSpec extends PlaySpec
       |    "mainContactJobTitle":"fdsfsd"
       |  }
       |}
-      |""".stripMargin).asInstanceOf[JsObject]
-    )
-  }
+      |""".stripMargin).asInstanceOf[JsObject])
 
 }

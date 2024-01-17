@@ -28,8 +28,10 @@ trait Query {
 trait Gettable[A] extends Query
 
 trait Settable[A] extends Query {
+
   def cleanup(value: Option[A], userAnswers: UserAnswers): Try[UserAnswers] =
     Success(userAnswers)
+
 }
 
 trait QuestionPage[A] extends Gettable[A] with Settable[A]

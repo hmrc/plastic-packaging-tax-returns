@@ -39,16 +39,16 @@ trait NrsTestData {
 
   val testDate: LocalDate         = LocalDate.of(2017, 1, 1)
   val testDateTime: ZonedDateTime = ZonedDateTime.of(2022, 7, 1, 12, 34, 37, 0, ZoneId.of("Z"))
-  val testDateTimeString: String = "2022-07-01T12:34:37Z" // <-- this is an actual date string taken from production 
+  val testDateTimeString: String  = "2022-07-01T12:34:37Z" // <-- this is an actual date string taken from production
 
   val testAuthName: Name =
     uk.gov.hmrc.auth.core.retrieve.Name(Some("testFirstName"), Some("testLastName"))
 
-  val testEmail: String                            = "testEmail"
-  val testPPTReference: String                     = "XMPPT123456789"
-  val testAuthToken: String                        = "testAuthToken"
-  val testUserHeaders: Map[String, String]         = Map("testKey" -> "testValue")
-  val testSearchKeys: Map[String, String]          = Map("pptReference" -> testPPTReference)
+  val testEmail: String                    = "testEmail"
+  val testPPTReference: String             = "XMPPT123456789"
+  val testAuthToken: String                = "testAuthToken"
+  val testUserHeaders: Map[String, String] = Map("testKey" -> "testValue")
+  val testSearchKeys: Map[String, String]  = Map("pptReference" -> testPPTReference)
 
   val testAgentInformation: AgentInformation =
     AgentInformation(Some("testAgentId"), Some("testAgentCode"), Some("testAgentFriendlyName"))
@@ -65,23 +65,24 @@ trait NrsTestData {
 
   val testCredentialStrength: String = CredentialStrength.strong
 
-  val testNonRepudiationIdentityData: IdentityData = IdentityData(Some(testInternalid),
-                                                                  Some(testExternalId),
-                                                                  Some(testAgentCode),
-                                                                  Some(testCredentials),
-                                                                  testConfidenceLevel,
-                                                                  Some(testNino),
-                                                                  Some(testSautr),
-                                                                  Some(testAuthName),
-                                                                  Some(testEmail),
-                                                                  testAgentInformation,
-                                                                  Some(testGroupIdentifier),
-                                                                  Some(testCredentialRole),
-                                                                  Some(testMdtpInformation),
-                                                                  Some(testItmpName),
-                                                                  Some(testItmpAddress),
-                                                                  Some(testAffinityGroup),
-                                                                  Some(testCredentialStrength)
+  val testNonRepudiationIdentityData: IdentityData = IdentityData(
+    Some(testInternalid),
+    Some(testExternalId),
+    Some(testAgentCode),
+    Some(testCredentials),
+    testConfidenceLevel,
+    Some(testNino),
+    Some(testSautr),
+    Some(testAuthName),
+    Some(testEmail),
+    testAgentInformation,
+    Some(testGroupIdentifier),
+    Some(testCredentialRole),
+    Some(testMdtpInformation),
+    Some(testItmpName),
+    Some(testItmpAddress),
+    Some(testAffinityGroup),
+    Some(testCredentialStrength)
   )
 
   val identityJson: JsValue = Json.toJson(testNonRepudiationIdentityData)

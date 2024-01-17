@@ -24,7 +24,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import java.time.LocalDate
 import javax.inject.Inject
 
-class PPTObligationsService @Inject()(implicit edgeOfSystem: EdgeOfSystem) extends Logging {
+class PPTObligationsService @Inject() (implicit edgeOfSystem: EdgeOfSystem) extends Logging {
 
   def constructPPTFulfilled(data: ObligationDataResponse): Either[String, Seq[ObligationDetail]] =
     data.obligations match {

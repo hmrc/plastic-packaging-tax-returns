@@ -25,19 +25,16 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersService.notFou
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
+class UserAnswersService @Inject() (sessionRepository: SessionRepository)(implicit ce: ExecutionContext) {
 
-class UserAnswersService @Inject()(
-  sessionRepository: SessionRepository
-)(implicit ce: ExecutionContext) {
-
-  def get(cacheKey: String)(fn: UserAnswers => Future[Result]): Future[Result] = {
-    sessionRepository.get(cacheKey).flatMap(userAnswer => {
+  def get(cacheKey: String)(fn: UserAnswers => Future[Result]): Future[Result] =
+    sessionRepository.get(cacheKey).flatMap { userAnswer =>
       userAnswer match {
         case Some(answer) => fn(answer)
-        case _ => Future.successful(UnprocessableEntity(notFoundMsg))
+        case _            => Future.successful(UnprocessableEntity(notFoundMsg))
       }
-    })
-  }
+    }
+
 }
 
 object UserAnswersService {
