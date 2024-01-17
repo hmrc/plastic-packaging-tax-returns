@@ -73,10 +73,10 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
-  val taxRates: Seq[TaxRate] = Seq(
-    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2024"), useFromDate = LocalDate.of(2024, 4, 1)),
-    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2023"), useFromDate = LocalDate.of(2023, 4, 1)),
-    TaxRate(poundsPerKg = config.get[Double]("tax-rate.year.2022"), useFromDate = LocalDate.of(2022, 4, 1))
+  val taxRates: Map[String, Double] = Map(
+    "2024" -> config.get[Double]("tax-rate.year.2024"),
+    "2023" -> config.get[Double]("tax-rate.year.2023"),
+    "2022" -> config.get[Double]("tax-rate.year.2022")
   )
 
   /** Override the current system data-time, for coding and testing. The system date-time is used if the config value
