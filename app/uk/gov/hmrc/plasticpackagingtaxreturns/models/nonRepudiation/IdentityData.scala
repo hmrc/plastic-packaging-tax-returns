@@ -43,6 +43,7 @@ case class IdentityData(
 )
 
 object IdentityData {
+
   implicit val localDateFormat: Format[LocalDate] =
     Format(Reads.DefaultLocalDateReads, Writes.DefaultLocalDateWrites)
 

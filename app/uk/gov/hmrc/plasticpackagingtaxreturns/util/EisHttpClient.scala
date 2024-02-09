@@ -31,7 +31,7 @@ import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.reflect.runtime.universe.{TypeTag, typeOf}
+import scala.reflect.runtime.universe.{typeOf, TypeTag}
 import scala.util.{Failure, Success, Try}
 
 /** An http response that allows for equality and same-instance
