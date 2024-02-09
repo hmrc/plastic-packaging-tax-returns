@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package returns
+package test.returns
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.Inspectors.forAll

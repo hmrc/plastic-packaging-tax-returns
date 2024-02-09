@@ -1,21 +1,20 @@
 import play.sbt.routes.RoutesKeys
-import sbt.IntegrationTest
-import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
+import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
+import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "plastic-packaging-tax-returns"
 
 PlayKeys.devSettings := Seq("play.server.http.port" -> "8504")
 
-val silencerVersion = "1.7.12"
+val silencerVersion = "1.7.14"
 
-lazy val IntegrationTest = config("it") extendTest
+ThisBuild / majorVersion := 1
+ThisBuild / scalaVersion := "2.13.12"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
-    majorVersion := 1,
-    scalaVersion := "2.13.10",
     libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
     // ***************
     // Use the silencer plugin to suppress warnings
@@ -27,8 +26,6 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")
   .settings(RoutesKeys.routesImport += "uk.gov.hmrc.plasticpackagingtaxreturns.controllers.query.QueryStringParams._")
-  .configs(IntegrationTest)
-  .settings(integrationTestSettings(): _*)
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(scoverageSettings)
 
@@ -42,5 +39,8 @@ lazy val scoverageSettings: Seq[Setting[_]] = Seq(
   parallelExecution in Test := false
 )
 
-lazy val all = taskKey[Unit]("Runs unit and it tests")
-all := Def.sequential(Test / test, IntegrationTest / test).value
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
+  .settings(DefaultBuildSettings.itSettings())
+  .settings(libraryDependencies ++= AppDependencies.test)

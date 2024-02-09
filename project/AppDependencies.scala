@@ -3,7 +3,7 @@ import sbt._
 
 object AppDependencies {
 
-  val bootstrapVersion = "8.4.0"
+  val bootstrapVersion = "8.3.0"
   val mongoVersion     = "1.7.0"
   val playVersion      = "30"
 
@@ -25,6 +25,6 @@ object AppDependencies {
     "org.scalatestplus"      %% "scalatestplus-mockito"              % "1.0.0-M2",
     "com.vladsch.flexmark"    % "flexmark-all"                       % "0.64.6", // Note - updating this requires newer version of JRE
     "org.scalatestplus.play" %% "scalatestplus-play"                 % "5.1.0"
-  ).map(_ % "test, it")
+  ).map(_ % Test)
 
 }

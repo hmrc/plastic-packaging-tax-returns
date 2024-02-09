@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, matches}
-import org.mockito.Mockito.{verifyNoInteractions, RETURNS_DEEP_STUBS}
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, verifyNoInteractions}
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
