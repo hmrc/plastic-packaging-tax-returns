@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import akka.Done
 import com.codahale.metrics.Timer
-import com.kenshoo.play.metrics.Metrics
+import org.apache.pekko.Done
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.MockitoSugar.{mock, reset, verify, when}
@@ -38,6 +37,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.F
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EnterpriseTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import java.time.{LocalDate, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global

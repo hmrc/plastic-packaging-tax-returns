@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import akka.Done
-import com.kenshoo.play.metrics.Metrics
+import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, matches}
-import org.mockito.Mockito.{verifyNoInteractions, RETURNS_DEEP_STUBS}
+import org.mockito.Mockito.{RETURNS_DEEP_STUBS, verifyNoInteractions}
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
@@ -37,6 +36,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}

@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import akka.Done
 import com.codahale.metrics.Timer
-import com.kenshoo.play.metrics.Metrics
+import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
@@ -35,6 +34,7 @@ import uk.gov.hmrc.http.{GatewayTimeoutException, HeaderCarrier, HttpClient => H
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
