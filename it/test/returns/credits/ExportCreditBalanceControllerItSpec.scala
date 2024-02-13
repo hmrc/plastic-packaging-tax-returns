@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package returns.credits
+package test.returns.credits
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._

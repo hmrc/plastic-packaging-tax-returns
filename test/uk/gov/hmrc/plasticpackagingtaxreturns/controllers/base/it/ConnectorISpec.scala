@@ -17,9 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it
 
 import com.codahale.metrics.{MetricFilter, SharedMetricRegistries, Timer}
-import com.github.tomakehurst.wiremock.client.{VerificationException, WireMock}
 import com.github.tomakehurst.wiremock.client.WireMock.{equalToJson, postRequestedFor, urlEqualTo, verify}
-import com.kenshoo.play.metrics.Metrics
+import com.github.tomakehurst.wiremock.client.{VerificationException, WireMock}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -28,6 +27,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import scala.concurrent.ExecutionContext
 

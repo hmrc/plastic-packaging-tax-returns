@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import akka.actor.ActorSystem
 import com.codahale.metrics.SharedMetricRegistries
+import org.apache.pekko.actor.ActorSystem
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
 import org.scalatest.matchers.should.Matchers

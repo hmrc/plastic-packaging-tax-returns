@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import com.kenshoo.play.metrics.Metrics
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.NOT_FOUND
@@ -26,15 +25,14 @@ import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
+import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.reflect.runtime.universe.{typeOf, TypeTag}
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
+import scala.util.{Failure, Success, Try}
 
 /** An http response that allows for equality and same-instance
   * @param status - http status code from response

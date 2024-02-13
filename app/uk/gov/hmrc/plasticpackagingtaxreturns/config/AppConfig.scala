@@ -17,10 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.TaxRate
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
