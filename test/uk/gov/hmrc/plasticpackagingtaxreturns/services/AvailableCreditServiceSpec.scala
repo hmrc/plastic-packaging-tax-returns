@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.ArgumentMatchers.{any, refEq}
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.{any, eq}
 import org.mockito.Mockito.{reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -75,10 +76,10 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
       await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
 
       verify(mockConnector).getBalance(
-        refEq("request-ppt-id"),
-        refEq(LocalDate.of(1994, 3, 27)), //fromDate minus 2 years
-        refEq(LocalDate.of(1996, 3, 26)), //fromDate minus 1 day
-        refEq("request-internal-id")
+        ArgumentMatchers.eq("request-ppt-id"),
+        ArgumentMatchers.eq(LocalDate.of(1994, 3, 27)), //fromDate minus 2 years
+        ArgumentMatchers.eq(LocalDate.of(1996, 3, 26)), //fromDate minus 1 day
+        ArgumentMatchers.eq("request-internal-id")
       )(any())
 
       verifyNoInteractions(unUsedBigDec)
