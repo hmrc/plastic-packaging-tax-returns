@@ -27,7 +27,7 @@ import play.api.test.DefaultAwaitTimeout
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
-import uk.gov.hmrc.play.bootstrap.metrics.Metrics
+import uk.gov.hmrc.play.bootstrap.metrics.{Metrics, MetricsFilter, MetricsFilterImpl, MetricsImpl}
 
 import scala.concurrent.ExecutionContext
 
@@ -43,7 +43,11 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     SharedMetricRegistries.clear()
     new GuiceApplicationBuilder()
       .configure(overrideConfig)
-      .overrides(bind[SessionRepository].to(mock[SessionRepository]))
+      .overrides(
+        bind[SessionRepository].to(mock[SessionRepository]),
+        bind[MetricsFilter].to[MetricsFilterImpl],
+        bind[Metrics].to[MetricsImpl]
+      )
       .build()
   }
 
@@ -59,11 +63,11 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
       "auditing.enabled"               -> false
     )
 
-  def getTimer(name: String): Timer =
-    SharedMetricRegistries
-      .getOrCreate("plastic-packaging-tax-returns")
+  def getTimer(name: String): Timer = {
+    metrics.defaultRegistry
       .getTimers(MetricFilter.startsWith(name))
       .get(name)
+  }
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -72,7 +76,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
   }
 
   override protected def beforeEach(): Unit =
-    SharedMetricRegistries.clear()
+    metrics.defaultRegistry.removeMatching(MetricFilter.startsWith("ppt"))
 
   override protected def afterAll(): Unit = {
     super.afterAll()
