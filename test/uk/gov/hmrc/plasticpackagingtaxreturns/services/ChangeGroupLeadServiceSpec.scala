@@ -221,7 +221,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
             addressLine2 = "original-rep-principal-addressLine2",
             countryCode = "original-rep-principal-countryCode"
           ),
-          contactDetails = ContactDetails(email = "original-rep-email", telephone = "original-rep-telephone")
+          contactDetails = Some(ContactDetails(email = "original-rep-email", telephone = "original-rep-telephone"))
         ),
       primaryContactDetails = PrimaryContactDetails(
         name = "original-rep-primary-contact-name",
@@ -291,7 +291,7 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
         addressDetails = someAddressDetails, // copy from member details
-        contactDetails = someContactDetails  // copy from member details
+        contactDetails = Some(someContactDetails)  // copy from member details
       ),
       primaryContactDetails = PrimaryContactDetails(
         name = "",                           // from form

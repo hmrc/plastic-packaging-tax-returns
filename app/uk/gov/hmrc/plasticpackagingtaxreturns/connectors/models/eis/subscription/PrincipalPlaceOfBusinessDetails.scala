@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.Json
 
-case class PrincipalPlaceOfBusinessDetails(addressDetails: AddressDetails, contactDetails: ContactDetails)
+case class PrincipalPlaceOfBusinessDetails(addressDetails: AddressDetails, contactDetails: Option[ContactDetails])
 
 object PrincipalPlaceOfBusinessDetails {
   implicit val format = Json.format[PrincipalPlaceOfBusinessDetails]

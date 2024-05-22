@@ -48,7 +48,7 @@ trait SubscriptionTestData {
         PrincipalPlaceOfBusinessDetails(
           addressDetails =
             AddressDetails(addressLine1 = "2-3 Scala Street", addressLine2 = "London", postalCode = Some("W1T 2HN"), countryCode = "GB"),
-          contactDetails = ContactDetails(email = "test@test.com", telephone = "02034567890")
+          contactDetails = Some(ContactDetails(email = "test@test.com", telephone = "02034567890"))
         ),
       primaryContactDetails =
         uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.PrimaryContactDetails(
