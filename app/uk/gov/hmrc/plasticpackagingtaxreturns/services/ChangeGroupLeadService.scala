@@ -79,7 +79,7 @@ class ChangeGroupLeadService {
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
         addressDetails = newRepOriginalMemberDetails.addressDetails,
-        contactDetails = newRepOriginalMemberDetails.contactDetails
+        contactDetails = Some(newRepOriginalMemberDetails.contactDetails)
       ),
       primaryContactDetails = PrimaryContactDetails(
         name = newRepContactName,
@@ -99,7 +99,7 @@ class ChangeGroupLeadService {
       organisationDetails = subscription.legalEntityDetails.customerDetails.organisationDetails,
       individualDetails = Some(IndividualDetails(firstAndLastNameSplit(subscription.primaryContactDetails.name))),
       addressDetails = subscription.principalPlaceOfBusinessDetails.addressDetails,
-      contactDetails = subscription.principalPlaceOfBusinessDetails.contactDetails,
+      contactDetails = subscription.principalPlaceOfBusinessDetails.contactDetails.get,
       regWithoutIDFlag = subscription.legalEntityDetails.regWithoutIDFlag
     )
 
