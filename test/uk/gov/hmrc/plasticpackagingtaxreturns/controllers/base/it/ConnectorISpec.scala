@@ -43,11 +43,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     SharedMetricRegistries.clear()
     new GuiceApplicationBuilder()
       .configure(overrideConfig)
-      .overrides(
-        bind[SessionRepository].to(mock[SessionRepository]),
-        bind[MetricsFilter].to[MetricsFilterImpl],
-        bind[Metrics].to[MetricsImpl]
-      )
+      .overrides(bind[SessionRepository].to(mock[SessionRepository]), bind[MetricsFilter].to[MetricsFilterImpl], bind[Metrics].to[MetricsImpl])
       .build()
   }
 
@@ -63,11 +59,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
       "auditing.enabled"               -> false
     )
 
-  def getTimer(name: String): Timer = {
+  def getTimer(name: String): Timer =
     metrics.defaultRegistry
       .getTimers(MetricFilter.startsWith(name))
       .get(name)
-  }
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()

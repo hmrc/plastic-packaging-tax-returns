@@ -290,8 +290,8 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         partnershipSubscriptionFlag = false // stay as is
       ),
       principalPlaceOfBusinessDetails = PrincipalPlaceOfBusinessDetails(
-        addressDetails = someAddressDetails, // copy from member details
-        contactDetails = Some(someContactDetails)  // copy from member details
+        addressDetails = someAddressDetails,      // copy from member details
+        contactDetails = Some(someContactDetails) // copy from member details
       ),
       primaryContactDetails = PrimaryContactDetails(
         name = "",                           // from form
