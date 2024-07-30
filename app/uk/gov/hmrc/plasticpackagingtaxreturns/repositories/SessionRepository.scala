@@ -33,8 +33,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig, clock: Clock)(implicit ec: ExecutionContext)
-    extends PlayMongoRepository[UserAnswers](
+class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: AppConfig, clock: Clock)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository[UserAnswers](
       collectionName = "user-answers",
       mongoComponent = mongoComponent,
       domainFormat = UserAnswers.format,
@@ -72,7 +73,11 @@ class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: Ap
     val updatedAnswers = answers copy (lastUpdated = Instant.now(clock))
 
     collection
-      .replaceOne(filter = byId(updatedAnswers.id), replacement = updatedAnswers, options = ReplaceOptions().upsert(true))
+      .replaceOne(
+        filter = byId(updatedAnswers.id),
+        replacement = updatedAnswers,
+        options = ReplaceOptions().upsert(true)
+      )
       .toFuture()
       .map(_ => true)
   }
@@ -87,8 +92,9 @@ class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: Ap
 
   def clearUserAnswers(pptReference: String, cacheKey: String): Future[Boolean] =
     clear(cacheKey).andThen {
-      case Success(_)  => logger.info(s"Successfully removed user-answers for $pptReference from cache")
-      case Failure(ex) => logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)
+      case Success(_) => logger.info(s"Successfully removed user-answers for $pptReference from cache")
+      case Failure(ex) =>
+        logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)
     }
 
 }

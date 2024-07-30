@@ -45,8 +45,8 @@ import java.time.Instant
 import scala.concurrent.Future
 
 class CacheControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport
-    with MockReturnsRepository {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
+    with AuthTestSupport with MockReturnsRepository {
 
   SharedMetricRegistries.clear()
 

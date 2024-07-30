@@ -21,9 +21,15 @@ import play.api.libs.json
 import play.api.libs.json._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails.Relationship
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{
+  GroupPartnershipDetails,
+  GroupPartnershipSubscription
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.ChangeOfCircumstanceDetails.Update
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
+  ChangeOfCircumstanceDetails,
+  SubscriptionDisplayResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.changeGroupLead._
@@ -53,7 +59,9 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(_.organisationDetails.get.organisationName) must contain(
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.map(
+        _.organisationDetails.get.organisationName
+      ) must contain(
         "original-rep-organisationName"
       )
       val member = result.groupPartnershipSubscription.get.groupPartnershipDetails.find(
@@ -67,7 +75,9 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
-      result.groupPartnershipSubscription.get.groupPartnershipDetails.count(_.relationship == Relationship.Representative) mustBe 1
+      result.groupPartnershipSubscription.get.groupPartnershipDetails.count(
+        _.relationship == Relationship.Representative
+      ) mustBe 1
       withClue("members list should contain all members including representative") {
         result.groupPartnershipSubscription.get.groupPartnershipDetails.size mustBe 3
       }
@@ -79,7 +89,9 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       val result = sut.createSubscriptionUpdateRequest(sub, defaultUserAnswers)
 
       result.legalEntityDetails.customerDetails.organisationDetails.get.organisationName mustBe "Lost Boys Ltd-organisationName"
-      result.legalEntityDetails.customerDetails.organisationDetails.get.organisationType mustBe Some("Lost Boys Ltd-organisationType")
+      result.legalEntityDetails.customerDetails.organisationDetails.get.organisationType mustBe Some(
+        "Lost Boys Ltd-organisationType"
+      )
       result.legalEntityDetails.customerIdentification1 mustBe "Lost Boys Ltd-customerIdentification1"
       result.legalEntityDetails.customerIdentification2 mustBe Some("Lost Boys Ltd-customerIdentification2")
 
@@ -108,11 +120,16 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
     "error" when {
 
-      Seq(ChooseNewGroupLeadGettable, MainContactNameGettable, MainContactJobTitleGettable, NewGroupLeadEnterContactAddressGettable).foreach {
+      Seq(
+        ChooseNewGroupLeadGettable,
+        MainContactNameGettable,
+        MainContactJobTitleGettable,
+        NewGroupLeadEnterContactAddressGettable
+      ).foreach {
         gettable =>
           s"user answers does not contain ${gettable.getClass.getSimpleName}" in {
             val userAnswers = defaultUserAnswers
-              .setUnsafe(gettable.path, JsNull) //unset the specific default
+              .setUnsafe(gettable.path, JsNull) // unset the specific default
 
             val sub = createSubscription(defaultMember)
 
@@ -137,7 +154,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "Selected New Representative member's name doesn't match anyone in members list" in {
         val sub = createSubscription(defaultMember)
 
-        val userAnswers = defaultUserAnswers.setUnsafe(ChooseNewGroupLeadGettable, Member("unmatchable", "Lost Boys Ltd-customerIdentification1"))
+        val userAnswers = defaultUserAnswers.setUnsafe(
+          ChooseNewGroupLeadGettable,
+          Member("unmatchable", "Lost Boys Ltd-customerIdentification1")
+        )
 
         val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
@@ -146,7 +166,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       "Selected New Representative member's crn doesn't match anyone in members list" in {
         val sub = createSubscription(defaultMember)
 
-        val userAnswers = defaultUserAnswers.setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "unmatchable"))
+        val userAnswers = defaultUserAnswers.setUnsafe(
+          ChooseNewGroupLeadGettable,
+          Member("Lost Boys Ltd-organisationName", "unmatchable")
+        )
 
         val ex = intercept[IllegalStateException](sut.createSubscriptionUpdateRequest(sub, userAnswers))
         ex.getMessage mustBe "Selected New Representative member is not part of the group"
@@ -191,7 +214,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
 
   def defaultUserAnswers: UserAnswers =
     UserAnswers("user-answers-id")
-      .setUnsafe(ChooseNewGroupLeadGettable, Member("Lost Boys Ltd-organisationName", "Lost Boys Ltd-customerIdentification1"))
+      .setUnsafe(
+        ChooseNewGroupLeadGettable,
+        Member("Lost Boys Ltd-organisationName", "Lost Boys Ltd-customerIdentification1")
+      )
       .setUnsafe(MainContactNameGettable, "Peter Pan")
       .setUnsafe(MainContactJobTitleGettable, "Lost Boy")
       .setUnsafe(
@@ -209,7 +235,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
           CustomerDetails(
             CustomerType.Organisation,
             organisationDetails =
-              Some(OrganisationDetails(organisationType = Some("original-rep-organisationType"), organisationName = "original-rep-organisationName"))
+              Some(OrganisationDetails(
+                organisationType = Some("original-rep-organisationType"),
+                organisationName = "original-rep-organisationName"
+              ))
           ),
         groupSubscriptionFlag = true,
         regWithoutIDFlag = false
@@ -225,7 +254,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         ),
       primaryContactDetails = PrimaryContactDetails(
         name = "original-rep-primary-contact-name",
-        contactDetails = ContactDetails(email = "original-rep-primary-contact-email", telephone = "original-rep-primary-contact-telephone"),
+        contactDetails = ContactDetails(
+          email = "original-rep-primary-contact-email",
+          telephone = "original-rep-primary-contact-telephone"
+        ),
         positionInCompany = "original-rep-primary-contact-positionInCompany"
       ),
       businessCorrespondenceDetails =
@@ -257,10 +289,17 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
       customerIdentification1 = s"$member-customerIdentification1",
       customerIdentification2 = Some(s"$member-customerIdentification2"),
       organisationDetails =
-        Some(OrganisationDetails(organisationType = Some(s"$member-organisationType"), organisationName = s"$member-organisationName")),
+        Some(OrganisationDetails(
+          organisationType = Some(s"$member-organisationType"),
+          organisationName = s"$member-organisationName"
+        )),
       individualDetails = None,
       addressDetails =
-        AddressDetails(addressLine1 = s"$member-addressLine1", addressLine2 = s"$member-addressLine2", countryCode = s"$member-countryCode"),
+        AddressDetails(
+          addressLine1 = s"$member-addressLine1",
+          addressLine2 = s"$member-addressLine2",
+          countryCode = s"$member-countryCode"
+        ),
       contactDetails = ContactDetails(email = s"$member-email", telephone = s"$member-telephone"),
       regWithoutIDFlag = false
     )
@@ -294,9 +333,10 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
         contactDetails = Some(someContactDetails) // copy from member details
       ),
       primaryContactDetails = PrimaryContactDetails(
-        name = "",                           // from form
-        contactDetails = someContactDetails, // copied from member details? Do we need a 2nd set of email, phone and mobile?
-        positionInCompany = ""               // from form, job title
+        name = "", // from form
+        contactDetails =
+          someContactDetails,  // copied from member details? Do we need a 2nd set of email, phone and mobile?
+        positionInCompany = "" // from form, job title
       ),
       businessCorrespondenceDetails = someAddressDetails2, // from form for contact address
       taxObligationStartDate = "",                         // stay as is
@@ -317,9 +357,12 @@ class ChangeGroupLeadServiceSpec extends PlaySpec {
                   organisationName = ""
                 )
               ),
-              individualDetails = Some(IndividualDetails(title = Some(""), firstName = "", middleName = Some(""), lastName = "")),
-              addressDetails = someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
-              contactDetails = someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+              individualDetails =
+                Some(IndividualDetails(title = Some(""), firstName = "", middleName = Some(""), lastName = "")),
+              addressDetails =
+                someAddressDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
+              contactDetails =
+                someContactDetails, // for previous rep, copy from principalPlaceOfBusinessDetails.contactDetails
               regWithoutIDFlag = false
             )
           )

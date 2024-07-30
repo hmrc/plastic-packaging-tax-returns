@@ -33,7 +33,11 @@ import play.api.test.Helpers.{await, contentAsJson, defaultAwaitTimeout, status,
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  FinancialDataResponse,
+  ObligationDataResponse,
+  ObligationStatus
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
@@ -67,12 +71,21 @@ class ReturnsControllerSpec
     extends AnyWordSpec with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport with MockConnectors
     with ReturnsSubmissionResponseBuilder {
 
-  private val userAnswersReturns: UserAnswers        = UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
-  private val invalidUserAnswersReturns: UserAnswers = UserAnswers("id").copy(data = ReturnTestHelper.invalidReturnsDataJson)
-  private val userAnswersAmends: UserAnswers         = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
-  private val userAnswersPartialAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
-  private val invalidUserAnswersAmends: UserAnswers  = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
-  private val calculations: Calculations             = Calculations(1, 1, 1, 1, isSubmittable = true, 0.123)
+  private val userAnswersReturns: UserAnswers =
+    UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
+
+  private val invalidUserAnswersReturns: UserAnswers =
+    UserAnswers("id").copy(data = ReturnTestHelper.invalidReturnsDataJson)
+
+  private val userAnswersAmends: UserAnswers = UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends)
+
+  private val userAnswersPartialAmends: UserAnswers =
+    UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithoutAmends)
+
+  private val invalidUserAnswersAmends: UserAnswers =
+    UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataWithInvalidAmends)
+
+  private val calculations: Calculations = Calculations(1, 1, 1, 1, isSubmittable = true, 0.123)
 
   private val expectedNewReturnValues: ReturnValues = NewReturnValues(
     periodKey = "21C4",
@@ -168,8 +181,9 @@ class ReturnsControllerSpec
 
     "return OK response" in {
       withAuthorizedUser()
-      val periodKey             = "22CC"
-      val returnDisplayResponse = JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" -> JsString(LocalDate.of(2020, 5, 14).toString)))))
+      val periodKey = "22CC"
+      val returnDisplayResponse =
+        JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" -> JsString(LocalDate.of(2020, 5, 14).toString)))))
 
       mockReturnDisplayConnector(returnDisplayResponse)
       when(mockTaxRateTable.lookupRateFor(any)).thenReturn(0.133)
@@ -252,7 +266,8 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
+      val result: Future[Result] =
+        sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -270,7 +285,8 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
+      val result: Future[Result] =
+        sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
@@ -310,10 +326,15 @@ class ReturnsControllerSpec
       when(mockSessionRepository.clear(any[String])).thenReturn(Future.failed(new RuntimeException("BANG!")))
       mockReturnsSubmissionConnector(aReturn())
 
-      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
+      val result: Future[Result] =
+        sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
-      verify(mockReturnsConnector).submitReturn(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(expectedSubmissionRequestForReturns), any)(any)
+      verify(mockReturnsConnector).submitReturn(
+        ArgumentMatchers.eq(pptReference),
+        ArgumentMatchers.eq(expectedSubmissionRequestForReturns),
+        any
+      )(any)
     }
   }
 
@@ -340,7 +361,11 @@ class ReturnsControllerSpec
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
-      verify(mockReturnsConnector).submitReturn(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(expectedSubmissionRequestForAmend), any)(any)
+      verify(mockReturnsConnector).submitReturn(
+        ArgumentMatchers.eq(pptReference),
+        ArgumentMatchers.eq(expectedSubmissionRequestForAmend),
+        any
+      )(any)
       verifySubmitNonRepudiation(createNrsPayload(expectedAmendReturnValues, userAnswersAmends))
 
       withClue("delete a return after successful amend") {
@@ -430,7 +455,9 @@ class ReturnsControllerSpec
         withAuthorizedUser()
         setupMocksForSubmit(userAnswersReturns)
         mockReturnsSubmissionConnector(aReturn())
-        when(mockCreditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException("a field is missing")
+        when(mockCreditsCalculationService.totalRequestedCredit(any, any)) thenThrow new RuntimeException(
+          "a field is missing"
+        )
 
         the[Exception] thrownBy await(sut.submit(pptReference)(FakeRequest())) must
           have message "a field is missing"
@@ -481,7 +508,13 @@ class ReturnsControllerSpec
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
 
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditsCalculationService.totalRequestedCredit(any, any)).thenReturn(CreditCalculation(0L, 0, 0, canBeClaimed = true, Map.empty))
+    when(mockCreditsCalculationService.totalRequestedCredit(any, any)).thenReturn(CreditCalculation(
+      0L,
+      0,
+      0,
+      canBeClaimed = true,
+      Map.empty
+    ))
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))

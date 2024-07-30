@@ -26,7 +26,11 @@ object Charge {
   implicit val writes: OWrites[Charge] = Json.writes[Charge]
 }
 
-final case class PPTFinancials(creditAmount: Option[BigDecimal], debitAmount: Option[Charge], overdueAmount: Option[BigDecimal])
+final case class PPTFinancials(
+  creditAmount: Option[BigDecimal],
+  debitAmount: Option[Charge],
+  overdueAmount: Option[BigDecimal]
+)
 
 object PPTFinancials {
 
@@ -35,11 +39,9 @@ object PPTFinancials {
   def debitDue(amount: BigDecimal, dueDate: LocalDate): PPTFinancials =
     new PPTFinancials(None, debitAmount = Some(Charge(amount, dueDate)), None)
 
-  def overdue(amount: BigDecimal): PPTFinancials =
-    new PPTFinancials(None, None, overdueAmount = Some(amount))
+  def overdue(amount: BigDecimal): PPTFinancials = new PPTFinancials(None, None, overdueAmount = Some(amount))
 
-  def inCredit(amount: BigDecimal): PPTFinancials =
-    new PPTFinancials(creditAmount = Some(amount.abs), None, None)
+  def inCredit(amount: BigDecimal): PPTFinancials = new PPTFinancials(creditAmount = Some(amount.abs), None, None)
 
   def debitAndOverdue(dueAmount: BigDecimal, dueDate: LocalDate, overdueAmount: BigDecimal) =
     new PPTFinancials(None, debitAmount = Some(Charge(dueAmount, dueDate)), overdueAmount = Some(overdueAmount))

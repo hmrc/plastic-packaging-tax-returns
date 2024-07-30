@@ -55,8 +55,8 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.Future
 
 class SubscriptionControllerSpec
-    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers with AuthTestSupport
-    with SubscriptionTestData with MockConnectors {
+    extends AnyWordSpec with GuiceOneAppPerSuite with BeforeAndAfterEach with ScalaFutures with Matchers
+    with AuthTestSupport with SubscriptionTestData with MockConnectors {
 
   SharedMetricRegistries.clear()
   protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
@@ -122,7 +122,9 @@ class SubscriptionControllerSpec
         when(mockHttpResponse.status).thenReturn(417)
         when(mockHttpResponse.body).thenReturn("""{"x": "y"}""")
 
-        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(Future.successful(Left(mockHttpResponse)))
+        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(
+          Future.successful(Left(mockHttpResponse))
+        )
 
         val result: Result = await(route(app, getRequest(pptReference)).get)
         result.header.status mustBe 417

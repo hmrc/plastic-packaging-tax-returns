@@ -29,7 +29,8 @@ class SingleYearClaimSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
   private val taxCalculationService = mock[TaxCalculationService]
   private val taxablePlastic        = TaxablePlastic(1, 2, 3)
 
-  private val exampleClaim = SingleYearClaim(LocalDate.of(2024, 3, 31), Some(CreditsAnswer(true, Some(1L))), Some(CreditsAnswer(true, Some(2L))))
+  private val exampleClaim =
+    SingleYearClaim(LocalDate.of(2024, 3, 31), Some(CreditsAnswer(true, Some(1L))), Some(CreditsAnswer(true, Some(2L))))
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

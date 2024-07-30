@@ -41,12 +41,17 @@ trait AuthTestSupport extends MockitoSugar {
   val pptReference = "7777777"
 
   def enrolmentWithDelegatedAuth(pptReference: String) =
-    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule("ppt-auth")
+    Enrolment(pptEnrolmentKey).withIdentifier(pptEnrolmentIdentifierName, pptReference).withDelegatedAuthRule(
+      "ppt-auth"
+    )
 
   def withAuthorizedUser(user: SignedInUser = newUser(Some(pptEnrolment(pptReference)))): Unit = {
     val fetch = allEnrolments and internalId
 
-    when(mockAuthConnector.authorise(ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)), ArgumentMatchers.eq(fetch))(any(), any()))
+    when(mockAuthConnector.authorise(
+      ArgumentMatchers.argThat(pptEnrollmentMatcherForPptUser(user)),
+      ArgumentMatchers.eq(fetch)
+    )(any(), any()))
       .thenReturn(Future.successful(new ~(user.enrolments, user.internalId)))
   }
 
@@ -56,7 +61,8 @@ trait AuthTestSupport extends MockitoSugar {
   def pptEnrollmentMatcherForPptUser(user: SignedInUser): ArgumentMatcher[Predicate] = {
     val pptEnrolment = user.enrolments.getEnrolment(pptEnrolmentKey).get
     val pptReference = pptEnrolment.getIdentifier(pptEnrolmentIdentifierName).get.value
-    (p: Predicate) => p == enrolmentWithDelegatedAuth(pptReference) && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
+    (p: Predicate) =>
+      p == enrolmentWithDelegatedAuth(pptReference) && user.enrolments.getEnrolment(pptEnrolmentKey).isDefined
   }
 
   def newUser(enrolments: Option[Enrolments] = Some(pptEnrolment("123"))): SignedInUser =
@@ -74,8 +80,7 @@ trait AuthTestSupport extends MockitoSugar {
   def pptEnrolment(pptEnrolmentId: String) =
     newEnrolments(newEnrolment(AuthAction.pptEnrolmentKey, AuthAction.pptEnrolmentIdentifierName, pptEnrolmentId))
 
-  def newEnrolments(enrolment: Enrolment*): Enrolments =
-    Enrolments(enrolment.toSet)
+  def newEnrolments(enrolment: Enrolment*): Enrolments = Enrolments(enrolment.toSet)
 
   def newEnrolment(key: String, identifierName: String, identifierValue: String): Enrolment =
     Enrolment(key).withIdentifier(identifierName, identifierValue)
@@ -84,7 +89,10 @@ trait AuthTestSupport extends MockitoSugar {
     nrsIdentityRetrievals: Retrieval[NonRepudiationIdentityRetrievals],
     authRetrievalsResponse: NonRepudiationIdentityRetrievals
   ): OngoingStubbing[Future[NonRepudiationIdentityRetrievals]] =
-    when(mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(any(), any())).thenReturn(
+    when(mockAuthConnector.authorise(ArgumentMatchers.eq(EmptyPredicate), ArgumentMatchers.eq(nrsIdentityRetrievals))(
+      any(),
+      any()
+    )).thenReturn(
       Future.successful(authRetrievalsResponse)
     )
 

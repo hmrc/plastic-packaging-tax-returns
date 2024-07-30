@@ -23,7 +23,10 @@ import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpReadsHttpResponse, HttpResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector._
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
+  NonRepudiationMetadata,
+  NonRepudiationSubmissionAccepted
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Retry
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
@@ -32,7 +35,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
 @Singleton
-class NonRepudiationConnector @Inject() (httpClient: HttpClient, val config: AppConfig, metrics: Metrics, override val actorSystem: ActorSystem)(
+class NonRepudiationConnector @Inject() (
+  httpClient: HttpClient,
+  val config: AppConfig,
+  metrics: Metrics,
+  override val actorSystem: ActorSystem
+)(
   implicit ec: ExecutionContext
 ) extends HttpReadsHttpResponse with Retry {
 
@@ -47,7 +55,9 @@ class NonRepudiationConnector @Inject() (httpClient: HttpClient, val config: App
     }
   }
 
-  private def submit(timer: Timer.Context, jsonBody: JsObject)(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
+  private def submit(timer: Timer.Context, jsonBody: JsObject)(implicit
+    hc: HeaderCarrier
+  ): Future[NonRepudiationSubmissionAccepted] =
     httpClient.POST[JsObject, HttpResponse](
       url = config.nonRepudiationSubmissionUrl,
       body = jsonBody,

@@ -47,9 +47,10 @@ class ChangeGroupLeadController @Inject() (
   def change(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request: AuthorizedRequest[AnyContent] =>
-        val pptReference                                                          = request.pptReference
-        val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = subscriptionsConnector.getSubscription(pptReference)
-        val getUAF: Future[Option[UserAnswers]]                                   = sessionRepository.get(request.cacheKey)
+        val pptReference = request.pptReference
+        val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] =
+          subscriptionsConnector.getSubscription(pptReference)
+        val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
 
         {
           for {
@@ -72,8 +73,9 @@ class ChangeGroupLeadController @Inject() (
     request: AuthorizedRequest[_]
   )(implicit hc: HeaderCarrier) = {
 
-    val subscriptionUpdateRequest       = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
-    val nrsSubscriptionUpdateSubmission = changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
+    val subscriptionUpdateRequest = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
+    val nrsSubscriptionUpdateSubmission =
+      changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
     subscriptionsConnector
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .andThen { case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey) }

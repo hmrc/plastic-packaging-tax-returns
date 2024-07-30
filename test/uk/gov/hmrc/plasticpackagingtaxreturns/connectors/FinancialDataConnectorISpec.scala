@@ -95,7 +95,11 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         }
 
         withClue("write the audit") {
-          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getAuditModel))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getAuditModel))(
+            any,
+            any,
+            any
+          )
         }
       }
 
@@ -126,7 +130,10 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
 
           res mustBe Left(INTERNAL_SERVER_ERROR)
 
-          verify(auditConnector).sendExplicitAudit(eqTo(GetPaymentStatement.eventType), eqTo(getExpectedAuditModelForFailure("{}")))(any, any, any)
+          verify(auditConnector).sendExplicitAudit(
+            eqTo(GetPaymentStatement.eventType),
+            eqTo(getExpectedAuditModelForFailure("{}"))
+          )(any, any, any)
         }
 
         "return an exception" in {
@@ -144,7 +151,16 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   }
 
   private def getFinancialData =
-    sut.get(pptReference, Some(fromDate), Some(toDate), onlyOpenItems, includeLocks, calculateAccruedInterest, customerPaymentInformation, internalId)
+    sut.get(
+      pptReference,
+      Some(fromDate),
+      Some(toDate),
+      onlyOpenItems,
+      includeLocks,
+      calculateAccruedInterest,
+      customerPaymentInformation,
+      internalId
+    )
 
   "FinancialData connector for obligation data" should {
 
@@ -160,7 +176,10 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
           val res = await(getFinancialData)
 
           res mustBe Left(statusCode)
-          verify(auditConnector).sendExplicitAudit(GetPaymentStatement.eventType, getExpectedAuditModelForFailure(message))
+          verify(auditConnector).sendExplicitAudit(
+            GetPaymentStatement.eventType,
+            getExpectedAuditModelForFailure(message)
+          )
         }
       }
     }
@@ -205,7 +224,11 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private def captureAndVerifyAuditConnector(): Unit = {
     val captor = ArgCaptor[GetPaymentStatement]
 
-    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor)(any, any, any)
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor)(
+      any,
+      any,
+      any
+    )
 
     val audit = captor.value
     audit.internalId mustBe internalId

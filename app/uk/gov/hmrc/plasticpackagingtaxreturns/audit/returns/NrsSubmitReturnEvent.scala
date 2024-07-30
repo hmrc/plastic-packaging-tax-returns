@@ -37,7 +37,11 @@ object NrsSubmitReturnEvent {
   implicit val format: OFormat[NrsSubmitReturnEvent] = Json.format[NrsSubmitReturnEvent]
   val eventType: String                              = "nrsSubmitOrAmendReturn"
 
-  def apply(submission: ReturnsSubmissionRequest, pptReference: Option[String], processingDateTime: Option[ZonedDateTime]): NrsSubmitReturnEvent =
+  def apply(
+    submission: ReturnsSubmissionRequest,
+    pptReference: Option[String],
+    processingDateTime: Option[ZonedDateTime]
+  ): NrsSubmitReturnEvent =
     NrsSubmitReturnEvent(
       submission.returnType,
       submission.submissionId,

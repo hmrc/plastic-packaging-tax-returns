@@ -34,7 +34,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig)(implicit ec: ExecutionContext) {
+class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig)(implicit
+  ec: ExecutionContext
+) {
 
   private val logger = Logger(this.getClass)
 
@@ -43,7 +45,12 @@ class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig:
   ): Future[SubscriptionUpdateSuccessfulResponse] = {
     val timerName = "ppt.subscription.update.timer"
 
-    eisHttpClient.put(appConfig.subscriptionUpdateUrl(pptReference), subscriptionUpdateDetails, timerName, buildEisHeader).map { response =>
+    eisHttpClient.put(
+      appConfig.subscriptionUpdateUrl(pptReference),
+      subscriptionUpdateDetails,
+      timerName,
+      buildEisHeader
+    ).map { response =>
       response.status match {
         case Status.OK =>
           val triedResponse = response.jsonAs[SubscriptionUpdateSuccessfulResponse]
@@ -57,16 +64,21 @@ class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig:
     }
   }
 
-  def getSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
+  def getSubscription(pptReference: String)(implicit
+    hc: HeaderCarrier
+  ): Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] = {
 
     val timerName = "ppt.subscription.display.timer"
 
     val url = appConfig.subscriptionDisplayUrl(pptReference)
     eisHttpClient.get(url, Seq.empty, timerName, buildEisHeader)
       .map { response =>
-        logger.info(s"PPT view subscription with correlationId [${response.correlationId}] and pptReference [$pptReference]")
+        logger.info(
+          s"PPT view subscription with correlationId [${response.correlationId}] and pptReference [$pptReference]"
+        )
         if (Status.isSuccessful(response.status)) {
-          val json = Json.parse(response.body.replaceAll("\\s", " ")) //subscription data can come back un sanitised for json.
+          val json =
+            Json.parse(response.body.replaceAll("\\s", " ")) // subscription data can come back un sanitised for json.
           Right(json.as[SubscriptionDisplayResponse])
         } else
           Left(response)

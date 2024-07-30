@@ -37,7 +37,12 @@ trait ReturnsTestData {
       processingDate = LocalDate.now().toString,
       idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
       chargeDetails = Some(
-        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
+        ChargeDetails(
+          chargeType = "Plastic Tax",
+          chargeReference = "ABC123",
+          amount = 1234.56,
+          dueDate = LocalDate.now().plusDays(30).toString
+        )
       ),
       exportChargeDetails = None,
       returnDetails = Some(

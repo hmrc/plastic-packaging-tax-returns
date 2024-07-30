@@ -39,7 +39,11 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
       Seq(
         Obligation(
           identification =
-            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+            Some(Identification(
+              incomeSourceType = Some("unused"),
+              referenceNumber = "unused",
+              referenceType = "unused"
+            )),
           obligationDetails = obligationDetail
         )
       )
@@ -68,19 +72,27 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
 
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
-        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left(
+          "Error constructing Obligations, expected 1 found 0"
+        )
       }
 
       "there are multiple obligations in data" in {
         val obligation = Obligation(
           identification =
-            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+            Some(Identification(
+              incomeSourceType = Some("unused"),
+              referenceNumber = "unused",
+              referenceType = "unused"
+            )),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
           ObligationDataResponse(Seq(obligation, obligation))
 
-        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
+        sut.constructPPTFulfilled(obligationDataResponse) mustBe Left(
+          "Error constructing Obligations, expected 1 found 2"
+        )
       }
     }
 
@@ -88,7 +100,11 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
       "the sequence is empty" in {
         val obligation = Obligation(
           identification =
-            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+            Some(Identification(
+              incomeSourceType = Some("unused"),
+              referenceNumber = "unused",
+              referenceType = "unused"
+            )),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
@@ -101,7 +117,11 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
         val obligationDetail = ObligationDetail(ObligationStatus.FULFILLED, today, today, Some(today), today, "PKEY")
         val obligation = Obligation(
           identification =
-            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+            Some(Identification(
+              incomeSourceType = Some("unused"),
+              referenceNumber = "unused",
+              referenceType = "unused"
+            )),
           obligationDetails = Seq(obligationDetail)
         )
         val obligationDataResponse: ObligationDataResponse =
@@ -118,19 +138,27 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
       "there are no obligations in data" in {
         val obligationDataResponse: ObligationDataResponse = ObligationDataResponse(Seq.empty)
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 0")
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left(
+          "Error constructing Obligations, expected 1 found 0"
+        )
       }
 
       "there are multiple obligations in data" in {
         val obligation = Obligation(
           identification =
-            Some(Identification(incomeSourceType = Some("unused"), referenceNumber = "unused", referenceType = "unused")),
+            Some(Identification(
+              incomeSourceType = Some("unused"),
+              referenceNumber = "unused",
+              referenceType = "unused"
+            )),
           obligationDetails = Nil
         )
         val obligationDataResponse: ObligationDataResponse =
           ObligationDataResponse(Seq(obligation, obligation))
 
-        sut.constructPPTObligations(obligationDataResponse) mustBe Left("Error constructing Obligations, expected 1 found 2")
+        sut.constructPPTObligations(obligationDataResponse) mustBe Left(
+          "Error constructing Obligations, expected 1 found 2"
+        )
       }
     }
 
@@ -179,7 +207,9 @@ class PPTObligationsServiceSpec extends PlaySpec with MockitoSugar with EitherVa
       "there is more than one overdue" in {
         val veryOverdueObligation  = makeDetail(today.minusDays(50), "very overdue")
         val obligationDataResponse = makeDataResponse(overdueObligation, veryOverdueObligation)
-        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(veryOverdueObligation)
+        sut.constructPPTObligations(obligationDataResponse).value.oldestOverdueObligation mustBe Some(
+          veryOverdueObligation
+        )
       }
     }
 

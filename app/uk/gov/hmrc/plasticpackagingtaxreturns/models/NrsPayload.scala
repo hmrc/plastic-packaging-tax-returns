@@ -34,7 +34,15 @@ class NrsPayload(edgeOfSystem: EdgeOfSystem, payload: Array[Byte]) {
   ): NonRepudiationMetadata = {
 
     val payloadChecksum = calculatePayloadChecksum()
-    NonRepudiationMetadata.create(notableEvent, pptReference, userHeaders, identityData, userAuthToken, payloadChecksum, submissionTimestamp)
+    NonRepudiationMetadata.create(
+      notableEvent,
+      pptReference,
+      userHeaders,
+      identityData,
+      userAuthToken,
+      payloadChecksum,
+      submissionTimestamp
+    )
   }
 
   def encodePayload(): String =

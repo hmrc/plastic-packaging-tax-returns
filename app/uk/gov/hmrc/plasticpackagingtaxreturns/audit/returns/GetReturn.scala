@@ -18,7 +18,13 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns
 
 import play.api.libs.json.{JsValue, Json, OFormat}
 
-case class GetReturn(internalId: String, periodKey: String, result: String, response: Option[JsValue], error: Option[String])
+case class GetReturn(
+  internalId: String,
+  periodKey: String,
+  result: String,
+  response: Option[JsValue],
+  error: Option[String]
+)
 
 object GetReturn {
   implicit val format: OFormat[GetReturn] = Json.format[GetReturn]

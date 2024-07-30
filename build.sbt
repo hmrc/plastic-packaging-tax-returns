@@ -33,9 +33,9 @@ lazy val scoverageSettings: Seq[Setting[_]] = Seq(
   coverageExcludedPackages := List("<empty>", "Reverse.*", "domain\\..*", "models\\..*", "metrics\\..*", ".*(BuildInfo|Routes|Options).*").mkString(
     ";"
   ),
-  coverageMinimumStmtTotal := 90,
-  coverageFailOnMinimum := true,
-  coverageHighlighting := true,
+  coverageMinimumStmtTotal  := 90,
+  coverageFailOnMinimum     := true,
+  coverageHighlighting      := true,
   parallelExecution in Test := false
 )
 

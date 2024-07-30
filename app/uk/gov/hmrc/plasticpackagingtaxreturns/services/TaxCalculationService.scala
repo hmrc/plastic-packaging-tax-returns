@@ -23,21 +23,24 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import java.time.LocalDate
 import scala.math.BigDecimal.RoundingMode
 
-/**
-  * Calculate the tax to be paid, or the credit to be claimed for a given weight of taxable packaging
-  * @param taxRateTable auto-injected PPT tax rate table
-  * @note Policy have advised that rounding must always happen in favor of the customer:
-  *        - when calculating a credit (money given to the customer) round up
-  *        - when calculating a debit (money taken from the customer) round down
+/** Calculate the tax to be paid, or the credit to be claimed for a given weight of taxable packaging
+  * @param taxRateTable
+  *   auto-injected PPT tax rate table
+  * @note
+  *   Policy have advised that rounding must always happen in favor of the customer:
+  *   - when calculating a credit (money given to the customer) round up
+  *   - when calculating a debit (money taken from the customer) round down
   */
 class TaxCalculationService @Inject() (taxRateTable: TaxRateTable) {
 
-  /**
-    * Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the
-    * tax rate for that quarter. Tax rates are in £ per kg, and weights are in kg.
-    * @param periodEndDate date tax period period ended, eg for 22C2 the end-date would be 30th June 2022
-    * @param weightInKg total weight in kg to pay tax on
-    * @return the amount (in £) of tax payable, rounded-down to nearest pence
+  /** Calculates the tax payable for the given weight (kg) and quarter. The tax rate used in the calculation is the tax
+    * rate for that quarter. Tax rates are in £ per kg, and weights are in kg.
+    * @param periodEndDate
+    *   date tax period period ended, eg for 22C2 the end-date would be 30th June 2022
+    * @param weightInKg
+    *   total weight in kg to pay tax on
+    * @return
+    *   the amount (in £) of tax payable, rounded-down to nearest pence
     */
   def weightToDebit(periodEndDate: LocalDate, weightInKg: Long): TaxablePlastic = {
     val taxRateApplied = taxRateTable.lookupRateFor(periodEndDate)
@@ -48,10 +51,13 @@ class TaxCalculationService @Inject() (taxRateTable: TaxRateTable) {
 
   /** Calculates credit amount for the given weight, ie tax previously due / paid, using the relevant tax rate applied
     * at that time. Tax rates are in £ per kg, and weights are in kg.
-    * @param taxRateEndDate reference to tax-rate applied at the time tax was paid. As an example, for tax paid during
-    *                       2022-23, end date would be 2023-03-31
-    * @param weightInKg weight of plastic to claim credit for, in kg
-    * @return the amount in £ this credit claim is worth, rounded up to the nearest pence
+    * @param taxRateEndDate
+    *   reference to tax-rate applied at the time tax was paid. As an example, for tax paid during 2022-23, end date
+    *   would be 2023-03-31
+    * @param weightInKg
+    *   weight of plastic to claim credit for, in kg
+    * @return
+    *   the amount in £ this credit claim is worth, rounded up to the nearest pence
     */
   def weightToCredit(taxRateEndDate: LocalDate, weightInKg: Long): TaxablePlastic = {
     val taxRateApplied = taxRateTable.lookupRateFor(taxRateEndDate)

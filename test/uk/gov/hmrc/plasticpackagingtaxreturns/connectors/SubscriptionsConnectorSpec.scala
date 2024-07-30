@@ -31,7 +31,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTes
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
 
-class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures with EitherValues {
+class SubscriptionsConnectorSpec
+    extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures with EitherValues {
 
   private lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
 
@@ -68,7 +69,7 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
 
       "handle 200 for body with Illegal unquoted character ((CTRL-CHAR, code 9))" in {
 
-        val illegalData = "test data HQ UC	  " //due to the \t(tabb) on the end not escaped
+        val illegalData = "test data HQ UC	  " // due to the \t(tabb) on the end not escaped
         val body =
           s"""{
              |  "processingDate" : "2020-05-05",
@@ -208,7 +209,10 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         stubSubscriptionUpdateFailure(500)
 
         intercept[Exception] {
-          await(connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription)))
+          await(connector.updateSubscription(
+            pptReference,
+            createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+          ))
         }
       }
 
@@ -239,7 +243,10 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
           stubSubscriptionUpdateFailure(httpStatus = statusCode)
 
           intercept[Exception] {
-            await(connector.updateSubscription(pptReference, createSubscriptionUpdateRequest(ukLimitedCompanySubscription)))
+            await(connector.updateSubscription(
+              pptReference,
+              createSubscriptionUpdateRequest(ukLimitedCompanySubscription)
+            ))
           }
         }
       }
@@ -256,7 +263,11 @@ class SubscriptionsConnectorSpec extends ConnectorISpec with Injector with Subsc
         )
     )
 
-  private def stubSubscriptionUpdate(pptReference: String, subscriptionProcessingDate: String, formBundleNumber: String): Unit =
+  private def stubSubscriptionUpdate(
+    pptReference: String,
+    subscriptionProcessingDate: String,
+    formBundleNumber: String
+  ): Unit =
     stubFor(
       put(subscriptionUpdateUrl)
         .willReturn(

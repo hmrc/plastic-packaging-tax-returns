@@ -66,9 +66,8 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
   private val futures        = mock[Futures]
 
-  private val eisHttpClient = {
+  private val eisHttpClient =
     new EisHttpClient(httpClient, config, edgeOfSystem, metric, futures)
-  }
 
   private val sut = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
 
@@ -121,7 +120,10 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
       "handle error" when {
         "exception is returned when cannot parse json" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(200, "{oops}")))
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(
+            200,
+            "{oops}"
+          )))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)
@@ -132,7 +134,10 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
         }
 
         "when there is an upstream error response" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "error message")))
+          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(
+            NOT_FOUND,
+            "error message"
+          )))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)
@@ -163,6 +168,14 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   }
 
   private def expectedExportCredits =
-    GetExportCredits(internalId, pptReference, fromDate, toDate, "Success", Some(exportCreditBalanceDisplayResponse), None)
+    GetExportCredits(
+      internalId,
+      pptReference,
+      fromDate,
+      toDate,
+      "Success",
+      Some(exportCreditBalanceDisplayResponse),
+      None
+    )
 
 }

@@ -19,8 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription._
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.GroupPartnershipDetails.Relationship
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{GroupPartnershipDetails, GroupPartnershipSubscription}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{ChangeOfCircumstanceDetails, SubscriptionDisplayResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.group.{
+  GroupPartnershipDetails,
+  GroupPartnershipSubscription
+}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.{
+  ChangeOfCircumstanceDetails,
+  SubscriptionDisplayResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 
 import java.time.ZoneOffset.UTC
@@ -40,14 +46,22 @@ trait SubscriptionTestData {
         customerDetails = CustomerDetails(
           customerType = CustomerType.Organisation,
           organisationDetails =
-            Some(subscription.OrganisationDetails(organisationName = "Plastics Ltd", organisationType = Some("UK Limited Company")))
+            Some(subscription.OrganisationDetails(
+              organisationName = "Plastics Ltd",
+              organisationType = Some("UK Limited Company")
+            ))
         ),
         regWithoutIDFlag = false
       ),
       principalPlaceOfBusinessDetails =
         PrincipalPlaceOfBusinessDetails(
           addressDetails =
-            AddressDetails(addressLine1 = "2-3 Scala Street", addressLine2 = "London", postalCode = Some("W1T 2HN"), countryCode = "GB"),
+            AddressDetails(
+              addressLine1 = "2-3 Scala Street",
+              addressLine2 = "London",
+              postalCode = Some("W1T 2HN"),
+              countryCode = "GB"
+            ),
           contactDetails = Some(ContactDetails(email = "test@test.com", telephone = "02034567890"))
         ),
       primaryContactDetails =
@@ -58,7 +72,12 @@ trait SubscriptionTestData {
           positionInCompany = "Director"
         ),
       businessCorrespondenceDetails =
-        BusinessCorrespondenceDetails(addressLine1 = "2-3 Scala Street", addressLine2 = "London", postalCode = Some("W1T 2HN"), countryCode = "GB"),
+        BusinessCorrespondenceDetails(
+          addressLine1 = "2-3 Scala Street",
+          addressLine2 = "London",
+          postalCode = Some("W1T 2HN"),
+          countryCode = "GB"
+        ),
       taxObligationStartDate = "2022-06-03",
       last12MonthTotalTonnageAmt = 15000,
       declaration = Declaration(declarationBox1 = true),

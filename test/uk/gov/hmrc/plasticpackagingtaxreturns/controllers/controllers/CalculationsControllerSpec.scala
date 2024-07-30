@@ -36,7 +36,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.{TaxablePlastic, UserAnswer
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.AmendReturnValues
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditService,
+  CreditsCalculationService,
+  PPTCalculationService,
+  UserAnswersService
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTestHelper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 
@@ -46,7 +51,7 @@ import scala.concurrent.Future
 
 class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with AuthTestSupport {
 
-  private val userAnswers: UserAnswers        = UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
+  private val userAnswers: UserAnswers = UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson)
   private val invalidUserAnswers: UserAnswers = UserAnswers("id").copy(data = ReturnTestHelper.invalidReturnsDataJson)
 
   private val availableCreditService: AvailableCreditService = mock[AvailableCreditService]
@@ -80,7 +85,14 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
 
     "return OK response and the calculation" in {
       val expected: Calculations =
-        Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
+        Calculations(
+          taxDue = 17,
+          chargeableTotal = 85,
+          deductionsTotal = 15,
+          packagingTotal = 100,
+          isSubmittable = true,
+          taxRate = 0.123
+        )
       when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
@@ -92,7 +104,14 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
 
     "request credits" in {
       val expected: Calculations =
-        Calculations(taxDue = 17, chargeableTotal = 85, deductionsTotal = 15, packagingTotal = 100, isSubmittable = true, taxRate = 0.123)
+        Calculations(
+          taxDue = 17,
+          chargeableTotal = 85,
+          deductionsTotal = 15,
+          packagingTotal = 100,
+          isSubmittable = true,
+          taxRate = 0.123
+        )
       when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
@@ -156,7 +175,9 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
     "calculating a new return" when {
 
       "building ReturnValues fails" in {
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight")))
+        when(sessionRepository.get(any)) thenReturn Future.successful(
+          Some(userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight"))
+        )
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
 
@@ -165,7 +186,9 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
       }
 
       "a must have field is missing from user answers" in {
-        when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers.removePath(JsPath \ Symbol("obligation") \ Symbol("toDate"))))
+        when(sessionRepository.get(any)) thenReturn Future.successful(
+          Some(userAnswers.removePath(JsPath \ Symbol("obligation") \ Symbol("toDate")))
+        )
         when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
@@ -180,7 +203,9 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
       }
 
       "credit calculation complains" in {
-        when(creditsCalculationService.totalRequestedCredit_old(any)) thenThrow new RuntimeException("a field is missing")
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenThrow new RuntimeException(
+          "a field is missing"
+        )
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
           have message "a field is missing"
@@ -200,7 +225,8 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
 
       "building ReturnValues fails" in {
         // remove an 'optional' field
-        val userAnswers = UserAnswers("id", AmendTestHelper.userAnswersDataAmends).removePath(JsPath \ "returnDisplayApi")
+        val userAnswers =
+          UserAnswers("id", AmendTestHelper.userAnswersDataAmends).removePath(JsPath \ "returnDisplayApi")
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswers))
         the[Exception] thrownBy await(sut.calculateAmends(pptReference)(FakeRequest())) must
           have message "Failed to build AmendReturnValues from UserAnswers"

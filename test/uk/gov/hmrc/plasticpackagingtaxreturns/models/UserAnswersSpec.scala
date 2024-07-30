@@ -202,7 +202,10 @@ class UserAnswersSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar
           filledUserAnswers.changeWithFunc(question, newValueFunc, saveFunction)
         }
         verify(newValueFunc).apply(Some("200g"))
-        verify(saveFunction).apply(eqTo(UserAnswers("filled", obj("cheese" -> obj("brie" -> "new-value")), filledUserAnswers.lastUpdated)), any)
+        verify(saveFunction).apply(
+          eqTo(UserAnswers("filled", obj("cheese" -> obj("brie" -> "new-value")), filledUserAnswers.lastUpdated)),
+          any
+        )
       }
 
       "previous value does not exist" in {
@@ -210,7 +213,10 @@ class UserAnswersSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar
           emptyUserAnswers.changeWithFunc(question, newValueFunc, saveFunction)
         }
         verify(newValueFunc).apply(None)
-        verify(saveFunction).apply(eqTo(UserAnswers("empty", obj("cheese" -> obj("brie" -> "new-value")), emptyUserAnswers.lastUpdated)), any)
+        verify(saveFunction).apply(
+          eqTo(UserAnswers("empty", obj("cheese" -> obj("brie" -> "new-value")), emptyUserAnswers.lastUpdated)),
+          any
+        )
       }
     }
 
@@ -233,7 +239,11 @@ class UserAnswersSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar
       }
 
       "remove a top level field" in {
-        filledUserAnswers.removePath(JsPath \ "cheese") mustBe UserAnswers("filled", obj(), filledUserAnswers.lastUpdated)
+        filledUserAnswers.removePath(JsPath \ "cheese") mustBe UserAnswers(
+          "filled",
+          obj(),
+          filledUserAnswers.lastUpdated
+        )
       }
 
       "remove a nested field" in {

@@ -34,11 +34,11 @@ object CreditsAnswer {
 
   implicit val formats: OFormat[CreditsAnswer] = Json.format[CreditsAnswer]
 
-  def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer =
-    exportedCredits.getOrElse(CreditsAnswer.noClaim)
+  def from(exportedCredits: Option[CreditsAnswer]): CreditsAnswer = exportedCredits.getOrElse(CreditsAnswer.noClaim)
 
   def readFrom(userAnswers: UserAnswers, path: String): CreditsAnswer =
     userAnswers
       .get[CreditsAnswer](JsPath \ path)
       .getOrElse(CreditsAnswer.noClaim) // therefore will be (no and zero) if missing / unanswered
+
 }

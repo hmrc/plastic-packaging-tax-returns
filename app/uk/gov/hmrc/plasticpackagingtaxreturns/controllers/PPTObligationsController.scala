@@ -20,7 +20,10 @@ import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ObligationsDataConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{ObligationDataResponse, ObligationStatus}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  ObligationDataResponse,
+  ObligationStatus
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.PPTObligationsService
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
@@ -57,7 +60,13 @@ class PPTObligationsController @Inject() (
   def getFulfilled(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) {
       implicit request =>
-        obligationsDataConnector.get(pptReference, request.internalId, pptStartDate, Some(edgeOfSystem.today), Some(ObligationStatus.FULFILLED)).map {
+        obligationsDataConnector.get(
+          pptReference,
+          request.internalId,
+          pptStartDate,
+          Some(edgeOfSystem.today),
+          Some(ObligationStatus.FULFILLED)
+        ).map {
           case Left(404)                     => NotFound("{}")
           case Left(_)                       => internalServerError
           case Right(obligationDataResponse) => createFulfilledResponse(obligationDataResponse)

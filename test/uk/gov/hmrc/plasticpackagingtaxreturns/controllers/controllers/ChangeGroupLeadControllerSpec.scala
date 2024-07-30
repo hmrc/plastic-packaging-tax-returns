@@ -79,11 +79,19 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       subscriptionUpdateRequest
     )
 
-    when(mockSubscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(Right(subscriptionDisplayResponse))
-    when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(subscriptionUpdateResponse)
+    when(mockSubscriptionsConnector.getSubscription(any)(any)) thenReturn Future.successful(
+      Right(subscriptionDisplayResponse)
+    )
+    when(mockSubscriptionsConnector.updateSubscription(any, any)(any)) thenReturn Future.successful(
+      subscriptionUpdateResponse
+    )
 
-    when(mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)).thenReturn(subscriptionUpdateRequest)
-    when(mockChangeGroupLeadService.createNrsSubscriptionUpdateSubmission(any, any)) thenReturn nrsSubscriptionUpdateSubmission
+    when(
+      mockChangeGroupLeadService.createSubscriptionUpdateRequest(subscriptionDisplayResponse, userAnswers)
+    ).thenReturn(subscriptionUpdateRequest)
+    when(
+      mockChangeGroupLeadService.createNrsSubscriptionUpdateSubmission(any, any)
+    ) thenReturn nrsSubscriptionUpdateSubmission
 
     when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
     when(mockSessionRepo.clear(any)) thenReturn Future.successful(true)
@@ -105,7 +113,13 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       val processingDate = mock[ZonedDateTime]
       when(subscriptionUpdateResponse.processingDate) thenReturn processingDate
       await(sut.change("ref").apply(FakeRequest()))
-      verify(nonRepudiationService).submitNonRepudiation(same(NotableEvent.PptSubscription), any, same(processingDate), eqTo("some-ppt-ref"), any)(
+      verify(nonRepudiationService).submitNonRepudiation(
+        same(NotableEvent.PptSubscription),
+        any,
+        same(processingDate),
+        eqTo("some-ppt-ref"),
+        any
+      )(
         any
       )
     }
@@ -182,7 +196,10 @@ class ChangeGroupLeadControllerSpec extends PlaySpec with BeforeAndAfterEach {
       }
 
       "update subscription fails" in {
-        when(mockSubscriptionsConnector.updateSubscription(refEq(FakeAuthenticator.pptRef), refEq(subscriptionUpdateRequest))(any))
+        when(mockSubscriptionsConnector.updateSubscription(
+          refEq(FakeAuthenticator.pptRef),
+          refEq(subscriptionUpdateRequest)
+        )(any))
           .thenReturn(Future.failed(TestException))
         intercept[TestException.type](await(sut.change("some-ppt-ref")(FakeRequest())))
       }

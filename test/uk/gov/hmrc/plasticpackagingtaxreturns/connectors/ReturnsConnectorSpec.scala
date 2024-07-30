@@ -29,7 +29,12 @@ import play.api.{Logger, Logging}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{EisReturnDetails, IdDetails, Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
+  EisReturnDetails,
+  IdDetails,
+  Return,
+  ReturnsSubmissionRequest
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType.NEW
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient, EisHttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -51,16 +56,24 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     protected override val logger: Logger = testLogger
   }
 
-  private val returnDetails     = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
-  private val returnSubmission  = ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
-  private val putResponse       = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
-  private val putResponseToJson = EisHttpResponse(200, """{
+  private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+  private val returnSubmission =
+    ReturnsSubmissionRequest(returnType = NEW, periodKey = "p-k", returnDetails = returnDetails)
+
+  private val putResponse = Return("date", IdDetails("details-ref-no", "submission-id"), None, None, None)
+
+  private val putResponseToJson = EisHttpResponse(
+    200,
+    """{
       |   "processingDate" : "date",
       |   "idDetails" : {
       |     "pptReferenceNumber" : "details-ref-no",
       |     "submissionId" : "submission-id"
       |   }
-      |}""".stripMargin, "")
+      |}""".stripMargin,
+    ""
+  )
 
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
@@ -135,13 +148,21 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response body is empty" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(200, "{}", "123"))
+        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+          200,
+          "{}",
+          "123"
+        ))
         callGet
         verify(auditConnector, times(1)).sendExplicitAudit(any, any[GetReturn])(any, any, any)
       }
 
       "response body is not json" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "123"))
+        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+          200,
+          "<html />",
+          "123"
+        ))
         callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
         val captor = ArgCaptor[GetReturn]
@@ -268,7 +289,11 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     }
 
     "response body is not json" in {
-      when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(EisHttpResponse(200, "<html />", "correlation-id"))
+      when(eisHttpClient.put[Any](any, any, any, any, any)(any, any)) thenReturn Future.successful(EisHttpResponse(
+        200,
+        "<html />",
+        "correlation-id"
+      ))
       callSubmit mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
       val auditDetail = ArgCaptor[SubmitReturn]

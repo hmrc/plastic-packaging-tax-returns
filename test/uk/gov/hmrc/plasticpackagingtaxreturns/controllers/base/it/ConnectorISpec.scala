@@ -43,7 +43,11 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     SharedMetricRegistries.clear()
     new GuiceApplicationBuilder()
       .configure(overrideConfig)
-      .overrides(bind[SessionRepository].to(mock[SessionRepository]), bind[MetricsFilter].to[MetricsFilterImpl], bind[Metrics].to[MetricsImpl])
+      .overrides(
+        bind[SessionRepository].to(mock[SessionRepository]),
+        bind[MetricsFilter].to[MetricsFilterImpl],
+        bind[Metrics].to[MetricsImpl]
+      )
       .build()
   }
 
@@ -70,8 +74,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     wiremock.start()
   }
 
-  override protected def beforeEach(): Unit =
-    metrics.defaultRegistry.removeMatching(MetricFilter.startsWith("ppt"))
+  override protected def beforeEach(): Unit = metrics.defaultRegistry.removeMatching(MetricFilter.startsWith("ppt"))
 
   override protected def afterAll(): Unit = {
     super.afterAll()
@@ -89,7 +92,8 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
   protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit =
     verify(
       postRequestedFor(urlEqualTo(url))
-        .withRequestBody(equalToJson(s"""{
+        .withRequestBody(equalToJson(
+          s"""{
              |                  "auditSource": "plastic-packaging-tax-returns",
              |                  "auditType": "$eventType",
              |                  "eventId": "$${json-unit.any-string}",
@@ -104,7 +108,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
              |                  },
              |                  "detail": $body,
              |                  "generatedAt": "$${json-unit.any-string}"
-             |                }""".stripMargin, true, true))
+             |                }""".stripMargin,
+          true,
+          true
+        ))
     )
 
 }

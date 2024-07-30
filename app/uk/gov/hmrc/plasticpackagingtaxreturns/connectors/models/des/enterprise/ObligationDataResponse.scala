@@ -50,7 +50,7 @@ case class ObligationDetail(
 
 object ObligationDetail {
 
-  //to keep PPT APIs simple; filter information returned
+  // to keep PPT APIs simple; filter information returned
   implicit val customWrites: Writes[ObligationDetail] = (
     (JsPath \ "periodKey").write[String] and
       (JsPath \ "fromDate").write[LocalDate] and

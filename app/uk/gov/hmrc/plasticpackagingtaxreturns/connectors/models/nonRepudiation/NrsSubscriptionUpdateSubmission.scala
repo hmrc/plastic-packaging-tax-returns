@@ -20,14 +20,19 @@ import play.api.libs.json.{JsObject, Json, OFormat}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 
-case class NrsSubscriptionUpdateSubmission(userAnswers: JsObject, subscriptionUpdateRequest: SubscriptionUpdateRequest) {
+case class NrsSubscriptionUpdateSubmission(
+  userAnswers: JsObject,
+  subscriptionUpdateRequest: SubscriptionUpdateRequest
+) {
   def toJsonString: String = Json.toJson(this).toString()
 }
 
 object NrsSubscriptionUpdateSubmission {
   implicit val format: OFormat[NrsSubscriptionUpdateSubmission] = Json.format[NrsSubscriptionUpdateSubmission]
 
-  def apply(userAnswers: UserAnswers, subscriptionUpdateRequest: SubscriptionUpdateRequest): NrsSubscriptionUpdateSubmission =
-    this(userAnswers.data, subscriptionUpdateRequest)
+  def apply(
+    userAnswers: UserAnswers,
+    subscriptionUpdateRequest: SubscriptionUpdateRequest
+  ): NrsSubscriptionUpdateSubmission = this(userAnswers.data, subscriptionUpdateRequest)
 
 }

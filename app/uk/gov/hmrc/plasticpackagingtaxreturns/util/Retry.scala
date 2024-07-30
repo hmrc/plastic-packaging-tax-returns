@@ -30,18 +30,19 @@ trait Retry {
 
   def retry[A](
     intervals: FiniteDuration*
-  )(shouldRetry: Try[A] => Boolean, retryReason: Try[A] => String)(block: => Future[A])(implicit ec: ExecutionContext): Future[A] = {
+  )(shouldRetry: Try[A] => Boolean, retryReason: Try[A] => String)(block: => Future[A])(implicit
+    ec: ExecutionContext
+  ): Future[A] = {
     def loop(remainingIntervals: Seq[FiniteDuration])(block: => Future[A]): Future[A] =
-      block.flatMap(
-        result =>
-          if (remainingIntervals.nonEmpty && shouldRetry(Success(result))) {
-            val delay = remainingIntervals.head
-            logger.warn(s"Retrying in $delay due to ${retryReason(Success(result))}")
-            after(delay, actorSystem.scheduler)(loop(remainingIntervals.tail)(block))
-          } else {
-            logger.info("Success!")
-            Future.successful(result)
-          }
+      block.flatMap(result =>
+        if (remainingIntervals.nonEmpty && shouldRetry(Success(result))) {
+          val delay = remainingIntervals.head
+          logger.warn(s"Retrying in $delay due to ${retryReason(Success(result))}")
+          after(delay, actorSystem.scheduler)(loop(remainingIntervals.tail)(block))
+        } else {
+          logger.info("Success!")
+          Future.successful(result)
+        }
       )
         .recoverWith {
           case e: Throwable =>

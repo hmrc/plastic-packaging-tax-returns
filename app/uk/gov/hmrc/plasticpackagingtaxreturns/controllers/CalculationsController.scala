@@ -25,7 +25,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.amends.ReturnDisplayApiGettable
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.calculations.{AmendsCalculations, Calculations}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.{AmendReturnValues, NewReturnValues}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, PPTCalculationService, UserAnswersService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditService,
+  CreditsCalculationService,
+  PPTCalculationService,
+  UserAnswersService
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.TaxRateTable
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
@@ -70,7 +75,10 @@ class CalculationsController @Inject() (
       throw new IllegalStateException("Failed to build AmendReturnValues from UserAnswers")
     }
 
-    val originalCalc = Calculations.fromReturn(userAnswers.getOrFail(ReturnDisplayApiGettable), taxRateTable.lookupRateFor(amend.periodEndDate))
+    val originalCalc = Calculations.fromReturn(
+      userAnswers.getOrFail(ReturnDisplayApiGettable),
+      taxRateTable.lookupRateFor(amend.periodEndDate)
+    )
 
     val amendCalc = calculationsService.calculate(amend)
     Future.successful(Ok(Json.toJson(AmendsCalculations(original = originalCalc, amend = amendCalc))))

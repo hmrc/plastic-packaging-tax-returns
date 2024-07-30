@@ -34,8 +34,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditConnector, eisHttpClient: EisHttpClient)(implicit ec: ExecutionContext)
-    extends Logging {
+class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditConnector, eisHttpClient: EisHttpClient)(
+  implicit ec: ExecutionContext
+) extends Logging {
 
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
@@ -64,14 +65,22 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
           httpResponse.status == UNPROCESSABLE_ENTITY
           && (httpResponse.json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")
         ) {
-          auditConnector.sendExplicitAudit(SubmitReturn.eventType, SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None))
+          auditConnector.sendExplicitAudit(
+            SubmitReturn.eventType,
+            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
+          )
           Left(StatusCode.RETURN_ALREADY_SUBMITTED)
         } else
           unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
       }
   }
 
-  private def unhappyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String, httpResponse: EisHttpResponse)(
+  private def unhappyPathSubmit(
+    pptReference: String,
+    requestBody: ReturnsSubmissionRequest,
+    internalId: String,
+    httpResponse: EisHttpResponse
+  )(
     implicit headerCarrier: HeaderCarrier
   ) = {
 
@@ -88,7 +97,12 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
     Left(httpResponse.status)
   }
 
-  private def happyPathSubmit(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String, eisHttpResponse: EisHttpResponse)(
+  private def happyPathSubmit(
+    pptReference: String,
+    requestBody: ReturnsSubmissionRequest,
+    internalId: String,
+    eisHttpResponse: EisHttpResponse
+  )(
     implicit headerCarrier: HeaderCarrier
   ) =
     eisHttpResponse.jsonAs[Return].fold(
@@ -110,7 +124,9 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       }
     )
 
-  def get(pptReference: String, periodKey: String, internalId: String)(implicit hc: HeaderCarrier): Future[Either[Int, JsValue]] = {
+  def get(pptReference: String, periodKey: String, internalId: String)(implicit
+    hc: HeaderCarrier
+  ): Future[Either[Int, JsValue]] = {
     val timerName = "ppt.return.display.timer"
 
     eisHttpClient.get(appConfig.returnsDisplayUrl(pptReference, periodKey), Seq.empty, timerName, buildEisHeader)
@@ -123,22 +139,35 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
 
             triedResponse match {
               case Success(jsValue) =>
-                auditConnector.sendExplicitAudit(GetReturn.eventType, GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None))
+                auditConnector.sendExplicitAudit(
+                  GetReturn.eventType,
+                  GetReturn(internalId, periodKey, SUCCESS, Some(jsValue), None)
+                )
                 Right(jsValue)
               case Failure(exception) =>
                 // Note - if response payload was not json, exception from json lib usually includes the payload too
-                auditConnector.sendExplicitAudit(GetReturn.eventType, GetReturn(internalId, periodKey, FAILURE, None, Some(exception.getMessage)))
+                auditConnector.sendExplicitAudit(
+                  GetReturn.eventType,
+                  GetReturn(internalId, periodKey, FAILURE, None, Some(exception.getMessage))
+                )
                 Left(Status.INTERNAL_SERVER_ERROR)
             }
           case _ =>
-            auditConnector.sendExplicitAudit(GetReturn.eventType, GetReturn(internalId, periodKey, FAILURE, None, Some(response.body)))
+            auditConnector.sendExplicitAudit(
+              GetReturn.eventType,
+              GetReturn(internalId, periodKey, FAILURE, None, Some(response.body))
+            )
             Left(response.status)
         }
       }
   }
 
-  private def logReturnDisplayResponse(pptReference: String, periodKey: String, correlationId: String, outcomeMessage: String): Unit =
-    logger.warn(cookLogMessage(pptReference, periodKey, correlationId, outcomeMessage))
+  private def logReturnDisplayResponse(
+    pptReference: String,
+    periodKey: String,
+    correlationId: String,
+    outcomeMessage: String
+  ): Unit = logger.warn(cookLogMessage(pptReference, periodKey, correlationId, outcomeMessage))
 
   private def cookLogMessage(pptReference: String, periodKey: String, correlationId: String, outcomeMessage: String) =
     s"Return Display API call for correlationId [${correlationId}], " +

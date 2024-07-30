@@ -48,9 +48,12 @@ class PPTFinancialsControllerSpec extends PlaySpec with BeforeAndAfterEach with 
   }
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
-  private val sut                      = new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, mockPPTFinancialsService)
-  private val financials               = PPTFinancials(None, None, None)
-  private val desResponse              = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
+
+  private val sut =
+    new PPTFinancialsController(cc, new FakeAuthenticator(cc), mockFinancialDataService, mockPPTFinancialsService)
+
+  private val financials  = PPTFinancials(None, None, None)
+  private val desResponse = FinancialDataResponse(None, None, None, LocalDateTime.now(), Seq.empty)
 
   "get" must {
     val pptReference = "1234"

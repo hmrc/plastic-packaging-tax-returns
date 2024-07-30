@@ -29,7 +29,10 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ReturnObligationFromDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{
+  ConvertedCreditWeightGettable,
+  ReturnObligationFromDateGettable
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -40,7 +43,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   private val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   private val sut                                         = new AvailableCreditService(mockConnector)(global)
-  private val fakeRequest                                 = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
+  private val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -51,10 +54,13 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
     "return available balance" when {
       "no credit is being claimed" in {
-        val expected       = BigDecimal(200)
-        val unUsedBigDec   = mock[BigDecimal]
-        val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
-        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
+        val expected     = BigDecimal(200)
+        val unUsedBigDec = mock[BigDecimal]
+        val creditResponse =
+          ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
+          Future.successful(Right(creditResponse))
+        )
 
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27))
@@ -64,21 +70,27 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
     }
 
     "correctly construct the parameters for the connector" in {
-      val expected       = BigDecimal(200)
-      val unUsedBigDec   = mock[BigDecimal]
-      val creditResponse = ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
+      val expected     = BigDecimal(200)
+      val unUsedBigDec = mock[BigDecimal]
+      val creditResponse =
+        ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
 
-      when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Right(creditResponse)))
+      when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
+        Future.successful(Right(creditResponse))
+      )
 
       val userAnswers = UserAnswers("user-answers-id")
-        .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)).setUnsafe(ConvertedCreditWeightGettable, 5L)
+        .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)).setUnsafe(
+          ConvertedCreditWeightGettable,
+          5L
+        )
 
       await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
 
       verify(mockConnector).getBalance(
         ArgumentMatchers.eq("request-ppt-id"),
-        ArgumentMatchers.eq(LocalDate.of(1994, 3, 27)), //fromDate minus 2 years
-        ArgumentMatchers.eq(LocalDate.of(1996, 3, 26)), //fromDate minus 1 day
+        ArgumentMatchers.eq(LocalDate.of(1994, 3, 27)), // fromDate minus 2 years
+        ArgumentMatchers.eq(LocalDate.of(1996, 3, 26)), // fromDate minus 1 day
         ArgumentMatchers.eq("request-internal-id")
       )(any())
 
@@ -94,7 +106,9 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
       }
 
       "the connector call fails" in {
-        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(Future.successful(Left(IM_A_TEAPOT)))
+        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
+          Future.successful(Left(IM_A_TEAPOT))
+        )
 
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())

@@ -20,7 +20,8 @@ import play.api.libs.json.{Json, OWrites}
 
 case class TaxablePlastic(weight: Long, moneyInPounds: BigDecimal, taxRate: BigDecimal) {
 
-  def +(other: TaxablePlastic): TaxablePlastic = TaxablePlastic(weight + other.weight, moneyInPounds + other.moneyInPounds, taxRate = 0)
+  def +(other: TaxablePlastic): TaxablePlastic =
+    TaxablePlastic(weight + other.weight, moneyInPounds + other.moneyInPounds, taxRate = 0)
 
 }
 

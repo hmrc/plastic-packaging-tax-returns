@@ -16,7 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.helpers
 
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{FinancialDataResponse, FinancialItem, FinancialTransaction}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  FinancialDataResponse,
+  FinancialItem,
+  FinancialTransaction
+}
 
 import java.time.{LocalDate, LocalDateTime}
 
@@ -45,10 +49,18 @@ object FinancialTransactionHelper {
       regimeType = None,
       processingDate = LocalDateTime.now(),
       financialTransactions =
-        Seq(createFinancialTransaction(periodKey = periodKey, amount = amount, items = Seq(createDdFinancialItem(amount))))
+        Seq(createFinancialTransaction(
+          periodKey = periodKey,
+          amount = amount,
+          items = Seq(createDdFinancialItem(amount))
+        ))
     )
 
-  private def createFinancialTransaction(amount: BigDecimal = BigDecimal(0.0), periodKey: String, items: Seq[FinancialItem]) =
+  private def createFinancialTransaction(
+    amount: BigDecimal = BigDecimal(0.0),
+    periodKey: String,
+    items: Seq[FinancialItem]
+  ) =
     FinancialTransaction(
       chargeType = None,
       mainType = None,
@@ -60,7 +72,10 @@ object FinancialTransactionHelper {
       items = items
     )
 
-  private def createDdFinancialItem(amount: BigDecimal = BigDecimal(0.0), DDcollectionInProgress: Option[Boolean] = None) =
+  private def createDdFinancialItem(
+    amount: BigDecimal = BigDecimal(0.0),
+    DDcollectionInProgress: Option[Boolean] = None
+  ) =
     FinancialItem(
       subItem = None,
       dueDate = Some(LocalDate.now()),

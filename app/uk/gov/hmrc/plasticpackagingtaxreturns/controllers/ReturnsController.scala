@@ -103,12 +103,11 @@ class ReturnsController @Inject() (
             userAnswer.get[String](JsPath \ "amendSelectedPeriodKey")
               .getOrElse(throw new Exception("Cannot amend return without period Key"))
           )
-            .flatMap(
-              isDDInProgress =>
-                if (isDDInProgress)
-                  Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
-                else
-                  doSubmit(NotableEvent.PptReturn, pptReference, AmendReturnValues.apply, userAnswer)
+            .flatMap(isDDInProgress =>
+              if (isDDInProgress)
+                Future.successful(UnprocessableEntity("Could not finish transaction as Direct Debit is in progress."))
+              else
+                doSubmit(NotableEvent.PptReturn, pptReference, AmendReturnValues.apply, userAnswer)
             )
       }
     }
@@ -119,18 +118,27 @@ class ReturnsController @Inject() (
         isPeriodStillOpen(pptReference, userAnswer).flatMap { periodIsOpen =>
           if (periodIsOpen)
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
-              val requestedCredits: BigDecimal = creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
-              doSubmit(NotableEvent.PptReturn, pptReference, NewReturnValues.apply(requestedCredits, availableCredit), userAnswer)
+              val requestedCredits: BigDecimal =
+                creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
+              doSubmit(
+                NotableEvent.PptReturn,
+                pptReference,
+                NewReturnValues.apply(requestedCredits, availableCredit),
+                userAnswer
+              )
             }
           else {
             sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
-            Future.successful(ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open."))
+            Future.successful(
+              ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open.")
+            )
           }
         }
       }
     }
 
-  private def getUserAnswer(request: AuthorizedRequest[AnyContent])(fun: UserAnswers => Future[Result]): Future[Result] =
+  private def getUserAnswer(request: AuthorizedRequest[AnyContent])(fun: UserAnswers => Future[Result])
+    : Future[Result] =
     sessionRepository.get(request.cacheKey).flatMap {
       _.fold(Future.successful(UnprocessableEntity("UserAnswer is empty")))(fun(_))
     }
@@ -148,19 +156,27 @@ class ReturnsController @Inject() (
         submitReturnWithNrs(nrsEventType, pptReference, userAnswer, returnValues)
       }
 
-  private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] = {
+  private def isPeriodStillOpen(pptReference: String, userAnswer: UserAnswers)(implicit
+    request: AuthorizedRequest[AnyContent]
+  ): Future[Boolean] = {
     val periodKey = userAnswer.getOrFail(PeriodKeyGettable)
     obligationsDataConnector.get(pptReference, request.internalId, None, None, Some(ObligationStatus.OPEN)).map {
       _.fold(
-        status => throw new RuntimeException(s"Could not get Open Obligation details. Server responded with status code: $status"),
+        status =>
+          throw new RuntimeException(
+            s"Could not get Open Obligation details. Server responded with status code: $status"
+          ),
         _.obligations.flatMap(_.obligationDetails.map(_.periodKey)).contains(periodKey)
       )
     }
   }
 
-  private def isDirectDebitInProgress(pptReference: String, periodKey: String)(implicit request: AuthorizedRequest[AnyContent]): Future[Boolean] =
+  private def isDirectDebitInProgress(pptReference: String, periodKey: String)(implicit
+    request: AuthorizedRequest[AnyContent]
+  ): Future[Boolean] =
     financialDataService.getFinancials(pptReference, request.internalId).map {
-      case Left(status) => throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status")
+      case Left(status) =>
+        throw new RuntimeException(s"Could not get Direct Debit details. Server responded with status code: $status")
       case Right(financialDataResponse) =>
         financialsService.lookUpForDdInProgress(periodKey, financialDataResponse)
     }
@@ -171,9 +187,12 @@ class ReturnsController @Inject() (
     dueDate.isBefore(today.minusYears(4))
   }
 
-  private def submitReturnWithNrs(nrsEventType: NotableEvent, pptReference: String, userAnswers: UserAnswers, returnValues: ReturnValues)(implicit
-    request: AuthorizedRequest[AnyContent]
-  ): Future[Result] = {
+  private def submitReturnWithNrs(
+    nrsEventType: NotableEvent,
+    pptReference: String,
+    userAnswers: UserAnswers,
+    returnValues: ReturnValues
+  )(implicit request: AuthorizedRequest[AnyContent]): Future[Result] = {
     val calculations: Calculations = calculationsService.calculate(returnValues)
 
     if (calculations.isSubmittable) {
@@ -209,7 +228,11 @@ class ReturnsController @Inject() (
         auditConnector.sendExplicitAudit(
           NrsSubmitReturnEvent.eventType,
           NrsSubmitReturnEvent(
-            updateNrsDetails(nrsSubmissionId = Some(nrSubmissionId), returnSubmissionRequest = returnSubmissionRequest, nrsFailureResponse = None),
+            updateNrsDetails(
+              nrsSubmissionId = Some(nrSubmissionId),
+              returnSubmissionRequest = returnSubmissionRequest,
+              nrsFailureResponse = None
+            ),
             pptReference = Some(request.pptReference),
             processingDateTime = Some(parseDate(eisResponse.processingDate))
           )

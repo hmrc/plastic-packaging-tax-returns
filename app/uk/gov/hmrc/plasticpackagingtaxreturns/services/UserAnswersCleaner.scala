@@ -29,8 +29,8 @@ import javax.inject.Inject
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-/** A cleaner that formats user answers from old JsPaths
-  * to maintain backwards compatibility for users mid journey during deployments
+/** A cleaner that formats user answers from old JsPaths to maintain backwards compatibility for users mid journey
+  * during deployments
   */
 
 class UserAnswersCleaner @Inject() (
@@ -42,7 +42,10 @@ class UserAnswersCleaner @Inject() (
     userAnswers.get[JsValue](JsPath \ "exportedCredits").isDefined ||
       userAnswers.get[JsValue](JsPath \ "convertedCredits").isDefined
 
-  private def getAssumedDateRange(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): Option[CreditRangeOption] =
+  private def getAssumedDateRange(
+    userAnswers: UserAnswers,
+    subscription: SubscriptionDisplayResponse
+  ): Option[CreditRangeOption] =
     userAnswers.get[LocalDate](JsPath \ "obligation" \ "toDate").flatMap { returnToDate =>
       val taxStartDate = subscription.taxStartDate()
       val available    = availableCreditDateRangesService.calculate(returnToDate, taxStartDate)
@@ -55,17 +58,21 @@ class UserAnswersCleaner @Inject() (
   def fetchSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] =
     subscriptionsConnector.getSubscriptionFuture(pptReference)
 
-  def clean(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[(UserAnswers, Boolean)] =
+  def clean(userAnswers: UserAnswers, pptReference: String)(implicit
+    hc: HeaderCarrier
+  ): Future[(UserAnswers, Boolean)] =
     Future.unit
       .filter(_ => hasOldAnswers(userAnswers))
-      .flatMap(
-        _ =>
-          fetchSubscription(pptReference)
-            .map(migrateOldAnswers(userAnswers, _))
+      .flatMap(_ =>
+        fetchSubscription(pptReference)
+          .map(migrateOldAnswers(userAnswers, _))
       )
       .recover(_ => userAnswers -> false)
 
-  private def migrateOldAnswers(userAnswers: UserAnswers, subscription: SubscriptionDisplayResponse): (UserAnswers, Boolean) = {
+  private def migrateOldAnswers(
+    userAnswers: UserAnswers,
+    subscription: SubscriptionDisplayResponse
+  ): (UserAnswers, Boolean) = {
 
     val startedAReturn     = userAnswers.get[JsObject](JsPath \ "obligation").isDefined
     val assumableDateRange = getAssumedDateRange(userAnswers, subscription)
@@ -76,7 +83,10 @@ class UserAnswersCleaner @Inject() (
         .migrate(JsPath \ "exportedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "yesNo")
         .migrate(JsPath \ "exportedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "exportedCredits" \ "weight")
         .migrate(JsPath \ "convertedCredits" \ "yesNo", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "yesNo")
-        .migrate(JsPath \ "convertedCredits" \ "weight", JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "weight")
+        .migrate(
+          JsPath \ "convertedCredits" \ "weight",
+          JsPath \ "credit" \ taxRange.key \ "convertedCredits" \ "weight"
+        )
         .removePath(JsPath \ "exportedCredits")
         .removePath(JsPath \ "convertedCredits")
 

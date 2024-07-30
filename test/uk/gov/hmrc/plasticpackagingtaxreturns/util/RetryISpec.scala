@@ -24,7 +24,12 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.RetryISpec.{neverRetry, noParticularReason, retryFailures, someRetries}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.RetryISpec.{
+  neverRetry,
+  noParticularReason,
+  retryFailures,
+  someRetries
+}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -39,8 +44,7 @@ class RetryISpec extends AnyWordSpec with Matchers with DefaultAwaitTimeout with
     override def actorSystem: ActorSystem = ActorSystem()
   }
 
-  override protected def beforeEach(): Unit =
-    SharedMetricRegistries.clear()
+  override protected def beforeEach(): Unit = SharedMetricRegistries.clear()
 
   "A retryable" should {
 
@@ -62,7 +66,9 @@ class RetryISpec extends AnyWordSpec with Matchers with DefaultAwaitTimeout with
         val consistentlyFailingOperation = ConsistentlyFailingOperation()
 
         intercept[IllegalStateException] {
-          await(retryable.retry(someRetries: _*)(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt()))
+          await(
+            retryable.retry(someRetries: _*)(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt())
+          )
         }
 
         consistentlyFailingOperation.invocationCount mustBe (someRetries.length + 1)
@@ -100,7 +106,9 @@ class RetryISpec extends AnyWordSpec with Matchers with DefaultAwaitTimeout with
 
       intercept[IllegalStateException] {
         await(
-          retryable.retry(FiniteDuration(retryDelayMs, TimeUnit.MILLISECONDS))(retryFailures, noParticularReason)(consistentlyFailingOperation.doIt())
+          retryable.retry(FiniteDuration(retryDelayMs, TimeUnit.MILLISECONDS))(retryFailures, noParticularReason)(
+            consistentlyFailingOperation.doIt()
+          )
         )
       }
 
@@ -132,14 +140,18 @@ object RetryISpec {
       case _          => true
     }
 
-  //noinspection ScalaUnusedSymbol
+  // noinspection ScalaUnusedSymbol
   def neverRetry[A](value: Try[A]): Boolean = false
 
-  //noinspection ScalaUnusedSymbol
+  // noinspection ScalaUnusedSymbol
   def noParticularReason[A](value: Try[A]): String = "no particular reason"
 
   def someRetries =
-    List(FiniteDuration(1, TimeUnit.MILLISECONDS), FiniteDuration(2, TimeUnit.MILLISECONDS), FiniteDuration(3, TimeUnit.MILLISECONDS))
+    List(
+      FiniteDuration(1, TimeUnit.MILLISECONDS),
+      FiniteDuration(2, TimeUnit.MILLISECONDS),
+      FiniteDuration(3, TimeUnit.MILLISECONDS)
+    )
 
 }
 

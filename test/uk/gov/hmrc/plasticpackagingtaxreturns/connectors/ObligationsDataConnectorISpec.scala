@@ -49,13 +49,18 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
   val auditUrl: String                 = "/write/audit"
   val implicitAuditUrl: String         = s"$auditUrl/merged"
 
-  val url = s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}"
+  val url =
+    s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}"
 
   val response: ObligationDataResponse = ObligationDataResponse(obligations =
     Seq(
       Obligation(
         identification =
-          Some(Identification(incomeSourceType = Some("ITR SA"), referenceNumber = pptReference, referenceType = "PPT")),
+          Some(Identification(
+            incomeSourceType = Some("ITR SA"),
+            referenceNumber = pptReference,
+            referenceType = "PPT"
+          )),
         obligationDetails = Seq(
           ObligationDetail(
             status = ObligationStatus.OPEN,
@@ -84,7 +89,8 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
       "handle a 200 with obligation data" in {
 
-        val auditModel = GetObligations(ObligationStatus.OPEN.toString, internalId, pptReference, "Success", Some(response), None)
+        val auditModel =
+          GetObligations(ObligationStatus.OPEN.toString, internalId, pptReference, "Success", Some(response), None)
 
         stubObligationDataRequest(response)
 
@@ -104,7 +110,14 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
       "return a 200 when obligation data not found" in {
 
-        val auditModel = GetObligations(ObligationStatus.OPEN.toString, internalId, pptReference, "Success", Some(ObligationDataResponse.empty), None)
+        val auditModel = GetObligations(
+          ObligationStatus.OPEN.toString,
+          internalId,
+          pptReference,
+          "Success",
+          Some(ObligationDataResponse.empty),
+          None
+        )
 
         stubFor(
           get(url)
@@ -160,7 +173,10 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
 
         s"$statusCode is returned from downstream service" in {
 
-          stubObligationDataRequestFailure(httpStatus = statusCode, errors = Seq(EISError("Error Code", "Error Reason")))
+          stubObligationDataRequestFailure(
+            httpStatus = statusCode,
+            errors = Seq(EISError("Error Code", "Error Reason"))
+          )
 
           givenAuditReturns(auditUrl, Status.NO_CONTENT)
           givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
@@ -182,7 +198,9 @@ class ObligationsDataConnectorISpec extends ConnectorISpec with Injector with Sc
     implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
     val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
     stubFor(
-      get(s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}")
+      get(
+        s"/enterprise/obligation-data/zppt/$pptReference/PPT?from=${fromDate.get}&to=${toDate.get}&status=${status.get}"
+      )
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
