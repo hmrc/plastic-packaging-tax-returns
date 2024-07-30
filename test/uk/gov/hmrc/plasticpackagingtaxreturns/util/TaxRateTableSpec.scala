@@ -59,11 +59,9 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
 
   private val taxRateTable = new TaxRateTable()(appConfig)
 
-  override def beforeEach(): Unit =
-    super.beforeEach()
+  override def beforeEach(): Unit = super.beforeEach()
 
-  private def inReverseChronologicalOrder(table: Seq[TaxRate]) =
-    table.sortBy(-_.useFromDate.toEpochDay)
+  private def inReverseChronologicalOrder(table: Seq[TaxRate]) = table.sortBy(-_.useFromDate.toEpochDay)
 
   "lookupTaxRateForPeriod" must {
     "return the correct tax rate" when {
@@ -98,7 +96,10 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
 
     "table is in chronological order (don't want)" in {
       val table =
-        Seq(TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1)), TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1)))
+        Seq(
+          TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1)),
+          TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1))
+        )
       a[TestFailedException] must be thrownBy {
         table mustBe inReverseChronologicalOrder(table)
       }
@@ -106,7 +107,10 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
 
     "table is in reverse chronological order (do want)" in {
       val table =
-        Seq(TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1)), TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1)))
+        Seq(
+          TaxRate(poundsPerKg = 2, useFromDate = LocalDate.of(2023, 4, 1)),
+          TaxRate(poundsPerKg = 1, useFromDate = LocalDate.of(2022, 4, 1))
+        )
       table mustBe inReverseChronologicalOrder(table)
     }
 

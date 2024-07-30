@@ -71,17 +71,25 @@ class FinancialDataConnector @Inject() (
         case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND")) => true
         case _                                                                              => false
       }
-    eisHttpClient.get(appConfig.enterpriseFinancialDataUrl(pptReference), queryParams = queryParams, timerName, buildDesHeader, successFun)
+    eisHttpClient.get(
+      appConfig.enterpriseFinancialDataUrl(pptReference),
+      queryParams = queryParams,
+      timerName,
+      buildDesHeader,
+      successFun
+    )
       .map { response: EisHttpResponse =>
         response.status match {
           case Status.OK                               => handleSuccess(response, internalId, pptReference)
           case Status.NOT_FOUND if response.isMagic404 => handleMagic404(internalId, pptReference)
-          case _                                       => handleErrorResponse(response, pptReference, internalId, queryParams)
+          case _ => handleErrorResponse(response, pptReference, internalId, queryParams)
         }
       }
   }
 
-  private def handleSuccess(response: EisHttpResponse, internalId: String, pptReference: String)(implicit hc: HeaderCarrier) = {
+  private def handleSuccess(response: EisHttpResponse, internalId: String, pptReference: String)(implicit
+    hc: HeaderCarrier
+  ) = {
     val triedResponse = response.jsonAs[FinancialDataResponse]
 
     triedResponse match {
@@ -114,16 +122,23 @@ class FinancialDataConnector @Inject() (
     Right(inferredResponse)
   }
 
-  private def handleErrorResponse(response: EisHttpResponse, pptReference: String, internalId: String, queryParams: Seq[(String, String)])(implicit
-    hc: HeaderCarrier
-  ) = {
+  private def handleErrorResponse(
+    response: EisHttpResponse,
+    pptReference: String,
+    internalId: String,
+    queryParams: Seq[(String, String)]
+  )(implicit hc: HeaderCarrier) = {
 
-    val message = s"Upstream error returned when getting enterprise financial data with correlationId [${response.correlationId}] and " +
-      s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
+    val message =
+      s"Upstream error returned when getting enterprise financial data with correlationId [${response.correlationId}] and " +
+        s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
 
     logger.warn(message)
 
-    auditConnector.sendExplicitAudit(GetPaymentStatement.eventType, GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(response.body)))
+    auditConnector.sendExplicitAudit(
+      GetPaymentStatement.eventType,
+      GetPaymentStatement(internalId, pptReference, FAILURE, None, Some(response.body))
+    )
 
     Left(response.status)
   }

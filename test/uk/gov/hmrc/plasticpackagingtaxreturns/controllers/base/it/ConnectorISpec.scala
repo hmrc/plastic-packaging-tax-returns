@@ -63,11 +63,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
       "auditing.enabled"               -> false
     )
 
-  def getTimer(name: String): Timer = {
+  def getTimer(name: String): Timer =
     metrics.defaultRegistry
       .getTimers(MetricFilter.startsWith(name))
       .get(name)
-  }
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -75,8 +74,7 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
     wiremock.start()
   }
 
-  override protected def beforeEach(): Unit =
-    metrics.defaultRegistry.removeMatching(MetricFilter.startsWith("ppt"))
+  override protected def beforeEach(): Unit = metrics.defaultRegistry.removeMatching(MetricFilter.startsWith("ppt"))
 
   override protected def afterAll(): Unit = {
     super.afterAll()
@@ -94,7 +92,8 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
   protected def verifyAuditRequest(url: String, eventType: String, body: String): Unit =
     verify(
       postRequestedFor(urlEqualTo(url))
-        .withRequestBody(equalToJson(s"""{
+        .withRequestBody(equalToJson(
+          s"""{
              |                  "auditSource": "plastic-packaging-tax-returns",
              |                  "auditType": "$eventType",
              |                  "eventId": "$${json-unit.any-string}",
@@ -109,7 +108,10 @@ class ConnectorISpec extends WiremockTestServer with GuiceOneAppPerSuite with De
              |                  },
              |                  "detail": $body,
              |                  "generatedAt": "$${json-unit.any-string}"
-             |                }""".stripMargin, true, true))
+             |                }""".stripMargin,
+          true,
+          true
+        ))
     )
 
 }

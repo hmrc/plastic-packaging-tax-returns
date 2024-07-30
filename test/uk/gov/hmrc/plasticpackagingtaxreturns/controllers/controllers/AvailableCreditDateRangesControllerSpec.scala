@@ -57,7 +57,13 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
   private val sessionRepository  = mock[SessionRepository]
   private val userAnswersService = new UserAnswersService(sessionRepository)
 
-  val sut = new AvailableCreditDateRangesController(service, authenticator, userAnswersService, controllerComponents, subscriptionsConnector)
+  val sut = new AvailableCreditDateRangesController(
+    service,
+    authenticator,
+    userAnswersService,
+    controllerComponents,
+    subscriptionsConnector
+  )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -109,7 +115,10 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
             )
           )
         )
-      when(service.calculate(any, any)).thenReturn(Seq(CreditRangeOption(LocalDate.of(1996, 3, 27), LocalDate.of(1998, 5, 14))))
+      when(service.calculate(any, any)).thenReturn(Seq(CreditRangeOption(
+        LocalDate.of(1996, 3, 27),
+        LocalDate.of(1998, 5, 14)
+      )))
       val dates = """[{"from": "1996-03-27", "to": "1998-05-14"}]"""
 
       val result = sut.get("pptRef")(FakeRequest())
@@ -137,7 +146,9 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
 
       "subscription api call failed with exception" in {
         when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-        when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(new IllegalStateException("boom"))
+        when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(
+          new IllegalStateException("boom")
+        )
         the[IllegalStateException] thrownBy await(sut.get("pptRef")(FakeRequest())) must
           have message "boom"
       }

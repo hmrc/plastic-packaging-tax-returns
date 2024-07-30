@@ -40,7 +40,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
   }
 
   "get with function parameter" should {
-    val block: UserAnswers => Future[Result] = (_) => Future.successful(Ok("blah"))
+    val block: UserAnswers => Future[Result] = _ => Future.successful(Ok("blah"))
     val spyBlock                             = spyLambda(block)
 
     "execute the block if userAnswer found" in {

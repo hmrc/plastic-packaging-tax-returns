@@ -21,7 +21,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.TaxCalculationService
 
 import java.time.LocalDate
 
-case class SingleYearClaim(toDate: LocalDate, exportedCredits: Option[CreditsAnswer], convertedCredits: Option[CreditsAnswer]) {
+case class SingleYearClaim(
+  toDate: LocalDate,
+  exportedCredits: Option[CreditsAnswer],
+  convertedCredits: Option[CreditsAnswer]
+) {
 
   def calculate(taxCalculationService: TaxCalculationService): TaxablePlastic = {
     val totalWeight = CreditsAnswer.from(exportedCredits).value + CreditsAnswer.from(convertedCredits).value

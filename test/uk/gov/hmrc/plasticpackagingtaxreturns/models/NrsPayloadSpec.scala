@@ -62,7 +62,8 @@ class NrsPayloadSpec extends PlaySpec with BeforeAndAfterEach {
     "createMetadata" in {
       when(messageDigest.digest(any)) thenReturn Array[Byte](1, 2, 3)
       val timestamp = ZonedDateTime.of(2020, 1, 30, 12, 1, 0, 0, ZoneOffset.UTC)
-      val metadata  = nrsPayload.createMetadata("event", "ppt-ref", Map("a" -> "b"), identityData, "auth-token", timestamp)
+      val metadata =
+        nrsPayload.createMetadata("event", "ppt-ref", Map("a" -> "b"), identityData, "auth-token", timestamp)
       metadata.businessId mustBe "ppt"
       metadata.notableEvent mustBe "event"
       metadata.payloadContentType mustBe "application/json"

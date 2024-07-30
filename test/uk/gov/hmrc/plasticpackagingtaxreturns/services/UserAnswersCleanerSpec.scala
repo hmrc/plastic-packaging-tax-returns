@@ -53,7 +53,12 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
   private val userAnswers = UserAnswers(
     "id",
     data = obj(
-      "obligation"    -> obj("fromDate" -> "2023-01-01", "toDate" -> "2023-03-31", "dueDate" -> "2023-05-31", "periodKey" -> "23C1"),
+      "obligation" -> obj(
+        "fromDate"  -> "2023-01-01",
+        "toDate"    -> "2023-03-31",
+        "dueDate"   -> "2023-05-31",
+        "periodKey" -> "23C1"
+      ),
       "isFirstReturn" -> false
     )
   )
@@ -62,7 +67,10 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
     super.beforeEach()
     reset(mockAvailService)
 
-    when(mockAvailService.calculate(any, any)) thenReturn Seq(CreditRangeOption(LocalDate.of(2022, 4, 1), LocalDate.of(2022, 12, 31)))
+    when(mockAvailService.calculate(any, any)) thenReturn Seq(CreditRangeOption(
+      LocalDate.of(2022, 4, 1),
+      LocalDate.of(2022, 12, 31)
+    ))
 
     val subscription = mock[SubscriptionDisplayResponse]
     when(subscription.taxStartDate()) thenReturn LocalDate.of(1, 2, 3)
@@ -186,7 +194,12 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
     val userAnswers = UserAnswers(
       "id",
       data = obj(
-        "obligation"    -> obj("fromDate" -> "2022-10-01", "toDate" -> "2022-12-31", "dueDate" -> "2023-02-28", "periodKey" -> "22C4"),
+        "obligation" -> obj(
+          "fromDate"  -> "2022-10-01",
+          "toDate"    -> "2022-12-31",
+          "dueDate"   -> "2023-02-28",
+          "periodKey" -> "22C4"
+        ),
         "isFirstReturn" -> false
       )
     )

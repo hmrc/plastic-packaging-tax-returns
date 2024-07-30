@@ -29,10 +29,17 @@ import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ExportCreditBalanceController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ReturnObligationFromDateGettable, ReturnObligationToDateGettable}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{
+  ReturnObligationFromDateGettable,
+  ReturnObligationToDateGettable
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.{CreditCalculation, TaxablePlastic, UserAnswers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditService, CreditsCalculationService, UserAnswersService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditService,
+  CreditsCalculationService,
+  UserAnswersService
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -67,7 +74,13 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   }
 
   val sut =
-    new ExportCreditBalanceController(new FakeAuthenticator(cc), creditsCalculationService, mockAvailableCreditsService, cc, userAnswersService)(ec)
+    new ExportCreditBalanceController(
+      new FakeAuthenticator(cc),
+      creditsCalculationService,
+      mockAvailableCreditsService,
+      cc,
+      userAnswersService
+    )(ec)
 
   "get" must {
 

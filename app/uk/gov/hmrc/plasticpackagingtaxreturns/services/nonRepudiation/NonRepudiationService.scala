@@ -25,8 +25,15 @@ import uk.gov.hmrc.http.{Authorization, HeaderCarrier, HttpException, InternalSe
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.NrsPayload
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{IdentityData, NonRepudiationMetadata, NonRepudiationSubmissionAccepted}
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{nonRepudiationIdentityRetrievals, NotableEvent}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
+  IdentityData,
+  NonRepudiationMetadata,
+  NonRepudiationSubmissionAccepted
+}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.{
+  nonRepudiationIdentityRetrievals,
+  NotableEvent
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.ZonedDateTime
@@ -54,21 +61,31 @@ case class NonRepudiationService @Inject() (
 
     for {
       identityData <- retrieveIdentityData()
-      userAuthToken          = retrieveUserAuthToken(headerCarrier)
-      nonRepudiationMetadata = nrsPayload.createMetadata(notableEvent.id, pptReference, userHeaders, identityData, userAuthToken, submissionTimestamp)
-      encodedPayloadString   = nrsPayload.encodePayload()
+      userAuthToken = retrieveUserAuthToken(headerCarrier)
+      nonRepudiationMetadata = nrsPayload.createMetadata(
+        notableEvent.id,
+        pptReference,
+        userHeaders,
+        identityData,
+        userAuthToken,
+        submissionTimestamp
+      )
+      encodedPayloadString = nrsPayload.encodePayload()
       nonRepudiationSubmissionResponse <- retrieveNonRepudiationResponse(nonRepudiationMetadata, encodedPayloadString)
     } yield nonRepudiationSubmissionResponse
   }
 
-  private def retrieveNonRepudiationResponse(nonRepudiationMetadata: NonRepudiationMetadata, encodedPayloadString: String)(implicit
-    hc: HeaderCarrier
-  ): Future[NonRepudiationSubmissionAccepted] =
+  private def retrieveNonRepudiationResponse(
+    nonRepudiationMetadata: NonRepudiationMetadata,
+    encodedPayloadString: String
+  )(implicit hc: HeaderCarrier): Future[NonRepudiationSubmissionAccepted] =
     nonRepudiationConnector
       .submitNonRepudiation(encodedPayloadString, nonRepudiationMetadata)
       .recoverWith {
         case exception: HttpException =>
-          logger.error(s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}")
+          logger.error(
+            s"${config.errorLogAlertTag} - Failed to call NRS with exception ${exception.responseCode} and ${exception.message}"
+          )
           Future.failed(exception)
       }
 

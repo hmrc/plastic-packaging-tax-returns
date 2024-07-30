@@ -33,10 +33,13 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
 
   /** The current system date-time, or the overridden date-time if set in config
     * @return
-    *  - current system date-time, if no override in-place, or the override value fails to parse as a ISO_LOCAL_DATE_TIME
-    *  - overridden date-time, if set
-    * @see [[AppConfig.overrideSystemDateTime]]
-    * @see [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
+    *   - current system date-time, if no override in-place, or the override value fails to parse as a
+    *     ISO_LOCAL_DATE_TIME
+    *   - overridden date-time, if set
+    * @see
+    *   [[AppConfig.overrideSystemDateTime]]
+    * @see
+    *   [[DateTimeFormatter.ISO_LOCAL_DATE_TIME]]
     */
   def localDateTimeNow: LocalDateTime =
     appConfig
@@ -49,8 +52,10 @@ class EdgeOfSystem @Inject() (appConfig: AppConfig) {
       .toOption
 
   /** The current system date, or provides the date part of the overridden date-time, if set
-    * @return today's date, or the overridden date if set
-    * @see [[EdgeOfSystem.localDateTimeNow]]
+    * @return
+    *   today's date, or the overridden date if set
+    * @see
+    *   [[EdgeOfSystem.localDateTimeNow]]
     */
   def today: LocalDate = localDateTimeNow.toLocalDate
 

@@ -24,7 +24,10 @@ class CreditCalculationSpec extends PlaySpec with BeforeAndAfterEach with Mockit
 
   "Total stuff" in {
     val credit =
-      Map("a" -> TaxablePlastic(weight = 1, moneyInPounds = 2, taxRate = 3), "b" -> TaxablePlastic(weight = 10, moneyInPounds = 20, taxRate = 30))
+      Map(
+        "a" -> TaxablePlastic(weight = 1, moneyInPounds = 2, taxRate = 3),
+        "b" -> TaxablePlastic(weight = 10, moneyInPounds = 20, taxRate = 30)
+      )
     CreditCalculation.totalUp(credit, availableCreditInPounds = 30) mustBe CreditCalculation(
       availableCreditInPounds = 30,
       totalRequestedCreditInPounds = 22,

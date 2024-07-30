@@ -53,7 +53,13 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
 
   val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  val sut = new PPTObligationsController(cc, new FakeAuthenticator(cc), mockObligationDataConnector, mockPPTObligationsService, edgeOfSystem)
+  val sut = new PPTObligationsController(
+    cc,
+    new FakeAuthenticator(cc),
+    mockObligationDataConnector,
+    mockPPTObligationsService,
+    edgeOfSystem
+  )
 
   "getOpen" must {
     val obligations      = PPTObligations(None, None, 0, isNextObligationDue = false, displaySubmitReturnsLink = false)
@@ -83,7 +89,9 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
       sut.getOpen(pptReference).apply(FakeRequest())
 
       verify(mockObligationDataConnector)
-        .get(exactlyEq(pptReference), any(), exactlyEq(None), exactlyEq(None), exactlyEq(Some(ObligationStatus.OPEN)))(any())
+        .get(exactlyEq(pptReference), any(), exactlyEq(None), exactlyEq(None), exactlyEq(Some(ObligationStatus.OPEN)))(
+          any()
+        )
     }
 
     "get should call the service when response is successful" in {

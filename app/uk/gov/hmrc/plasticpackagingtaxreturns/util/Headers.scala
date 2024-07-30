@@ -31,6 +31,10 @@ object Headers {
     headers(correlationId, appConfig) :+ HeaderNames.AUTHORIZATION -> appConfig.desBearerToken
 
   private def headers(correlationId: String, appConfig: AppConfig): Seq[(String, String)] =
-    Seq(environmentHeaderName -> appConfig.eisEnvironment, HeaderNames.ACCEPT -> MimeTypes.JSON, correlationIdHeaderName -> correlationId)
+    Seq(
+      environmentHeaderName   -> appConfig.eisEnvironment,
+      HeaderNames.ACCEPT      -> MimeTypes.JSON,
+      correlationIdHeaderName -> correlationId
+    )
 
 }

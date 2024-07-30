@@ -17,7 +17,11 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.Logging
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{Obligation, ObligationDataResponse, ObligationDetail}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  Obligation,
+  ObligationDataResponse,
+  ObligationDetail
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.PPTObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
@@ -44,16 +48,26 @@ class PPTObligationsService @Inject() (implicit edgeOfSystem: EdgeOfSystem) exte
   private def construct(obligation: Obligation): PPTObligations = {
     val today: LocalDate = edgeOfSystem.today
     val nextObligation: Option[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(_.inboundCorrespondenceDueDate).headOption
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isEqualOrAfterToday).sortBy(
+        _.inboundCorrespondenceDueDate
+      ).headOption
 
     val overdueObligations: Seq[ObligationDetail] =
-      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(_.inboundCorrespondenceDueDate)
+      obligation.obligationDetails.filter(_.inboundCorrespondenceDueDate.isBeforeToday).sortBy(
+        _.inboundCorrespondenceDueDate
+      )
 
     val isNextObligationDue: Boolean = nextObligation.exists(_.inboundCorrespondenceToDate.isBefore(today))
 
     val displaySubmitReturnsLink: Boolean = overdueObligations.nonEmpty || isNextObligationDue
 
-    PPTObligations(nextObligation, overdueObligations.headOption, overdueObligations.length, isNextObligationDue, displaySubmitReturnsLink)
+    PPTObligations(
+      nextObligation,
+      overdueObligations.headOption,
+      overdueObligations.length,
+      isNextObligationDue,
+      displaySubmitReturnsLink
+    )
   }
 
 }

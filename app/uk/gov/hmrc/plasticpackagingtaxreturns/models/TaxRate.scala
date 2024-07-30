@@ -18,8 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import java.time.LocalDate
 
-/**
-  * @param poundsPerKg - tax rate in £ per kg
-  * @param useFromDate - earliest day from which this rate applies
+/** @param poundsPerKg
+  *   \- tax rate in £ per kg
+  * @param useFromDate
+  *   \- earliest day from which this rate applies
   */
 case class TaxRate(poundsPerKg: BigDecimal, useFromDate: LocalDate)

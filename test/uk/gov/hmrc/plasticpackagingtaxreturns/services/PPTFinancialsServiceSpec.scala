@@ -76,7 +76,10 @@ class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         sut.construct(makeData(amount -> today)) mustBe PPTFinancials.debitDue(amount, today)
       }
       "there is credit on the due debit" in {
-        sut.construct(makeData(BigDecimal(-10) -> yesterday, amount -> today)) mustBe PPTFinancials.debitDue(amount - 10, today)
+        sut.construct(makeData(BigDecimal(-10) -> yesterday, amount -> today)) mustBe PPTFinancials.debitDue(
+          amount - 10,
+          today
+        )
       }
     }
     "return overdue" when {
@@ -112,7 +115,9 @@ class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       }
       "overdue in credit more than due is due" in {
         val fullCredit = BigDecimal.valueOf(Double.MinValue)
-        sut.construct(makeData(fullCredit -> yesterday, amount -> today)) mustBe PPTFinancials.inCredit(fullCredit + amount)
+        sut.construct(makeData(fullCredit -> yesterday, amount -> today)) mustBe PPTFinancials.inCredit(
+          fullCredit + amount
+        )
       }
     }
 
@@ -139,7 +144,9 @@ class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
 
       "FinancialTransactions is missing a FinancialItem" in {
         intercept[Exception](
-          sut.construct(emptyData.copy(financialTransactions = Seq(emptyTransaction.copy(outstandingAmount = Some(amount)))))
+          sut.construct(emptyData.copy(financialTransactions =
+            Seq(emptyTransaction.copy(outstandingAmount = Some(amount)))
+          ))
         ).getMessage mustBe "Failed to extract charge from financialTransaction"
       }
     }

@@ -33,9 +33,11 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class ExportCreditBalanceConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig, auditConnector: AuditConnector)(implicit
-  ec: ExecutionContext
-) {
+class ExportCreditBalanceConnector @Inject() (
+  eisHttpClient: EisHttpClient,
+  appConfig: AppConfig,
+  auditConnector: AuditConnector
+)(implicit ec: ExecutionContext) {
 
   private val logger          = Logger(this.getClass)
   private val SUCCESS: String = "Success"
@@ -45,10 +47,16 @@ class ExportCreditBalanceConnector @Inject() (eisHttpClient: EisHttpClient, appC
     hc: HeaderCarrier
   ): Future[Either[Int, ExportCreditBalanceDisplayResponse]] = {
 
-    val timerName: String                  = "ppt.exportcreditbalance.display.timer"
-    val queryParams: Seq[(String, String)] = Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
+    val timerName: String = "ppt.exportcreditbalance.display.timer"
+    val queryParams: Seq[(String, String)] =
+      Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
 
-    eisHttpClient.get(appConfig.exportCreditBalanceDisplayUrl(pptReference), queryParams = queryParams, timerName, buildEisHeader).map { response =>
+    eisHttpClient.get(
+      appConfig.exportCreditBalanceDisplayUrl(pptReference),
+      queryParams = queryParams,
+      timerName,
+      buildEisHeader
+    ).map { response =>
       response.status match {
         case Status.OK =>
           handleSuccess(pptReference, fromDate, toDate, internalId, response)
@@ -67,8 +75,9 @@ class ExportCreditBalanceConnector @Inject() (eisHttpClient: EisHttpClient, appC
     response: EisHttpResponse
   )(implicit hc: HeaderCarrier): Left[Int, Nothing] = {
 
-    val msg = s"Upstream error returned on viewing export credit balance with correlationId [${response.correlationId}] and " +
-      s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
+    val msg =
+      s"Upstream error returned on viewing export credit balance with correlationId [${response.correlationId}] and " +
+        s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
     logger.warn(msg)
 
     auditConnector.sendExplicitAudit(
@@ -79,9 +88,13 @@ class ExportCreditBalanceConnector @Inject() (eisHttpClient: EisHttpClient, appC
     Left(response.status)
   }
 
-  private def handleSuccess(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String, response: EisHttpResponse)(implicit
-    hc: HeaderCarrier
-  ): Either[Int, ExportCreditBalanceDisplayResponse] = {
+  private def handleSuccess(
+    pptReference: String,
+    fromDate: LocalDate,
+    toDate: LocalDate,
+    internalId: String,
+    response: EisHttpResponse
+  )(implicit hc: HeaderCarrier): Either[Int, ExportCreditBalanceDisplayResponse] = {
     val triedResponse = response.jsonAs[ExportCreditBalanceDisplayResponse]
 
     triedResponse match {

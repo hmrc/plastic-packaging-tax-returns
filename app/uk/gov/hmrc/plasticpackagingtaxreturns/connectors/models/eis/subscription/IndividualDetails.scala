@@ -18,7 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptio
 
 import play.api.libs.json.{Json, OFormat}
 
-case class IndividualDetails(title: Option[String] = None, firstName: String, middleName: Option[String] = None, lastName: String)
+case class IndividualDetails(
+  title: Option[String] = None,
+  firstName: String,
+  middleName: Option[String] = None,
+  lastName: String
+)
 
 object IndividualDetails {
 

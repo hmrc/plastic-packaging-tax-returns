@@ -34,22 +34,33 @@ import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class ObligationsDataConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig, auditConnector: AuditConnector)(implicit
-  ec: ExecutionContext
-) extends Logging {
+class ObligationsDataConnector @Inject() (
+  eisHttpClient: EisHttpClient,
+  appConfig: AppConfig,
+  auditConnector: AuditConnector
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
   val SUCCESS: String = "Success"
   val FAILURE: String = "Failure"
 
-  def get(pptReference: String, internalId: String, fromDate: Option[LocalDate], toDate: Option[LocalDate], status: Option[ObligationStatus])(implicit
-    hc: HeaderCarrier
-  ): Future[Either[Int, ObligationDataResponse]] = {
+  def get(
+    pptReference: String,
+    internalId: String,
+    fromDate: Option[LocalDate],
+    toDate: Option[LocalDate],
+    status: Option[ObligationStatus]
+  )(implicit hc: HeaderCarrier): Future[Either[Int, ObligationDataResponse]] = {
 
     val timerName        = "ppt.get.obligation.data.timer"
     val obligationStatus = status.map(x => x.toString).getOrElse("")
 
     val queryParams =
-      Seq(fromDate.map("from" -> DateFormat.isoFormat(_)), toDate.map("to" -> DateFormat.isoFormat(_)), status.map("status" -> _.toString))
+      Seq(
+        fromDate.map("from" -> DateFormat.isoFormat(_)),
+        toDate.map("to" -> DateFormat.isoFormat(_)),
+        status.map("status" -> _.toString)
+      )
         .flatten
 
     def successFun(response: EisHttpResponse): Boolean =
@@ -59,17 +70,31 @@ class ObligationsDataConnector @Inject() (eisHttpClient: EisHttpClient, appConfi
         case _                                                                              => false
       }
 
-    eisHttpClient.get(appConfig.enterpriseObligationDataUrl(pptReference), queryParams = queryParams, timerName, buildDesHeader, successFun).map {
+    eisHttpClient.get(
+      appConfig.enterpriseObligationDataUrl(pptReference),
+      queryParams = queryParams,
+      timerName,
+      buildDesHeader,
+      successFun
+    ).map {
       response =>
         response.status match {
           case Status.OK => handleSuccess(pptReference, internalId, obligationStatus, queryParams, response)
           case Status.NOT_FOUND if response.isMagic404 =>
-            val msg = s"""Success on retrieving enterprise obligation data correlationId [${response.correlationId}] and """ +
-              s"pptReference [$pptReference], params [$queryParams], status: ${Status.NOT_FOUND}, body: ${ObligationDataResponse.empty}"
+            val msg =
+              s"""Success on retrieving enterprise obligation data correlationId [${response.correlationId}] and """ +
+                s"pptReference [$pptReference], params [$queryParams], status: ${Status.NOT_FOUND}, body: ${ObligationDataResponse.empty}"
 
             auditConnector.sendExplicitAudit(
               GetObligations.eventType,
-              GetObligations(obligationStatus, internalId, pptReference, SUCCESS, Some(ObligationDataResponse.empty), Some(msg))
+              GetObligations(
+                obligationStatus,
+                internalId,
+                pptReference,
+                SUCCESS,
+                Some(ObligationDataResponse.empty),
+                Some(msg)
+              )
             )
 
             Right(ObligationDataResponse.empty)
@@ -116,14 +141,22 @@ class ObligationsDataConnector @Inject() (eisHttpClient: EisHttpClient, appConfi
     queryParams: Seq[(String, String)],
     response: EisHttpResponse
   )(implicit hc: HeaderCarrier) = {
-    val msg = s"""Error returned when getting enterprise obligation data correlationId [${response.correlationId}] and """ +
-      s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
+    val msg =
+      s"""Error returned when getting enterprise obligation data correlationId [${response.correlationId}] and """ +
+        s"pptReference [$pptReference], params [$queryParams], status: ${response.status}"
 
     logger.error(msg)
 
     auditConnector.sendExplicitAudit(
       GetObligations.eventType,
-      GetObligations(obligationStatus, internalId, pptReference, FAILURE, None, Some(s"$msg, body: ${response.json.toString()}"))
+      GetObligations(
+        obligationStatus,
+        internalId,
+        pptReference,
+        FAILURE,
+        None,
+        Some(s"$msg, body: ${response.json.toString()}")
+      )
     )
 
     Left(response.status)

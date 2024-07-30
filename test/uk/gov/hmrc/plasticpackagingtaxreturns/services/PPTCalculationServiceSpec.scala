@@ -36,7 +36,11 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(taxCalculationService)
-    when(taxCalculationService.weightToDebit(any, any)) thenReturn TaxablePlastic(weight = 0, moneyInPounds = 0.0, taxRate = 1.1)
+    when(taxCalculationService.weightToDebit(any, any)) thenReturn TaxablePlastic(
+      weight = 0,
+      moneyInPounds = 0.0,
+      taxRate = 1.1
+    )
   }
 
   "calculate" must {
@@ -112,7 +116,8 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       }
 
       "has all deductions" in {
-        val taxReturn = allZeroReturn.copy(recycledPlasticWeight = 3, humanMedicinesPlasticWeight = 5, exportedPlasticWeight = 11)
+        val taxReturn =
+          allZeroReturn.copy(recycledPlasticWeight = 3, humanMedicinesPlasticWeight = 5, exportedPlasticWeight = 11)
 
         val expected = 19L
 
@@ -188,7 +193,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           recycledPlasticWeight = 2
         )
         calculationService.calculate(taxReturn)
-        verify(taxCalculationService).weightToDebit(any, eqTo(6)) //(8 + 3 - 2 - 1 - 2) = 6
+        verify(taxCalculationService).weightToDebit(any, eqTo(6)) // (8 + 3 - 2 - 1 - 2) = 6
       }
 
     }

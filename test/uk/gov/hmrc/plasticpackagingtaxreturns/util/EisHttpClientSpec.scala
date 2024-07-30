@@ -63,12 +63,20 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   private implicit val formats: OFormat[ExampleModel] = Json.format[ExampleModel]
 
   private val headerFn = (correlationId: String, _: AppConfig) =>
-    Seq("Environment" -> "space", "Accept" -> "application/json", "Authorization" -> "do-come-in", "CorrelationId" -> correlationId)
+    Seq(
+      "Environment"   -> "space",
+      "Accept"        -> "application/json",
+      "Authorization" -> "do-come-in",
+      "CorrelationId" -> correlationId
+    )
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
 
-    when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(200, "{}")))
+    when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+      200,
+      "{}"
+    )))
     when(appConfig.eisEnvironment) thenReturn "space"
     when(appConfig.bearerToken) thenReturn "do-come-in"
     when(edgeOfSystem.createUuid).thenReturn(
@@ -90,7 +98,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     "send a request" in {
       val response = callPut
       response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000001")
-      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(any, any, any, any)
+      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(
+        any,
+        any,
+        any,
+        any
+      )
 
       withClue("with these headers") {
         val headers = Seq(
@@ -103,13 +116,21 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       }
 
       withClue("using these implicits") {
-        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(eqTo(formats), eqTo(Implicits.readRaw), eqTo(headerCarrier), eqTo(global))
+        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(
+          eqTo(formats),
+          eqTo(Implicits.readRaw),
+          eqTo(headerCarrier),
+          eqTo(global)
+        )
       }
     }
 
     "handle responses" when {
       "status is 2xx" in {
-        when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HmrcResponse(200, """{"a": "b"}"""))
+        when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HmrcResponse(
+          200,
+          """{"a": "b"}"""
+        ))
         callPut mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000001")
       }
       // All responses the same right now
@@ -217,7 +238,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )
 
       val response = callPut
-      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(any, any, any, any)
+      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(
+        any,
+        any,
+        any,
+        any
+      )
 
       response.status mustBe 200
 
@@ -240,7 +266,10 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "use custom success criteria" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(422, "")))
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+        422,
+        ""
+      )))
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
@@ -260,7 +289,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       callPut
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+        eqTo(
+          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
+        )
       )(any)
 
       verify(testLogger, times(1)).warn(
@@ -274,36 +305,51 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "log when giving up" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(500, "")))
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+        500,
+        ""
+      )))
 
       callPut
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+        eqTo(
+          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
+        )
       )(any)
 
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+        eqTo(
+          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002"
+        )
       )(any)
 
       verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
+        eqTo(
+          "PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003"
+        )
       )(any)
     }
 
     "retry after an exception" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(new GatewayTimeoutException("exception-message"))
+      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(
+        new GatewayTimeoutException("exception-message")
+      )
       the[Exception] thrownBy callPut must have message "exception-message"
       verify(hmrcClient, times(3)).PUT[Any, Any](any, any, any)(any, any, any, any)
 
       withClue("log each retry") {
         verify(testLogger, times(2)).warn(
-          eqTo("PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")
+          eqTo(
+            "PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
+          )
         )(any)
       }
 
       withClue("log when it gives up") {
         verify(testLogger, times(1)).warn(
-          eqTo("PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")
+          eqTo(
+            "PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
+          )
         )(any)
       }
     }
@@ -318,7 +364,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       withClue("log when it succeeds") {
         verify(testLogger, times(1)).warn(
-          eqTo("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+          eqTo(
+            "PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002"
+          )
         )(any)
       }
     }

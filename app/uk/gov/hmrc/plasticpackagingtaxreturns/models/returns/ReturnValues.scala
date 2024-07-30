@@ -55,8 +55,7 @@ final case class NewReturnValues(
   override val submissionId: Option[String] = None
   override val returnType: ReturnType       = ReturnType.NEW
 
-  override def totalExportedPlastic: Long =
-    exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
+  override def totalExportedPlastic: Long = exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
 
 }
 
@@ -103,8 +102,7 @@ final case class AmendReturnValues(
   override val submissionId: Option[String] = Some(submission)
   override val returnType: ReturnType       = ReturnType.AMEND
 
-  override def totalExportedPlastic: Long =
-    exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
+  override def totalExportedPlastic: Long = exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
 
 }
 
@@ -118,12 +116,19 @@ object AmendReturnValues {
       submissionID <- original.map(_.idDetails.submissionId)
       periodKey     = userAnswers.getOrFail[String](JsPath() \ "amendSelectedPeriodKey")
       periodEndDate = userAnswers.getOrFail[LocalDate](JsPath \ "amend" \ "obligation" \ "toDate")
-      manufactured              <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(original.map(_.returnDetails.manufacturedWeight))
-      imported                  <- userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
-      exported                  <- userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
-      exportedByAnotherBusiness <- userAnswers.get(AmendExportedByAnotherBusinessPlasticPackagingGettable).orElse(Some(0L))
-      humanMedicines            <- userAnswers.get(AmendHumanMedicinePlasticPackagingGettable).orElse(original.map(_.returnDetails.humanMedicines))
-      recycled                  <- userAnswers.get(AmendRecycledPlasticPackagingGettable).orElse(original.map(_.returnDetails.recycledPlastic))
+      manufactured <- userAnswers.get(AmendManufacturedPlasticPackagingGettable).orElse(
+        original.map(_.returnDetails.manufacturedWeight)
+      )
+      imported <-
+        userAnswers.get(AmendImportedPlasticPackagingGettable).orElse(original.map(_.returnDetails.importedWeight))
+      exported <-
+        userAnswers.get(AmendDirectExportPlasticPackagingGettable).orElse(original.map(_.returnDetails.directExports))
+      exportedByAnotherBusiness <-
+        userAnswers.get(AmendExportedByAnotherBusinessPlasticPackagingGettable).orElse(Some(0L))
+      humanMedicines <-
+        userAnswers.get(AmendHumanMedicinePlasticPackagingGettable).orElse(original.map(_.returnDetails.humanMedicines))
+      recycled <-
+        userAnswers.get(AmendRecycledPlasticPackagingGettable).orElse(original.map(_.returnDetails.recycledPlastic))
     } yield new AmendReturnValues(
       periodKey,
       periodEndDate,

@@ -27,7 +27,7 @@ object Settable {
 
   implicit class SettableUserAnswers(val userAnswers: UserAnswers) extends AnyVal {
 
-    //sets with a Gettable as Settable is not defined in backend
+    // sets with a Gettable as Settable is not defined in backend
     def setUnsafe[A](page: Gettable[A], value: A)(implicit writes: Writes[A]): UserAnswers = setUnsafe(page.path, value)
 
     def setUnsafe[A](jsPath: JsPath, value: A)(implicit writes: Writes[A]): UserAnswers = {
@@ -49,8 +49,7 @@ object Settable {
     def setObject(path: JsPath, value: JsValue): JsResult[JsObject] =
       jsObject.set(path, value).flatMap(_.validate[JsObject])
 
-    def removeObject(path: JsPath): JsResult[JsObject] =
-      jsObject.remove(path).flatMap(_.validate[JsObject])
+    def removeObject(path: JsPath): JsResult[JsObject] = jsObject.remove(path).flatMap(_.validate[JsObject])
 
   }
 
@@ -115,7 +114,10 @@ object Settable {
 
       valueToRemoveFrom match {
         case valueToRemoveFrom: JsArray if index >= 0 && index < valueToRemoveFrom.value.length =>
-          val updatedJsArray = valueToRemoveFrom.value.slice(0, index) ++ valueToRemoveFrom.value.slice(index + 1, valueToRemoveFrom.value.size)
+          val updatedJsArray = valueToRemoveFrom.value.slice(0, index) ++ valueToRemoveFrom.value.slice(
+            index + 1,
+            valueToRemoveFrom.value.size
+          )
           JsSuccess(JsArray(updatedJsArray))
         case valueToRemoveFrom: JsArray =>
           JsError(s"array index out of bounds: $index, $valueToRemoveFrom")

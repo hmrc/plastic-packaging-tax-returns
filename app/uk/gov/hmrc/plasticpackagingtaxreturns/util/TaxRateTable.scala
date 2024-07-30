@@ -24,9 +24,9 @@ import java.time.LocalDate
 import javax.inject.Inject
 import scala.math.Ordering.Implicits.infixOrderingOps
 
-/**
-  * The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
-  * @note table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
+/** The tax rates for PPT. Append further rates to [[TaxRateTable#table]]
+  * @note
+  *   table should be in reverse chronological order (newest first), see test in TaxRateTableSpec
   */
 final class TaxRateTable @Inject() (implicit appConfig: AppConfig) {
 
@@ -36,10 +36,11 @@ final class TaxRateTable @Inject() (implicit appConfig: AppConfig) {
     TaxRate(poundsPerKg = appConfig.taxRates("2022"), useFromDate = LocalDate.of(2022, 4, 1))
   )
 
-  /**
-    * Looks up the PPT tax rate applicable to the given date
-    * @param periodEndDate the last day of the period we are finding the tax-rate for
-    * @return the tax rate for the given period
+  /** Looks up the PPT tax rate applicable to the given date
+    * @param periodEndDate
+    *   the last day of the period we are finding the tax-rate for
+    * @return
+    *   the tax rate for the given period
     */
   def lookupRateFor(periodEndDate: LocalDate): BigDecimal =
     table

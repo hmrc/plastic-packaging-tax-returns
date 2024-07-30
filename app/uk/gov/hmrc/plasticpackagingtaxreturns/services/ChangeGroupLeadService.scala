@@ -30,12 +30,15 @@ class ChangeGroupLeadService {
   def createNrsSubscriptionUpdateSubmission(
     subscriptionUpdateRequest: SubscriptionUpdateRequest,
     userAnswers: UserAnswers
-  ): NrsSubscriptionUpdateSubmission =
-    NrsSubscriptionUpdateSubmission(userAnswers, subscriptionUpdateRequest)
+  ): NrsSubscriptionUpdateSubmission = NrsSubscriptionUpdateSubmission(userAnswers, subscriptionUpdateRequest)
 
-  def createSubscriptionUpdateRequest(subscription: SubscriptionDisplayResponse, userAnswers: UserAnswers): SubscriptionUpdateRequest = {
+  def createSubscriptionUpdateRequest(
+    subscription: SubscriptionDisplayResponse,
+    userAnswers: UserAnswers
+  ): SubscriptionUpdateRequest = {
 
-    val oldRepresentativeAsStandardMember: GroupPartnershipDetails = createMemberFromPreviousRepresentative(subscription)
+    val oldRepresentativeAsStandardMember: GroupPartnershipDetails =
+      createMemberFromPreviousRepresentative(subscription)
 
     val members = subscription
       .groupPartnershipSubscription
@@ -49,16 +52,18 @@ class ChangeGroupLeadService {
     val newRepContactAddress  = userAnswers.getOrFail(NewGroupLeadEnterContactAddressGettable)
 
     val newRepOriginalMemberDetails = members
-      .find(
-        member =>
-          member.organisationDetails.exists(_.organisationName == newRepOrganisation.organisationName)
-            && member.customerIdentification1 == newRepOrganisation.crn
+      .find(member =>
+        member.organisationDetails.exists(_.organisationName == newRepOrganisation.organisationName)
+          && member.customerIdentification1 == newRepOrganisation.crn
       )
       .getOrElse(throw new IllegalStateException("Selected New Representative member is not part of the group"))
 
     val otherMembers = members.map { member =>
-      val memberDetails = member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
-      if (memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn)
+      val memberDetails =
+        member.organisationDetails.getOrElse(throw new IllegalStateException("member of group missing organisation"))
+      if (
+        memberDetails.organisationName == newRepOrganisation.organisationName && member.customerIdentification1 == newRepOrganisation.crn
+      )
         member.copy(relationship = Relationship.Representative)
       else
         member
@@ -87,11 +92,13 @@ class ChangeGroupLeadService {
         positionInCompany = newRepContactJobTitle
       ),
       businessCorrespondenceDetails = newRepContactAddress,
-      groupPartnershipSubscription = subscription.groupPartnershipSubscription.map(_.copy(groupPartnershipDetails = newMembersList))
+      groupPartnershipSubscription =
+        subscription.groupPartnershipSubscription.map(_.copy(groupPartnershipDetails = newMembersList))
     ).toUpdateRequest
   }
 
-  private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse): GroupPartnershipDetails =
+  private def createMemberFromPreviousRepresentative(subscription: SubscriptionDisplayResponse)
+    : GroupPartnershipDetails =
     GroupPartnershipDetails(
       relationship = Relationship.Member,
       customerIdentification1 = subscription.legalEntityDetails.customerIdentification1,

@@ -44,7 +44,11 @@ object ChangeSubscriptionEvent {
   implicit val format: OFormat[ChangeSubscriptionEvent] = Json.format[ChangeSubscriptionEvent]
   val eventType: String                                 = "changePPTRegistration"
 
-  def apply(subscription: Subscription, pptReference: Option[String], processingDateTime: Option[ZonedDateTime]): ChangeSubscriptionEvent =
+  def apply(
+    subscription: Subscription,
+    pptReference: Option[String],
+    processingDateTime: Option[ZonedDateTime]
+  ): ChangeSubscriptionEvent =
     ChangeSubscriptionEvent(
       changeOfCircumstanceDetails = subscription.changeOfCircumstanceDetails,
       legalEntityDetails = subscription.legalEntityDetails,
