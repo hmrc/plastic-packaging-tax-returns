@@ -79,7 +79,7 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
       )
 
     val isSubmittable = submittableEval match {
-      case Left(err)   => logger.info(err); false
+      case Left(err)   => logger.warn(err); false
       case Right(bool) => bool
     }
 
