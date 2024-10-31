@@ -53,15 +53,35 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
     val chargeableTotal: Long = scala.math.max(0, packagingTotal - deductionsTotal)
     val taxPayable            = taxCalculationService.weightToDebit(periodEndDate, chargeableTotal)
 
-    val isSubmittable: Boolean =
-      manufacturedPlasticWeight >= 0 &&
-        importedPlasticWeight >= 0 &&
-        totalExportedPlasticWeight >= 0 &&
-        recycledPlasticWeight >= 0 &&
-        humanMedicinesPlasticWeight >= 0 &&
-        packagingTotal >= deductionsTotal &&
-        chargeableTotal >= 0 &&
-        convertedPackagingCredit <= availableCredit
+    val submittableEval = Either.cond(
+      manufacturedPlasticWeight >= 0,
+      true,
+      "manufactured plastic weight lte zero"
+    )
+      .flatMap(_ => Either.cond(importedPlasticWeight >= 0, true, "imported plastic weight lte zero"))
+      .flatMap(_ =>
+        Either.cond(totalExportedPlasticWeight >= 0, true, "total exported plastic weight lte zero")
+      )
+      .flatMap(_ => Either.cond(recycledPlasticWeight >= 0, true, "recycled plastic weight lte zero"))
+      .flatMap(_ =>
+        Either.cond(humanMedicinesPlasticWeight >= 0, true, "human medicines plastic weight lte zero")
+      )
+      .flatMap(_ =>
+        Either.cond(packagingTotal >= deductionsTotal, true, "deductions total greater than packaging total")
+      )
+      .flatMap(_ => Either.cond(chargeableTotal >= 0, true, "chargeable total lte zero"))
+      .flatMap(_ =>
+        Either.cond(
+          convertedPackagingCredit <= availableCredit,
+          true,
+          "available credit greater than converted packaging credit"
+        )
+      )
+
+    val isSubmittable = submittableEval match {
+      case Left(err)   => logger.info(err); false
+      case Right(bool) => bool
+    }
 
     Calculations(
       taxPayable.moneyInPounds,
