@@ -74,7 +74,7 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
         Either.cond(
           convertedPackagingCredit <= availableCredit,
           true,
-          "available credit greater than converted packaging credit"
+          "converted packaging credit is larger than the available credit"
         )
       )
 
