@@ -57,7 +57,14 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       }
 
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
-    eisHttpClient.put(returnsSubmissionUrl, requestBody, "ppt.return.create.timer", buildEisHeader, isSuccessful)
+    eisHttpClient.put(
+      returnsSubmissionUrl,
+      requestBody,
+      "ppt.return.create.timer",
+      buildEisHeader,
+      isSuccessful,
+      enableRetry = false
+    )
       .map { httpResponse =>
         if (httpResponse.status == OK)
           happyPathSubmit(pptReference, requestBody, internalId, httpResponse)

@@ -129,7 +129,8 @@ class EisHttpClient @Inject() (
     requestBody: HappyModel,
     timerName: String,
     headerFun: (String, AppConfig) => Seq[(String, String)],
-    successFun: SuccessFun = isSuccessful
+    successFun: SuccessFun = isSuccessful,
+    enableRetry: Boolean = true
   )(implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val putFunction = () => {
@@ -140,8 +141,9 @@ class EisHttpClient @Inject() (
         }
     }
 
-    val timer = metrics.defaultRegistry.timer(timerName).time()
-    retry(retryAttempts, putFunction, successFun, url)
+    val timer    = metrics.defaultRegistry.timer(timerName).time()
+    val attempts = if (enableRetry) retryAttempts else 0
+    retry(attempts, putFunction, successFun, url)
       .andThen { case _ => timer.stop() }
   }
 
