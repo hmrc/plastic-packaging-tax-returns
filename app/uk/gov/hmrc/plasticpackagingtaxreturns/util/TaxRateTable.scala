@@ -31,6 +31,7 @@ import scala.math.Ordering.Implicits.infixOrderingOps
 final class TaxRateTable @Inject() (implicit appConfig: AppConfig) {
 
   val table: Seq[TaxRate] = Seq(
+    TaxRate(poundsPerKg = appConfig.taxRates("2025"), useFromDate = LocalDate.of(2025, 4, 1)),
     TaxRate(poundsPerKg = appConfig.taxRates("2024"), useFromDate = LocalDate.of(2024, 4, 1)),
     TaxRate(poundsPerKg = appConfig.taxRates("2023"), useFromDate = LocalDate.of(2023, 4, 1)),
     TaxRate(poundsPerKg = appConfig.taxRates("2022"), useFromDate = LocalDate.of(2022, 4, 1))
