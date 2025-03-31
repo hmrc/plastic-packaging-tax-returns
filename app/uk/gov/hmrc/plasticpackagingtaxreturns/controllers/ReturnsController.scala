@@ -85,7 +85,7 @@ class ReturnsController @Inject() (
         case Right(displayReturnJson) =>
           val endDate = (displayReturnJson \ "chargeDetails" \ "periodTo").get.as[LocalDate]
           val taxRate = taxRateTable.lookupRateFor(endDate)
-
+          
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)
         case Left(errorStatusCode) => new Status(errorStatusCode)

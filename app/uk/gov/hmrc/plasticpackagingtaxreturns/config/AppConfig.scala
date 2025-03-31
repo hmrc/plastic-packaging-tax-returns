@@ -71,6 +71,7 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   val errorLogAlertTag = "PPT_ERROR_RAISE_ALERT"
 
   val taxRates: Map[String, Double] = Map(
+    "2025" -> config.get[Double]("tax-rate.year.2025"),
     "2024" -> config.get[Double]("tax-rate.year.2024"),
     "2023" -> config.get[Double]("tax-rate.year.2023"),
     "2022" -> config.get[Double]("tax-rate.year.2022")
@@ -94,5 +95,5 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     *   [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
     */
   def overrideSystemDateTime: Option[String] = config.getOptional[String]("override-system-date-time")
-
+  
 }
