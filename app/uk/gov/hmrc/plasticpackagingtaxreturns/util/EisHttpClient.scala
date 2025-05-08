@@ -130,7 +130,7 @@ class EisHttpClient @Inject() (
     timerName: String,
     headerFun: (String, AppConfig) => Seq[(String, String)],
     successFun: SuccessFun = isSuccessful,
-    enableRetry: Boolean = true
+    enableRetry: Boolean = true // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
   )(implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val putFunction = () => {
@@ -142,6 +142,7 @@ class EisHttpClient @Inject() (
     }
 
     val timer    = metrics.defaultRegistry.timer(timerName).time()
+    // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
     val attempts = if (enableRetry) retryAttempts else 0
     retry(attempts, putFunction, successFun, url)
       .andThen { case _ => timer.stop() }

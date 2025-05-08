@@ -63,7 +63,7 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       "ppt.return.create.timer",
       buildEisHeader,
       isSuccessful,
-      enableRetry = false
+      enableRetry = false // ATTENTION: Always set to false. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
     )
       .map { httpResponse =>
         if (httpResponse.status == OK)
