@@ -79,7 +79,7 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
       )
 
     val isSubmittable = submittableEval match {
-      case Left(err)   => logger.warn(err); false
+      case Left(err)   => logger.error(s"The calculation is not submittable, reason: ${err}"); false
       case Right(bool) => bool
     }
 
