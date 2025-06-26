@@ -36,7 +36,10 @@ class AvailableCreditService @Inject() (exportCreditBalanceConnector: ExportCred
     exportCreditBalanceConnector
       .getBalance(request.pptReference, fromDate, toDate, request.internalId)
       .map(_.fold(
-        e => throw new Exception(s"Error calling EIS export credit, status: $e"),
+        e => throw new Exception(
+          if (e == 409) s"Error calling EIS export credit, status: 409, DUPLICATE_SUBMISSION"
+          else s"Error calling EIS export credit, status: $e"
+        ),
         _.totalExportCreditAvailable
       ))
   }
