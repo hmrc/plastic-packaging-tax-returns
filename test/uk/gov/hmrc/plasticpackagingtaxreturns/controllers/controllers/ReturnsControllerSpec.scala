@@ -96,8 +96,8 @@ class ReturnsControllerSpec
     exportedByAnotherBusinessPlasticWeight = 100,
     humanMedicinesPlasticWeight = 10,
     recycledPlasticWeight = 5,
-    convertedPackagingCredit = 0,
-    availableCredit = 0
+    convertedPackagingCredit = None,
+    availableCredit = None
   )
 
   private val expectedAmendReturnValues: ReturnValues = AmendReturnValues(
@@ -125,7 +125,6 @@ class ReturnsControllerSpec
   )
 
   private val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
-  private val mockAppConfig: AppConfig                         = mock[AppConfig]
   private val nrSubmissionId: String                           = "nrSubmissionId"
   private val mockSessionRepository: SessionRepository         = mock[SessionRepository]
   private val mockAuditConnector                               = mock[AuditConnector]
@@ -146,7 +145,6 @@ class ReturnsControllerSpec
     cc,
     mockReturnsConnector,
     mockObligationDataConnector,
-    mockAppConfig,
     mockAuditConnector,
     mockPptCalculationService,
     mockFinancialDataService,
@@ -166,7 +164,6 @@ class ReturnsControllerSpec
       mockNonRepudiationService,
       mockReturnsConnector,
       mockObligationDataConnector,
-      mockAppConfig,
       mockAuditConnector,
       mockPptCalculationService,
       mockFinancialDataService,
@@ -508,14 +505,14 @@ class ReturnsControllerSpec
   private def setupMocksForSubmit(userAnswers: UserAnswers) = {
 
     mockGetObligationDataPeriodKey(pptReference, "21C4")
-    when(mockCreditsCalculationService.totalRequestedCredit(any, any)).thenReturn(CreditCalculation(
+    when(mockCreditsCalculationService.totalRequestedCredit(any, any)).thenReturn(Some(CreditCalculation(
       0L,
       0,
       0,
       canBeClaimed = true,
       Map.empty
-    ))
-    when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(10)))
+    )))
+    when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(Some(BigDecimal(10))))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(

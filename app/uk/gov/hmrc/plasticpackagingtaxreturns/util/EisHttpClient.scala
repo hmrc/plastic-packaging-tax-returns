@@ -130,7 +130,8 @@ class EisHttpClient @Inject() (
     timerName: String,
     headerFun: (String, AppConfig) => Seq[(String, String)],
     successFun: SuccessFun = isSuccessful,
-    enableRetry: Boolean = true // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
+    enableRetry: Boolean =
+      true // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
   )(implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
     val putFunction = () => {
@@ -141,7 +142,7 @@ class EisHttpClient @Inject() (
         }
     }
 
-    val timer    = metrics.defaultRegistry.timer(timerName).time()
+    val timer = metrics.defaultRegistry.timer(timerName).time()
     // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
     val attempts = if (enableRetry) retryAttempts else 0
     retry(attempts, putFunction, successFun, url)
@@ -153,7 +154,9 @@ class EisHttpClient @Inject() (
     queryParams: Seq[(String, String)],
     timerName: String,
     headerFun: (String, AppConfig) => Seq[(String, String)],
-    successFun: SuccessFun = isSuccessful
+    successFun: SuccessFun = isSuccessful,
+    enableRetry: Boolean =
+      true // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
   )(implicit hc: HeaderCarrier): Future[EisHttpResponse] = {
     val timer         = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
@@ -162,8 +165,9 @@ class EisHttpClient @Inject() (
       hmrcClient.GET(url, queryParams, headerFun(correlationId, appConfig)).map {
         EisHttpResponse.fromHttpResponse(correlationId)
       }
-
-    retry(retryAttempts, getFunction, successFun, url)
+    // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
+    val attempts = if (enableRetry) retryAttempts else 0
+    retry(attempts, getFunction, successFun, url)
       .andThen { case _ => timer.stop() }
   }
 

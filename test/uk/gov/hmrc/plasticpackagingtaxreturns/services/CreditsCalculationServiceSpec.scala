@@ -161,7 +161,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach wit
         verify(taxCalculationService).weightToCredit(any, eqTo(3))
       }
       "return the correct total" in {
-        sut.totalRequestedCredit_old(newUserAnswers) mustBe TaxablePlastic(1, 1.1, 1.11)
+        sut.totalRequestedCredit_old(newUserAnswers) mustBe Some(TaxablePlastic(1, 1.1, 1.11))
       }
     }
 
@@ -175,13 +175,13 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach wit
       }
 
       "do bigger object" in {
-        sut.totalRequestedCredit(newUserAnswers, 11) mustBe CreditCalculation(
+        sut.totalRequestedCredit(newUserAnswers, Some(11)) mustBe Some(CreditCalculation(
           availableCreditInPounds = 11,
           totalRequestedCreditInPounds = 3.3,
           totalRequestedCreditInKilograms = 3,
           canBeClaimed = true,
           credit = Map(("key-a", TaxablePlastic(1, 1.1, 1.11)), ("key-b", TaxablePlastic(2, 2.2, 2.22)))
-        )
+        ))
       }
     }
 

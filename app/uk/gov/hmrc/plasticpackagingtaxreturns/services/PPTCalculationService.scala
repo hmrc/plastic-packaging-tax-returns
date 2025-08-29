@@ -44,8 +44,8 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
     humanMedicinesPlasticWeight: Long,
     recycledPlasticWeight: Long,
     totalExportedPlasticWeight: Long,
-    convertedPackagingCredit: BigDecimal,
-    availableCredit: BigDecimal
+    convertedPackagingCredit: Option[BigDecimal],
+    availableCredit: Option[BigDecimal]
   ): Calculations = {
 
     val packagingTotal: Long  = importedPlasticWeight + manufacturedPlasticWeight
@@ -71,11 +71,13 @@ class PPTCalculationService @Inject() (taxCalculationService: TaxCalculationServ
       )
       .flatMap(_ => Either.cond(chargeableTotal >= 0, true, "chargeable total lte zero"))
       .flatMap(_ =>
-        Either.cond(
-          convertedPackagingCredit <= availableCredit,
-          true,
-          "converted packaging credit is larger than the available credit"
-        )
+        (for {
+          converted <- convertedPackagingCredit
+          available <- availableCredit
+        } yield converted <= available) match {
+          case Some(false) => Left("converted packaging credit is larger than the available credit")
+          case _           => Right(true)
+        }
       )
 
     val isSubmittable = submittableEval match {

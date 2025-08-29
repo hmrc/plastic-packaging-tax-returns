@@ -28,7 +28,8 @@ class ReturnValuesSpec extends PlaySpec {
   "NewReturnValues" should {
     "extract value from userAnswer" in {
 
-      val result = NewReturnValues.apply(5, 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
+      val result =
+        NewReturnValues.apply(Some(5), Some(10))(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
 
       result mustBe Some(
         NewReturnValues(
@@ -40,27 +41,28 @@ class ReturnValuesSpec extends PlaySpec {
           exportedByAnotherBusinessPlasticWeight = 100L,
           humanMedicinesPlasticWeight = 10L,
           recycledPlasticWeight = 5L,
-          convertedPackagingCredit = 5,
-          availableCredit = 10
+          convertedPackagingCredit = Some(5),
+          availableCredit = Some(10)
         )
       )
     }
 
     "Return None if cannot get value from useAnswer" in {
-      val result = NewReturnValues.apply(5, 10)(UserAnswers("123", ReturnTestHelper.invalidReturnsDataJson))
+      val result = NewReturnValues.apply(Some(5), Some(10))(UserAnswers("123", ReturnTestHelper.invalidReturnsDataJson))
 
       result mustBe None
     }
 
     "get total exported plastic" in {
-      val result = NewReturnValues.apply(5, 10)(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
+      val result =
+        NewReturnValues.apply(Some(5), Some(10))(UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson))
 
       result.get.totalExportedPlastic mustBe 300
     }
 
     "return exportedByAnotherBusiness value of zero if missing" in {
       val ans    = UserAnswers("123", ReturnTestHelper.returnWithCreditsDataJson - "anotherBusinessExportWeight")
-      val result = NewReturnValues.apply(5, 10)(ans)
+      val result = NewReturnValues.apply(Some(5), Some(10))(ans)
 
       result mustBe Some(
         NewReturnValues(
@@ -72,8 +74,8 @@ class ReturnValuesSpec extends PlaySpec {
           exportedByAnotherBusinessPlasticWeight = 0L,
           humanMedicinesPlasticWeight = 10L,
           recycledPlasticWeight = 5L,
-          convertedPackagingCredit = 5,
-          availableCredit = 10
+          convertedPackagingCredit = Some(5),
+          availableCredit = Some(10)
         )
       )
     }

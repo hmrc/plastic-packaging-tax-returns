@@ -77,7 +77,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
     reset(sessionRepository, availableCreditService, pptCalculationService, creditsCalculationService, taxRateTable)
 
     when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
-    when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(BigDecimal(0))
+    when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(Some(BigDecimal(0)))
     when(taxRateTable.lookupRateFor(any)).thenReturn(0.123)
   }
 
@@ -93,7 +93,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
           isSubmittable = true,
           taxRate = 0.123
         )
-      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(Some(TaxablePlastic(100L, 200, 2.0)))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -112,7 +112,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
           isSubmittable = true,
           taxRate = 0.123
         )
-      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(TaxablePlastic(100L, 200, 2.0))
+      when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(Some(TaxablePlastic(100L, 200, 2.0)))
       when(pptCalculationService.calculate(any)).thenReturn(expected)
 
       await(sut.calculateSubmit(pptReference)(FakeRequest()))
@@ -124,7 +124,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
     "return un-processable entity" when {
       "has an incomplete cache" in {
         when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(invalidUserAnswers))
-
+        when(creditsCalculationService.totalRequestedCredit_old(any)).thenReturn(None)
         val result: Future[Result] = sut.calculateSubmit(pptReference)(FakeRequest())
 
         status(result) mustBe UNPROCESSABLE_ENTITY
@@ -178,7 +178,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
         when(sessionRepository.get(any)) thenReturn Future.successful(
           Some(userAnswers.removePath(JsPath \ "importedPlasticPackagingWeight"))
         )
-        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn Some(TaxablePlastic(0, 0, 0))
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
 
         val result = sut.calculateSubmit(pptReference)(FakeRequest())
@@ -189,14 +189,14 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
         when(sessionRepository.get(any)) thenReturn Future.successful(
           Some(userAnswers.removePath(JsPath \ Symbol("obligation") \ Symbol("toDate")))
         )
-        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn Some(TaxablePlastic(0, 0, 0))
         when(pptCalculationService.calculate(any)) thenReturn Calculations(0, 0, 0, 0, false, 0)
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
           have message "/obligation/toDate is missing from user answers"
       }
 
       "tax calculation complains" in {
-        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn TaxablePlastic(0, 0, 0)
+        when(creditsCalculationService.totalRequestedCredit_old(any)) thenReturn Some(TaxablePlastic(0, 0, 0))
         when(pptCalculationService.calculate(any)) thenThrow new RuntimeException("something else wrong")
         the[Exception] thrownBy await(sut.calculateSubmit(pptReference)(FakeRequest())) must
           have message "something else wrong"

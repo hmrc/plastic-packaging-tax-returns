@@ -95,5 +95,5 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     *   [[uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem.localDateTimeNow]]
     */
   def overrideSystemDateTime: Option[String] = config.getOptional[String]("override-system-date-time")
-  
+
 }

@@ -70,7 +70,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
     super.beforeEach()
     reset(mockAvailableCreditsService, mockSessionRepo, creditsCalculationService)
     when(mockSessionRepo.get(any)) thenReturn Future.successful(Some(userAnswers))
-    when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(BigDecimal(200)))
+    when(mockAvailableCreditsService.getBalance(any)(any)).thenReturn(Future.successful(Some(BigDecimal(200))))
   }
 
   val sut =
@@ -85,7 +85,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
   "get" must {
 
     "return 200 response with correct values" in {
-      when(creditsCalculationService.totalRequestedCredit(any, any)) thenReturn exampleCreditCalculation
+      when(creditsCalculationService.totalRequestedCredit(any, any)) thenReturn Some(exampleCreditCalculation)
 
       val result = sut.get("url-ppt-ref")(FakeRequest())
 
@@ -100,7 +100,7 @@ class ExportCreditBalanceControllerSpec extends PlaySpec with BeforeAndAfterEach
         verify(mockAvailableCreditsService).getBalance(refEq(userAnswers))(any)
       }
       withClue("credits calculation service is called") {
-        verify(creditsCalculationService).totalRequestedCredit(userAnswers, availableCreditInPounds = 200)
+        verify(creditsCalculationService).totalRequestedCredit(userAnswers, availableCreditInPounds = Some(200))
       }
     }
 

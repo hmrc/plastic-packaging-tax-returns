@@ -17,12 +17,13 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.{any, eq}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, verify, verifyNoInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.IM_A_TEAPOT
+import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
@@ -54,18 +55,11 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
     "return available balance" when {
       "no credit is being claimed" in {
-        val expected     = BigDecimal(200)
-        val unUsedBigDec = mock[BigDecimal]
-        val creditResponse =
-          ExportCreditBalanceDisplayResponse("date", unUsedBigDec, unUsedBigDec, totalExportCreditAvailable = expected)
-        when(mockConnector.getBalance(any(), any(), any(), any())(any())).thenReturn(
-          Future.successful(Right(creditResponse))
-        )
-
         val userAnswers = UserAnswers("user-answers-id")
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27))
 
-        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe 200
+        await(sut.getBalance(userAnswers)(fakeRequest)) mustBe None
+        verifyNoInteractions(mockConnector)
       }
     }
 
@@ -79,13 +73,13 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
         Future.successful(Right(creditResponse))
       )
 
-      val userAnswers = UserAnswers("user-answers-id")
+      val userAnswers = UserAnswers(id = "user-answers-id", data = Json.obj("whatDoYouWantToDo" -> true))
         .setUnsafe(ReturnObligationFromDateGettable, LocalDate.of(1996, 3, 27)).setUnsafe(
           ConvertedCreditWeightGettable,
           5L
         )
 
-      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe expected
+      await(sut.getBalance(userAnswers)(fakeRequest)) mustBe Some(200)
 
       verify(mockConnector).getBalance(
         ArgumentMatchers.eq("request-ppt-id"),
@@ -101,6 +95,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
       "the user answers does not contain an obligation" in {
         val userAnswers = mock[UserAnswers]
+        when(userAnswers.get(JsPath \ "whatDoYouWantToDo")(Reads.BooleanReads)) thenReturn Some(true)
         when(userAnswers.getOrFail(ReturnObligationFromDateGettable)) thenThrow new RuntimeException("bang")
         the[Exception] thrownBy await(sut.getBalance(userAnswers)(fakeRequest)) must have message "bang"
       }
@@ -110,7 +105,7 @@ class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
           Future.successful(Left(IM_A_TEAPOT))
         )
 
-        val userAnswers = UserAnswers("user-answers-id")
+        val userAnswers = UserAnswers(id = "user-answers-id", data = Json.obj("whatDoYouWantToDo" -> true))
           .setUnsafe(ReturnObligationFromDateGettable, LocalDate.now())
           .setUnsafe(ConvertedCreditWeightGettable, 5L)
 

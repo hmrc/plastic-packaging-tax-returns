@@ -23,7 +23,6 @@ import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
-import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
@@ -62,7 +61,6 @@ class ReturnsController @Inject() (
   override val controllerComponents: ControllerComponents,
   returnsConnector: ReturnsConnector,
   obligationsDataConnector: ObligationsDataConnector,
-  appConfig: AppConfig,
   auditConnector: AuditConnector,
   calculationsService: PPTCalculationService,
   financialDataService: FinancialDataService,
@@ -85,7 +83,7 @@ class ReturnsController @Inject() (
         case Right(displayReturnJson) =>
           val endDate = (displayReturnJson \ "chargeDetails" \ "periodTo").get.as[LocalDate]
           val taxRate = taxRateTable.lookupRateFor(endDate)
-          
+
           val returnWithTaxRate = ReturnWithTaxRate(displayReturnJson, taxRate)
           Ok(returnWithTaxRate)
         case Left(errorStatusCode) => new Status(errorStatusCode)
@@ -116,10 +114,11 @@ class ReturnsController @Inject() (
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
       getUserAnswer(request) { userAnswer =>
         isPeriodStillOpen(pptReference, userAnswer).flatMap { periodIsOpen =>
-          if (periodIsOpen)
+          if (periodIsOpen) {
             availableCreditService.getBalance(userAnswer).flatMap { availableCredit =>
-              val requestedCredits: BigDecimal =
-                creditsService.totalRequestedCredit(userAnswer, availableCredit).totalRequestedCreditInPounds
+              val requestedCredits: Option[BigDecimal] =
+                creditsService.totalRequestedCredit(userAnswer, availableCredit)
+                  .map(_.totalRequestedCreditInPounds)
               doSubmit(
                 NotableEvent.PptReturn,
                 pptReference,
@@ -127,7 +126,7 @@ class ReturnsController @Inject() (
                 userAnswer
               )
             }
-          else {
+          } else {
             sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
             Future.successful(
               ExpectationFailed("Obligation period is not open. Maybe already submitted or yet to be open.")

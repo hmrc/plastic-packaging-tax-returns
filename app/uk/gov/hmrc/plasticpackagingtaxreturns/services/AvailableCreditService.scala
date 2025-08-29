@@ -17,6 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
+import play.api.libs.json.{JsPath, Reads}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
@@ -29,19 +30,26 @@ class AvailableCreditService @Inject() (exportCreditBalanceConnector: ExportCred
   executionContext: ExecutionContext
 ) extends BackendHeaderCarrierProvider {
 
-  def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[BigDecimal] = {
-    val obligationFromDate = userAnswers.getOrFail(ReturnObligationFromDateGettable)
-    val fromDate           = obligationFromDate.minusYears(2)
-    val toDate             = obligationFromDate.minusDays(1)
-    exportCreditBalanceConnector
-      .getBalance(request.pptReference, fromDate, toDate, request.internalId)
-      .map(_.fold(
-        e => throw new Exception(
-          if (e == 409) s"Error calling EIS export credit, status: 409, DUPLICATE_SUBMISSION"
-          else s"Error calling EIS export credit, status: $e"
-        ),
-        _.totalExportCreditAvailable
-      ))
+  def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Option[BigDecimal]] = {
+    val whatDoYouWantToDo: Option[Boolean] = userAnswers.get(JsPath \ "whatDoYouWantToDo")(Reads.BooleanReads)
+    whatDoYouWantToDo match {
+      case Some(true) =>
+        val obligationFromDate = userAnswers.getOrFail(ReturnObligationFromDateGettable)
+        val fromDate           = obligationFromDate.minusYears(2)
+        val toDate             = obligationFromDate.minusDays(1)
+        exportCreditBalanceConnector
+          .getBalance(request.pptReference, fromDate, toDate, request.internalId)
+          .map(_.fold(
+            e =>
+              throw new Exception(
+                if (e == 409) s"Error calling EIS export credit, status: 409, DUPLICATE_SUBMISSION"
+                else s"Error calling EIS export credit, status: $e"
+              ),
+            _.totalExportCreditAvailable
+          ))
+          .map(Some(_))
+      case _ => Future.successful(None)
+    }
   }
 
 }

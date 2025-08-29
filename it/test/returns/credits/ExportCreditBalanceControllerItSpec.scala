@@ -157,20 +157,20 @@ class ExportCreditBalanceControllerItSpec
       }
     }
 
-    "retry the credit balance API 3 time" in {
+    "call the credit balance API only once when response is 409" in {
       withAuthorizedUser()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
-      stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
+      stubGetBalanceResponse(409, Json.toJson(exportCreditBalanceDisplayResponse).toString())
       await(wsClient.url(url).get())
 
       wireMock.verify(
-        3,
+        1,
         getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
           .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
       )
     }
 
-    "retry the credit balance API 1 time" in {
+    "call the credit balance API only once when response is 200" in {
       withAuthorizedUser()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
       stubGetBalanceResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())

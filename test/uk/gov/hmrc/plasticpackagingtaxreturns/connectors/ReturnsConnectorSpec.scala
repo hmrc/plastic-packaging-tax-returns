@@ -100,17 +100,17 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   "get" must {
     "call with the correct parameters" in {
-      when(eisHttpClient.get(any, any, any, any, any)(any))
+      when(eisHttpClient.get(any, any, any, any, any, any)(any))
         .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
       when(appConfig.returnsDisplayUrl(any, any)) thenReturn "get-url"
       callGet
       verify(appConfig).returnsDisplayUrl("ppt-ref", "period-2")
-      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), any, any)(any)
+      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), any, any, any)(any)
     }
 
     "handle responses" when {
       "response code is 4xx" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, any, any, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(412, """{"a": "b"}""", "123")))
 
         callGet mustBe Left(412)
@@ -129,7 +129,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response is 200" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, any, any, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
 
         callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
@@ -148,7 +148,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response body is empty" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+        when(eisHttpClient.get(any, any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
           200,
           "{}",
           "123"
@@ -158,7 +158,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response body is not json" in {
-        when(eisHttpClient.get(any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+        when(eisHttpClient.get(any, any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
           200,
           "<html />",
           "123"

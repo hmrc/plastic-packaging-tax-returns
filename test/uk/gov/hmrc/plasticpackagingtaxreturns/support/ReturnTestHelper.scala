@@ -46,6 +46,7 @@ object ReturnTestHelper {
        |            "toDate" : "2022-12-31",
        |            "dueDate" : "2023-01-28"
        |        },
+       |        "whatDoYouWantToDo" : true,
        |        "manufacturedPlasticPackagingWeight" : 100,
        |        "importedPlasticPackagingWeight" : 1,
        |        "exportedPlasticPackagingWeight" : 200,
