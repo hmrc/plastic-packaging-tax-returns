@@ -51,7 +51,7 @@ object EisReturnDetails {
       humanMedicines = returnValues.humanMedicinesPlasticWeight,
       directExports = returnValues.totalExportedPlastic,
       recycledPlastic = returnValues.recycledPlasticWeight,
-      creditForPeriod = creditClaimed.setScale(2, RoundingMode.HALF_EVEN),
+      creditForPeriod = creditClaimed.getOrElse(BigDecimal(0)).setScale(2, RoundingMode.HALF_EVEN),
       totalWeight = calculations.chargeableTotal,
       taxDue = calculations.taxDue
     )

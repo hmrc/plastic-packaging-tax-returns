@@ -32,10 +32,10 @@ sealed trait ReturnValues {
   val importedPlasticWeight: Long
   val humanMedicinesPlasticWeight: Long
   val recycledPlasticWeight: Long
-  val convertedPackagingCredit: BigDecimal
+  val convertedPackagingCredit: Option[BigDecimal]
   val submissionId: Option[String]
   val returnType: ReturnType
-  val availableCredit: BigDecimal
+  val availableCredit: Option[BigDecimal]
 
   def totalExportedPlastic: Long
 }
@@ -49,8 +49,8 @@ final case class NewReturnValues(
   exportedByAnotherBusinessPlasticWeight: Long,
   humanMedicinesPlasticWeight: Long,
   recycledPlasticWeight: Long,
-  convertedPackagingCredit: BigDecimal,
-  availableCredit: BigDecimal
+  convertedPackagingCredit: Option[BigDecimal],
+  availableCredit: Option[BigDecimal]
 ) extends ReturnValues {
   override val submissionId: Option[String] = None
   override val returnType: ReturnType       = ReturnType.NEW
@@ -61,7 +61,10 @@ final case class NewReturnValues(
 
 object NewReturnValues {
 
-  def apply(creditClaim: BigDecimal, availableCredit: BigDecimal)(userAnswers: UserAnswers): Option[NewReturnValues] =
+  def apply(
+    creditClaim: Option[BigDecimal],
+    availableCredit: Option[BigDecimal]
+  )(userAnswers: UserAnswers): Option[NewReturnValues] =
     for {
       manufactured <- userAnswers.get(ManufacturedPlasticPackagingWeightGettable)
       periodEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
@@ -97,10 +100,10 @@ final case class AmendReturnValues(
   recycledPlasticWeight: Long,
   submission: String
 ) extends ReturnValues {
-  val convertedPackagingCredit: BigDecimal  = 0
-  val availableCredit: BigDecimal           = 0
-  override val submissionId: Option[String] = Some(submission)
-  override val returnType: ReturnType       = ReturnType.AMEND
+  val convertedPackagingCredit: Option[BigDecimal] = None
+  val availableCredit: Option[BigDecimal]          = None
+  override val submissionId: Option[String]        = Some(submission)
+  override val returnType: ReturnType              = ReturnType.AMEND
 
   override def totalExportedPlastic: Long = exportedPlasticWeight + exportedByAnotherBusinessPlasticWeight
 

@@ -40,8 +40,8 @@ class ReturnsSubmissionRequestSpec extends PlaySpec {
           exportedPlasticWeight = 4,
           exportedByAnotherBusinessPlasticWeight = 0,
           recycledPlasticWeight = 5,
-          convertedPackagingCredit = 11,
-          availableCredit = 12
+          convertedPackagingCredit = Some(11),
+          availableCredit = Some(12)
         )
 
         val calc = Calculations(

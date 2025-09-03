@@ -24,10 +24,9 @@ import java.time.LocalDate
 
 class CreditsCalculationService @Inject() (taxCalculationService: TaxCalculationService) {
 
-  def totalRequestedCredit_old(userAnswers: UserAnswers): TaxablePlastic =
+  def totalRequestedCredit_old(userAnswers: UserAnswers): Option[TaxablePlastic] =
     isClaimingCredit(userAnswers)
       .flatMap(_ => newJourney(userAnswers).orElse(Some(currentJourney(userAnswers))))
-      .getOrElse(TaxablePlastic.zero)
 
   private def isClaimingCredit(userAnswers: UserAnswers) =
     userAnswers.get[Boolean](JsPath \ "whatDoYouWantToDo")
@@ -56,7 +55,10 @@ class CreditsCalculationService @Inject() (taxCalculationService: TaxCalculation
       .view.mapValues(_.calculate(taxCalculationService))
       .toMap
 
-  def totalRequestedCredit(userAnswers: UserAnswers, availableCreditInPounds: BigDecimal): CreditCalculation =
-    CreditCalculation.totalUp(newJourney2(userAnswers), availableCreditInPounds)
+  def totalRequestedCredit(
+    userAnswers: UserAnswers,
+    availableCreditInPounds: Option[BigDecimal]
+  ): Option[CreditCalculation] =
+    availableCreditInPounds.map(availableCredit => CreditCalculation.totalUp(newJourney2(userAnswers), availableCredit))
 
 }

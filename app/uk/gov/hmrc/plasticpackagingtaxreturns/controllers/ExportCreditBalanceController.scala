@@ -48,6 +48,9 @@ class ExportCreditBalanceController @Inject() (
     for {
       availableCredit <- availableCreditService.getBalance(userAnswers)
       creditClaim = creditsCalculationService.totalRequestedCredit(userAnswers, availableCredit)
-    } yield Ok(Json.toJson(creditClaim))
+    } yield creditClaim match {
+      case Some(value) => Ok(Json.toJson(value))
+      case None        => NotFound(Json.obj("error" -> "Credit claim is not available"))
+    }
 
 }

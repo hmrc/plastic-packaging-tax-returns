@@ -31,7 +31,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
   private val taxCalculationService = mock[TaxCalculationService]
   private val calculationService    = new PPTCalculationService(taxCalculationService)
-  private val allZeroReturn         = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, 0, 0)
+  private val allZeroReturn = NewReturnValues("", LocalDate.of(1900, 11, 22), 0, 0, 0, 0, 0, 0, Some(0), Some(0))
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -252,8 +252,8 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
     "calculate total exported plastic" in {
       val taxReturn = mock[NewReturnValues](Answers.RETURNS_DEEP_STUBS)
-      when(taxReturn.availableCredit).thenReturn(0)
-      when(taxReturn.convertedPackagingCredit).thenReturn(0)
+      when(taxReturn.availableCredit).thenReturn(Some(0))
+      when(taxReturn.convertedPackagingCredit).thenReturn(Some(0))
 
       calculationService.calculate(taxReturn)
 
