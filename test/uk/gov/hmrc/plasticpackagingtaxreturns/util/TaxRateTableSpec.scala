@@ -48,7 +48,8 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
       |tax-rate.year.2023=0.21082
       |tax-rate.year.2024=0.21785
       |tax-rate.year.2025=0.22369
-    """.stripMargin
+      |tax-rate.year.2026=0.22882
+      |    """.stripMargin
 
   private def createAppConfig(configString: String = "") = {
     val config        = ConfigFactory.parseString(validAppConfig + configString)
