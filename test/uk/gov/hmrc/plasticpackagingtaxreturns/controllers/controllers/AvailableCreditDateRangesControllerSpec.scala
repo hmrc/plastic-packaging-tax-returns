@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchers._
-import org.scalatestplus.mockito.MockitoSugar.*
-import org.mockito.Mockito.{verify, when, reset}
+import org.mockito.ArgumentMatchers.*
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.Mockito.{verify, when, reset, spy}
 import org.mockito.invocation.InvocationOnMock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -44,6 +45,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRange
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
+import play.api.mvc.BodyParser
 
 class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -57,6 +60,8 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
 
   private val sessionRepository  = mock[SessionRepository]
   private val userAnswersService = new UserAnswersService(sessionRepository)
+
+  private def anyAuthenticator = any[AuthorizedRequest[Any] => Future[Result]]
 
   val sut = new AvailableCreditDateRangesController(
     service,
@@ -84,7 +89,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
 
     "use authenticator" in {
       Try(await(sut.get("pptRef")(FakeRequest())))
-      verify(authenticator).authorisedAction(any, eqTo("pptRef"))(any)
+      verify(authenticator).authorisedAction(any, eqTo("pptRef"))(anyAuthenticator)
     }
 
     "fetch user answers and subscription" in {

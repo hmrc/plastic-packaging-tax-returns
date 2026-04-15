@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import com.codahale.metrics.SharedMetricRegistries
 import org.apache.pekko.actor.ActorSystem
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.test.DefaultAwaitTimeout

@@ -22,8 +22,7 @@ import org.mockito.Mockito.{verifyNoInteractions, RETURNS_DEEP_STUBS}
 import org.mockito.ArgumentMatchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
-import org.scalatest.MustMatchers._
+import org.scalatest.matchers.must.Matchers.mustBe
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
@@ -39,7 +38,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
-import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.Mockito.{times, verify, when, reset, never}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}

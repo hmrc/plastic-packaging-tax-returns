@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.scalatest.ResetMocksAfterEachTest
+import org.mockito.Mockito.{times, verify, when, reset}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
@@ -27,7 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 import java.time.{LocalDate, LocalDateTime}
 import scala.util.Random
 
-class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with ResetMocksAfterEachTest {
+class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private val edgeOfSystem = mock[EdgeOfSystem]
 
@@ -47,6 +47,11 @@ class PPTFinancialsServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     when(edgeOfSystem.today) thenReturn LocalDate.now()
+  }
+
+  override protected def afterEach(): Unit = {
+    reset(edgeOfSystem)
+    super.afterEach()
   }
 
   def makeData(charges: (BigDecimal, LocalDate)*): FinancialDataResponse =

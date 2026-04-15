@@ -17,15 +17,13 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{times, verify, when, reset}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
-import org.mockito.scalatest.ResetMocksAfterEachTest
-
 import java.time.LocalDate
 
-class RichLocalDateSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach with ResetMocksAfterEachTest {
+class RichLocalDateSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   implicit val edgeOfSystem: EdgeOfSystem = mock[EdgeOfSystem]
 
@@ -37,6 +35,11 @@ class RichLocalDateSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     when(edgeOfSystem.today) thenReturn pretendThisIsTheDate
+  }
+
+  override protected def afterEach(): Unit = {
+    reset(edgeOfSystem)
+    super.afterEach()
   }
 
   "isEqualOrAfterToday and isBeforeToday" when {

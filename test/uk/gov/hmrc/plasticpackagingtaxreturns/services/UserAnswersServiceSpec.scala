@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.Mockito.{times, verify, when, spyLambda, reset, verifyNoMoreInteractions}
+import org.mockito.Mockito.{verify, when, reset, verifyNoMoreInteractions, spy}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.mvc.Result
@@ -42,7 +42,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   "get with function parameter" should {
     val block: UserAnswers => Future[Result] = _ => Future.successful(Ok("blah"))
-    val spyBlock                             = spyLambda(block)
+    val spyBlock                             = spy(block) // This 'spy's on the block to check it's value during execution?
 
     "execute the block if userAnswer found" in {
       val ans = UserAnswers("123")
@@ -51,8 +51,8 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
       val result = await(service.get("123")(spyBlock))
 
       result mustBe Ok("blah")
-      verify(spyBlock)(ans)
-      verify(sessionRepository).get(eqTo("123"))
+      verify(spyBlock)(ans) // Check that the block was executed with the correct UserAnswers
+      verify(sessionRepository).get(eqTo("123")) // Check that the session repository was called with the correct ID
     }
 
     "not execute the block if userAnswer not found" in {
@@ -66,3 +66,4 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
     }
   }
 }
+

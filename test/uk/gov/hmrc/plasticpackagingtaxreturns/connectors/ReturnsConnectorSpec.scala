@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import org.mockito.ArgumentMatchers.{any, endsWith, eq => eqTo, startsWith}
 import org.mockito.Mockito.never
-import org.scalatestplus.mockito.MockitoSugar.*
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.mockito.Mockito.{times, verify, when, reset}
 import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
@@ -76,6 +76,9 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     ""
   )
 
+  private def anyHeaderFun = any[(String, AppConfig) => Seq[(String, String)]]
+  private def anySuccessFun = any[EisHttpClient#SuccessFun]
+
   class RandoException extends Exception {
     override def getMessage: String = "went wrong"
   }
@@ -86,7 +89,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
-    when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponseToJson)
+    when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponseToJson)
   }
 
   private def callGet =
@@ -101,17 +104,17 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   "get" must {
     "call with the correct parameters" in {
-      when(eisHttpClient.get(any, any, any, any, any, any)(any))
+      when(eisHttpClient.get(any, any, any, anyHeaderFun, anySuccessFun, any)(any))
         .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
       when(appConfig.returnsDisplayUrl(any, any)) thenReturn "get-url"
       callGet
       verify(appConfig).returnsDisplayUrl("ppt-ref", "period-2")
-      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), any, any, any)(any)
+      verify(eisHttpClient).get(eqTo("get-url"), eqTo(Seq.empty), eqTo("ppt.return.display.timer"), anyHeaderFun, anySuccessFun, any)(any)
     }
 
     "handle responses" when {
       "response code is 4xx" in {
-        when(eisHttpClient.get(any, any, any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, anyHeaderFun, anySuccessFun, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(412, """{"a": "b"}""", "123")))
 
         callGet mustBe Left(412)
@@ -130,7 +133,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response is 200" in {
-        when(eisHttpClient.get(any, any, any, any, any, any)(any))
+        when(eisHttpClient.get(any, any, any, anyHeaderFun, anySuccessFun, any)(any))
           .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
 
         callGet mustBe Right(JsObject(Seq("a" -> JsString("b"))))
@@ -149,7 +152,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response body is empty" in {
-        when(eisHttpClient.get(any, any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+        when(eisHttpClient.get(any, any, any, anyHeaderFun, anySuccessFun, any)(any)) thenReturn Future.successful(EisHttpResponse(
           200,
           "{}",
           "123"
@@ -159,19 +162,19 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
       }
 
       "response body is not json" in {
-        when(eisHttpClient.get(any, any, any, any, any, any)(any)) thenReturn Future.successful(EisHttpResponse(
+        when(eisHttpClient.get(any, any, any, anyHeaderFun, anySuccessFun, any)(any)) thenReturn Future.successful(EisHttpResponse(
           200,
           "<html />",
           "123"
         ))
         callGet mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
-        val captor = ArgCaptor[GetReturn]
+        val captor = ArgumentCaptor.forClass(classOf[GetReturn])
         withClue("secure log the failure") {
-          verify(auditConnector).sendExplicitAudit[GetReturn](eqTo(GetReturn.eventType), captor)(any, any, any)
+          verify(auditConnector).sendExplicitAudit[GetReturn](eqTo(GetReturn.eventType), captor.capture())(any, any, any)
         }
 
-        val auditDetails = captor.value
+        val auditDetails = captor.getValue
         auditDetails.periodKey mustBe "period-2"
         auditDetails.internalId mustBe "internal-id-7"
         auditDetails.result mustBe "Failure"
@@ -189,13 +192,13 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("to the correct url") {
         verify(appConfig).returnsSubmissionUrl("ppt-ref")
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any, any, any, any)(any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](eqTo("put-url"), any, any, anyHeaderFun, anySuccessFun, any)(any, any)
       }
 
       withClue("including a correlation id") {}
 
       withClue("with correct body") {
-        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any, any, any, any)(any, any)
+        verify(eisHttpClient).put[ReturnsSubmissionRequest](any, eqTo(returnSubmission), any, anyHeaderFun, anySuccessFun, any)(any, any)
       }
     }
 
@@ -216,7 +219,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "4xx response code" in {
         val putResponse = EisHttpResponse(404, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(404)
         verify(auditConnector).sendExplicitAudit(
           eqTo("SubmitReturn"),
@@ -226,7 +229,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "5xx response code" in {
         val putResponse = EisHttpResponse(500, "{}", "")
-        when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(500)
       }
     }
@@ -243,7 +246,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             |}""".stripMargin
 
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, example422Body, "")
-        when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponse)
 
         callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
 
@@ -264,7 +267,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
             |  } ]
             |}""".stripMargin
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, responseBody, "correlation-id")
-        when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a call failure") {
@@ -277,7 +280,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "422 response but not json, ie similar again but payload not json (seen in the wild)" in {
         val putResponse = EisHttpResponse(Status.UNPROCESSABLE_ENTITY, "<html />", "correlation-id")
-        when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(putResponse)
+        when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(putResponse)
         callSubmit mustBe Left(Status.UNPROCESSABLE_ENTITY)
 
         withClue("log as a failure because we weren't sent json") {
@@ -290,20 +293,20 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
     }
 
     "response body is not json" in {
-      when(eisHttpClient.put[Any](any, any, any, any, any, any)(any, any)) thenReturn Future.successful(EisHttpResponse(
+      when(eisHttpClient.put[Any](any, any, any, anyHeaderFun, anySuccessFun, any)(any, any)) thenReturn Future.successful(EisHttpResponse(
         200,
         "<html />",
         "correlation-id"
       ))
       callSubmit mustBe Left(Status.INTERNAL_SERVER_ERROR)
 
-      val auditDetail = ArgCaptor[SubmitReturn]
+      val auditDetail = ArgumentCaptor.forClass(classOf[SubmitReturn])
       withClue("secure log the failure") {
-        verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail)(any, any, any)
+        verify(auditConnector).sendExplicitAudit[SubmitReturn](any, auditDetail.capture())(any, any, any)
       }
 
       withClue("secure log message contains response body and exception message") {
-        auditDetail.value.error.value must include(
+        auditDetail.getValue.error.value must include(
           "Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return"
         )
       }

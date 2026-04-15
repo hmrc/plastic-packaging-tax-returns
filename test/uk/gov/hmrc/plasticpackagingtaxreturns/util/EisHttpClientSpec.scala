@@ -19,10 +19,10 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import com.codahale.metrics.Timer
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.ArgumentMatchers.{any, eqTo}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{times, verify, when, verifyNoMoreInteractions, reset}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.Logger
@@ -42,7 +42,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 
-class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar with ResetMocksAfterEachTest {
+class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   private val hmrcClient                            = mock[HmrcClient]
   private val appConfig                             = mock[AppConfig]
@@ -86,6 +86,11 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     )
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
     when(futures.delay(any)) thenReturn Future.successful(Done)
+  }
+
+  override protected def afterEach(): Unit = {
+    reset(hmrcClient, appConfig, edgeOfSystem, metrics, futures, testLogger, headerCarrier)
+    super.afterEach()
   }
 
   private def callPut =

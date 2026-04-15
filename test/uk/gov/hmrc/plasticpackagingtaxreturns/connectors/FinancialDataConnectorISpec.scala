@@ -20,7 +20,7 @@ import com.codahale.metrics.Timer
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.scalatestplus.mockito.MockitoSugar.*
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.mockito.Mockito.{times, verify, when, reset}
 import org.mockito.ArgumentCaptor
 import org.mockito.{Answers, ArgumentCaptor}
@@ -225,7 +225,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private def captureAndVerifyAuditConnector(): Unit = {
     val captor = ArgumentCaptor.forClass(classOf[GetPaymentStatement])
 
-    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor)(
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor.capture())(
       any,
       any,
       any

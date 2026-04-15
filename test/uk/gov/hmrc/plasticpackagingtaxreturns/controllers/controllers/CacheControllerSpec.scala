@@ -73,7 +73,7 @@ class CacheControllerSpec
       "request is valid" in {
         withAuthorizedUser(newUser(Some(pptEnrolment("test1"))))
         val request = UserAnswers("id")
-        given(mockSessionRepository.set(any[UserAnswers])).willReturn(Future.successful(true))
+        when(mockSessionRepository.set(any[UserAnswers])).thenReturn(Future.successful(true))
 
         val result: Future[Result] = route(app, post.withJsonBody(toJson(request))).get
 
@@ -118,7 +118,7 @@ class CacheControllerSpec
         val request     = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
         val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
-        given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
+        when(mockSessionRepository.get(any())).thenReturn(Future.successful(Some(request)))
         when(mockUserAnswersCleaner.clean(any, any)(any)).thenReturn(Future.successful((userAnswers, false)))
 
         val result: Future[Result] = route(app, get).get
@@ -134,7 +134,7 @@ class CacheControllerSpec
         val request     = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
         val userAnswers = UserAnswers("id", Json.obj(), Instant.ofEpochSecond(1))
 
-        given(mockSessionRepository.get(any())).willReturn(Future.successful(Some(request)))
+        when(mockSessionRepository.get(any())).thenReturn(Future.successful(Some(request)))
         when(mockUserAnswersCleaner.clean(any, any)(any)).thenReturn(Future.successful((userAnswers, true)))
         when(mockSessionRepository.set(any)).thenReturn(Future.successful(true))
 
@@ -152,7 +152,7 @@ class CacheControllerSpec
       "id is not found" in {
         val user = newUser(Some(pptEnrolment("test02")))
         withAuthorizedUser(user)
-        given(mockSessionRepository.get(anyString())).willReturn(Future.successful(None))
+        when(mockSessionRepository.get(anyString())).thenReturn(Future.successful(None))
 
         val result: Future[Result] = route(app, get).get
 
