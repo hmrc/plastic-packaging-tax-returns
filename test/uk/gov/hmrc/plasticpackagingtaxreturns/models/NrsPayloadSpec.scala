@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.MockitoSugar.{mock, reset, verify, when}
+import org.mockito.ArgumentMatchers.any
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{times, verify, when, reset}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.IdentityData

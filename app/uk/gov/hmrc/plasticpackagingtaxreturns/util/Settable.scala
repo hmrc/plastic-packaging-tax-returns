@@ -149,7 +149,7 @@ object Settable {
         case (first :: second :: rest, oldValue) =>
           Reads.optionNoError(Reads.at[JsValue](JsPath(first :: Nil)))
             .reads(oldValue).flatMap {
-              opt: Option[JsValue] =>
+              (opt: Option[JsValue] )=>
                 opt.map(JsSuccess(_)).getOrElse {
                   second match {
                     case _: KeyPathNode =>

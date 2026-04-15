@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers._
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{verify, when, reset}
 import org.mockito.invocation.InvocationOnMock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec

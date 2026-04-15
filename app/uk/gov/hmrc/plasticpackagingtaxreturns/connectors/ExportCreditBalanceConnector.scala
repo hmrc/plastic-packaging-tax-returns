@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class ExportCreditBalanceConnector @Inject() (
@@ -97,7 +97,7 @@ class ExportCreditBalanceConnector @Inject() (
     internalId: String,
     response: EisHttpResponse
   )(implicit hc: HeaderCarrier): Either[Int, ExportCreditBalanceDisplayResponse] = {
-    val triedResponse = response.jsonAs[ExportCreditBalanceDisplayResponse]
+    val triedResponse: Try[ExportCreditBalanceDisplayResponse] = response.jsonAs[ExportCreditBalanceDisplayResponse]
 
     triedResponse match {
       case Success(balance) =>

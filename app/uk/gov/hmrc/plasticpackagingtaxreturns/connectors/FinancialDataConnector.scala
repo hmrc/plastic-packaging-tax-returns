@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class FinancialDataConnector @Inject() (
   eisHttpClient: EisHttpClient,
@@ -78,7 +78,7 @@ class FinancialDataConnector @Inject() (
       buildDesHeader,
       successFun
     )
-      .map { response: EisHttpResponse =>
+      .map { (response: EisHttpResponse) =>
         response.status match {
           case Status.OK                               => handleSuccess(response, internalId, pptReference)
           case Status.NOT_FOUND if response.isMagic404 => handleMagic404(internalId, pptReference)
@@ -90,7 +90,7 @@ class FinancialDataConnector @Inject() (
   private def handleSuccess(response: EisHttpResponse, internalId: String, pptReference: String)(implicit
     hc: HeaderCarrier
   ) = {
-    val triedResponse = response.jsonAs[FinancialDataResponse]
+    val triedResponse: Try[FinancialDataResponse] = response.jsonAs[FinancialDataResponse]
 
     triedResponse match {
       case Success(financialData) =>

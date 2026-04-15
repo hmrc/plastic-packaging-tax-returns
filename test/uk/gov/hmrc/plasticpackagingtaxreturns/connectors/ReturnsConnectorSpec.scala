@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import org.mockito.ArgumentMatchersSugar.{any, endsWith, eqTo, startsWith}
+import org.mockito.ArgumentMatchers.{any, endsWith, eq => eqTo, startsWith}
 import org.mockito.Mockito.never
-import org.mockito.MockitoSugar.{mock, reset, times, verify, when}
-import org.mockito.captor.ArgCaptor
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status

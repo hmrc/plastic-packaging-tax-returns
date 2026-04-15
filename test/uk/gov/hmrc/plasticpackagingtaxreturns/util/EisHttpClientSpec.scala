@@ -19,9 +19,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import com.codahale.metrics.Timer
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.anyString
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
+import org.mockito.ArgumentMatchers.{any, eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec

@@ -17,9 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.mockito.MockitoSugar.{reset, verify}
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{times, verify, when, reset}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.UNPROCESSABLE_ENTITY

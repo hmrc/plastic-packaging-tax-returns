@@ -31,7 +31,7 @@ import javax.inject.Inject
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.reflect.runtime.universe.{typeOf, TypeTag}
+import izumi.reflect.Tag
 import scala.util.{Failure, Success, Try}
 
 /** An http response that allows for equality and same-instance
@@ -57,9 +57,9 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
     * @note
     *   careful logging on failure, as exception chain may contain parts of the response body
     */
-  def jsonAs[T](implicit reads: Reads[T], tt: TypeTag[T]): Try[T] =
+  def jsonAs[T](implicit reads: Reads[T], tt: Tag[T]): Try[T] =
     Try(Json.parse(body).as[T]).recover {
-      case exception => throw new RuntimeException(s"Response body could not be read as type ${typeOf[T]}", exception)
+      case exception => throw new RuntimeException(s"Response body could not be read as type ${Tag[T].tag}", exception)
     }
 
   /** Detect is this is a HTTP 404 or a case of empty data
@@ -177,7 +177,7 @@ class EisHttpClient @Inject() (
     successFun: SuccessFun,
     url: String
   ): Future[EisHttpResponse] =
-    function().transformWith { t: Try[EisHttpResponse] =>
+    function().transformWith { (t: Try[EisHttpResponse]) =>
       t match {
         case Failure(f) =>
           f match {

@@ -40,7 +40,7 @@ class AvailableCreditDateRangesController @Inject() (
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      userAnswersService.get(request.cacheKey) { userAnswers: UserAnswers =>
+      userAnswersService.get(request.cacheKey) { (userAnswers: UserAnswers) =>
         getDataRange(userAnswers, pptReference)
       }
     }

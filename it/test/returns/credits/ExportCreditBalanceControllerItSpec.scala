@@ -18,8 +18,8 @@ package test.returns.credits
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.MockitoSugar.{reset, when}
+import org.mockito.ArgumentMatchers.any
+import org.scalatestplus.mockito.MockitoSugar.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite

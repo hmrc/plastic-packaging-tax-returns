@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.TryValues.convertTryToSuccessOrFailure
 import org.scalatestplus.play.PlaySpec

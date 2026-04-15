@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers._
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.{verify, when, reset, never}
+import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.TryValues.convertTryToSuccessOrFailure

@@ -9,20 +9,13 @@ PlayKeys.devSettings := Seq("play.server.http.port" -> "8504")
 val silencerVersion = "1.7.19"
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion := "3.3.7"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
-    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
-    // ***************
-    // Use the silencer plugin to suppress warnings
-    scalacOptions += "-P:silencer:pathFilters=routes",
-    libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    )
+    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test
   )
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")
   .settings(RoutesKeys.routesImport += "uk.gov.hmrc.plasticpackagingtaxreturns.controllers.query.QueryStringParams._")

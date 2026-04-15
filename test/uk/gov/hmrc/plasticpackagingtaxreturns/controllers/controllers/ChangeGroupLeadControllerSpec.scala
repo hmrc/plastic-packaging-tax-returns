@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
-import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar.{mock, never, reset, verify, when}
+import org.mockito.ArgumentMatchers._
+import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.Mockito.{never, times, verify, when, reset}
+import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{IM_A_TEAPOT, INTERNAL_SERVER_ERROR, OK}

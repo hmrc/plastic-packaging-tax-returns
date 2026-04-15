@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.scalatest.ResetMocksAfterEachTest
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec

@@ -25,7 +25,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.RichJsObject
 
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.runtime.universe.{typeOf, TypeTag}
+import scala.reflect.runtime.universe.typeOf
+import izumi.reflect.Tag
 import scala.util.{Failure, Success, Try}
 
 case class UserAnswers(id: String, data: JsObject = Json.obj(), lastUpdated: Instant = Instant.now) {
@@ -106,14 +107,14 @@ case class UserAnswers(id: String, data: JsObject = Json.obj(), lastUpdated: Ins
     * @throws IllegalStateException
     *   if there is no answer at that path, or if there is an answer but it cannot be reads as type A
     */
-  def getOrFail[A](question: Gettable[A])(implicit reads: Reads[A], tt: TypeTag[A]): A = getOrFail(question.path)
+  def getOrFail[A](question: Gettable[A])(implicit reads: Reads[A], tt: Tag[A]): A = getOrFail(question.path)
 
   /** Overload of
     * [[UserAnswers#getOrFail(queries.Gettable, play.api.libs.json.Reads, scala.reflect.api.TypeTags.TypeTag)]]
     * @param path
     *   path to answer to read
     */
-  def getOrFail[A](path: JsPath)(implicit rds: Reads[A], tt: TypeTag[A]): A =
+  def getOrFail[A](path: JsPath)(implicit rds: Reads[A], tt: Tag[A]): A =
     Reads
       .at(path)
       .reads(data)
@@ -121,7 +122,7 @@ case class UserAnswers(id: String, data: JsObject = Json.obj(), lastUpdated: Ins
         case JsError((_, JsonValidationError("error.path.missing" :: Nil) :: _) :: _) =>
           throw new IllegalStateException(s"$path is missing from user answers")
         case JsError((_, JsonValidationError(message :: Nil, _*) :: _) :: _) if message.startsWith("error.expected") =>
-          throw new IllegalStateException(s"$path in user answers cannot be read as type ${typeOf[A]}")
+          throw new IllegalStateException(s"$path in user answers cannot be read as type ${Tag[A].tag}")
       }
       .get
 
@@ -325,7 +326,7 @@ object UserAnswers {
       (__ \ "_id").write[String] and
         (__ \ "data").write[JsObject] and
         (__ \ "lastUpdated").write(MongoJavatimeFormats.instantFormat)
-    )(unlift(UserAnswers.unapply))
+    )(o => Tuple.fromProductTyped(o))
   }
 
   implicit val format: OFormat[UserAnswers] = OFormat(reads, writes)

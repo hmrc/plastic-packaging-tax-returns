@@ -29,7 +29,7 @@ object ObligationStatus extends Enumeration {
   val UNKNOWN: Value   = Value("")
 
   implicit val format: Format[ObligationStatus] =
-    Format(Reads.enumNameReads(ObligationStatus), Writes.enumNameWrites)
+    Format(Reads.enumNameReads(ObligationStatus), Writes.enumNameWrites[ObligationStatus.type])
 
 }
 

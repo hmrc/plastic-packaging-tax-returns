@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
-import org.mockito.ArgumentMatchersSugar.{any, contains}
-import org.mockito.MockitoSugar.{reset, verify, when}
+import org.mockito.ArgumentMatchers.{any, contains}
+import org.scalatestplus.mockito.MockitoSugar.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.enablers.Messaging

@@ -32,7 +32,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import java.time.LocalDate
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class ObligationsDataConnector @Inject() (
   eisHttpClient: EisHttpClient,
@@ -114,7 +114,7 @@ class ObligationsDataConnector @Inject() (
     logger.info(
       s"Success on getting enterprise obligation data with correlationId [${response.correlationId}] pptReference [$pptReference] params [$queryParams]"
     )
-    val triedObligation = response.jsonAs[ObligationDataResponse]
+    val triedObligation: Try[ObligationDataResponse] = response.jsonAs[ObligationDataResponse]
 
     triedObligation match {
       case Success(obligation) =>

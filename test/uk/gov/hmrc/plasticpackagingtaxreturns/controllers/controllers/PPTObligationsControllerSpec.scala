@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers.{any, eq => exactlyEq}
-import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
@@ -157,7 +156,7 @@ class PPTObligationsControllerSpec extends PlaySpec with BeforeAndAfterEach with
       verify(mockPPTObligationsService).constructPPTFulfilled(ObligationDataResponse(Seq.empty))
       verify(mockObligationDataConnector).get(
         exactlyEq(pptReference),
-        eqTo("some-internal-ID"),
+        exactlyEq("some-internal-ID"),
         exactlyEq(Some(LocalDate.of(2022, 4, 1))),
         exactlyEq(Some(LocalDate.now)),
         exactlyEq(Some(ObligationStatus.FULFILLED))

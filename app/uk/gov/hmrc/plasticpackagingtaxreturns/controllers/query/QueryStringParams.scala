@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 
 object QueryStringParams {
 
-  implicit val dateQueryParamsBinder = new QueryStringBindable[LocalDate] {
+  implicit val dateQueryParamsBinder: QueryStringBindable[LocalDate] = new QueryStringBindable[LocalDate] {
 
     override def unbind(key: String, date: LocalDate): String = date.toString
 

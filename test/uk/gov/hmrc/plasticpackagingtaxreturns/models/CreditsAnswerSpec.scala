@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsPath, Json}

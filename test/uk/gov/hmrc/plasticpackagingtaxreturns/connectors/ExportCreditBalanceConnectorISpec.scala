@@ -18,10 +18,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.{MetricRegistry, Timer}
 import org.apache.pekko.Done
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
-import org.mockito.MockitoSugar.{mock, reset, verify, when}
-import org.mockito.captor.ArgCaptor
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
@@ -90,7 +91,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
         await(sut.getBalance(pptReference, fromDate, toDate, internalId))
 
-        val captor = ArgCaptor[Seq[(String, String)]]
+        val captor = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
         verify(httpClient).GET(
           eqTo("/balanceUrl"),
           eqTo(Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))),
@@ -100,7 +101,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
         withClue("stop the timer")(verify(timerContent).stop())
 
         withClue("have a correlation id in the header") {
-          val correlationId = captor.value.filter(o => o._1.equals("CorrelationId"))
+          val correlationId = captor.getValue.filter(o => o._1.equals("CorrelationId"))
           correlationId must not be empty
           correlationId(0)._2.length must be > 0
         }
@@ -155,10 +156,10 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
   private def verifyAuditIsSent(msg: Option[String] = None) = {
 
-    val captor = ArgCaptor[GetExportCredits]
+    val captor = ArgumentCaptor.forClass(classOf[GetExportCredits])
     verify(auditConnector).sendExplicitAudit(eqTo(GetExportCredits.eventType), captor.capture)(any, any, any)
 
-    val exportedCredit = captor.value
+    val exportedCredit = captor.getValue
     exportedCredit.internalId mustBe internalId
     exportedCredit.pptReference mustBe pptReference
     exportedCredit.fromDate mustBe fromDate
