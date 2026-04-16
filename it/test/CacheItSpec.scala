@@ -35,8 +35,9 @@ package test
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{anyUrl, get, ok}
 import org.mockito.ArgumentMatchers.any
-import org.scalatestplus.mockito.MockitoSugar.{reset, when}
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{reset, when}
+import org.scalatest.matchers.should.Matchers.* 
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite

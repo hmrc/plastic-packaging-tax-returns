@@ -30,10 +30,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
+import org.scalatest.EitherValues
 
 import java.time.LocalDate
 
-class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures {
+class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
 
   private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
 
@@ -91,10 +92,19 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
+        println("ACTUAL: " + res)
+        println("AUDIT BODY: " + SubmitReturn.format.writes(auditModel).toString())
 
-        res.leftSideValue mustBe Left(Status.INTERNAL_SERVER_ERROR)
+        res.left.value mustBe Status.INTERNAL_SERVER_ERROR
 
-        verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
+        Thread.sleep(500)
+        println("WIREMOCK REQUESTS: " + wiremock.getAllServeEvents.forEach(e => 
+          println(s"URL: ${e.getRequest.getUrl}\nBODY: ${e.getRequest.getBodyAsString}\n")
+          ))
+
+        eventually(timeout(Span(5, Seconds))) {
+          verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
+        }
 
       }
 
@@ -119,7 +129,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
 
-            res.leftSideValue mustBe Left(statusCode)
+            res.left.value mustBe statusCode
 
             verifyAuditRequest(auditUrl, SubmitReturn.eventType, Json.toJson(auditModel).toString())
 
@@ -166,7 +176,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
-        res.leftSideValue mustBe Left(Status.INTERNAL_SERVER_ERROR)
+        res.left.value mustBe Status.INTERNAL_SERVER_ERROR
 
         eventually(timeout(Span(5, Seconds))) {
           eventSendToAudit(auditUrl, auditModel) mustBe true
@@ -190,7 +200,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val res = await(returnsConnector.get(pptReference, periodKey, internalId))
 
-            res.leftSideValue mustBe Left(statusCode)
+            res.left.value mustBe statusCode
 
             eventually(timeout(Span(5, Seconds))) {
               eventSendToAudit(auditUrl, auditModel) mustBe true

@@ -35,7 +35,8 @@ package test
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get}
 import org.mockito.ArgumentMatchers.any
-import org.scalatestplus.mockito.MockitoSugar.{reset, when}
+import org.scalatestplus.mockito.MockitoSugar.* 
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -45,6 +46,7 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.DefaultBodyReadables.readableAsString
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector

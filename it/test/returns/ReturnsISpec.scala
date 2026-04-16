@@ -19,8 +19,8 @@ package returns
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.reset
+import org.mockito.Mockito.{when, reset}
+import org.scalatestplus.mockito.MockitoSugar.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -45,6 +45,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 
 import scala.concurrent.{ExecutionContext, Future}
 
