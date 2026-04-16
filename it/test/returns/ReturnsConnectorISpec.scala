@@ -97,14 +97,7 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         res.left.value mustBe Status.INTERNAL_SERVER_ERROR
 
-        Thread.sleep(500)
-        println("WIREMOCK REQUESTS: " + wiremock.getAllServeEvents.forEach(e => 
-          println(s"URL: ${e.getRequest.getUrl}\nBODY: ${e.getRequest.getBodyAsString}\n")
-          ))
-
-        eventually(timeout(Span(5, Seconds))) {
-          verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
-        }
+        verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
 
       }
 

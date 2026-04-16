@@ -308,7 +308,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("secure log message contains response body and exception message") {
         auditDetail.getValue.error.value must include(
-          "Response body could not be read as type Return"
+          "Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return"
         )
       }
 

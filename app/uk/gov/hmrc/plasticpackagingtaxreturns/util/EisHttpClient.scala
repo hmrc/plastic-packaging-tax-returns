@@ -59,7 +59,7 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
     */
   def jsonAs[T](implicit reads: Reads[T], tt: Tag[T]): Try[T] =
     Try(Json.parse(body).as[T]).recover {
-      case exception => throw new RuntimeException(s"Response body could not be read as type ${Tag[T].tag}", exception)
+      case exception => throw new RuntimeException(s"Response body could not be read as type ${tt.tag.longNameWithPrefix}", exception)
     }
 
   /** Detect is this is a HTTP 404 or a case of empty data
