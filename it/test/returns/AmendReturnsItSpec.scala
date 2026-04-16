@@ -20,7 +20,9 @@ import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{equalTo, matchingJsonPath, putRequestedFor, urlEqualTo}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.reset
+import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{times, verify, when, reset}
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite

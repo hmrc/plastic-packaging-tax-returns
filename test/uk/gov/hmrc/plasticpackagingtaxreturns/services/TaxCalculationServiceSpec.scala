@@ -33,7 +33,7 @@ class TaxCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(taxRateTable)
-    when(taxRateTable.lookupRateFor(any)) thenReturn 1.0
+    when(taxRateTable.lookupRateFor(any)) thenReturn BigDecimal(1.0)
   }
 
   private val sut = new TaxCalculationService(taxRateTable)
@@ -47,7 +47,7 @@ class TaxCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     }
 
     "round DOWN for conversion rate of 3 d.p." in {
-      when(taxRateTable.lookupRateFor(any)) thenReturn 0.336
+      when(taxRateTable.lookupRateFor(any)) thenReturn BigDecimal(0.336)
       sut.weightToDebit(aDate, 1L) mustBe TaxablePlastic(1, 0.33, 0.336)
     }
   }
@@ -59,7 +59,7 @@ class TaxCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
     }
 
     "round UP for conversion rate of 3 d.p." in {
-      when(taxRateTable.lookupRateFor(any)).thenReturn(0.333)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(BigDecimal(0.333))
       sut.weightToCredit(aDate, 1L) mustBe TaxablePlastic(1, 0.34, 0.333)
     }
   }
@@ -67,12 +67,12 @@ class TaxCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
   private def aConverter(method: (LocalDate, Long) => BigDecimal): Unit = {
 
     "multiply the weight by the conversion rate 1 d.p." in {
-      when(taxRateTable.lookupRateFor(any)).thenReturn(0.5)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(BigDecimal(0.5))
       method(aDate, 5L) mustBe BigDecimal(2.5)
     }
 
     "multiply the weight by the conversion rate 2 d.p." in {
-      when(taxRateTable.lookupRateFor(any)).thenReturn(0.25)
+      when(taxRateTable.lookupRateFor(any)).thenReturn(BigDecimal(0.25))
       method(aDate, 5L) mustBe BigDecimal(1.25)
     }
 

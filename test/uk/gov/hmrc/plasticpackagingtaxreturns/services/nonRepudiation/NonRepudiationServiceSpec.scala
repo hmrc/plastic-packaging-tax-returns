@@ -49,6 +49,7 @@ import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.CapturingLogger
 
 class NonRepudiationServiceSpec
     extends AnyWordSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach with ScalaFutures with Matchers
@@ -63,15 +64,16 @@ class NonRepudiationServiceSpec
 
   implicit val request: Request[AnyContent]                                 = FakeRequest()
   implicit val messaging: Messaging[InternalServerException]                = Messaging.messagingNatureOfAnyRefWithGetMessageMethod
+  private val capturingLogger: CapturingLogger = new CapturingLogger
 
   val nonRepudiationService: NonRepudiationService =
     new NonRepudiationService(mockNonRepudiationConnector, mockAuthConnector, appConfig, edgeOfSystem) {
-      override val logger: Logger = mockLogger
+      override val logger: Logger = capturingLogger
     }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig, headerCarrier, mockLogger)
+    reset(appConfig, headerCarrier)
     when(headerCarrier.authorization) thenReturn Some(Authorization("yeah go right ahead"))
     when(mockAuthConnector.authorise[NonRepudiationIdentityRetrievals](any, any)(any, any)) thenReturn
       Future.successful(testAuthRetrievals)
@@ -107,9 +109,10 @@ class NonRepudiationServiceSpec
         Map()
       )(headerCarrier)
       the[Exception] thrownBy await(eventualResponse) must have message "oops"
-      verify(mockLogger).error(contains("magic-alert-string"))(any)
-      verify(mockLogger).error(contains("oops"))(any)
-      verify(mockLogger).error(contains("479"))(any)
+      val errorLog = capturingLogger.errors.head
+      errorLog must include("magic-alert-string")
+      errorLog must include("oops")
+      errorLog must include("479")
     }
 
     val testPayloadString = "testPayloadString"

@@ -50,11 +50,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   private val metrics                               = mock[Metrics](RETURNS_DEEP_STUBS)
   private val futures                               = mock[Futures]
   private val timer                                 = mock[Timer.Context]
-  private val testLogger                            = mock[Logger]
+
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
+  private val capturingLogger                       = new CapturingLogger
 
   private val eisHttpClient = new EisHttpClient(hmrcClient, appConfig, edgeOfSystem, metrics, futures) {
-    protected override val logger: Logger = testLogger
+    protected override val logger: Logger = capturingLogger
   }
 
   case class ExampleModel(vitalData: Int = 1)
@@ -86,10 +87,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     )
     when(metrics.defaultRegistry.timer(any).time()) thenReturn timer
     when(futures.delay(any)) thenReturn Future.successful(Done)
+
+    capturingLogger.clear()
   }
 
   override protected def afterEach(): Unit = {
-    reset(hmrcClient, appConfig, edgeOfSystem, metrics, futures, testLogger, headerCarrier)
+    reset(hmrcClient, appConfig, edgeOfSystem, metrics, futures, timer, headerCarrier)
     super.afterEach()
   }
 
@@ -293,20 +296,15 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )
 
       callPut
-      verify(testLogger, times(1)).warn(
-        eqTo(
-          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
-        )
-      )(any)
 
-      verify(testLogger, times(1)).warn(
-        eqTo("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
-      )(any)
+      capturingLogger.warnings.head must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+      capturingLogger.warnings(1) must include("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+      capturingLogger.warnings must have size 2
     }
 
     "not log if successful first time" in {
       callPut
-      verify(testLogger, times(0)).warn(any)(any)
+      capturingLogger.warnings mustBe empty
     }
 
     "log when giving up" in {
@@ -316,23 +314,10 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )))
 
       callPut
-      verify(testLogger, times(1)).warn(
-        eqTo(
-          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
-        )
-      )(any)
-
-      verify(testLogger, times(1)).warn(
-        eqTo(
-          "PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002"
-        )
-      )(any)
-
-      verify(testLogger, times(1)).warn(
-        eqTo(
-          "PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003"
-        )
-      )(any)
+      capturingLogger.warnings.head must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+      capturingLogger.warnings(1) must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      capturingLogger.warnings(2) must include("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
+      capturingLogger.warnings must have size 3
     }
 
     "retry after an exception" in {
@@ -343,19 +328,11 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(hmrcClient, times(3)).PUT[Any, Any](any, any, any)(any, any, any, any)
 
       withClue("log each retry") {
-        verify(testLogger, times(2)).warn(
-          eqTo(
-            "PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
-          )
-        )(any)
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 2
       }
 
       withClue("log when it gives up") {
-        verify(testLogger, times(1)).warn(
-          eqTo(
-            "PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
-          )
-        )(any)
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 1 
       }
     }
 
@@ -368,11 +345,8 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(hmrcClient, times(2)).PUT[Any, Any](any, any, any)(any, any, any, any)
 
       withClue("log when it succeeds") {
-        verify(testLogger, times(1)).warn(
-          eqTo(
-            "PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002"
-          )
-        )(any)
+
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")) mustBe 1
       }
     }
 

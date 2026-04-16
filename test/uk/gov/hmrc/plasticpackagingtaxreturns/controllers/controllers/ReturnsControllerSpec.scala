@@ -183,10 +183,10 @@ class ReturnsControllerSpec
         JsObject(Seq("chargeDetails" -> JsObject(Seq("periodTo" -> JsString(LocalDate.of(2020, 5, 14).toString)))))
 
       mockReturnDisplayConnector(returnDisplayResponse)
-      when(mockTaxRateTable.lookupRateFor(any)).thenReturn(0.133)
+      when(mockTaxRateTable.lookupRateFor(any)).thenReturn(BigDecimal("0.133"))
 
       val result: Future[Result] = sut.get(pptReference, periodKey).apply(FakeRequest())
-      val returnWithTaxRate      = ReturnWithTaxRate(returnDisplayResponse, 0.133)
+      val returnWithTaxRate      = ReturnWithTaxRate(returnDisplayResponse, BigDecimal("0.133"))
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnWithTaxRate)
       verify(mockTaxRateTable).lookupRateFor(LocalDate.of(2020, 5, 14))

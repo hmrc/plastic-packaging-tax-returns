@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.Answers
-import org.mockito.ArgumentMatchers.{any, eq =>eqTo}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
@@ -168,20 +168,20 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
       val calculations = calculationService.calculate(allZeroReturn)
       calculations.taxDue mustBe BigDecimal(7.17)
       calculations.taxRate mustBe BigDecimal(3.14)
-      verify(taxCalculationService).weightToDebit(eqTo(LocalDate.of(1900, 11, 22)), eqTo(0))
+      verify(taxCalculationService).weightToDebit(eqTo(LocalDate.of(1900, 11, 22)), eqTo(0L))
     }
 
     "sum up the taxable plastic total" when {
 
       "All zero (nil return)" in {
         calculationService.calculate(allZeroReturn)
-        verify(taxCalculationService).weightToDebit(any, eqTo(0))
+        verify(taxCalculationService).weightToDebit(any, eqTo(0L))
       }
 
       "when has a non zero packaging total" in {
         val taxReturn = allZeroReturn.copy(manufacturedPlasticWeight = 3)
         calculationService.calculate(taxReturn)
-        verify(taxCalculationService).weightToDebit(any, eqTo(3))
+        verify(taxCalculationService).weightToDebit(any, eqTo(3L))
       }
 
       "has non zero packaging total and non zero deductions" in {
@@ -193,7 +193,7 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
           recycledPlasticWeight = 2
         )
         calculationService.calculate(taxReturn)
-        verify(taxCalculationService).weightToDebit(any, eqTo(6)) // (8 + 3 - 2 - 1 - 2) = 6
+        verify(taxCalculationService).weightToDebit(any, eqTo(6L)) // (8 + 3 - 2 - 1 - 2) = 6
       }
 
     }
@@ -252,8 +252,8 @@ class PPTCalculationServiceSpec extends PlaySpec with MockitoSugar with BeforeAn
 
     "calculate total exported plastic" in {
       val taxReturn = mock[NewReturnValues](Answers.RETURNS_DEEP_STUBS)
-      when(taxReturn.availableCredit).thenReturn(Some(0))
-      when(taxReturn.convertedPackagingCredit).thenReturn(Some(0))
+      when(taxReturn.availableCredit).thenReturn(Some(BigDecimal(0)))
+      when(taxReturn.convertedPackagingCredit).thenReturn(Some(BigDecimal(0)))
 
       calculationService.calculate(taxReturn)
 

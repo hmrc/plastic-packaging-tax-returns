@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import org.mockito.ArgumentMatchers.{any, endsWith, eq => eqTo, startsWith}
 import org.mockito.Mockito.never
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.Mockito.{times, verify, when, reset, atLeastOnce}
 import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -43,7 +43,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
+import uk.gov.hmrc.plasticpackagingtaxreturns.util.CapturingLogger
 class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging {
 
   private val appConfig      = mock[AppConfig]
@@ -51,10 +51,11 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
   private val edgeOfSystem   = mock[EdgeOfSystem]
   private val eisHttpClient  = mock[EisHttpClient]
   private val headerCarrier  = mock[HeaderCarrier]
-  private val testLogger     = mock[Logger]
+
+  private val capturingLogger = new CapturingLogger
 
   private val connector = new ReturnsConnector(appConfig, auditConnector, eisHttpClient) {
-    protected override val logger: Logger = testLogger
+    protected override val logger: Logger = capturingLogger
   }
 
   private val returnDetails = EisReturnDetails(1, 2, 3, 4, 5, 6, 7, 8, 9)
@@ -85,7 +86,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(appConfig, auditConnector, headerCarrier, testLogger)
+    reset(appConfig, auditConnector, headerCarrier)
 
     when(edgeOfSystem.createUuid) thenReturn new UUID(1, 2)
 
@@ -127,8 +128,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
 
         withClue("logs the failure") {
-          verify(testLogger).warn(startsWith("Return Display API call for correlationId"))(any)
-          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412"))(any)
+          capturingLogger.warnings.exists(_.startsWith("Return Display API call for correlationId")) mustBe true
+          capturingLogger.warnings.exists(_.endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 412")) mustBe true
         }
       }
 
@@ -146,8 +147,8 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
         }
 
         withClue("logs the success") {
-          verify(testLogger).warn(startsWith("Return Display API call for correlationId"))(any)
-          verify(testLogger).warn(endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 200"))(any)
+          capturingLogger.warnings.exists(_.startsWith("Return Display API call for correlationId")) mustBe true
+          capturingLogger.warnings.exists(_.endsWith("pptReference [ppt-ref], periodKey [period-2]: status: 200")) mustBe true
         }
       }
 
@@ -206,7 +207,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       "shouldn't log info when everything is alright" in {
         callSubmit
-        verify(testLogger, never).info(any)(any)
+        capturingLogger.infos mustBe empty
       }
 
       "2xx response code" in {
@@ -307,7 +308,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
       withClue("secure log message contains response body and exception message") {
         auditDetail.getValue.error.value must include(
-          "Response body could not be read as type uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return"
+          "Response body could not be read as type Return"
         )
       }
 

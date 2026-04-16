@@ -79,7 +79,7 @@ class CalculationsControllerSpec extends PlaySpec with BeforeAndAfterEach with A
 
     when(sessionRepository.get(any[String])) thenReturn Future.successful(Some(userAnswers))
     when(availableCreditService.getBalance(any)(any)) thenReturn Future.successful(Some(BigDecimal(0)))
-    when(taxRateTable.lookupRateFor(any)).thenReturn(0.123)
+    when(taxRateTable.lookupRateFor(any)).thenReturn(BigDecimal(0.123))
   }
 
   "calculateSubmit" should {

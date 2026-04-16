@@ -19,8 +19,8 @@ package returns
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.reset
-import org.scalatestplus.mockito.MockitoSugar.when
+import org.mockito.Mockito.{reset,when}
+import org.scalatestplus.mockito.MockitoSugar.*
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -201,7 +201,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       "return a UNPROCESSABLE_ENTITY when cache is empty" in {
         setUpMock(None)
 
-        val result = await(wsClient.url(amendUrl).get)
+        val result = await(wsClient.url(amendUrl).get())
 
         result.status mustBe UNPROCESSABLE_ENTITY
         result.body mustBe "No user answers found"

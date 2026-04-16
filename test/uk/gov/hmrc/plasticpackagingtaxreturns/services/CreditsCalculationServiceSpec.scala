@@ -160,7 +160,7 @@ class CreditsCalculationServiceSpec extends PlaySpec with BeforeAndAfterEach wit
       }
       "use the correct weight for the new journey" in {
         sut.totalRequestedCredit_old(newUserAnswers)
-        verify(taxCalculationService).weightToCredit(any, eqTo(3))
+        verify(taxCalculationService).weightToCredit(any, eqTo(3L))
       }
       "return the correct total" in {
         sut.totalRequestedCredit_old(newUserAnswers) mustBe Some(TaxablePlastic(1, 1.1, 1.11))
