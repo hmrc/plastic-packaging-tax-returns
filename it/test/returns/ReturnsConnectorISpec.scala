@@ -92,8 +92,6 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(returnsConnector.submitReturn(pptReference, aReturnsSubmissionRequest(), internalId))
-        println("ACTUAL: " + res)
-        println("AUDIT BODY: " + SubmitReturn.format.writes(auditModel).toString())
 
         res.left.value mustBe Status.INTERNAL_SERVER_ERROR
 

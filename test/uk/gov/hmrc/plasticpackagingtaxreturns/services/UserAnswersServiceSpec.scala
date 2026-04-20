@@ -42,7 +42,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   "get with function parameter" should {
     val block: UserAnswers => Future[Result] = _ => Future.successful(Ok("blah"))
-    val spyBlock                             = spy(new BlockWrapper) // This 'spy's on the block to check it's value during execution?
+    val spyBlock                             = spy(new BlockWrapper) 
 
     "execute the block if userAnswer found" in {
       val ans = UserAnswers("123")
@@ -51,8 +51,8 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
       val result = await(service.get("123")(spyBlock.apply))
 
       result mustBe Ok("blah")
-      verify(spyBlock).apply(ans) // Check that the block was executed with the correct UserAnswers
-      verify(sessionRepository).get(eqTo("123")) // Check that the session repository was called with the correct ID
+      verify(spyBlock).apply(ans) 
+      verify(sessionRepository).get(eqTo("123")) 
     }
 
     "not execute the block if userAnswer not found" in {
