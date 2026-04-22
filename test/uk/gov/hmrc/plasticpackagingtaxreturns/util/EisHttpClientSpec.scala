@@ -18,7 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import com.codahale.metrics.Timer
 import org.apache.pekko.Done
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.{times, verify, when, verifyNoMoreInteractions, reset}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
@@ -29,8 +28,8 @@ import play.api.Logger
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.HttpReads.Implicits
-import uk.gov.hmrc.http.{GatewayTimeoutException, HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.http.{GatewayTimeoutException, HeaderCarrier, HttpResponse => HmrcResponse, StringContextOps}
+import uk.gov.hmrc.http.client.{HttpClientV2 => HmrcClient, RequestBuilder }
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
@@ -41,10 +40,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import java.net.URL
+import org.mockito.ArgumentCaptor
+import play.api.libs.json.JsValue
 
 class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   private val hmrcClient                            = mock[HmrcClient]
+  val mockRequestBuilder                            = mock[RequestBuilder]
   private val appConfig                             = mock[AppConfig]
   private val edgeOfSystem                          = mock[EdgeOfSystem]
   private val metrics                               = mock[Metrics](RETURNS_DEEP_STUBS)
@@ -74,7 +77,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   override protected def beforeEach(): Unit = {
     super.beforeEach()
 
-    when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+
+    when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+    when(hmrcClient.get(any())(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(Future.successful(HmrcResponse(
       200,
       "{}"
     )))
@@ -92,13 +101,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   }
 
   override protected def afterEach(): Unit = {
-    reset(hmrcClient, appConfig, edgeOfSystem, metrics, futures, timer, headerCarrier)
+    reset(hmrcClient, appConfig, edgeOfSystem, metrics, futures, timer, headerCarrier, mockRequestBuilder)
     super.afterEach()
   }
 
   private def callPut =
     await {
-      eisHttpClient.put("proto://some:port/endpoint", exampleModel, "tick.tick", buildEisHeader)
+      eisHttpClient.put("http://some-host:8080/endpoint", exampleModel, "tick.tick", buildEisHeader)
     }
 
   "put" should {
@@ -106,36 +115,37 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     "send a request" in {
       val response = callPut
       response mustBe EisHttpResponse(200, "{}", "00000000-0000-0001-0000-000000000001")
-      verify(hmrcClient).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(
-        any,
-        any,
-        any,
-        any
-      )
+
+      val urlCaptor = ArgumentCaptor.forClass(classOf[URL])
+      verify(hmrcClient).put(urlCaptor.capture())(any())
+
+      verify(hmrcClient).put(eqTo(url"http://some-host:8080/endpoint"))(any())
+      val bodyCaptor = ArgumentCaptor.forClass(classOf[JsValue])
+      verify(mockRequestBuilder).withBody(bodyCaptor.capture())(any(), any(), any())
+      bodyCaptor.getValue mustBe Json.toJson(exampleModel)  
 
       withClue("with these headers") {
-        val headers = Seq(
+        val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
+        verify(mockRequestBuilder).setHeader(headerCaptor.capture())
+        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf(
           "Environment"   -> "space",
           "Accept"        -> "application/json",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000001",
           "Authorization" -> "do-come-in"
         )
-        verify(hmrcClient).PUT[Any, Any](any, any, eqTo(headers))(any, any, any, any)
       }
 
       withClue("using these implicits") {
-        verify(hmrcClient).PUT[ExampleModel, HmrcResponse](any, any, any)(
-          eqTo(formats),
-          eqTo(Implicits.readRaw),
-          eqTo(headerCarrier),
-          eqTo(global)
-        )
+        verify(hmrcClient).put(any())(eqTo(headerCarrier))
+        verify(mockRequestBuilder).withBody(any())(any(), any(), any()) // Writes is hard to eqTo
+        verify(mockRequestBuilder).execute[HmrcResponse](any(), eqTo(global))
       }
     }
 
     "handle responses" when {
       "status is 2xx" in {
-        when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.successful(HmrcResponse(
+      
+        when(mockRequestBuilder.execute[HmrcResponse](any(), any())) thenReturn Future.successful(HmrcResponse(
           200,
           """{"a": "b"}"""
         ))
@@ -161,50 +171,52 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     "send a request" in {
 
       when(appConfig.desBearerToken).thenReturn("do-come-in")
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
-        .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
-      eisHttpClient.get("/any/url", Seq("a" -> "b"), "timer-name", headerFn)
 
-      verify(hmrcClient).GET(eqTo("/any/url"), eqTo(Seq("a" -> "b")), any)(any, any, any)
+      eisHttpClient.get("http://some-host:8080/any/url", Seq("a" -> "b"), "timer-name", headerFn)
 
+      verify(hmrcClient).get(eqTo(URL("http://some-host:8080/any/url")))(any())
+      verify(mockRequestBuilder).transform(any())
+
+      val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
+      verify(mockRequestBuilder).setHeader(headerCaptor.capture())
       withClue("with these headers") {
-        val headers = Seq(
+        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf(
           "Environment"   -> "space",
           "Accept"        -> "application/json",
           "Authorization" -> "do-come-in",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000001"
         )
-        verify(hmrcClient).GET[Any](any, any, eqTo(headers))(any, any, any)
-      }
+      } 
     }
 
     "return an EisHttpResponse" in {
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any()))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
-      val result = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
+      val result = await(eisHttpClient.get("http://some-host:8080/any/url", Seq.empty, "timer-name", headerFn))
 
       result mustBe EisHttpResponse(200, """{"a": "b"}""", "00000000-0000-0001-0000-000000000001")
     }
 
     "time the transaction" in {
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any))
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any()))
         .thenReturn(Future.successful(HmrcResponse(200, """{"a": "b"}""")))
 
-      await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
+      await(eisHttpClient.get("http://some-host:8080/any/url", Seq.empty, "timer-name", headerFn))
       verify(metrics.defaultRegistry.timer(eqTo("tick.tick"))).time()
       verify(timer).stop()
     }
 
     "retry again if the first attempt fails" in {
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any)).thenReturn(
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, ""))
       )
 
-      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
+      val response = await(eisHttpClient.get("http://some-host:8080/any/url", Seq.empty, "timer-name", headerFn))
 
       response.status mustBe 200
-      verify(hmrcClient, times(2)).GET[Any](eqTo("/any/url"), eqTo(Seq.empty), any)(any, any, any)
+      verify(hmrcClient, times(2)).get(eqTo(url"http://some-host:8080/any/url"))(any())
+      verify(mockRequestBuilder, times(2)).execute[HmrcResponse](any(), any())
 
       withClue("with a delay between attempt") {
         verify(futures).delay(retryDelayInMillisecond milliseconds)
@@ -212,26 +224,31 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "retry eventually give up" in {
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HmrcResponse(500, "")))
-      val response = await(eisHttpClient.get("/any/url", Seq.empty, "timer-name", headerFn))
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(Future.successful(HmrcResponse(500, "")))
+      val response = await(eisHttpClient.get("http://some-host:8080/any/url", Seq.empty, "timer-name", headerFn))
       response.status mustBe 500
 
       withClue("after trying 3 times") {
-        verify(hmrcClient, times(3)).GET[Any](any, any, any)(any, any, any)
+        verify(hmrcClient, times(3)).get(eqTo(url"http://some-host:8080/any/url"))(any())
+        verify(mockRequestBuilder, times(3)).execute[HmrcResponse](any(), any())
         verify(futures, times(1)).delay(2000 milliseconds)
         verify(futures, times(1)).delay(4000 milliseconds)
       }
     }
 
     "retry use custom success criteria" in {
-      when(hmrcClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HmrcResponse(422, "")))
+      when(hmrcClient.get(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(Future.successful(HmrcResponse(422, "")))
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
-        eisHttpClient.get("url", Seq.empty, "timer-name", headerFn, isSuccessful)
+        eisHttpClient.get("http://some-host:8080/any/url", Seq.empty, "timer-name", headerFn, isSuccessful)
       }
 
-      verify(hmrcClient, times(1)).GET[Any](any, any, any)(any, any, any)
+      verify(hmrcClient, times(1)).get(any())(any())
+      verify(mockRequestBuilder, times(1)).execute[HmrcResponse](any(), any())
       verifyNoMoreInteractions(futures)
       response.status mustBe 422
     }
@@ -240,18 +257,20 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
   "retry" should {
 
     "try again if the first attempt fails" in {
-      when(hmrcClient.PUT[ExampleModel, Any](any, any, any)(any, any, any, any)).thenReturn(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, ""))
       )
 
       val response = callPut
-      verify(hmrcClient, times(2)).PUT[ExampleModel, Any](eqTo("proto://some:port/endpoint"), eqTo(exampleModel), any)(
-        any,
-        any,
-        any,
-        any
-      )
+      verify(hmrcClient, times(2)).put(eqTo(url"http://some-host:8080/endpoint"))(any())
+      val bodyCaptor = ArgumentCaptor.forClass(classOf[JsValue])
+      verify(mockRequestBuilder, times(2)).withBody(bodyCaptor.capture())(any(), any(), any())
+      bodyCaptor.getValue mustBe Json.toJson(exampleModel)  
 
       response.status mustBe 200
 
@@ -261,44 +280,58 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "eventually give up" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())) thenReturn
         Future.successful(HmrcResponse(500, ""))
       val response = callPut
       response.status mustBe 500
 
       withClue("after trying 3 times") {
-        verify(hmrcClient, times(3)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
+        verify(hmrcClient, times(3)).put(any())(any())
+        verify(mockRequestBuilder, times(3)).execute[HmrcResponse](any(), any())
         verify(futures, times(1)).delay(2000 milliseconds)
         verify(futures, times(1)).delay(4000 milliseconds)
       }
     }
 
     "use custom success criteria" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(Future.successful(HmrcResponse(
         422,
         ""
       )))
 
       val response = await {
         val isSuccessful = (response: EisHttpResponse) => response.status == 422
-        eisHttpClient.put("url", exampleModel, "timer", buildEisHeader, isSuccessful)
+        eisHttpClient.put("http://some-host:8080/endpoint", exampleModel, "timer", buildEisHeader, isSuccessful)
       }
 
-      verify(hmrcClient, times(1)).PUT[ExampleModel, Any](any, any, any)(any, any, any, any)
+      verify(hmrcClient, times(1)).put(any())(any())
+      verify(mockRequestBuilder, times(1)).execute[HmrcResponse](any(), any())
       verifyNoMoreInteractions(futures)
       response.status mustBe 422
     }
 
     "log a retry and its eventual success" in {
-      when(hmrcClient.PUT[Any, Any](anyString(), any, any)(any, any, any, any)).thenReturn(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(
         Future.successful(HmrcResponse(500, "")),
         Future.successful(HmrcResponse(200, ""))
       )
 
       callPut
 
-      capturingLogger.warnings.head must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
-      capturingLogger.warnings(1) must include("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+      capturingLogger.warnings.head must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+      capturingLogger.warnings(1) must include("PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
       capturingLogger.warnings must have size 2
     }
 
@@ -308,45 +341,60 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
     }
 
     "log when giving up" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(Future.successful(HmrcResponse(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(Future.successful(HmrcResponse(
         500,
         ""
       )))
 
       callPut
-      capturingLogger.warnings.head must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
-      capturingLogger.warnings(1) must include("PPT_RETRY retrying: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
-      capturingLogger.warnings(2) must include("PPT_RETRY gave up: url proto://some:port/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
+      capturingLogger.warnings.head must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
+      capturingLogger.warnings(1) must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
+      capturingLogger.warnings(2) must include("PPT_RETRY gave up: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
       capturingLogger.warnings must have size 3
     }
 
     "retry after an exception" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)) thenReturn Future.failed(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())) thenReturn Future.failed(
         new GatewayTimeoutException("exception-message")
       )
       the[Exception] thrownBy callPut must have message "exception-message"
-      verify(hmrcClient, times(3)).PUT[Any, Any](any, any, any)(any, any, any, any)
+
+      verify(hmrcClient, times(3)).put(any())(any())
+      verify(mockRequestBuilder, times(3)).execute[HmrcResponse](any(), any())
 
       withClue("log each retry") {
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY retrying: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 2
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY retrying: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 2
       }
 
       withClue("log when it gives up") {
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY gave up: url proto://some:port/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 1 
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY gave up: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 1 
       }
     }
 
     "stop retrying if successful after an exception" in {
-      when(hmrcClient.PUT[Any, Any](any, any, any)(any, any, any, any)).thenReturn(
+      val mockRequestBuilder = mock[RequestBuilder]
+      when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.withBody(any())(any(), any(), any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+      when(mockRequestBuilder.execute[HmrcResponse](any(), any())).thenReturn(
         Future.failed(new GatewayTimeoutException("exception-message")),
         Future.successful(HmrcResponse(200, ""))
       )
       callPut.status mustBe 200
-      verify(hmrcClient, times(2)).PUT[Any, Any](any, any, any)(any, any, any, any)
+      verify(hmrcClient, times(2)).put(any())(any())
+      verify(mockRequestBuilder, times(2)).execute[HmrcResponse](any(), any())
 
       withClue("log when it succeeds") {
 
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY successful: url proto://some:port/endpoint correlation-id 00000000-0000-0001-0000-000000000002")) mustBe 1
+        capturingLogger.warnings.count(_.startsWith("PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002")) mustBe 1
       }
     }
 

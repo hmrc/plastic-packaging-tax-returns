@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.codahale.metrics.{MetricRegistry, Timer}
+import com.codahale.metrics.{Timer}
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar.*
-import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.Mockito.{verify, when, reset}
 import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -29,7 +29,8 @@ import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetExportCredits
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
@@ -40,6 +41,7 @@ import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import java.net.URL
 
 class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach {
 
@@ -60,7 +62,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
   private val timerContent   = mock[Timer.Context]
   private val timer          = mock[Timer]
-  private val httpClient     = mock[HttpClient]
+  private val httpClient     = mock[HttpClientV2]
   private val config         = mock[AppConfig]
   private val metric         = mock[Metrics](RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
@@ -71,44 +73,51 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
     new EisHttpClient(httpClient, config, edgeOfSystem, metric, futures)
 
   private val sut = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
+  private val mockRequestBuilder = mock[RequestBuilder]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(httpClient, config, auditConnector)
+    reset(httpClient, config, auditConnector, mockRequestBuilder)
+
+    
+    when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
 
     when(metric.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContent)
     when(edgeOfSystem.createUuid.toString).thenReturn("123")
     when(futures.delay(any)).thenReturn(Future.successful(Done))
+    when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("http://some-host:8080/balanceUrl")
   }
 
   "ExportCreditBalance connector" when {
     "requesting a balance" should {
       "call the api" in {
-        when(httpClient.GET[Any](any, any, any)(any, any, any))
+        when(mockRequestBuilder.execute[HttpResponse](any,any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())))
-        when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("/balanceUrl")
 
         await(sut.getBalance(pptReference, fromDate, toDate, internalId))
+        val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
+        verify(httpClient).get(eqTo(URL("http://some-host:8080/balanceUrl")))(any())
 
-        val captor = ArgumentCaptor.forClass(classOf[Seq[(String, String)]])
-        verify(httpClient).GET(
-          eqTo("/balanceUrl"),
-          eqTo(Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))),
-          captor.capture
-        )(any, any, any)
+
+        verify(mockRequestBuilder).transform(any())
+        verify(mockRequestBuilder).setHeader(headerCaptor.capture())
 
         withClue("stop the timer")(verify(timerContent).stop())
 
         withClue("have a correlation id in the header") {
-          val correlationId = captor.getValue.filter(o => o._1.equals("CorrelationId"))
-          correlationId must not be empty
-          correlationId(0)._2.length must be > 0
-        }
+        val allHeaders = headerCaptor.getAllValues.get(0).asInstanceOf[Seq[(String, String)]]
+        
+        val correlationId = allHeaders.filter(_._1 == "CorrelationId")
+        correlationId must not be empty
+        correlationId(0)._2.length must be > 0
+      }
       }
 
-      "store audit" in {
-        when(httpClient.GET[Any](any, any, any)(any, any, any))
+      "store audit" in { 
+        when(mockRequestBuilder.execute[HttpResponse](any,any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())))
 
         val res = await {
@@ -121,7 +130,12 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
 
       "handle error" when {
         "exception is returned when cannot parse json" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(
+          val mockRequestBuilder = mock[RequestBuilder]
+          when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder) 
+          when(mockRequestBuilder.execute[HttpResponse](any,any))
+          .thenReturn(Future.successful(HttpResponse(
             200,
             "{oops}"
           )))
@@ -135,7 +149,12 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
         }
 
         "when there is an upstream error response" in {
-          when(httpClient.GET[Any](any, any, any)(any, any, any)).thenReturn(Future.successful(HttpResponse(
+          val mockRequestBuilder = mock[RequestBuilder]
+          when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder) 
+          when(mockRequestBuilder.execute[HttpResponse](any,any))
+          .thenReturn(Future.successful(HttpResponse(
             NOT_FOUND,
             "error message"
           )))

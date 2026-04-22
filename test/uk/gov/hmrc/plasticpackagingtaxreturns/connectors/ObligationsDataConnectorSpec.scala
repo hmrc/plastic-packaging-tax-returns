@@ -17,9 +17,8 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import org.apache.pekko.Done
-import org.mockito.ArgumentMatchers.{any, matches}
+import org.mockito.ArgumentMatchers.{matches}
 import org.mockito.Mockito.{verifyNoInteractions, RETURNS_DEEP_STUBS}
-import org.mockito.ArgumentMatchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers.mustBe
@@ -31,26 +30,31 @@ import play.api.http.{HeaderNames, MimeTypes}
 import play.api.libs.concurrent.Futures
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import java.net.URL
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.GetObligations
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EdgeOfSystem, EisHttpClient}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
-import org.mockito.Mockito.{times, verify, when, reset, never}
+import org.mockito.Mockito.{verify, when, reset, never}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
+import org.mockito.ArgumentCaptor
 
 class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with BeforeAndAfterEach {
 
-  private val httpClient     = mock[HttpClient]
+  private val httpClient     = mock[HttpClientV2]
   private val appConfig      = mock[AppConfig]
   private val metrics        = mock[Metrics](RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
   private val testLogger     = new Logger(mock[Slf4jLogger])
   private val httpResponse   = mock[HttpResponse]
+  private val mockRequestBuilder = mock[RequestBuilder]
 
   val emptyResponse = Json.parse("""
       |{
@@ -119,10 +123,17 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
     super.beforeEach()
     reset(httpClient, appConfig, metrics, auditConnector, testLogger.logger)
 
+    
+    when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
+    when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
+
     when(testLogger.logger.isInfoEnabled) thenReturn true
     when(testLogger.logger.isErrorEnabled) thenReturn true
     when(appConfig.eisEnvironment).thenReturn("eis")
     when(appConfig.desBearerToken).thenReturn("desBearerToken")
+    when(appConfig.enterpriseObligationDataUrl(any())).thenReturn("http://some-host:8080/url")
+
   }
 
   "ObligationData connector" should {
@@ -136,21 +147,17 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
 
       when(httpResponse.status).thenReturn(OK)
       when(httpResponse.json).thenReturn(Json.toJson(ObligationDataResponse.empty))
-      when(appConfig.enterpriseObligationDataUrl(any())).thenReturn("/url")
-      when(httpClient.GET[Any](any(), any(), any())(any(), any(), any()))
+      when(appConfig.enterpriseObligationDataUrl(any())).thenReturn("http://some-host:8080/url")
+  
+      when(mockRequestBuilder.execute[HttpResponse](any,any))
         .thenReturn(Future.successful(httpResponse))
 
       await(createConnector.get("ref-id", "int-id", fromDate, toDate, status))
 
-      verify(httpClient).GET(
-        ArgumentMatchers.eq("/url"),
-        ArgumentMatchers.eq(expectedParams),
-        ArgumentMatchers.eq(createExpectedHeader)
-      )(
-        any(),
-        any(),
-        any()
-      )
+      verify(httpClient).get(eqTo(URL("http://some-host:8080/url")))(any())
+      verify(mockRequestBuilder).transform(any())
+      val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
+      verify(mockRequestBuilder).setHeader(headerCaptor.capture())
     }
 
     "log" when {
@@ -158,7 +165,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving successful 2xx response" in {
         when(httpResponse.status).thenReturn(OK)
         when(httpResponse.body).thenReturn(Json.toJson(ObligationDataResponse.empty).toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(httpResponse)
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(httpResponse)
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
@@ -173,7 +181,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving successful 404 no data response" in {
         when(httpResponse.status).thenReturn(NOT_FOUND)
         when(httpResponse.body).thenReturn(Json.parse("""{"code": "NOT_FOUND","message": "any message"}""").toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(httpResponse)
+        
+        when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(httpResponse)
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
         verifyNoInteractions(testLogger.logger)
@@ -182,7 +191,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a http status 404" in {
         when(httpResponse.status).thenReturn(NOT_FOUND)
         when(httpResponse.body).thenReturn(Json.parse("""{"code": "ANY_CODE","message": "any message"}""").toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(httpResponse)
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(httpResponse)
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(404)
         verify(testLogger.logger).error(
           matches(
@@ -195,7 +205,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a 400 with no code" in {
         when(httpResponse.status).thenReturn(BAD_REQUEST)
         when(httpResponse.json).thenReturn(Json.parse("""{}"""))
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(httpResponse)
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(httpResponse)
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(400)
         verify(testLogger.logger).error(
           matches(
@@ -208,7 +219,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a 5xx failed response" in {
         when(httpResponse.status).thenReturn(INTERNAL_SERVER_ERROR)
         when(httpResponse.json).thenReturn(Json.parse("""{}"""))
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any()))
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any))
           .thenReturn(Future.successful(httpResponse))
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(500)
         verify(testLogger.logger).error(
@@ -224,7 +236,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
     "return adjust Obligation Date" in {
       when(httpResponse.status).thenReturn(OK)
       when(httpResponse.body).thenReturn(jsonResponse.toString())
-      when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(httpResponse)
+
+      when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(httpResponse)
 
       await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)
     }
@@ -234,7 +247,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a successful 2xx response" in {
         when(httpResponse.status).thenReturn(OK)
         when(httpResponse.body).thenReturn(jsonResponse.toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)).thenReturn(Future.successful(httpResponse))
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(expectedResponse)
 
@@ -246,7 +260,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a successful 404 response" in {
         when(httpResponse.status).thenReturn(NOT_FOUND)
         when(httpResponse.body).thenReturn(JsString("{}").toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)).thenReturn(Future.successful(httpResponse))
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(404)
 
@@ -268,7 +283,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a 404 when obligation available" in {
         when(httpResponse.status).thenReturn(NOT_FOUND)
         when(httpResponse.body).thenReturn(Json.parse("""{"code": "NOT_FOUND","message": "any message"}""").toString())
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())).thenReturn(Future.successful(httpResponse))
+        
+        when(mockRequestBuilder.execute[HttpResponse](any,any)).thenReturn(Future.successful(httpResponse))
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Right(ObligationDataResponse.empty)
 
@@ -289,7 +305,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a failed 4xx response" in {
         when(httpResponse.status).thenReturn(BAD_REQUEST)
         when(httpResponse.body).thenReturn(""""{}"""")
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)).thenReturn(Future.successful(httpResponse))
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(400)
 
@@ -311,7 +328,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       "receiving a failed 5xx response" in {
         when(httpResponse.status).thenReturn(INTERNAL_SERVER_ERROR)
         when(httpResponse.json).thenReturn(JsString("{}"))
-        when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())).thenReturn(Future.successful(httpResponse))
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)).thenReturn(Future.successful(httpResponse))
 
         await(createConnector.get("ref-id", "int-id", None, None, None)) mustBe Left(500)
 
@@ -336,7 +354,8 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
       when(httpResponse.status).thenReturn(OK)
       when(httpResponse.json).thenReturn(JsString("""{"code": "NOT_FOUND","message": "any message"}"""))
       // 1. http call is successful
-      when(httpClient.GET[Any](any(), any(), any())(any(), any(), any())) thenReturn Future.successful(
+
+        when(mockRequestBuilder.execute[HttpResponse](any,any)) thenReturn Future.successful(
         ObligationDataResponse.empty
       )
 

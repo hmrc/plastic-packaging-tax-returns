@@ -22,7 +22,7 @@ import play.api.http.Status.NOT_FOUND
 import play.api.libs.concurrent.Futures
 import play.api.libs.json._
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient => HmrcClient, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse => HmrcResponse}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
@@ -33,6 +33,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import izumi.reflect.Tag
 import scala.util.{Failure, Success, Try}
+import uk.gov.hmrc.http.client.HttpClientV2
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import java.net.URL
 
 /** An http response that allows for equality and same-instance
   * @param status
@@ -102,7 +105,7 @@ object EisHttpResponse {
   *   source for request-response transaction timer
   */
 class EisHttpClient @Inject() (
-  hmrcClient: HmrcClient,
+  hmrcClient: HttpClientV2,
   appConfig: AppConfig,
   edgeOfSystem: EdgeOfSystem,
   metrics: Metrics,
@@ -136,10 +139,10 @@ class EisHttpClient @Inject() (
 
     val putFunction = () => {
       val correlationId = edgeOfSystem.createUuid.toString
-      hmrcClient.PUT[HappyModel, HmrcResponse](url, requestBody, headerFun(correlationId, appConfig))
-        .map {
-          EisHttpResponse.fromHttpResponse(correlationId)
-        }
+      hmrcClient.put(URL(url)).setHeader(headerFun(correlationId, appConfig): _*).withBody(Json.toJson(requestBody)).execute[HmrcResponse]
+      .map {
+        EisHttpResponse.fromHttpResponse(correlationId)
+      }
     }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
@@ -162,7 +165,8 @@ class EisHttpClient @Inject() (
     val correlationId = edgeOfSystem.createUuid.toString
 
     val getFunction = () =>
-      hmrcClient.GET(url, queryParams, headerFun(correlationId, appConfig)).map {
+      hmrcClient.get(URL(url)).transform(_.withQueryStringParameters(queryParams: _*)).setHeader(headerFun(correlationId, appConfig): _*).execute[HmrcResponse]
+      .map {
         EisHttpResponse.fromHttpResponse(correlationId)
       }
     // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.

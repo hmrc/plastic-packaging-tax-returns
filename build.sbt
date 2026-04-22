@@ -19,7 +19,6 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(RoutesKeys.routesImport += "java.time.LocalDate")
   .settings(RoutesKeys.routesImport += "uk.gov.hmrc.plasticpackagingtaxreturns.controllers.query.QueryStringParams._")
-  .settings(resolvers += Resolver.jcenterRepo)
   .settings(scoverageSettings)
 
 lazy val scoverageSettings: Seq[Setting[_]] = Seq(

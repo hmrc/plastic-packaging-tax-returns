@@ -20,7 +20,8 @@ import com.codahale.metrics.Timer
 import org.apache.pekko.actor.ActorSystem
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpReadsHttpResponse, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, HttpException, HttpReadsHttpResponse, HttpResponse}
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector._
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{
@@ -33,10 +34,11 @@ import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
+import uk.gov.hmrc.http.client.HttpClientV2
 
 @Singleton
 class NonRepudiationConnector @Inject() (
-  httpClient: HttpClient,
+  httpClient: HttpClientV2,
   val config: AppConfig,
   metrics: Metrics,
   override val actorSystem: ActorSystem
@@ -58,11 +60,9 @@ class NonRepudiationConnector @Inject() (
   private def submit(timer: Timer.Context, jsonBody: JsObject)(implicit
     hc: HeaderCarrier
   ): Future[NonRepudiationSubmissionAccepted] =
-    httpClient.POST[JsObject, HttpResponse](
-      url = config.nonRepudiationSubmissionUrl,
-      body = jsonBody,
-      headers = Seq(XApiKeyHeaderKey -> config.nonRepudiationApiKey)
-    ).andThen { case _ => timer.stop() }
+    val submissionUrl = config.nonRepudiationSubmissionUrl
+    httpClient.post(url"$submissionUrl").withBody(Json.toJson(jsonBody)).setHeader(XApiKeyHeaderKey -> config.nonRepudiationApiKey).execute[HttpResponse]()
+    .andThen { case _ => timer.stop() }
       .map {
         response =>
           response.status match {
