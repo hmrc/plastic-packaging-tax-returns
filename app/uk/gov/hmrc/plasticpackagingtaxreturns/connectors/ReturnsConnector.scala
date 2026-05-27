@@ -45,6 +45,10 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
     hc: HeaderCarrier
   ): Future[Either[Int, Return]] = {
 
+    logger.warn(
+      s"[DDCYLS-8550]: [submitReturn] Invoked for pptReference [$pptReference] periodKey [${requestBody.periodKey}]"
+    )
+
     def isSuccessful(response: EisHttpResponse): Boolean =
       response.status match {
         case Status.OK => true
@@ -73,6 +77,9 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
           httpResponse.status == UNPROCESSABLE_ENTITY
           && (httpResponse.json \ "failures" \ 0 \ "code").asOpt[String].contains("TAX_OBLIGATION_ALREADY_FULFILLED")
         ) {
+          logger.warn(
+            s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed with response code=[${httpResponse.status}] internalId=[$internalId]"
+          )
           auditConnector.sendExplicitAudit(
             SubmitReturn.eventType,
             SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
@@ -91,11 +98,8 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
   )(
     implicit headerCarrier: HeaderCarrier
   ) = {
-
     logger.warn(
-      s"Upstream error on returns submission with correlationId [${httpResponse.correlationId}], " +
-        s"pptReference [$pptReference], and submissionId [${requestBody.submissionId}, status: ${httpResponse.status}, " +
-        s"body: ${httpResponse.body}"
+      s"[DDCYLS-8550]: Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${httpResponse.status}], CorrelationId=[${httpResponse.correlationId}], internalId=[$internalId]"
     )
     auditConnector.sendExplicitAudit(
       SubmitReturn.eventType,
@@ -116,6 +120,9 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
     eisHttpResponse.jsonAs[Return].fold(
       {
         throwable =>
+          logger.warn(
+            s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted but failed to parse response. CorrelationId=[${eisHttpResponse.correlationId}], internalId=[$internalId], error=${throwable.getMessage}"
+          )
           auditConnector.sendExplicitAudit(
             SubmitReturn.eventType,
             SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage))
@@ -124,6 +131,9 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       },
       {
         returnResponse =>
+          logger.warn(
+            s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted successfully"
+          )
           auditConnector.sendExplicitAudit(
             SubmitReturn.eventType,
             SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None)
