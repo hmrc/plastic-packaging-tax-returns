@@ -55,9 +55,7 @@ class ExportCreditBalanceConnector @Inject() (
       appConfig.exportCreditBalanceDisplayUrl(pptReference),
       queryParams = queryParams,
       timerName,
-      buildEisHeader,
-      enableRetry =
-        false // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
+      buildEisHeader
     ).map { response =>
       response.status match {
         case Status.OK =>

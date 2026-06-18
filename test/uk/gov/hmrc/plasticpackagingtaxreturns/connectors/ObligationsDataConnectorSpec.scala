@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.matches
 import org.mockito.Mockito.{verifyNoInteractions, RETURNS_DEEP_STUBS}
 import org.scalatestplus.mockito.MockitoSugar
@@ -27,7 +26,6 @@ import org.slf4j.{Logger => Slf4jLogger}
 import play.api.Logger
 import play.api.http.Status.{BAD_REQUEST, INTERNAL_SERVER_ERROR, NOT_FOUND, OK}
 import play.api.http.{HeaderNames, MimeTypes}
-import play.api.libs.concurrent.Futures
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -107,12 +105,9 @@ class ObligationsDataConnectorSpec extends AnyWordSpec with MockitoSugar with Be
   private def createConnector = {
 
     val edgeOfSystem = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-    val futures      = mock[Futures]
-
     when(edgeOfSystem.createUuid.toString).thenReturn("123")
-    when(futures.delay(any)).thenReturn(Future.successful(Done))
 
-    val eisHttpClient = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
+    val eisHttpClient = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics)
 
     new ObligationsDataConnector(eisHttpClient, appConfig, auditConnector) {
       protected override val logger: Logger = testLogger

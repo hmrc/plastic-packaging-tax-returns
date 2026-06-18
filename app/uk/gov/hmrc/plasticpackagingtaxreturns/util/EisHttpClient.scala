@@ -19,22 +19,20 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.NOT_FOUND
-import play.api.libs.concurrent.Futures
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse => HmrcResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse as HmrcResponse, StringContextOps}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.{retryAttempts, retryDelayInMillisecond}
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
 import javax.inject.Inject
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.postfixOps
 import izumi.reflect.Tag
-import scala.util.{Failure, Success, Try}
+
+import scala.util.Try
 import uk.gov.hmrc.http.client.HttpClientV2
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+
 import java.net.URL
 
 /** An http response that allows for equality and same-instance
@@ -109,13 +107,9 @@ class EisHttpClient @Inject() (
   hmrcClient: HttpClientV2,
   appConfig: AppConfig,
   edgeOfSystem: EdgeOfSystem,
-  metrics: Metrics,
-  futures: Futures
+  metrics: Metrics
 )(implicit executionContext: ExecutionContext)
     extends Logging {
-
-  type SuccessFun = EisHttpResponse => Boolean
-  private val isSuccessful: SuccessFun = response => Status.isSuccessful(response.status)
 
   /** @tparam HappyModel
     *   the type of the model payload / request body
@@ -132,26 +126,16 @@ class EisHttpClient @Inject() (
     url: String,
     requestBody: HappyModel,
     timerName: String,
-    headerFun: (String, AppConfig) => Seq[(String, String)],
-    successFun: SuccessFun = isSuccessful,
-    enableRetry: Boolean =
-      true // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
+    headerFun: (String, AppConfig) => Seq[(String, String)]
   )(implicit hc: HeaderCarrier, writes: Writes[HappyModel]): Future[EisHttpResponse] = {
 
-    val putFunction = () => {
-      val correlationId = edgeOfSystem.createUuid.toString
-      hmrcClient.put(URL(url)).setHeader(headerFun(correlationId, appConfig): _*).withBody(
-        Json.toJson(requestBody)
-      ).execute[HmrcResponse]
-        .map {
-          EisHttpResponse.fromHttpResponse(correlationId)
-        }
-    }
+    val correlationId = edgeOfSystem.createUuid.toString
+    val timer         = metrics.defaultRegistry.timer(timerName).time()
 
-    val timer = metrics.defaultRegistry.timer(timerName).time()
-    // ATTENTION: Always set to false for return submission. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
-    val attempts = if (enableRetry) retryAttempts else 0
-    retry(attempts, putFunction, successFun, url)
+    hmrcClient.put(url"$url").setHeader(headerFun(correlationId, appConfig): _*).withBody(
+      Json.toJson(requestBody)
+    ).execute[HmrcResponse]
+      .map(EisHttpResponse.fromHttpResponse(correlationId))
       .andThen { case _ => timer.stop() }
   }
 
@@ -159,77 +143,20 @@ class EisHttpClient @Inject() (
     url: String,
     queryParams: Seq[(String, String)],
     timerName: String,
-    headerFun: (String, AppConfig) => Seq[(String, String)],
-    successFun: SuccessFun = isSuccessful,
-    enableRetry: Boolean =
-      true // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
+    headerFun: (String, AppConfig) => Seq[(String, String)]
   )(implicit hc: HeaderCarrier): Future[EisHttpResponse] = {
-    val timer         = metrics.defaultRegistry.timer(timerName).time()
     val correlationId = edgeOfSystem.createUuid.toString
+    val timer         = metrics.defaultRegistry.timer(timerName).time()
 
-    val getFunction = () =>
-      hmrcClient.get(URL(url)).transform(_.withQueryStringParameters(queryParams: _*)).setHeader(headerFun(
-        correlationId,
-        appConfig
-      ): _*).execute[HmrcResponse]
-        .map {
-          EisHttpResponse.fromHttpResponse(correlationId)
-        }
-    // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
-    val attempts = if (enableRetry) retryAttempts else 0
-    retry(attempts, getFunction, successFun, url)
+    hmrcClient.get(url"$url").transform(_.withQueryStringParameters(queryParams: _*)).setHeader(
+      headerFun(correlationId, appConfig): _*
+    ).execute[HmrcResponse]
+      .map(EisHttpResponse.fromHttpResponse(correlationId))
       .andThen { case _ => timer.stop() }
   }
-
-  def retry(
-    times: Int,
-    function: () => Future[EisHttpResponse],
-    successFun: SuccessFun,
-    url: String
-  ): Future[EisHttpResponse] =
-    function().transformWith { (t: Try[EisHttpResponse]) =>
-      t match {
-        case Failure(f) =>
-          f match {
-            case exception if times > 1 =>
-              logger.warn(s"PPT_RETRY retrying: url $url exception $exception")
-              futures
-                .delay(((retryAttempts + 1 - times) * retryDelayInMillisecond) milliseconds)
-                .flatMap(_ => retry(times - 1, function, successFun, url))
-
-            case exception =>
-              logger.warn(s"PPT_RETRY gave up: url $url exception $exception")
-              Future.failed(exception)
-          }
-
-        case Success(r) =>
-          r match {
-            case response if successFun(response) =>
-              if (times != retryAttempts)
-                logger.warn(s"PPT_RETRY successful: url $url correlation-id ${response.correlationId}")
-              Future.successful(response)
-
-            case response if times > 1 =>
-              logger.warn(
-                s"PPT_RETRY retrying: url $url status ${response.status} correlation-id ${response.correlationId}"
-              )
-              futures
-                .delay(((retryAttempts + 1 - times) * retryDelayInMillisecond) milliseconds)
-                .flatMap(_ => retry(times - 1, function, successFun, url))
-
-            case response =>
-              logger.warn(
-                s"PPT_RETRY gave up: url $url status ${response.status} correlation-id ${response.correlationId}"
-              )
-              Future.successful(response)
-          }
-      }
-    }
 
 }
 
 object EisHttpClient {
-  val retryDelayInMillisecond = 2000
-  val retryAttempts           = 3
   val CorrelationIdHeaderName = "CorrelationId"
 }

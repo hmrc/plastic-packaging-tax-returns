@@ -173,19 +173,7 @@ class PPTFinancialsItSpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       response.status mustBe INTERNAL_SERVER_ERROR
     }
 
-    "retry 3 times if api call fails" in {
-      withAuthorizedUser()
-      server.stubFor(get(DESUrl).willReturn(serverError()))
-
-      await(wsClient.url(Url).get())
-      server.verify(
-        3,
-        getRequestedFor(urlEqualTo(DESUrl))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer des-test123456"))
-      )
-    }
-
-    "not retry if api call is a 200" in {
+    "call the api once for a 200" in {
       withAuthorizedUser()
       stubFinancialResponse(FinancialTransactionHelper.createFinancialResponseWithAmount())
 
@@ -193,7 +181,7 @@ class PPTFinancialsItSpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       server.verify(1, getRequestedFor(urlEqualTo(DESUrl)))
     }
 
-    "not retry if api call is a magic 404" in {
+    "call the api once for a magic 404" in {
       withAuthorizedUser()
       stubNotFound(DESnotFoundResponse)
 

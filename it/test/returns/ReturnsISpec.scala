@@ -199,14 +199,7 @@ class ReturnsISpec
     Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")
   }
 
-  "retry 3 times Des if api call fails where getting the returns" in {
-    withAuthorizedUser()
-    stubReturnDisplayErrorResponse()
-    await(wsClient.url(validGetReturnDisplayUrl).get())
-    wireMock.verify(3, getRequestedFor(urlEqualTo(s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey")))
-  }
-
-  "retry 1 times if des api call successful" in {
+  "call the api once if des api call successful" in {
     withAuthorizedUser()
     stubReturnDisplayResponse()
     await(wsClient.url(validGetReturnDisplayUrl).get())

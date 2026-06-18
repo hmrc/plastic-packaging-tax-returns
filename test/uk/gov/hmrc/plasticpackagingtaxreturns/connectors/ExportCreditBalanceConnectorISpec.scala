@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
-import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar.*
@@ -26,7 +25,6 @@ import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
-import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -67,10 +65,9 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   private val metric         = mock[Metrics](RETURNS_DEEP_STUBS)
   private val auditConnector = mock[AuditConnector]
   private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-  private val futures        = mock[Futures]
 
   private val eisHttpClient =
-    new EisHttpClient(httpClient, config, edgeOfSystem, metric, futures)
+    new EisHttpClient(httpClient, config, edgeOfSystem, metric)
 
   private val sut                = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
   private val mockRequestBuilder = mock[RequestBuilder]
@@ -86,7 +83,6 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
     when(metric.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContent)
     when(edgeOfSystem.createUuid.toString).thenReturn("123")
-    when(futures.delay(any)).thenReturn(Future.successful(Done))
     when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("http://some-host:8080/balanceUrl")
   }
 

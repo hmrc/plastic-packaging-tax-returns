@@ -17,7 +17,6 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import com.codahale.metrics.Timer
-import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar.mock
@@ -27,7 +26,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
-import play.api.libs.concurrent.Futures
 import play.api.libs.json.Json
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -59,14 +57,12 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   val calculateAccruedInterest: Option[Boolean]   = Some(true)
   val customerPaymentInformation: Option[Boolean] = Some(false)
 
-  private val httpClient     = mock[HttpClientV2]
-  private val appConfig      = mock[AppConfig]
-  private val metrics        = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
-  private val auditConnector = mock[AuditConnector]
-  private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
-  private val futures        = mock[Futures]
-
-  private val eisHttpClient      = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
+  private val httpClient         = mock[HttpClientV2]
+  private val appConfig          = mock[AppConfig]
+  private val metrics            = mock[Metrics](Answers.RETURNS_DEEP_STUBS)
+  private val auditConnector     = mock[AuditConnector]
+  private val edgeOfSystem       = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
+  private val eisHttpClient      = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics)
   private val sut                = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
   private val mockRequestBuilder = mock[RequestBuilder]
 
@@ -82,7 +78,6 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     when(metrics.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContext)
     when(edgeOfSystem.createUuid.toString).thenReturn("123")
-    when(futures.delay(any)).thenReturn(Future.successful(Done))
   }
 
   "FinancialData connector" when {

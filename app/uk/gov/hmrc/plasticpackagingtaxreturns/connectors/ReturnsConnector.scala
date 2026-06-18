@@ -49,27 +49,13 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       s"[DDCYLS-8550]: [submitReturn] Invoked for pptReference [$pptReference] periodKey [${requestBody.periodKey}]"
     )
 
-    def isSuccessful(response: EisHttpResponse): Boolean =
-      response.status match {
-        case Status.OK => true
-        case Status.UNPROCESSABLE_ENTITY =>
-          val jsLookupResult = response.json \ "failures" \ 0 \ "code"
-          jsLookupResult
-            .asOpt[String]
-            .contains("TAX_OBLIGATION_ALREADY_FULFILLED")
-        case _ => false
-      }
-
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
 
     eisHttpClient.put(
       returnsSubmissionUrl,
       requestBody,
       "ppt.return.create.timer",
-      buildEisHeader,
-      isSuccessful,
-      enableRetry =
-        false // ATTENTION: Always set to false. Retrying the call can cause double submissions, which may have serious financial implications, as ETMP was never designed to handle multiple requests in a short period of time.
+      buildEisHeader
     )
       .map { httpResponse =>
         if (httpResponse.status == OK)

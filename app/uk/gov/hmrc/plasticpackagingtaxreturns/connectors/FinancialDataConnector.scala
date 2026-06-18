@@ -65,18 +65,11 @@ class FinancialDataConnector @Inject() (
       "customerPaymentInformation" -> customerPaymentInformation
     )
 
-    def successFun(response: EisHttpResponse): Boolean =
-      response.status match {
-        case Status.OK                                                                      => true
-        case Status.NOT_FOUND if response.json \ "code" == JsDefined(JsString("NOT_FOUND")) => true
-        case _                                                                              => false
-      }
     eisHttpClient.get(
       appConfig.enterpriseFinancialDataUrl(pptReference),
       queryParams = queryParams,
       timerName,
-      buildDesHeader,
-      successFun
+      buildDesHeader
     )
       .map { (response: EisHttpResponse) =>
         response.status match {

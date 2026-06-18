@@ -134,16 +134,7 @@ class SubscriptionItSpec
       response.status mustBe INTERNAL_SERVER_ERROR
     }
 
-    "retry 3 times" in {
-      withAuthorizedUser()
-      stubSubscriptionErrorDisplay
-
-      await(wsClient.url(subscriptionUrl).get())
-
-      wireMock.verify(3, getRequestedFor(urlEqualTo(eisSubscriptionDisplayUrl)))
-    }
-
-    "retry 1 time" in {
+    "call the api once" in {
       withAuthorizedUser()
       stubSubscriptionDisplay(successfulDisplayResponse.toString())
 
@@ -186,18 +177,7 @@ class SubscriptionItSpec
       }
     }
 
-    "retry 3 times" in {
-      withAuthorizedUser()
-      mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-      stubSubscriptionUpdateError()
-      stubNonRepudiationSubmission
-
-      await(updateSubscription(updateDetails))
-
-      wireMock.verify(3, putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl)))
-    }
-
-    "retry 1 times" in {
+    "call the api once" in {
       withAuthorizedUser()
       mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
       stubSubscriptionUpdate(ZonedDateTime.now(ZoneOffset.UTC), "123")

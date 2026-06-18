@@ -144,15 +144,7 @@ class ChangeGroupLeadItSpec
       }
     }
 
-    "retry display subscription 3 times" in {
-      setUpMock(displayStatus = INTERNAL_SERVER_ERROR)
-
-      await(wsClient.url(Url).post(pptReference))
-
-      wireMock.verify(3, getRequestedFor(urlEqualTo(subscriptionDisplayUrl)))
-    }
-
-    "retry 1 times" in {
+    "call the api once" in {
       setUpMock()
 
       await(wsClient.url(Url).post(pptReference))
@@ -174,13 +166,6 @@ class ChangeGroupLeadItSpec
       }
     }
 
-    "retry update subscription 3 times" in {
-      setUpMock(updateStatus = Status.INTERNAL_SERVER_ERROR)
-
-      await(wsClient.url(Url).post(pptReference))
-
-      wireMock.verify(3, putRequestedFor(urlEqualTo(subscriptionUpdateUrl)))
-    }
   }
 
   private def setUpMock(displayStatus: Int = Status.OK, updateStatus: Int = Status.OK): Unit = {

@@ -185,21 +185,14 @@ class PPTObligationsISpec extends PlaySpec with GuiceOneServerPerSuite with Auth
       response.status mustBe INTERNAL_SERVER_ERROR
     }
 
-    "retry 3 times if api call fails" in {
-      withAuthorizedUser()
-      wireMock.stubFor(get(anyUrl()).willReturn(serverError()))
-      await(wsClient.url(pptOpenUrl).get())
-      wireMock.verify(3, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
-    }
-
-    "not retry if api call is a 200" in {
+    "call the api once for a 200" in {
       withAuthorizedUser()
       stubWillReturn(noObligations)
       await(wsClient.url(pptOpenUrl).get())
       wireMock.verify(1, getRequestedFor(urlEqualTo("/enterprise/obligation-data/zppt/7777777/PPT?status=O")))
     }
 
-    "not retry if api call is a magic 404" in {
+    "call the api once for a magic 404" in {
       withAuthorizedUser()
       stubNotFound(DESnotFoundResponse)
       await(wsClient.url(pptOpenUrl).get())
