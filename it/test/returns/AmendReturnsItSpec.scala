@@ -137,6 +137,8 @@ class AmendReturnsItSpec
     when(cacheRepository.get(any()))
       .thenReturn(Future.successful(Option(UserAnswers("id").copy(data = AmendTestHelper.userAnswersDataAmends))))
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.lockForSubmission(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.unlockSubmission(any[String]())).thenReturn(Future.successful(()))
     when(mockFinancialDataConnector.get(any(), any(), any(), any(), any(), any(), any(), any())(any()))
       .thenReturn(Future.successful(Right(FinancialTransactionHelper.createFinancialResponseWithAmount(periodKey))))
   }

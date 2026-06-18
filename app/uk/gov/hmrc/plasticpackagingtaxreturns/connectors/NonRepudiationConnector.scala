@@ -20,7 +20,7 @@ import com.codahale.metrics.Timer
 import org.apache.pekko.actor.ActorSystem
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
-import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps, HttpException, HttpReadsHttpResponse, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpReadsHttpResponse, HttpResponse, StringContextOps}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.NonRepudiationConnector._
@@ -61,8 +61,10 @@ class NonRepudiationConnector @Inject() (
     hc: HeaderCarrier
   ): Future[NonRepudiationSubmissionAccepted] =
     val submissionUrl = config.nonRepudiationSubmissionUrl
-    httpClient.post(url"$submissionUrl").withBody(Json.toJson(jsonBody)).setHeader(XApiKeyHeaderKey -> config.nonRepudiationApiKey).execute[HttpResponse]()
-    .andThen { case _ => timer.stop() }
+    httpClient.post(url"$submissionUrl").withBody(Json.toJson(jsonBody)).setHeader(
+      XApiKeyHeaderKey -> config.nonRepudiationApiKey
+    ).execute[HttpResponse]()
+      .andThen { case _ => timer.stop() }
       .map {
         response =>
           response.status match {

@@ -62,7 +62,8 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
     */
   def jsonAs[T](implicit reads: Reads[T], tt: Tag[T]): Try[T] =
     Try(Json.parse(body).as[T]).recover {
-      case exception => throw new RuntimeException(s"Response body could not be read as type ${tt.tag.longNameWithPrefix}", exception)
+      case exception =>
+        throw new RuntimeException(s"Response body could not be read as type ${tt.tag.longNameWithPrefix}", exception)
     }
 
   /** Detect is this is a HTTP 404 or a case of empty data
@@ -139,10 +140,12 @@ class EisHttpClient @Inject() (
 
     val putFunction = () => {
       val correlationId = edgeOfSystem.createUuid.toString
-      hmrcClient.put(URL(url)).setHeader(headerFun(correlationId, appConfig): _*).withBody(Json.toJson(requestBody)).execute[HmrcResponse]
-      .map {
-        EisHttpResponse.fromHttpResponse(correlationId)
-      }
+      hmrcClient.put(URL(url)).setHeader(headerFun(correlationId, appConfig): _*).withBody(
+        Json.toJson(requestBody)
+      ).execute[HmrcResponse]
+        .map {
+          EisHttpResponse.fromHttpResponse(correlationId)
+        }
     }
 
     val timer = metrics.defaultRegistry.timer(timerName).time()
@@ -165,10 +168,13 @@ class EisHttpClient @Inject() (
     val correlationId = edgeOfSystem.createUuid.toString
 
     val getFunction = () =>
-      hmrcClient.get(URL(url)).transform(_.withQueryStringParameters(queryParams: _*)).setHeader(headerFun(correlationId, appConfig): _*).execute[HmrcResponse]
-      .map {
-        EisHttpResponse.fromHttpResponse(correlationId)
-      }
+      hmrcClient.get(URL(url)).transform(_.withQueryStringParameters(queryParams: _*)).setHeader(headerFun(
+        correlationId,
+        appConfig
+      ): _*).execute[HmrcResponse]
+        .map {
+          EisHttpResponse.fromHttpResponse(correlationId)
+        }
     // ATTENTION: Always set to false for exportCreditBalance (/export-credits/PPT/:pptReference). Calling GET /export-credits/PPT/:pptRef multiple times with the same correlationId will return a 409 error from ETMP.
     val attempts = if (enableRetry) retryAttempts else 0
     retry(attempts, getFunction, successFun, url)

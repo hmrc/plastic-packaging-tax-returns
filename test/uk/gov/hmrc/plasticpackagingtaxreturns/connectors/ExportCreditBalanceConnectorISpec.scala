@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.codahale.metrics.{Timer}
+import com.codahale.metrics.Timer
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar.*
-import org.mockito.Mockito.{verify, when, reset}
+import org.mockito.Mockito.{reset, verify, when}
 import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -72,14 +72,13 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   private val eisHttpClient =
     new EisHttpClient(httpClient, config, edgeOfSystem, metric, futures)
 
-  private val sut = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
+  private val sut                = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
   private val mockRequestBuilder = mock[RequestBuilder]
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(httpClient, config, auditConnector, mockRequestBuilder)
 
-    
     when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
@@ -94,13 +93,12 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   "ExportCreditBalance connector" when {
     "requesting a balance" should {
       "call the api" in {
-        when(mockRequestBuilder.execute[HttpResponse](any,any))
+        when(mockRequestBuilder.execute[HttpResponse](any, any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())))
 
         await(sut.getBalance(pptReference, fromDate, toDate, internalId))
         val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
         verify(httpClient).get(eqTo(URL("http://some-host:8080/balanceUrl")))(any())
-
 
         verify(mockRequestBuilder).transform(any())
         verify(mockRequestBuilder).setHeader(headerCaptor.capture())
@@ -108,16 +106,16 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
         withClue("stop the timer")(verify(timerContent).stop())
 
         withClue("have a correlation id in the header") {
-        val allHeaders = headerCaptor.getAllValues.get(0).asInstanceOf[Seq[(String, String)]]
-        
-        val correlationId = allHeaders.filter(_._1 == "CorrelationId")
-        correlationId must not be empty
-        correlationId(0)._2.length must be > 0
-      }
+          val allHeaders = headerCaptor.getAllValues.get(0).asInstanceOf[Seq[(String, String)]]
+
+          val correlationId = allHeaders.filter(_._1 == "CorrelationId")
+          correlationId must not be empty
+          correlationId(0)._2.length must be > 0
+        }
       }
 
-      "store audit" in { 
-        when(mockRequestBuilder.execute[HttpResponse](any,any))
+      "store audit" in {
+        when(mockRequestBuilder.execute[HttpResponse](any, any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(exportCreditBalanceDisplayResponse).toString())))
 
         val res = await {
@@ -133,12 +131,12 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
           val mockRequestBuilder = mock[RequestBuilder]
           when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
           when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
-          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder) 
-          when(mockRequestBuilder.execute[HttpResponse](any,any))
-          .thenReturn(Future.successful(HttpResponse(
-            200,
-            "{oops}"
-          )))
+          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.execute[HttpResponse](any, any))
+            .thenReturn(Future.successful(HttpResponse(
+              200,
+              "{oops}"
+            )))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)
@@ -152,12 +150,12 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
           val mockRequestBuilder = mock[RequestBuilder]
           when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
           when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
-          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder) 
-          when(mockRequestBuilder.execute[HttpResponse](any,any))
-          .thenReturn(Future.successful(HttpResponse(
-            NOT_FOUND,
-            "error message"
-          )))
+          when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
+          when(mockRequestBuilder.execute[HttpResponse](any, any))
+            .thenReturn(Future.successful(HttpResponse(
+              NOT_FOUND,
+              "error message"
+            )))
 
           val res = await {
             sut.getBalance(pptReference, fromDate, toDate, internalId)

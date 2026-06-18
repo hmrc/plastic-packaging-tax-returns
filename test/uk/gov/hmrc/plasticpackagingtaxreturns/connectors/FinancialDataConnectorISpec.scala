@@ -21,7 +21,7 @@ import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.Mockito.{verify, when, reset}
+import org.mockito.Mockito.{reset, verify, when}
 import org.mockito.{Answers, ArgumentCaptor}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Inspectors.forAll
@@ -66,15 +66,14 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private val edgeOfSystem   = mock[EdgeOfSystem](RETURNS_DEEP_STUBS)
   private val futures        = mock[Futures]
 
-  private val eisHttpClient = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
-  private val sut           = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
+  private val eisHttpClient      = new EisHttpClient(httpClient, appConfig, edgeOfSystem, metrics, futures)
+  private val sut                = new FinancialDataConnector(eisHttpClient, appConfig, auditConnector, edgeOfSystem)
   private val mockRequestBuilder = mock[RequestBuilder]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     reset(auditConnector, metrics, httpClient, appConfig, edgeOfSystem, mockRequestBuilder)
 
-    
     when(httpClient.get(any())(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.setHeader(any())).thenReturn(mockRequestBuilder)
     when(mockRequestBuilder.transform(any())).thenReturn(mockRequestBuilder)
@@ -91,7 +90,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
     "get financial data" should {
 
       "handle a 200 with financial data" in {
-        when(mockRequestBuilder.execute[HttpResponse](any,any))
+        when(mockRequestBuilder.execute[HttpResponse](any, any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(financialDataResponse).toString())))
 
         val res = await(getFinancialData)
@@ -112,7 +111,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
       }
 
       "call the financial api" in {
-        when(mockRequestBuilder.execute[HttpResponse](any,any))
+        when(mockRequestBuilder.execute[HttpResponse](any, any))
           .thenReturn(Future.successful(HttpResponse(200, Json.toJson(financialDataResponse).toString())))
 
         await(getFinancialData)
@@ -123,17 +122,17 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         verify(mockRequestBuilder).setHeader(captor.capture())
 
         withClue("have a correlation id in the header") {
-        val allHeaders = captor.getAllValues.get(0).asInstanceOf[Seq[(String, String)]]
-        val correlationId = allHeaders.filter(_._1 == "CorrelationId")
-        correlationId must not be empty
-        correlationId(0)._2.length must be > 0
-        } 
+          val allHeaders    = captor.getAllValues.get(0).asInstanceOf[Seq[(String, String)]]
+          val correlationId = allHeaders.filter(_._1 == "CorrelationId")
+          correlationId must not be empty
+          correlationId(0)._2.length must be > 0
+        }
       }
 
       "return an error" when {
         "is upstream error" in {
-          when(mockRequestBuilder.execute[HttpResponse](any,any))
-              .thenReturn(Future.successful(HttpResponse(500, "{}")))
+          when(mockRequestBuilder.execute[HttpResponse](any, any))
+            .thenReturn(Future.successful(HttpResponse(500, "{}")))
 
           val res = await(getFinancialData)
 
@@ -146,8 +145,8 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         }
 
         "return an exception" in {
-          when(mockRequestBuilder.execute[HttpResponse](any,any))
-              .thenReturn(Future.successful(HttpResponse(200, "{}")))
+          when(mockRequestBuilder.execute[HttpResponse](any, any))
+            .thenReturn(Future.successful(HttpResponse(200, "{}")))
 
           val res = await(getFinancialData)
 
@@ -179,7 +178,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
         s"$statusCode is returned from downstream service" in {
           val message = s"""{"code":"${statusCode}","reason":"fish fryer fire"}"""
 
-          when(mockRequestBuilder.execute[HttpResponse](any,any))
+          when(mockRequestBuilder.execute[HttpResponse](any, any))
             .thenReturn(Future.successful(HttpResponse(statusCode, message)))
 
           val res = await(getFinancialData)
@@ -197,7 +196,7 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
       "map special DES 404s to a zero financial records results" in {
         val DESnotFoundResponse = """{"code": "NOT_FOUND", "reason": "fish fryer fire"}"""
         when(edgeOfSystem.localDateTimeNow).thenReturn(LocalDateTime.of(2022, 2, 22, 13, 1, 2, 3))
-        when(mockRequestBuilder.execute[HttpResponse](any,any))
+        when(mockRequestBuilder.execute[HttpResponse](any, any))
           .thenReturn(Future.successful(HttpResponse(NOT_FOUND, DESnotFoundResponse)))
         val result = await(getFinancialData)
 
@@ -233,7 +232,10 @@ class FinancialDataConnectorISpec extends PlaySpec with EnterpriseTestData with 
   private def captureAndVerifyAuditConnector(): Unit = {
     val captor = ArgumentCaptor.forClass(classOf[GetPaymentStatement])
 
-    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](eqTo(GetPaymentStatement.eventType), captor.capture())(
+    verify(auditConnector).sendExplicitAudit[GetPaymentStatement](
+      eqTo(GetPaymentStatement.eventType),
+      captor.capture()
+    )(
       any,
       any,
       any

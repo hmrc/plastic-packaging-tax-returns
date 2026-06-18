@@ -236,6 +236,8 @@ class ReturnsISpec
       Future.successful(Option(UserAnswers("id").copy(data = ReturnTestHelper.returnsWithNoCreditDataJson)))
     )
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.lockForSubmission(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.unlockSubmission(any[String]())).thenReturn(Future.successful(()))
   }
 
   private def stubObligationDesRequest(status: Int = Status.OK) = {

@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.ArgumentMatchers.{eq => eqTo}
-import org.mockito.Mockito.{times, verify, when, never, reset, spy}
+import org.mockito.Mockito.{never, reset, spy, times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec

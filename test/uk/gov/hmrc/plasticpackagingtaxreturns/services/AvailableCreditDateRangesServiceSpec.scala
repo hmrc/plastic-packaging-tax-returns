@@ -17,7 +17,7 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.Mockito.{reset}
+import org.mockito.Mockito.reset
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
@@ -27,8 +27,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
 import java.time.LocalDate
 
-class AvailableCreditDateRangesServiceSpec
-    extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
+class AvailableCreditDateRangesServiceSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
   override protected def afterEach(): Unit = {
     reset(edgeOfSystem)

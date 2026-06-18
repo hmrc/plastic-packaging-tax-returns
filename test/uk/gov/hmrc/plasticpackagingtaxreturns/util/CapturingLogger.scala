@@ -20,22 +20,20 @@ import play.api.{Logger, MarkerContext}
 import org.slf4j.LoggerFactory
 
 class CapturingLogger extends Logger(LoggerFactory.getLogger("test")) {
-  val warnings  = scala.collection.mutable.ListBuffer[String]()
-  val errors    = scala.collection.mutable.ListBuffer[String]()
-  val infos     = scala.collection.mutable.ListBuffer[String]()
+  val warnings = scala.collection.mutable.ListBuffer[String]()
+  val errors   = scala.collection.mutable.ListBuffer[String]()
+  val infos    = scala.collection.mutable.ListBuffer[String]()
 
-  override def warn(message: => String)(implicit mc: MarkerContext): Unit =
-    warnings += message
+  override def warn(message: => String)(implicit mc: MarkerContext): Unit = warnings += message
 
-  override def error(message: => String)(implicit mc: MarkerContext): Unit =
-    errors += message
+  override def error(message: => String)(implicit mc: MarkerContext): Unit = errors += message
 
-  override def info(message: => String)(implicit mc: MarkerContext): Unit =
-    infos += message
+  override def info(message: => String)(implicit mc: MarkerContext): Unit = infos += message
 
   def clear(): Unit = {
     warnings.clear()
     errors.clear()
     infos.clear()
   }
+
 }

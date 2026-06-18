@@ -131,6 +131,51 @@ class SessionRepositorySpec
     }
   }
 
+  ".lockForSubmission" - {
+
+    "must return true and set the submitting flag when the record is not locked" in {
+      insert(userAnswers).futureValue
+
+      val result = repository.lockForSubmission(userAnswers.id).futureValue
+
+      result mustEqual true
+      find(Filters.and(Filters.equal("_id", userAnswers.id), Filters.equal("submitting", true)))
+        .futureValue must not be empty
+    }
+
+    "must return false when the record is already locked" in {
+      insert(userAnswers).futureValue
+      repository.lockForSubmission(userAnswers.id).futureValue // acquire lock
+
+      val result = repository.lockForSubmission(userAnswers.id).futureValue
+
+      result mustEqual false
+    }
+
+    "must return false when there is no record for this id" in {
+      val result = repository.lockForSubmission("id that does not exist").futureValue
+
+      result mustEqual false
+    }
+  }
+
+  ".unlockSubmission" - {
+
+    "must clear the submitting flag so the lock can be re-acquired" in {
+      insert(userAnswers).futureValue
+      repository.lockForSubmission(userAnswers.id).futureValue
+
+      repository.unlockSubmission(userAnswers.id).futureValue
+
+      val reacquired = repository.lockForSubmission(userAnswers.id).futureValue
+      reacquired mustEqual true
+    }
+
+    "must complete without error when there is no record for this id" in {
+      repository.unlockSubmission("id that does not exist").futureValue mustEqual (())
+    }
+  }
+
   def verifyUserAnswerResult(actual: UserAnswers, expected: UserAnswers) = {
     actual.id mustEqual expected.id
     actual.data mustEqual expected.data

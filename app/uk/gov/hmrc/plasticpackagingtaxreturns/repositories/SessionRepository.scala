@@ -97,4 +97,19 @@ class SessionRepository @Inject() (mongoComponent: MongoComponent, appConfig: Ap
         logger.error(s"Failed to remove user-answers for $pptReference from cache: ${ex.getMessage}", ex)
     }
 
+  def lockForSubmission(id: String): Future[Boolean] =
+    collection
+      .updateOne(
+        filter = Filters.and(byId(id), Filters.ne("submitting", true)),
+        update = Updates.set("submitting", true)
+      )
+      .toFuture()
+      .map(_.getModifiedCount > 0)
+
+  def unlockSubmission(id: String): Future[Unit] =
+    collection
+      .updateOne(filter = byId(id), update = Updates.set("submitting", false))
+      .toFuture()
+      .map(_ => ())
+
 }

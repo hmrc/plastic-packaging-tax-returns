@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation
 
 import org.mockito.ArgumentMatchers.{any, contains}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.Mockito.{times, verify, when, reset}
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.enablers.Messaging
@@ -62,9 +62,9 @@ class NonRepudiationServiceSpec
   private val headerCarrier = mock[HeaderCarrier]
   private val edgeOfSystem  = mock[EdgeOfSystem]
 
-  implicit val request: Request[AnyContent]                                 = FakeRequest()
-  implicit val messaging: Messaging[InternalServerException]                = Messaging.messagingNatureOfAnyRefWithGetMessageMethod
-  private val capturingLogger: CapturingLogger = new CapturingLogger
+  implicit val request: Request[AnyContent]                  = FakeRequest()
+  implicit val messaging: Messaging[InternalServerException] = Messaging.messagingNatureOfAnyRefWithGetMessageMethod
+  private val capturingLogger: CapturingLogger               = new CapturingLogger
 
   val nonRepudiationService: NonRepudiationService =
     new NonRepudiationService(mockNonRepudiationConnector, mockAuthConnector, appConfig, edgeOfSystem) {

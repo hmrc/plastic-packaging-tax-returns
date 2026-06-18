@@ -61,6 +61,7 @@ class ReturnsConnector @Inject() (appConfig: AppConfig, auditConnector: AuditCon
       }
 
     val returnsSubmissionUrl = appConfig.returnsSubmissionUrl(pptReference)
+
     eisHttpClient.put(
       returnsSubmissionUrl,
       requestBody,

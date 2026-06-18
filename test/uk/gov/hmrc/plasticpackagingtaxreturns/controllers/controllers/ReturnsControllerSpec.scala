@@ -18,14 +18,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{never, verify, when, reset}
+import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatestplus.mockito.MockitoSugar.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.Logger
-import play.api.http.Status.{BAD_REQUEST, EXPECTATION_FAILED, NOT_FOUND, UNPROCESSABLE_ENTITY}
+import play.api.http.Status.{BAD_REQUEST, CONFLICT, EXPECTATION_FAILED, NOT_FOUND, UNPROCESSABLE_ENTITY}
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.{ControllerComponents, Result}
@@ -317,6 +317,17 @@ class ReturnsControllerSpec
       contentAsJson(result) mustBe toJson(aReturnWithNrsFailure())
     }
 
+    "return 409 Conflict when a submission is already in progress" in {
+      withAuthorizedUser()
+      setupMocksForSubmit(userAnswersReturns)
+      when(mockSessionRepository.lockForSubmission(any[String])).thenReturn(Future.successful(false))
+
+      val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
+
+      status(result) mustBe CONFLICT
+      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+    }
+
     "submit a return with a total of exported plastic" in {
       withAuthorizedUser()
       setupMocksForSubmit(userAnswersReturns)
@@ -515,6 +526,8 @@ class ReturnsControllerSpec
     when(mockAvailableCreditService.getBalance(any)(any)).thenReturn(Future.successful(Some(BigDecimal(10))))
     when(mockSessionRepository.clear(any[String])).thenReturn(Future.successful(true))
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
+    when(mockSessionRepository.lockForSubmission(any[String])).thenReturn(Future.successful(true))
+    when(mockSessionRepository.unlockSubmission(any[String])).thenReturn(Future.successful(()))
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )
@@ -525,6 +538,8 @@ class ReturnsControllerSpec
     mockGetObligationDataPeriodKey(pptReference, "21C4")
     setUpFinancialApiMock(false)
     when(mockSessionRepository.get(any[String])).thenReturn(Future.successful(Some(userAnswers)))
+    when(mockSessionRepository.lockForSubmission(any[String])).thenReturn(Future.successful(true))
+    when(mockSessionRepository.unlockSubmission(any[String])).thenReturn(Future.successful(()))
     when(mockNonRepudiationService.submitNonRepudiation(any, any, any, any, any)(any)).thenReturn(
       Future.successful(NonRepudiationSubmissionAccepted(nrSubmissionId))
     )

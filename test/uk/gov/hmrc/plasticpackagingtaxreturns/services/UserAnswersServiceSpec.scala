@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.Mockito.{verify, when, reset, verifyNoMoreInteractions, spy}
+import org.mockito.Mockito.{reset, spy, verify, verifyNoMoreInteractions, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.mvc.Result
@@ -42,7 +42,7 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
   "get with function parameter" should {
     val block: UserAnswers => Future[Result] = _ => Future.successful(Ok("blah"))
-    val spyBlock                             = spy(new BlockWrapper) 
+    val spyBlock                             = spy(new BlockWrapper)
 
     "execute the block if userAnswer found" in {
       val ans = UserAnswers("123")
@@ -51,8 +51,8 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
       val result = await(service.get("123")(spyBlock.apply))
 
       result mustBe Ok("blah")
-      verify(spyBlock).apply(ans) 
-      verify(sessionRepository).get(eqTo("123")) 
+      verify(spyBlock).apply(ans)
+      verify(sessionRepository).get(eqTo("123"))
     }
 
     "not execute the block if userAnswer not found" in {
@@ -70,4 +70,3 @@ class UserAnswersServiceSpec extends PlaySpec with BeforeAndAfterEach {
 class BlockWrapper {
   def apply(userAnswers: UserAnswers): Future[Result] = Future.successful(Ok("blah"))
 }
-

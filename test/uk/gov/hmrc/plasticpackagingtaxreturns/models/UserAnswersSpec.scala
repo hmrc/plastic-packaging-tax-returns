@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.models
 
 import org.mockito.ArgumentMatchers._
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.Mockito.{verify, when, reset, never}
+import org.mockito.Mockito.{never, reset, verify, when}
 import org.mockito.ArgumentMatchers.{eq => eqTo}
 import org.mockito.invocation.InvocationOnMock
 import org.scalatest.BeforeAndAfterEach
@@ -34,7 +34,6 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.QuestionPage
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
-
 
 class UserAnswersSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 

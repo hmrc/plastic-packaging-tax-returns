@@ -51,8 +51,8 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
-  val auditingEnabled: Boolean   = config.get[Boolean]("auditing.enabled")
-  val graphiteHost: String       = config.get[String]("microservice.metrics.graphite.host")
+  val auditingEnabled: Boolean    = config.get[Boolean]("auditing.enabled")
+  val graphiteHost: String        = config.get[String]("microservice.metrics.graphite.host")
   val dbTimeToLiveInSeconds: Long = config.get[Long]("mongodb.timeToLiveInSeconds")
 
   val eisEnvironment: String = config.get[String]("eis.environment")

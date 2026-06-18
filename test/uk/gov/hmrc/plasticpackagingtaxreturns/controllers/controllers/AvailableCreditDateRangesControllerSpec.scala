@@ -19,14 +19,14 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 import org.mockito.ArgumentMatchers.*
 import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.ArgumentMatchers.{eq => eqTo}
-import org.mockito.Mockito.{verify, when, reset, spy}
+import org.mockito.Mockito.{reset, spy, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import play.api.http.Status.OK
 import play.api.libs.json.Json
 import play.api.libs.json.Json.{arr, obj}
 import play.api.mvc.Result
-import play.api.mvc.Results.{UnprocessableEntity}
+import play.api.mvc.Results.UnprocessableEntity
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector

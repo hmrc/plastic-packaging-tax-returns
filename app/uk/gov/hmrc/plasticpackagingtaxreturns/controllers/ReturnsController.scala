@@ -196,17 +196,31 @@ class ReturnsController @Inject() (
 
     if (calculations.isSubmittable) {
       val eisRequest: ReturnsSubmissionRequest = ReturnsSubmissionRequest(returnValues, calculations)
-      returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
-        case Right(response) =>
-          sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
-          handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
+      sessionRepository.lockForSubmission(request.cacheKey).flatMap {
+        case false =>
+          logger.warn(
+            s"[DDCYLS-8550]: Concurrent submission attempt rejected for pptReference [$pptReference], " +
+              s"periodKey [${returnValues.periodKey}]"
+          )
+          Future.successful(Conflict("A submission is already in progress for this return."))
+        case true =>
+          returnsConnector.submitReturn(pptReference, eisRequest, request.internalId).flatMap {
+            case Right(response) =>
+              sessionRepository.clearUserAnswers(pptReference, request.cacheKey)
+              handleNrsRequest(nrsEventType, request, userAnswers.data, eisRequest, response)
 
-        case Left(StatusCode.RETURN_ALREADY_SUBMITTED) =>
-          Future.successful {
-            new Status(StatusCode.RETURN_ALREADY_SUBMITTED)(Json.obj("returnAlreadyReceived" -> returnValues.periodKey))
+            case Left(StatusCode.RETURN_ALREADY_SUBMITTED) =>
+              sessionRepository.unlockSubmission(request.cacheKey)
+              Future.successful {
+                new Status(StatusCode.RETURN_ALREADY_SUBMITTED)(
+                  Json.obj("returnAlreadyReceived" -> returnValues.periodKey)
+                )
+              }
+
+            case Left(errorStatusCode) =>
+              sessionRepository.unlockSubmission(request.cacheKey)
+              Future.successful(new Status(errorStatusCode))
           }
-
-        case Left(errorStatusCode) => Future.successful(new Status(errorStatusCode))
       }
     } else
       Future.successful(UnprocessableEntity("The calculation is not submittable"))

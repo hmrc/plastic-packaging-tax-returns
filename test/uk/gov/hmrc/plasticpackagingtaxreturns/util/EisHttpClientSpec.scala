@@ -19,7 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.util
 import com.codahale.metrics.Timer
 import org.apache.pekko.Done
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{times, verify, when, verifyNoMoreInteractions, reset}
+import org.mockito.Mockito.{reset, times, verify, verifyNoMoreInteractions, when}
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
@@ -29,7 +29,7 @@ import play.api.libs.concurrent.Futures
 import play.api.libs.json.{Json, OFormat}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.{GatewayTimeoutException, HeaderCarrier, HttpResponse => HmrcResponse, StringContextOps}
-import uk.gov.hmrc.http.client.{HttpClientV2 => HmrcClient, RequestBuilder }
+import uk.gov.hmrc.http.client.{HttpClientV2 => HmrcClient, RequestBuilder}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpClient.retryDelayInMillisecond
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
@@ -46,13 +46,13 @@ import play.api.libs.json.JsValue
 
 class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
-  private val hmrcClient                            = mock[HmrcClient]
-  val mockRequestBuilder                            = mock[RequestBuilder]
-  private val appConfig                             = mock[AppConfig]
-  private val edgeOfSystem                          = mock[EdgeOfSystem]
-  private val metrics                               = mock[Metrics](RETURNS_DEEP_STUBS)
-  private val futures                               = mock[Futures]
-  private val timer                                 = mock[Timer.Context]
+  private val hmrcClient   = mock[HmrcClient]
+  val mockRequestBuilder   = mock[RequestBuilder]
+  private val appConfig    = mock[AppConfig]
+  private val edgeOfSystem = mock[EdgeOfSystem]
+  private val metrics      = mock[Metrics](RETURNS_DEEP_STUBS)
+  private val futures      = mock[Futures]
+  private val timer        = mock[Timer.Context]
 
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
   private val capturingLogger                       = new CapturingLogger
@@ -76,7 +76,6 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-
 
     when(hmrcClient.put(any())(any())).thenReturn(mockRequestBuilder)
     when(hmrcClient.get(any())(any())).thenReturn(mockRequestBuilder)
@@ -122,12 +121,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(hmrcClient).put(eqTo(url"http://some-host:8080/endpoint"))(any())
       val bodyCaptor = ArgumentCaptor.forClass(classOf[JsValue])
       verify(mockRequestBuilder).withBody(bodyCaptor.capture())(any(), any(), any())
-      bodyCaptor.getValue mustBe Json.toJson(exampleModel)  
+      bodyCaptor.getValue mustBe Json.toJson(exampleModel)
 
       withClue("with these headers") {
         val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
         verify(mockRequestBuilder).setHeader(headerCaptor.capture())
-        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf(
+        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf (
           "Environment"   -> "space",
           "Accept"        -> "application/json",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000001",
@@ -144,7 +143,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
     "handle responses" when {
       "status is 2xx" in {
-      
+
         when(mockRequestBuilder.execute[HmrcResponse](any(), any())) thenReturn Future.successful(HmrcResponse(
           200,
           """{"a": "b"}"""
@@ -180,13 +179,13 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       val headerCaptor = ArgumentCaptor.forClass(classOf[(String, String)])
       verify(mockRequestBuilder).setHeader(headerCaptor.capture())
       withClue("with these headers") {
-        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf(
+        headerCaptor.getValue.asInstanceOf[Seq[(String, String)]] must contain allOf (
           "Environment"   -> "space",
           "Accept"        -> "application/json",
           "Authorization" -> "do-come-in",
           "CorrelationId" -> "00000000-0000-0001-0000-000000000001"
         )
-      } 
+      }
     }
 
     "return an EisHttpResponse" in {
@@ -270,7 +269,7 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(hmrcClient, times(2)).put(eqTo(url"http://some-host:8080/endpoint"))(any())
       val bodyCaptor = ArgumentCaptor.forClass(classOf[JsValue])
       verify(mockRequestBuilder, times(2)).withBody(bodyCaptor.capture())(any(), any(), any())
-      bodyCaptor.getValue mustBe Json.toJson(exampleModel)  
+      bodyCaptor.getValue mustBe Json.toJson(exampleModel)
 
       response.status mustBe 200
 
@@ -330,8 +329,12 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       callPut
 
-      capturingLogger.warnings.head must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
-      capturingLogger.warnings(1) must include("PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002")
+      capturingLogger.warnings.head must include(
+        "PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
+      )
+      capturingLogger.warnings(1) must include(
+        "PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002"
+      )
       capturingLogger.warnings must have size 2
     }
 
@@ -351,9 +354,15 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       )))
 
       callPut
-      capturingLogger.warnings.head must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001")
-      capturingLogger.warnings(1) must include("PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002")
-      capturingLogger.warnings(2) must include("PPT_RETRY gave up: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003")
+      capturingLogger.warnings.head must include(
+        "PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000001"
+      )
+      capturingLogger.warnings(1) must include(
+        "PPT_RETRY retrying: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000002"
+      )
+      capturingLogger.warnings(2) must include(
+        "PPT_RETRY gave up: url http://some-host:8080/endpoint status 500 correlation-id 00000000-0000-0001-0000-000000000003"
+      )
       capturingLogger.warnings must have size 3
     }
 
@@ -371,11 +380,15 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
       verify(mockRequestBuilder, times(3)).execute[HmrcResponse](any(), any())
 
       withClue("log each retry") {
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY retrying: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 2
+        capturingLogger.warnings.count(_.startsWith(
+          "PPT_RETRY retrying: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
+        )) mustBe 2
       }
 
       withClue("log when it gives up") {
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY gave up: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message")) mustBe 1 
+        capturingLogger.warnings.count(_.startsWith(
+          "PPT_RETRY gave up: url http://some-host:8080/endpoint exception uk.gov.hmrc.http.GatewayTimeoutException: exception-message"
+        )) mustBe 1
       }
     }
 
@@ -394,7 +407,9 @@ class EisHttpClientSpec extends PlaySpec with BeforeAndAfterEach with MockitoSug
 
       withClue("log when it succeeds") {
 
-        capturingLogger.warnings.count(_.startsWith("PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002")) mustBe 1
+        capturingLogger.warnings.count(_.startsWith(
+          "PPT_RETRY successful: url http://some-host:8080/endpoint correlation-id 00000000-0000-0001-0000-000000000002"
+        )) mustBe 1
       }
     }
 
