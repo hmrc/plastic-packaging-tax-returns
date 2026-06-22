@@ -17,23 +17,18 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.util
 
 import play.api.Logging
-import play.api.http.Status
 import play.api.http.Status.NOT_FOUND
 import play.api.libs.json.*
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse as HmrcResponse, StringContextOps}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
-
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import izumi.reflect.Tag
-
 import scala.util.Try
 import uk.gov.hmrc.http.client.HttpClientV2
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-
-import java.net.URL
 
 /** An http response that allows for equality and same-instance
   * @param status

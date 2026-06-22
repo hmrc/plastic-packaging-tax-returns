@@ -22,10 +22,8 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers.SaveUserAnswerFunc
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.{Gettable, QuestionPage, Settable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.RichJsObject
-
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.runtime.universe.typeOf
 import izumi.reflect.Tag
 import scala.util.{Failure, Success, Try}
 

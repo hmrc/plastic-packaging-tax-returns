@@ -63,10 +63,13 @@ object AvailableCreditDateRangesService {
   }
 
   object TaxQuarter {
-    final case class Q1(taxYear: Int) extends TaxQuarter(APRIL, JUNE, previous = Q4, previousQuarterYearOffset = -1)
-    final case class Q2(taxYear: Int) extends TaxQuarter(JULY, SEPTEMBER, previous = Q1)
-    final case class Q3(taxYear: Int) extends TaxQuarter(OCTOBER, DECEMBER, previous = Q2)
-    final case class Q4(taxYear: Int) extends TaxQuarter(JANUARY, MARCH, previous = Q3, fromDatesYearOffset = 1)
+
+    final case class Q1(taxYear: Int)
+        extends TaxQuarter(APRIL, JUNE, previous = Q4.apply, previousQuarterYearOffset = -1)
+
+    final case class Q2(taxYear: Int) extends TaxQuarter(JULY, SEPTEMBER, previous = Q1.apply)
+    final case class Q3(taxYear: Int) extends TaxQuarter(OCTOBER, DECEMBER, previous = Q2.apply)
+    final case class Q4(taxYear: Int) extends TaxQuarter(JANUARY, MARCH, previous = Q3.apply, fromDatesYearOffset = 1)
 
     def apply(localDate: LocalDate): TaxQuarter = {
       val year = localDate.getYear
