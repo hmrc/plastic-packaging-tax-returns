@@ -64,7 +64,8 @@ case class EisHttpResponse(status: Int, body: String, correlationId: String) {
     * @return
     *   [[true]] if data is empty, otherwise [[false]] if is an HTTP 404
     */
-  def isMagic404: Boolean = status == NOT_FOUND && Json.parse(body) \ "code" == JsDefined(JsString("NOT_FOUND"))
+  def isMagic404: Boolean =
+    status == NOT_FOUND && Try(Json.parse(body) \ "code" == JsDefined(JsString("NOT_FOUND"))).getOrElse(false)
 
 }
 
