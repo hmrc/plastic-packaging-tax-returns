@@ -4,7 +4,7 @@ import sbt._
 object AppDependencies {
 
   val bootstrapVersion = "10.7.0"
-  val mongoVersion     = "2.12.0"
+  val mongoVersion     = "2.13.0"
   val playVersion      = "30"
 
   val compile = Seq(
@@ -21,8 +21,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test-play-$playVersion" % mongoVersion,
     "org.scalatest"          %% "scalatest"                          % "3.2.19", // Note - updating this appears to break flexmark-all
     "org.playframework"      %% "play-test"                          % current,
-    "dev.zio"                %% "izumi-reflect"                      % "3.0.9",
-    "com.vladsch.flexmark"    % "flexmark-all"                       % "0.64.6", // Note - updating this requires newer version of JRE
+    "dev.zio"                %% "izumi-reflect"                      % "3.0.9"
   ).map(_ % Test)
 
 } 
