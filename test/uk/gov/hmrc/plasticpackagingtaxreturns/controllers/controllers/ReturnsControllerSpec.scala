@@ -136,7 +136,7 @@ class ReturnsControllerSpec
   private val mockTaxRateTable                                 = mock[TaxRateTable]
   private val mockEdgeOfSystem                                 = mock[EdgeOfSystem]
   private val mockAppConfig                                        = mock[AppConfig]
-  
+
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   private val sut = new ReturnsController(

@@ -34,7 +34,7 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
 
 import java.time.LocalDate
 
-class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
+class EisReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
 
   private val returnsConnector = app.injector.instanceOf[EisReturnsConnector]
 

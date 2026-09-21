@@ -44,7 +44,7 @@ class HipReturnsConnector @Inject() (
     extends ReturnsConnector with HipConnector with Logging {
 
   def returnsSubmissionUrl(pptReferenceNumber: String) =
-    url"${appConfig.hipHost}/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/{$pptReferenceNumber}"
+    url"${appConfig.hipHost}/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReferenceNumber"
 
   override def get(pptReference: String, periodKey: String, internalId: String)(implicit
     hc: HeaderCarrier
@@ -58,64 +58,68 @@ class HipReturnsConnector @Inject() (
       s"[submitReturn] Invoked for pptReference [$pptReference] periodKey [${requestBody.periodKey}]"
     )
 
-    val timer = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
+    val timer         = metrics.defaultRegistry.timer("ppt.return.create.timer").time()
     val correlationId = UUID.randomUUID().toString
 
     httpClient
       .put(returnsSubmissionUrl(pptReference))
       .withBody(Json.toJson(requestBody))
-      .setHeader(hipHeaders(correlationId) *)
+      .setHeader(hipHeaders(correlationId)*)
       .execute[HttpResponse]
       .andThen { case _ => timer.stop() }
-      .map { x => (x.status, x.json, x.headers) match
-        case (OK, json, _) if (json \ "success").isDefined =>
-          Try((json \ "success").as[Return]).recover {
-            case exception =>
-              throw new RuntimeException(s"Response body could not be read as type Return", exception)
-          }.fold(
-            {
-              throwable =>
-                logger.warn(
-                  s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted but failed to parse response. CorrelationId=[${correlationId}], internalId=[$internalId], error=${throwable.getMessage}"
-                )
-                auditConnector.sendExplicitAudit(
-                  SubmitReturn.eventType,
-                  SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage))
-                )
-                Left(Status.INTERNAL_SERVER_ERROR)
-            },
-            {
-              returnResponse =>
-                logger.warn(
-                  s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted successfully"
-                )
-                auditConnector.sendExplicitAudit(
-                  SubmitReturn.eventType,
-                  SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None)
-                )
-                Right(returnResponse)
-            }
-          )
+      .map { x =>
+        (x.status, x.json, x.headers) match
+          case (OK, json, _) =>
+            Try((json \ "success").as[Return]).recover {
+              case exception =>
+                throw new RuntimeException(s"Response body could not be read as type Return", exception)
+            }.fold(
+              {
+                throwable =>
+                  logger.warn(
+                    s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted but failed to" +
+                      s" parse response. CorrelationId=[${correlationId}], internalId=[$internalId], error=${throwable.getMessage}"
+                  )
+                  auditConnector.sendExplicitAudit(
+                    SubmitReturn.eventType,
+                    SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage))
+                  )
+                  Left(Status.INTERNAL_SERVER_ERROR)
+              },
+              {
+                returnResponse =>
+                  logger.warn(
+                    s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted successfully"
+                  )
+                  auditConnector.sendExplicitAudit(
+                    SubmitReturn.eventType,
+                    SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None)
+                  )
+                  Right(returnResponse)
+              }
+            )
 
-        case (UNPROCESSABLE_ENTITY, json: JsValue, _) if (json \ "error" \ "errorId").asOpt[String].contains("044") =>
-          logger.warn(
-            s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed with response code=[${UNPROCESSABLE_ENTITY}] internalId=[$internalId]"
-          )
-          auditConnector.sendExplicitAudit(
-            SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
-          )
-          Left(208) // EisReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED
-        case (status, json, _) =>
-          logger.warn(
-            s"Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${status}], CorrelationId=[${correlationId}], internalId=[$internalId]"
-          )
-          auditConnector.sendExplicitAudit(
-            SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(Json.stringify(json)))
-          )
+          case (UNPROCESSABLE_ENTITY, json: JsValue, _) if (json \ "error" \ "errorId").asOpt[String].contains("044") =>
+            logger.warn(
+              s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed " +
+                s"with response code=[${UNPROCESSABLE_ENTITY}] internalId=[$internalId]"
+            )
+            auditConnector.sendExplicitAudit(
+              SubmitReturn.eventType,
+              SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
+            )
+            Left(208) // EisReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED
+          case (status, json, _) =>
+            logger.warn(
+              s"Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${status}], CorrelationId=[${correlationId}], internalId=[$internalId]"
+            )
+            auditConnector.sendExplicitAudit(
+              SubmitReturn.eventType,
+              SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(Json.stringify(json)))
+            )
 
-          Left(status)
+            Left(status)
       }
   }
+
 }
