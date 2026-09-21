@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package test.returns
+package returns
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatest.EitherValues
