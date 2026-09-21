@@ -45,7 +45,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.CapturingLogger
 
-class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging {
+class EisReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging {
 
   private val appConfig      = mock[AppConfig]
   private val auditConnector = mock[AuditConnector]
@@ -55,7 +55,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
 
   private val capturingLogger = new CapturingLogger
 
-  private val connector = new ReturnsConnector(appConfig, auditConnector, eisHttpClient) {
+  private val connector = new EisReturnsConnector(appConfig, auditConnector, eisHttpClient) {
     protected override val logger: Logger = capturingLogger
   }
 
@@ -284,7 +284,7 @@ class ReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logging
           eisHttpClient.put[Any](any, any, any, anyHeaderFun)(any, any)
         ) thenReturn Future.successful(putResponse)
 
-        callSubmit mustBe Left(ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
+        callSubmit mustBe Left(EisReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
 
         withClue("log success as etmp did received our call ok") {
           verify(auditConnector).sendExplicitAudit(

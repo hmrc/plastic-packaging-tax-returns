@@ -47,13 +47,14 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   protected val mockSubscriptionsConnector: SubscriptionsConnector             = mock[SubscriptionsConnector]
   protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
-  protected val mockReturnsConnector: ReturnsConnector                         = mock[ReturnsConnector]
+  protected val mockEisReturnsConnector: EisReturnsConnector                   = mock[EisReturnsConnector]
+  protected val mockHipReturnsConnector: HipReturnsConnector                   = mock[HipReturnsConnector]
   protected val mockObligationDataConnector: ObligationsDataConnector          = mock[ObligationsDataConnector]
   protected val mockFinancialDataConnector: FinancialDataConnector             = mock[FinancialDataConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockSubscriptionsConnector, mockNonRepudiationConnector, mockReturnsConnector)
+    reset(mockSubscriptionsConnector, mockNonRepudiationConnector, mockEisReturnsConnector, mockHipReturnsConnector)
   }
 
   protected def mockGetSubscription(
@@ -116,16 +117,18 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     ).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockReturnsSubmissionConnector(resp: Return) =
-    when(mockReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+    when(mockEisReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnsSubmissionConnectorFailure(statusCode: Int) =
-    when(mockReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+    when(mockEisReturnsConnector.submitReturn(any(), any(), any())(any())).thenReturn(
+      Future.successful(Left(statusCode))
+    )
 
   protected def mockReturnDisplayConnector(resp: JsValue) =
-    when(mockReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
+    when(mockEisReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Right(resp)))
 
   protected def mockReturnDisplayConnectorFailure(statusCode: Int) =
-    when(mockReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
+    when(mockEisReturnsConnector.get(any(), any(), any())(any())).thenReturn(Future.successful(Left(statusCode)))
 
   protected def mockGetObligationData(
     pptReference: String,

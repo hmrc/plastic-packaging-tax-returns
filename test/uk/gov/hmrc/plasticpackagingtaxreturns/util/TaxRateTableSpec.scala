@@ -41,6 +41,10 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
       |microservice.services.nrs.host=localhost
       |microservice.services.nrs.port=8506
       |microservice.services.nrs.api-key=test-key
+      |microservice.services.hip.host=localhost
+      |microservice.services.hip.port=8506
+      |microservice.services.hip.clientId="foo"
+      |microservice.services.hip.secret="bar"
       |auditing.enabled=true
       |eis.environment=ist0
       |nrs.retries=["1s", "2s", "4s"]
@@ -49,6 +53,7 @@ class TaxRateTableSpec extends PlaySpec with BeforeAndAfterEach {
       |tax-rate.year.2024=0.21785
       |tax-rate.year.2025=0.22369
       |tax-rate.year.2026=0.22882
+      |features.hip.returns=false
       |    """.stripMargin
 
   private def createAppConfig(configString: String = "") = {
