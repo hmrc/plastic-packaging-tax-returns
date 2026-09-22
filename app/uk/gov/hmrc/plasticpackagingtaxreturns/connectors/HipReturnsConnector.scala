@@ -80,10 +80,14 @@ class HipReturnsConnector @Inject() (
                     s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted but failed to" +
                       s" parse response. CorrelationId=[${correlationId}], internalId=[$internalId], error=${throwable.getMessage}"
                   )
-                  auditConnector.sendExplicitAudit(
-                    SubmitReturn.eventType,
-                    SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage))
-                  )
+                  audit(SubmitReturn(
+                    internalId,
+                    pptReference,
+                    FAILURE,
+                    requestBody,
+                    None,
+                    Some(throwable.getMessage)
+                  ))
                   Left(Status.INTERNAL_SERVER_ERROR)
               },
               {
@@ -91,10 +95,14 @@ class HipReturnsConnector @Inject() (
                   logger.warn(
                     s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted successfully"
                   )
-                  auditConnector.sendExplicitAudit(
-                    SubmitReturn.eventType,
-                    SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None)
-                  )
+                  audit(SubmitReturn(
+                    internalId,
+                    pptReference,
+                    SUCCESS,
+                    requestBody,
+                    Some(returnResponse),
+                    None
+                  ))
                   Right(returnResponse)
               }
             )
@@ -104,18 +112,13 @@ class HipReturnsConnector @Inject() (
               s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed " +
                 s"with response code=[${UNPROCESSABLE_ENTITY}] internalId=[$internalId]"
             )
-            auditConnector.sendExplicitAudit(
-              SubmitReturn.eventType,
-              SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
-            )
-            Left(208) // EisReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED
+            audit(SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None))
+            Left(RETURN_ALREADY_SUBMITTED)
           case (status, json, _) =>
             logger.warn(
               s"Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${status}], CorrelationId=[${correlationId}], internalId=[$internalId]"
             )
-            auditConnector.sendExplicitAudit(
-              SubmitReturn.eventType,
-              SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(Json.stringify(json)))
+            audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(Json.stringify(json)))
             )
 
             Left(status)

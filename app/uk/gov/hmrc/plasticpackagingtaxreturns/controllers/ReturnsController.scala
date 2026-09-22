@@ -24,7 +24,7 @@ import play.api.mvc.*
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.EisReturnsConnector.StatusCode
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.*
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{

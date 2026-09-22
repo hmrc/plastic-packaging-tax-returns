@@ -23,7 +23,6 @@ import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.EisReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Headers.buildEisHeader
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.{EisHttpClient, EisHttpResponse}
@@ -68,11 +67,8 @@ class EisReturnsConnector @Inject() (
           logger.warn(
             s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed with response code=[${httpResponse.status}] internalId=[$internalId]"
           )
-          auditConnector.sendExplicitAudit(
-            SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None)
-          )
-          Left(StatusCode.RETURN_ALREADY_SUBMITTED)
+          audit(SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None))
+          Left(RETURN_ALREADY_SUBMITTED)
         } else
           unhappyPathSubmit(pptReference, requestBody, internalId, httpResponse)
       }
@@ -89,11 +85,7 @@ class EisReturnsConnector @Inject() (
     logger.warn(
       s"[DDCYLS-8550]: Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${httpResponse.status}], CorrelationId=[${httpResponse.correlationId}], internalId=[$internalId]"
     )
-    auditConnector.sendExplicitAudit(
-      SubmitReturn.eventType,
-      SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(httpResponse.body))
-    )
-
+    audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(httpResponse.body)))
     Left(httpResponse.status)
   }
 
@@ -111,10 +103,7 @@ class EisReturnsConnector @Inject() (
           logger.warn(
             s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted but failed to parse response. CorrelationId=[${eisHttpResponse.correlationId}], internalId=[$internalId], error=${throwable.getMessage}"
           )
-          auditConnector.sendExplicitAudit(
-            SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage))
-          )
+          audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(throwable.getMessage)))
           Left(Status.INTERNAL_SERVER_ERROR)
       },
       {
@@ -122,10 +111,7 @@ class EisReturnsConnector @Inject() (
           logger.warn(
             s"[DDCYLS-8550]: Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submitted successfully"
           )
-          auditConnector.sendExplicitAudit(
-            SubmitReturn.eventType,
-            SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None)
-          )
+          audit(SubmitReturn(internalId, pptReference, SUCCESS, requestBody, Some(returnResponse), None))
           Right(returnResponse)
       }
     )
@@ -178,13 +164,5 @@ class EisReturnsConnector @Inject() (
   private def cookLogMessage(pptReference: String, periodKey: String, correlationId: String, outcomeMessage: String) =
     s"Return Display API call for correlationId [${correlationId}], " +
       s"pptReference [$pptReference], periodKey [$periodKey]: " + outcomeMessage
-
-}
-
-object EisReturnsConnector {
-
-  object StatusCode {
-    val RETURN_ALREADY_SUBMITTED = 208
-  }
 
 }

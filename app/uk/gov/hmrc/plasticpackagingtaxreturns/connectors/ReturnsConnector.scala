@@ -18,10 +18,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.SubmitReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ReturnsConnector {
 
@@ -36,5 +37,20 @@ trait ReturnsConnector {
   def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, Return]]
-  
+
+  val RETURN_ALREADY_SUBMITTED: Int = ReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED
+
+  def audit(submitReturn: SubmitReturn)(implicit
+    headerCarrier: HeaderCarrier,
+    executionContext: ExecutionContext
+  ): Unit = auditConnector.sendExplicitAudit(SubmitReturn.eventType, submitReturn)
+
+}
+
+object ReturnsConnector {
+
+  object StatusCode {
+    val RETURN_ALREADY_SUBMITTED = 208
+  }
+
 }

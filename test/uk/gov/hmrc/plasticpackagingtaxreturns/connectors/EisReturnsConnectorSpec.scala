@@ -284,7 +284,7 @@ class EisReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logg
           eisHttpClient.put[Any](any, any, any, anyHeaderFun)(any, any)
         ) thenReturn Future.successful(putResponse)
 
-        callSubmit mustBe Left(EisReturnsConnector.StatusCode.RETURN_ALREADY_SUBMITTED)
+        callSubmit mustBe Left(connector.RETURN_ALREADY_SUBMITTED)
 
         withClue("log success as etmp did received our call ok") {
           verify(auditConnector).sendExplicitAudit(
