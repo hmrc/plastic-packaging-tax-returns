@@ -23,9 +23,9 @@ import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Seconds, Span}
 import play.api.http.Status
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.Json
 import play.api.test.Helpers.await
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.SubmitReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.HipReturnsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.*
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
@@ -136,21 +136,36 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
         verifyAuditRequest(auditUrl, SubmitReturn.eventType, SubmitReturn.format.writes(auditModel).toString())
       }
 
-      forAll(Seq(400, 404, 422, 409, 500, 502, 503)) { statusCode =>
+      forAll(Seq(400, 401, 403, 404, 500, 503)) { statusCode =>
         s"return $statusCode" when {
 
           s"upstream service fails with $statusCode" in {
 
-            val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
+            val error = s"$${json-unit.any-string}"
+
+            val errorResponse = if (Seq(400, 500, 503).contains(statusCode))
+              """
+                  |{
+                  |  "origin": "HIP",
+                  |  "response": {
+                  |    "failures": [
+                  |      {
+                  |        "type": "Type of Failure",
+                  |        "reason": "Reason for Failure"
+                  |      }
+                  |    ]
+                  |  }
+                  |}""".stripMargin
+            else ""
 
             val auditModel =
-              SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
+              SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
 
             stubFailedReturnsSubmission(
               pptReference,
               statusCode,
               errors =
-                Seq(EISError("Error Code", "Error Reason"))
+                errorResponse
             )
 
             givenAuditReturns(auditUrl, Status.NO_CONTENT)
@@ -262,13 +277,7 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
     }
   }
 
-  case class HipSuccessReturnResponse(success: Return)
-
-  case object HipSuccessReturnResponse {
-    implicit val formats: OFormat[HipSuccessReturnResponse] = Json.format[HipSuccessReturnResponse]
-  }
-
-  def aHipSuccessReturn = HipSuccessReturnResponse(aReturn())
+  def aHipSuccessReturn = HipReturn(aReturn())
 
   private def aReturn(): Return =
     Return(
@@ -286,13 +295,13 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
       returnDetails = None
     )
 
-  private def stubSuccessfulReturnsSubmission(returnId: String, resp: HipSuccessReturnResponse) =
+  private def stubSuccessfulReturnsSubmission(returnId: String, resp: HipReturn) =
     stubFor(
       put(urlMatching(putPath + returnId))
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(Json.toJson(resp).toString)
+            .withBody(Json.stringify(Json.toJson(resp)))
         )
     )
 

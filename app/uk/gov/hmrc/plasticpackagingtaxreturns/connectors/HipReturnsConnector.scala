@@ -19,14 +19,18 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 import play.api.Logging
 import play.api.http.Status
 import play.api.http.Status.{OK, UNPROCESSABLE_ENTITY}
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsResultException, JsValue, Json}
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{Return, ReturnsSubmissionRequest}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
+  HipReturn,
+  Return,
+  ReturnsSubmissionRequest
+}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.metrics.Metrics
 
@@ -109,10 +113,10 @@ class HipReturnsConnector @Inject() (
       .execute[HttpResponse]
       .andThen { case _ => timer.stop() }
       .map { x =>
-        (x.status, x.json, x.headers) match
-          case (OK, json, _) =>
-            Try((json \ "success").as[Return]).recover {
-              case exception =>
+        (x.status, x.body, x.headers) match
+          case (OK, body, _) =>
+            Try(Json.parse(body).as[HipReturn]).recover {
+              case exception: JsResultException =>
                 throw new RuntimeException(s"Response body could not be read as type Return", exception)
             }.fold(
               {
@@ -141,25 +145,27 @@ class HipReturnsConnector @Inject() (
                     pptReference,
                     SUCCESS,
                     requestBody,
-                    Some(returnResponse),
+                    Some(returnResponse.success),
                     None
                   ))
-                  Right(returnResponse)
+                  Right(returnResponse.success)
               }
             )
 
-          case (UNPROCESSABLE_ENTITY, json: JsValue, _) if (json \ "error" \ "errorId").asOpt[String].contains("044") =>
+          case (UNPROCESSABLE_ENTITY, body, _)
+              if (Json.toJson(body) \ "error" \ "errorId").asOpt[String].contains("044") =>
             logger.warn(
               s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed " +
                 s"with response code=[${UNPROCESSABLE_ENTITY}] internalId=[$internalId]"
             )
             audit(SubmitReturn(internalId, pptReference, SUCCESS, requestBody, None, None))
             Left(RETURN_ALREADY_SUBMITTED)
-          case (status, json, _) =>
+          case (status, body, _) =>
             logger.warn(
               s"Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${status}], CorrelationId=[${correlationId}], internalId=[$internalId]"
             )
-            audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(Json.stringify(json))))
+
+            audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(body)))
 
             Left(status)
       }
