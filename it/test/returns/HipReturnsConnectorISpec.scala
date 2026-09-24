@@ -170,6 +170,96 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
         }
       }
     }
+
+    "get return " should {
+
+      "return expected response" in {
+
+        val returnForDisplay: Return = aReturnWithReturnDetails()
+
+        val auditModel =
+          GetReturn(internalId, periodKey, "Success", Some(Json.obj("success" -> Json.toJson(returnForDisplay))), None)
+
+        stubSuccessfulReturnDisplay(pptReference, periodKey, returnForDisplay)
+
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+        val res = await(returnsConnector.get(pptReference, periodKey, internalId))
+
+        res mustBe Right(Json.toJson(returnForDisplay))
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
+      }
+
+      "handle bad json" in {
+
+        val error      = s"$${json-unit.any-string}"
+        val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
+
+        stubFailedReturnDisplay(pptReference, periodKey, Status.OK, "XXXX")
+        givenAuditReturns(auditUrl, Status.NO_CONTENT)
+        givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+        val res = await(returnsConnector.get(pptReference, periodKey, internalId))
+        println(res)
+        res.left.value mustBe Status.INTERNAL_SERVER_ERROR
+
+        eventually(timeout(Span(5, Seconds))) {
+          eventSendToAudit(auditUrl, auditModel) mustBe true
+        }
+
+      }
+
+      forAll(Seq(400, 401, 403, 404, 500, 503)) { statusCode =>
+        s"return $statusCode" when {
+
+          s"upstream service fails with $statusCode" in {
+
+            val error = s"$${json-unit.any-string}"
+
+            val errorResponse = if (Seq(400, 500, 503).contains(statusCode))
+              """
+                |{
+                |  "origin": "HIP",
+                |  "response": {
+                |    "failures": [
+                |      {
+                |        "type": "Type of Failure",
+                |        "reason": "Reason for Failure"
+                |      }
+                |    ]
+                |  }
+                |}""".stripMargin
+            else ""
+
+            val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
+
+            stubFailedReturnDisplay(
+              pptReference,
+              periodKey,
+              statusCode,
+              errorResponse
+            )
+
+            givenAuditReturns(auditUrl, Status.NO_CONTENT)
+            givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
+
+            val res = await(returnsConnector.get(pptReference, periodKey, internalId))
+
+            res.left.value mustBe statusCode
+
+            eventually(timeout(Span(5, Seconds))) {
+              eventSendToAudit(auditUrl, auditModel) mustBe true
+            }
+
+          }
+        }
+      }
+    }
   }
 
   case class HipSuccessReturnResponse(success: Return)
@@ -244,6 +334,55 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
       )
     )
 
+  private def aReturnWithReturnDetails() =
+    Return(
+      processingDate = LocalDate.now().toString,
+      idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
+      chargeDetails = Some(
+        ChargeDetails(
+          chargeType = "Plastic Tax",
+          chargeReference = "ABC123",
+          amount = 1234.56,
+          dueDate = LocalDate.now().plusDays(30).toString
+        )
+      ),
+      exportChargeDetails = None,
+      returnDetails = Some(
+        EisReturnDetails(
+          manufacturedWeight = BigDecimal(256.12),
+          importedWeight = BigDecimal(352.15),
+          totalNotLiable = BigDecimal(546.42),
+          humanMedicines = BigDecimal(1234.15),
+          directExports = BigDecimal(12121.16),
+          recycledPlastic = BigDecimal(4345.72),
+          creditForPeriod =
+            BigDecimal(1560000.12),
+          totalWeight = BigDecimal(16466.88),
+          taxDue = BigDecimal(4600)
+        )
+      )
+    )
+
+  private def stubSuccessfulReturnDisplay(pptReference: String, periodKey: String, response: Return) =
+    stubFor(
+      get(urlMatching(s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(Json.obj("success" -> Json.toJson(response)).toString)
+        )
+    )
+
+  private def stubFailedReturnDisplay(pptReference: String, periodKey: String, statusCode: Int, body: String) =
+    stubFor(
+      get(urlMatching(s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .willReturn(
+          aResponse()
+            .withStatus(statusCode)
+            .withBody(Json.toJson(body).toString)
+        )
+    )
+
   private def givenAuditReturns(url: String, statusCode: Int): Unit =
     stubFor(
       post(url)
@@ -255,5 +394,8 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
 
   private def eventSendToAudit(url: String, displayResponse: SubmitReturn): Boolean =
     eventSendToAudit(url, SubmitReturn.eventType, SubmitReturn.format.writes(displayResponse).toString())
+
+  private def eventSendToAudit(url: String, displayResponse: GetReturn): Boolean =
+    eventSendToAudit(url, GetReturn.eventType, GetReturn.format.writes(displayResponse).toString())
 
 }

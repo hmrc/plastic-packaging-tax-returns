@@ -121,7 +121,7 @@ class EisReturnsConnector @Inject() (
   ): Future[Either[Int, JsValue]] = {
     val timerName = "ppt.return.display.timer"
 
-    eisHttpClient.get(appConfig.returnsDisplayUrl(pptReference, periodKey), Seq.empty, timerName, buildEisHeader)
+    eisHttpClient.get(appConfig.eisReturnsDisplayUrl(pptReference, periodKey), Seq.empty, timerName, buildEisHeader)
       .map { response =>
         logReturnDisplayResponse(pptReference, periodKey, response.correlationId, s"status: ${response.status}")
 

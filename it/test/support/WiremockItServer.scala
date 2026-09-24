@@ -45,6 +45,8 @@ class WiremockItServer {
       "microservice.services.nrs.port" -> wirePort,
       "microservice.services.des.host" -> wireHost,
       "microservice.services.des.port" -> wirePort,
+      "microservice.services.hip.host" -> wireHost,
+      "microservice.services.hip.port" -> wirePort,
       "auditing.enabled"               -> false
     )
 
