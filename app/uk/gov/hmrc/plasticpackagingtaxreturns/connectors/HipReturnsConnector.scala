@@ -24,7 +24,7 @@ import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.SubmitReturn
+import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.{
   HipReturn,
@@ -52,7 +52,48 @@ class HipReturnsConnector @Inject() (
 
   override def get(pptReference: String, periodKey: String, internalId: String)(implicit
     hc: HeaderCarrier
-  ): Future[Either[Int, JsValue]] = ???
+  ): Future[Either[Int, JsValue]] = {
+    val timer         = metrics.defaultRegistry.timer("ppt.return.display.timer").time()
+    val correlationId = UUID.randomUUID().toString
+
+    httpClient
+      .get(appConfig.hipReturnsDisplayUrl(pptReference, periodKey))
+      .setHeader(hipHeaders(correlationId)*)
+      .execute[HttpResponse]
+      .andThen { case _ => timer.stop() }
+      .map { response =>
+        response.status match {
+          case Status.OK =>
+            Try((Json.parse(response.body) \ "success").as[JsValue]).recover {
+              case exception =>
+                throw new RuntimeException(s"Response body could not be read as type Return", exception)
+            }.toEither match {
+              case Right(res) =>
+                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+                auditConnector.sendExplicitAudit(
+                  GetReturn.eventType,
+                  GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None)
+                )
+                Right(res)
+
+              case Left(ex) =>
+                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+                auditConnector.sendExplicitAudit(
+                  GetReturn.eventType,
+                  GetReturn(internalId, periodKey, FAILURE, None, Some(ex.getMessage))
+                )
+                Left(Status.INTERNAL_SERVER_ERROR)
+            }
+          case _ =>
+            logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+            auditConnector.sendExplicitAudit(
+              GetReturn.eventType,
+              GetReturn(internalId, periodKey, FAILURE, None, Some(response.body))
+            )
+            Left(response.status)
+        }
+      }
+  }
 
   override def submitReturn(pptReference: String, requestBody: ReturnsSubmissionRequest, internalId: String)(implicit
     hc: HeaderCarrier
@@ -123,10 +164,30 @@ class HipReturnsConnector @Inject() (
             logger.warn(
               s"Upstream error during return submission for pptReference=[$pptReference], period=[${requestBody.periodKey}], status=[${status}], CorrelationId=[${correlationId}], internalId=[$internalId]"
             )
+
             audit(SubmitReturn(internalId, pptReference, FAILURE, requestBody, None, Some(body)))
 
             Left(status)
       }
   }
+
+  private def logReturnDisplayResponse(
+    pptReference: String,
+    periodKey: String,
+    correlationId: String,
+    status: Int,
+    body: String
+  ): Unit = logger.warn(cookLogMessage(pptReference, periodKey, correlationId, status, body))
+
+  private def cookLogMessage(
+    pptReference: String,
+    periodKey: String,
+    correlationId: String,
+    status: Int,
+    body: String
+  ) =
+    s"Return Display API call for correlationId [${correlationId}], " +
+      s"pptReference [$pptReference], periodKey [$periodKey]" +
+      s"Hip returned a status of: $status and a body of: $body"
 
 }
