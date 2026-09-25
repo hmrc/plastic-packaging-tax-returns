@@ -115,14 +115,14 @@ class HipReturnsISpec
   }
 
   private def stubReturnDisplayResponse(withSuccess: Boolean): Unit = {
-    val foo = if(withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
+    val body = if(withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
     wireMock.stubFor(
       get(HipUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
             .withHeader(HeaderNames.AUTHORIZATION, "Gino")
-            .withBody(foo)
+            .withBody(body)
         )
     )
   }
