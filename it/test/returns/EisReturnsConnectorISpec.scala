@@ -16,7 +16,8 @@
 
 package test.returns
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import org.scalatest.EitherValues
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures
@@ -25,18 +26,17 @@ import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.{GetReturn, SubmitReturn}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.EisReturnsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.*
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.EISError
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.ReturnType
-import org.scalatest.EitherValues
 
 import java.time.LocalDate
 
-class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
+class EisReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutures with EitherValues {
 
-  private val returnsConnector = app.injector.instanceOf[ReturnsConnector]
+  private val returnsConnector = app.injector.instanceOf[EisReturnsConnector]
 
   private val internalId: String   = "someId"
   private val pptReference: String = "XMPPT0000000123"
@@ -63,7 +63,14 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val returnsSubmissionResponse = aReturn()
 
-        val auditModel = SubmitReturn(internalId, pptReference, "Success", aReturnsSubmissionRequest(), Some(returnsSubmissionResponse), None)
+        val auditModel = SubmitReturn(
+          internalId,
+          pptReference,
+          "Success",
+          aReturnsSubmissionRequest(),
+          Some(returnsSubmissionResponse),
+          None
+        )
 
         stubSuccessfulReturnsSubmission(pptReference, returnsSubmissionResponse)
 
@@ -84,7 +91,8 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
         val error = s"$${json-unit.any-string}"
 
-        val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
+        val auditModel =
+          SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(error))
 
         stubFailedReturnsSubmission(pptReference, Status.OK, "XXX")
 
@@ -106,7 +114,8 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val errors = "{\"failures\":[{\"code\":\"Error Code\",\"reason\":\"Error Reason\"}]}"
 
-            val auditModel = SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
+            val auditModel =
+              SubmitReturn(internalId, pptReference, "Failure", aReturnsSubmissionRequest(), None, Some(errors))
 
             stubFailedReturnsSubmission(
               pptReference,
@@ -184,7 +193,12 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
 
             val auditModel = GetReturn(internalId, periodKey, "Failure", None, Some(error))
 
-            stubFailedReturnDisplay(pptReference, periodKey, statusCode, "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))")
+            stubFailedReturnDisplay(
+              pptReference,
+              periodKey,
+              statusCode,
+              "errors = Seq(EISError(\"Error Code\", \"Error Reason\"))"
+            )
 
             givenAuditReturns(auditUrl, Status.NO_CONTENT)
             givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
@@ -208,7 +222,12 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       processingDate = LocalDate.now().toString,
       idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
       chargeDetails = Some(
-        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
+        ChargeDetails(
+          chargeType = "Plastic Tax",
+          chargeReference = "ABC123",
+          amount = 1234.56,
+          dueDate = LocalDate.now().plusDays(30).toString
+        )
       ),
       exportChargeDetails = None,
       returnDetails = None
@@ -219,7 +238,12 @@ class ReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFutur
       processingDate = LocalDate.now().toString,
       idDetails = IdDetails(pptReferenceNumber = pptReference, submissionId = "1234567890XX"),
       chargeDetails = Some(
-        ChargeDetails(chargeType = "Plastic Tax", chargeReference = "ABC123", amount = 1234.56, dueDate = LocalDate.now().plusDays(30).toString)
+        ChargeDetails(
+          chargeType = "Plastic Tax",
+          chargeReference = "ABC123",
+          amount = 1234.56,
+          dueDate = LocalDate.now().plusDays(30).toString
+        )
       ),
       exportChargeDetails = None,
       returnDetails = Some(

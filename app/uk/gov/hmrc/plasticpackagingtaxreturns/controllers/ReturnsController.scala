@@ -18,15 +18,21 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import com.google.inject.{Inject, Singleton}
 import play.api.Logging
+import play.api.libs.json.*
 import play.api.libs.json.Json.toJson
-import play.api.libs.json._
-import play.api.mvc._
+import play.api.mvc.*
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.returns.NrsSubmitReturnEvent
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ReturnsConnector.StatusCode
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.ObligationStatus
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{ObligationsDataConnector, ReturnsConnector}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.*
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
+  EisReturnsConnector,
+  HipReturnsConnector,
+  ObligationsDataConnector,
+  ReturnsConnector
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
@@ -59,7 +65,8 @@ class ReturnsController @Inject() (
   sessionRepository: SessionRepository,
   nonRepudiationService: NonRepudiationService,
   override val controllerComponents: ControllerComponents,
-  returnsConnector: ReturnsConnector,
+  eisReturnsConnector: EisReturnsConnector,
+  hipReturnsConnector: HipReturnsConnector,
   obligationsDataConnector: ObligationsDataConnector,
   auditConnector: AuditConnector,
   calculationsService: PPTCalculationService,
@@ -68,9 +75,14 @@ class ReturnsController @Inject() (
   creditsService: CreditsCalculationService,
   availableCreditService: AvailableCreditService,
   taxRateTable: TaxRateTable,
-  edgeOfSystem: EdgeOfSystem
+  edgeOfSystem: EdgeOfSystem,
+  appConfig: AppConfig
 )(implicit executionContext: ExecutionContext)
     extends BackendController(controllerComponents) with JSONResponses with Logging {
+
+  lazy val returnsConnector: ReturnsConnector =
+    if (appConfig.hipReturns) hipReturnsConnector
+    else eisReturnsConnector
 
   private def parseDate(date: String): ZonedDateTime = {
     val df = DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC"))

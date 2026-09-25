@@ -19,6 +19,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.config
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 
@@ -28,6 +29,14 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   lazy val eisHost: String = servicesConfig.baseUrl("eis")
   lazy val desHost: String = servicesConfig.baseUrl("des")
   lazy val nrsHost: String = servicesConfig.baseUrl("nrs")
+  lazy val hipHost: String = servicesConfig.baseUrl("hip")
+
+  val hipReturns: Boolean           = config.get[Boolean]("features.hip.returns")
+  val hipPPTBaseUrl: String         = servicesConfig.baseUrl("hip")
+  private val hipClientIdV1: String = config.get[String]("microservice.services.hip.clientId")
+  private val hipSecretV1: String   = config.get[String]("microservice.services.hip.secret")
+
+  def hipAuthorizationToken: String = Base64.getEncoder.encodeToString(s"$hipClientIdV1:$hipSecretV1".getBytes("UTF-8"))
 
   def subscriptionDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"

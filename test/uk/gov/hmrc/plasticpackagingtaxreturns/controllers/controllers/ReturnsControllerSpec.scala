@@ -135,6 +135,7 @@ class ReturnsControllerSpec
   private val mockAvailableCreditService                       = mock[AvailableCreditService]
   private val mockTaxRateTable                                 = mock[TaxRateTable]
   private val mockEdgeOfSystem                                 = mock[EdgeOfSystem]
+  private val mockAppConfig                                        = mock[AppConfig]
 
   private val cc: ControllerComponents = Helpers.stubControllerComponents()
 
@@ -143,7 +144,8 @@ class ReturnsControllerSpec
     mockSessionRepository,
     mockNonRepudiationService,
     cc,
-    mockReturnsConnector,
+    mockEisReturnsConnector,
+    mockHipReturnsConnector,
     mockObligationDataConnector,
     mockAuditConnector,
     mockPptCalculationService,
@@ -152,7 +154,8 @@ class ReturnsControllerSpec
     mockCreditsCalculationService,
     mockAvailableCreditService,
     mockTaxRateTable,
-    mockEdgeOfSystem
+    mockEdgeOfSystem,
+    mockAppConfig
   ) {
     protected override val logger: Logger = mockLogger
   }
@@ -162,7 +165,7 @@ class ReturnsControllerSpec
     reset(
       mockSessionRepository,
       mockNonRepudiationService,
-      mockReturnsConnector,
+      mockEisReturnsConnector,
       mockObligationDataConnector,
       mockAuditConnector,
       mockPptCalculationService,
@@ -190,7 +193,7 @@ class ReturnsControllerSpec
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(returnWithTaxRate)
       verify(mockTaxRateTable).lookupRateFor(LocalDate.of(2020, 5, 14))
-      verify(mockReturnsConnector).get(eqTo(pptReference), eqTo(periodKey), any)(any)
+      verify(mockEisReturnsConnector).get(eqTo(pptReference), eqTo(periodKey), any)(any)
     }
 
     "return 404" in {
@@ -299,7 +302,7 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
 
       status(result) mustBe EXPECTATION_FAILED
-      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector, never()).submitReturn(any, any, any)(any)
       verify(mockSessionRepository).clearUserAnswers("7777777", FakeAuthenticator.cacheKey)
     }
 
@@ -325,7 +328,7 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.submit(pptReference).apply(FakeRequest())
 
       status(result) mustBe CONFLICT
-      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector, never()).submitReturn(any, any, any)(any)
     }
 
     "submit a return with a total of exported plastic" in {
@@ -338,7 +341,7 @@ class ReturnsControllerSpec
         sut.submit(pptReference).apply(FakeRequest().withHeaders(newHeaders = ("foo", "bar")))
 
       status(result) mustBe OK
-      verify(mockReturnsConnector).submitReturn(
+      verify(mockEisReturnsConnector).submitReturn(
         ArgumentMatchers.eq(pptReference),
         ArgumentMatchers.eq(expectedSubmissionRequestForReturns),
         any
@@ -369,7 +372,7 @@ class ReturnsControllerSpec
 
       status(result) mustBe OK
       contentAsJson(result) mustBe toJson(aReturnWithNrs())
-      verify(mockReturnsConnector).submitReturn(
+      verify(mockEisReturnsConnector).submitReturn(
         ArgumentMatchers.eq(pptReference),
         ArgumentMatchers.eq(expectedSubmissionRequestForAmend),
         any
@@ -415,7 +418,7 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
 
       status(result) mustBe UNPROCESSABLE_ENTITY
-      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector, never()).submitReturn(any, any, any)(any)
     }
 
     "return an error if returns is too old to process" in {
@@ -428,7 +431,7 @@ class ReturnsControllerSpec
       val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
 
       status(result) mustBe UNPROCESSABLE_ENTITY
-      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector, never()).submitReturn(any, any, any)(any)
     }
 
     "amend throw an error if financial API error" in {
@@ -441,7 +444,7 @@ class ReturnsControllerSpec
         val result: Future[Result] = sut.amend(pptReference).apply(FakeRequest())
         status(result)
       }
-      verify(mockReturnsConnector, never()).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector, never()).submitReturn(any, any, any)(any)
     }
 
     "amend submit return if Direct debit not in progress" in {
@@ -451,7 +454,7 @@ class ReturnsControllerSpec
 
       await(sut.amend(pptReference).apply(FakeRequest()))
 
-      verify(mockReturnsConnector).submitReturn(any, any, any)(any)
+      verify(mockEisReturnsConnector).submitReturn(any, any, any)(any)
     }
   }
 
