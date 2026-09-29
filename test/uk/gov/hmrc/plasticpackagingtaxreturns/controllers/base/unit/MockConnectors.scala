@@ -45,7 +45,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   self: Suite =>
 
   protected val mockSubscriptionsConnector: SubscriptionsConnector             = mock[SubscriptionsConnector]
-  protected val mockExportCreditBalanceConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
+  protected val mockEisExportCreditBalanceConnector: EisExportCreditBalanceConnector = mock[EisExportCreditBalanceConnector]
   protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
   protected val mockEisReturnsConnector: EisReturnsConnector                   = mock[EisReturnsConnector]
   protected val mockHipReturnsConnector: HipReturnsConnector                   = mock[HipReturnsConnector]
@@ -91,7 +91,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     displayResponse: ExportCreditBalanceDisplayResponse
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(
+      mockEisExportCreditBalanceConnector.getBalance(
         ArgumentMatchers.eq(pptReference),
         any[LocalDate](),
         any[LocalDate](),
@@ -106,7 +106,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     statusCode: Int
   ): OngoingStubbing[Future[Either[Int, ExportCreditBalanceDisplayResponse]]] =
     when(
-      mockExportCreditBalanceConnector.getBalance(
+      mockEisExportCreditBalanceConnector.getBalance(
         ArgumentMatchers.eq(pptReference),
         any[LocalDate](),
         any[LocalDate](),

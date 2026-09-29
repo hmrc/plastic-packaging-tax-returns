@@ -18,7 +18,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import com.google.inject.Inject
 import play.api.libs.json.{JsPath, Reads}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{
+  EisExportCreditBalanceConnector,
+  ExportCreditBalanceConnector,
+  HipExportCreditBalanceConnector
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationFromDateGettable
@@ -26,9 +31,16 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendHeaderCarrierProvide
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AvailableCreditService @Inject() (exportCreditBalanceConnector: ExportCreditBalanceConnector)(implicit
-  executionContext: ExecutionContext
-) extends BackendHeaderCarrierProvider {
+class AvailableCreditService @Inject() (
+  appConfig: AppConfig,
+  eisExportCreditBalanceConnector: EisExportCreditBalanceConnector,
+  hipExportCreditBalanceConnector: HipExportCreditBalanceConnector
+)(implicit executionContext: ExecutionContext)
+    extends BackendHeaderCarrierProvider {
+
+  lazy val exportCreditBalanceConnector: ExportCreditBalanceConnector =
+    if (appConfig.hipReturns) hipExportCreditBalanceConnector
+    else eisExportCreditBalanceConnector
 
   def getBalance(userAnswers: UserAnswers)(implicit request: AuthorizedRequest[_]): Future[Option[BigDecimal]] = {
     val whatDoYouWantToDo: Option[Boolean] = userAnswers.get(JsPath \ "whatDoYouWantToDo")(Reads.BooleanReads)

@@ -42,7 +42,8 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import scala.concurrent.ExecutionContext
 
 class HipReturnsISpec
-  extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData
+    with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   lazy val appConfig                   = app.injector.instanceOf[AppConfig]
@@ -61,7 +62,10 @@ class HipReturnsISpec
     if (appConfig.hipReturns) HipUrl
     else DesUrl
 
-  lazy val configForcingHipEndpoints: Map[String, Any] = wireMock.overrideConfig + ("features.hip.returns" -> true)
+  val isHipEnabled = if (appConfig.hipReturns) true else false
+
+  lazy val configForcingHipEndpoints: Map[String, Any] =
+    wireMock.overrideConfig + ("features.hip.returns" -> isHipEnabled)
 
   override lazy val app: Application = {
     wireMock.start()
@@ -80,7 +84,7 @@ class HipReturnsISpec
 
   "return 200 when getting return details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse(true)
+    stubReturnDisplayResponse(isHipEnabled)
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
 
@@ -89,7 +93,7 @@ class HipReturnsISpec
 
   "return display details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse(true)
+    stubReturnDisplayResponse(isHipEnabled)
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
     val expected = ReturnWithTaxRate(Json.parse(displayApiResponse), 0.2)
@@ -115,9 +119,9 @@ class HipReturnsISpec
   }
 
   private def stubReturnDisplayResponse(withSuccess: Boolean): Unit = {
-    val body = if(withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
+    val body = if (withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
     wireMock.stubFor(
-      get(HipUrl)
+      get(returnsConnectorUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -127,19 +131,19 @@ class HipReturnsISpec
     )
   }
 
-    private def stubReturnDisplayErrorResponse(): Unit =
-      wireMock.stubFor(
-        get(HipUrl)
-          .willReturn(
-            aResponse()
-              .withStatus(Status.INTERNAL_SERVER_ERROR)
-          )
-      )
+  private def stubReturnDisplayErrorResponse(): Unit =
+    wireMock.stubFor(
+      get(returnsConnectorUrl)
+        .willReturn(
+          aResponse()
+            .withStatus(Status.INTERNAL_SERVER_ERROR)
+        )
+    )
 
   def displayApiResponseWithSuccess(inner: String) = Json.obj("success" -> Json.parse(inner)).toString
 
   def displayApiResponse: String =
-  """
+    """
     |{
     |  "processingDate": "2022-07-03T09:30:47Z",
     |  "idDetails": {

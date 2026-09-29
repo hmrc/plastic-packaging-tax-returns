@@ -41,7 +41,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import java.net.URL
 
-class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach {
+class EisExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach {
 
   protected implicit val hc: HeaderCarrier = HeaderCarrier()
   val internalId: String                   = "someId"
@@ -69,7 +69,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
   private val eisHttpClient =
     new EisHttpClient(httpClient, config, edgeOfSystem, metric)
 
-  private val sut                = new ExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
+  private val sut                = new EisExportCreditBalanceConnector(eisHttpClient, config, auditConnector)
   private val mockRequestBuilder = mock[RequestBuilder]
 
   override def beforeEach(): Unit = {
@@ -83,7 +83,7 @@ class ExportCreditBalanceConnectorISpec extends PlaySpec with BeforeAndAfterEach
     when(metric.defaultRegistry.timer(any)).thenReturn(timer)
     when(timer.time()).thenReturn(timerContent)
     when(edgeOfSystem.createUuid.toString).thenReturn("123")
-    when(config.exportCreditBalanceDisplayUrl(pptReference)).thenReturn("http://some-host:8080/balanceUrl")
+    when(config.eisExportCreditBalanceDisplayUrl(pptReference)).thenReturn("http://some-host:8080/balanceUrl")
   }
 
   "ExportCreditBalance connector" when {

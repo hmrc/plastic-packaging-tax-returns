@@ -26,14 +26,12 @@ import play.api.http.Status.IM_A_TEAPOT
 import play.api.libs.json.{JsPath, Json, Reads}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.ExportCreditBalanceConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.{EisExportCreditBalanceConnector, ExportCreditBalanceConnector, HipExportCreditBalanceConnector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.AuthorizedRequest
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
-import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{
-  ConvertedCreditWeightGettable,
-  ReturnObligationFromDateGettable
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{ConvertedCreditWeightGettable, ReturnObligationFromDateGettable}
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.Settable.SettableUserAnswers
 
 import java.time.LocalDate
@@ -42,13 +40,20 @@ import scala.concurrent.Future
 
 class AvailableCreditServiceSpec extends PlaySpec with BeforeAndAfterEach {
 
-  private val mockConnector: ExportCreditBalanceConnector = mock[ExportCreditBalanceConnector]
-  private val sut                                         = new AvailableCreditService(mockConnector)(global)
+  private val mockEisConnector: EisExportCreditBalanceConnector = mock[EisExportCreditBalanceConnector]
+  private val mockHipConnector: HipExportCreditBalanceConnector = mock[HipExportCreditBalanceConnector]
+  private val mockAppConfig                                     = mock[AppConfig]
+  private val sut         = new AvailableCreditService(mockAppConfig, mockEisConnector, mockHipConnector)(global)
   private val fakeRequest = AuthorizedRequest("request-ppt-id", FakeRequest(), "request-internal-id")
+
+  lazy val mockConnector: ExportCreditBalanceConnector =
+    if (mockAppConfig.hipReturns) mockHipConnector
+    else mockEisConnector
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockConnector)
+    reset(mockEisConnector)
+    reset(mockHipConnector)
   }
 
   "getBalance" must {

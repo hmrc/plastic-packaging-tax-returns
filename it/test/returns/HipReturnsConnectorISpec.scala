@@ -220,7 +220,6 @@ class HipReturnsConnectorISpec extends ConnectorISpec with Injector with ScalaFu
         givenAuditReturns(implicitAuditUrl, Status.NO_CONTENT)
 
         val res = await(returnsConnector.get(pptReference, periodKey, internalId))
-        println(res)
         res.left.value mustBe Status.INTERNAL_SERVER_ERROR
 
         eventually(timeout(Span(5, Seconds))) {

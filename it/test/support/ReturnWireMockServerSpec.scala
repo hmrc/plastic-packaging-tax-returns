@@ -16,10 +16,11 @@
 
 package support
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import play.api.http.Status
 import play.api.libs.json.Json
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.HipReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
 
 trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with BeforeAndAfterAll {
@@ -27,6 +28,7 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
   this: Suite =>
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private val DesSubmitReturnUrl               = s"/plastic-packaging-tax/returns/PPT"
+  private val HipSubmitReturnUrl               = s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT"
   private val nrsUrl                           = "/submission"
 
   override protected def beforeAll(): Unit = {
@@ -43,6 +45,12 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
     wireMock.stubFor(
       put(s"$DesSubmitReturnUrl/$pptReference")
         .willReturn(ok().withBody(Json.toJson(aReturn()).toString()))
+    )
+
+  protected def stubSubmitReturnHipRequest(pptReference: String) =
+    wireMock.stubFor(
+      put(s"$HipSubmitReturnUrl/$pptReference")
+        .willReturn(ok().withBody(Json.toJson(HipReturn(aReturn())).toString()))
     )
 
   protected def stubNrsRequest: Any =

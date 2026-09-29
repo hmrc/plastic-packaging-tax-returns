@@ -19,10 +19,7 @@ package returns
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.{equalTo, matchingJsonPath, putRequestedFor, urlEqualTo}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.scalatestplus.mockito.MockitoSugar.*
-import org.mockito.Mockito.{times, verify, when, reset}
-import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -31,6 +28,7 @@ import play.api.http.Status.{OK, UNAUTHORIZED}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
@@ -47,8 +45,9 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AmendReturnsItSpec
-    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
+class EisAmendReturnsItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData
+    with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
@@ -63,7 +62,7 @@ class AmendReturnsItSpec
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(wireMock.overrideConfig)
+      .configure(wireMock.overrideConfig ++ Map("features.hip.returns" -> "false"))
       .overrides(
         bind[AuthConnector].to(mockAuthConnector),
         bind[SessionRepository].to(cacheRepository),
