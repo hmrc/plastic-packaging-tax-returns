@@ -50,7 +50,6 @@ class HipReturnsISpec
   val httpClient: DefaultHttpClient    = app.injector.instanceOf[DefaultHttpClient]
   lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
   private val periodKey                = "22C2"
-  private val DesUrl                   = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val HipUrl                   = s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
   private val submitReturnUrl          = s"http://localhost:$port/returns-submission/$pptReference"
@@ -58,14 +57,7 @@ class HipReturnsISpec
   private val balanceEISURL            = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
   private lazy val cacheRepository     = mock[SessionRepository]
 
-  lazy val returnsConnectorUrl =
-    if (appConfig.hipReturns) HipUrl
-    else DesUrl
-
-  val isHipEnabled = if (appConfig.hipReturns) true else false
-
-  lazy val configForcingHipEndpoints: Map[String, Any] =
-    wireMock.overrideConfig + ("features.hip.returns" -> isHipEnabled)
+  lazy val configForcingHipEndpoints: Map[String, Any] = wireMock.overrideConfig + ("features.hip.returns" -> true)
 
   override lazy val app: Application = {
     wireMock.start()
@@ -84,7 +76,7 @@ class HipReturnsISpec
 
   "return 200 when getting return details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse(isHipEnabled)
+    stubReturnDisplayResponse(true)
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
 
@@ -93,7 +85,7 @@ class HipReturnsISpec
 
   "return display details" in {
     withAuthorizedUser()
-    stubReturnDisplayResponse(isHipEnabled)
+    stubReturnDisplayResponse(true)
 
     val response = await(wsClient.url(validGetReturnDisplayUrl).get())
     val expected = ReturnWithTaxRate(Json.parse(displayApiResponse), 0.2)
@@ -121,7 +113,7 @@ class HipReturnsISpec
   private def stubReturnDisplayResponse(withSuccess: Boolean): Unit = {
     val body = if (withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
     wireMock.stubFor(
-      get(returnsConnectorUrl)
+      get(HipUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -133,7 +125,7 @@ class HipReturnsISpec
 
   private def stubReturnDisplayErrorResponse(): Unit =
     wireMock.stubFor(
-      get(returnsConnectorUrl)
+      get(HipUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.INTERNAL_SERVER_ERROR)
