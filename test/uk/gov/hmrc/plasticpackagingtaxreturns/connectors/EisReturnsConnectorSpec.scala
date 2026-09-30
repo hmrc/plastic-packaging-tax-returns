@@ -109,9 +109,9 @@ class EisReturnsConnectorSpec extends PlaySpec with BeforeAndAfterEach with Logg
     "call with the correct parameters" in {
       when(eisHttpClient.get(any, any, any, anyHeaderFun)(any))
         .thenReturn(Future.successful(EisHttpResponse(200, """{"a": "b"}""", "123")))
-      when(appConfig.returnsDisplayUrl(any, any)) thenReturn "get-url"
+      when(appConfig.eisReturnsDisplayUrl(any, any)) thenReturn "get-url"
       callGet
-      verify(appConfig).returnsDisplayUrl("ppt-ref", "period-2")
+      verify(appConfig).eisReturnsDisplayUrl("ppt-ref", "period-2")
       verify(eisHttpClient).get(
         eqTo("get-url"),
         eqTo(Seq.empty),

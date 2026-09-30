@@ -17,10 +17,9 @@
 package returns
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{when, reset}
-import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -31,12 +30,13 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.obj
 import play.api.libs.json.{Json, OWrites}
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.{ObligationSpecHelper, ReturnWireMockServerSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.*
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
@@ -45,12 +45,12 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
-import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ReturnsISpec
-    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
+class EisReturnsISpec
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData
+    with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   lazy val appConfig                   = app.injector.instanceOf[AppConfig]
@@ -64,11 +64,13 @@ class ReturnsISpec
   private val balanceEISURL            = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
   private lazy val cacheRepository     = mock[SessionRepository]
 
+  lazy val configForcingEisEndpoints: Map[String, Any] = wireMock.overrideConfig + ("features.hip.returns" -> false)
+
   override lazy val app: Application = {
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(wireMock.overrideConfig)
+      .configure(configForcingEisEndpoints)
       .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(cacheRepository))
       .build()
   }
@@ -155,7 +157,9 @@ class ReturnsISpec
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
     stubObligationDesRequest(INTERNAL_SERVER_ERROR)
-    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data = ReturnTestHelper.returnWithCreditsDataJson))))
+    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data =
+      ReturnTestHelper.returnWithCreditsDataJson
+    ))))
 
     val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
 

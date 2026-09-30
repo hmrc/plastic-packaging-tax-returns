@@ -17,8 +17,10 @@
 package uk.gov.hmrc.plasticpackagingtaxreturns.config
 
 import play.api.Configuration
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.net.URL
 import java.util.Base64
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
@@ -49,8 +51,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   def returnsSubmissionUrl(pptReference: String): String = s"$eisHost/plastic-packaging-tax/returns/PPT/$pptReference"
 
-  def returnsDisplayUrl(pptReference: String, periodKey: String): String =
+  def eisReturnsDisplayUrl(pptReference: String, periodKey: String): String =
     s"$eisHost/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
+
+  def hipReturnsDisplayUrl(pptReference: String, periodKey: String): URL =
+    url"${hipHost}/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/${pptReference}/${periodKey}"
 
   def enterpriseObligationDataUrl(pptReference: String): String =
     s"$desHost/enterprise/obligation-data/zppt/$pptReference/PPT"
