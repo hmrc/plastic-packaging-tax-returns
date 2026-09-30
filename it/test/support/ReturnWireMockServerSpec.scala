@@ -17,11 +17,18 @@
 package support
 
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OWrites}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.{
+  Obligation,
+  ObligationDataResponse,
+  ObligationDetail
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.HipReturn
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.builders.ReturnsSubmissionResponseBuilder
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
 
 trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with BeforeAndAfterAll {
 
@@ -30,6 +37,8 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
   private val DesSubmitReturnUrl               = s"/plastic-packaging-tax/returns/PPT"
   private val HipSubmitReturnUrl               = s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT"
   private val nrsUrl                           = "/submission"
+  private val balanceHipURL                    = s"/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT"
+  private val balanceEISURL                    = s"/plastic-packaging-tax/export-credits/PPT/"
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -65,5 +74,32 @@ trait ReturnWireMockServerSpec extends ReturnsSubmissionResponseBuilder with Bef
 
   protected def stubNrsFailingRequest: Any =
     wireMock.stubFor(post(nrsUrl).willReturn(serverError().withBody("exception")))
+
+  protected def stubObligationDesRequest(pptReference: String, status: Int = Status.OK): StubMapping = {
+    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
+    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
+    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
+    val obligationDesRequest                         = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
+    wireMock.stubFor(
+      get(obligationDesRequest)
+        .willReturn(
+          aResponse
+            .withStatus(status)
+            .withBody(Json.toJson(ObligationSpecHelper.createOneObligation(pptReference))(writes).toString())
+        )
+    )
+  }
+
+  protected def stubGetBalanceEISRequest(pptReference: String): StubMapping =
+    wireMock.stubFor(
+      get(urlPathEqualTo(s"$balanceEISURL/$pptReference"))
+        .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
+    )
+
+  protected def stubGetBalanceHipRequest(pptReference: String): StubMapping =
+    wireMock.stubFor(
+      get(urlPathEqualTo(s"$balanceHipURL/$pptReference"))
+        .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
+    )
 
 }

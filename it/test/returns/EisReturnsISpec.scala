@@ -18,6 +18,7 @@ package returns
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
@@ -60,8 +61,6 @@ class EisReturnsISpec
   private val DesUrl                   = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
   private val submitReturnUrl          = s"http://localhost:$port/returns-submission/$pptReference"
-  private val obligationDesRequest     = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
-  private val balanceEISURL            = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
   private lazy val cacheRepository     = mock[SessionRepository]
 
   lazy val configForcingEisEndpoints: Map[String, Any] = wireMock.overrideConfig + ("features.hip.returns" -> false)
@@ -156,7 +155,7 @@ class EisReturnsISpec
   "return an error when submitting return" in {
     withAuthorizedUser()
     mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
-    stubObligationDesRequest(INTERNAL_SERVER_ERROR)
+    stubObligationDesRequest(pptReference, INTERNAL_SERVER_ERROR)
     when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data =
       ReturnTestHelper.returnWithCreditsDataJson
     ))))
@@ -222,8 +221,8 @@ class EisReturnsISpec
   }
 
   private def setUpStub() = {
-    stubObligationDesRequest()
-    stubGetBalanceEISRequest
+    stubObligationDesRequest(pptReference)
+    stubGetBalanceEISRequest(pptReference)
     stubSubmitReturnEISRequest(pptReference)
     stubNrsRequest
   }
@@ -235,20 +234,6 @@ class EisReturnsISpec
     when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
     when(cacheRepository.lockForSubmission(any[String]())).thenReturn(Future.successful(true))
     when(cacheRepository.unlockSubmission(any[String]())).thenReturn(Future.successful(()))
-  }
-
-  private def stubObligationDesRequest(status: Int = Status.OK) = {
-    implicit val odWrites: OWrites[ObligationDetail] = Json.writes[ObligationDetail]
-    implicit val oWrites: OWrites[Obligation]        = Json.writes[Obligation]
-    val writes: OWrites[ObligationDataResponse]      = Json.writes[ObligationDataResponse]
-    wireMock.stubFor(
-      get(obligationDesRequest)
-        .willReturn(
-          aResponse
-            .withStatus(status)
-            .withBody(Json.toJson(ObligationSpecHelper.createOneObligation(pptReference))(writes).toString())
-        )
-    )
   }
 
   private def stubReturnDisplayResponse(): Unit =
@@ -269,12 +254,6 @@ class EisReturnsISpec
           aResponse()
             .withStatus(Status.INTERNAL_SERVER_ERROR)
         )
-    )
-
-  private def stubGetBalanceEISRequest =
-    wireMock.stubFor(
-      get(urlPathEqualTo(balanceEISURL))
-        .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
     )
 
   def displayApiResponse: String = """
