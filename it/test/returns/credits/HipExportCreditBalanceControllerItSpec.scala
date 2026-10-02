@@ -14,39 +14,41 @@
  * limitations under the License.
  */
 
-package test.returns.credits
+package returns.credits
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.mockito.ArgumentMatchers.any
-import org.scalatestplus.mockito.MockitoSugar.*
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
-import play.api.http.HeaderNames
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED, UNPROCESSABLE_ENTITY}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.Json
 import play.api.libs.json.Json.obj
-import play.api.libs.ws.WSClient
+import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.DefaultBodyReadables.readableAsString
+import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.{ExportCreditBalanceDisplayResponse, HipExportBalanceDisplayResponseWrapper}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class ExportCreditBalanceControllerItSpec
-    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with BeforeAndAfterEach {
+class HipExportCreditBalanceControllerItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport
+    with BeforeAndAfterEach {
 
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
+
+  private val appConfig = app.injector.instanceOf[AppConfig]
 
   lazy val wsClient: WSClient        = app.injector.instanceOf[WSClient]
   private lazy val sessionRepository = mock[SessionRepository]
@@ -68,16 +70,18 @@ class ExportCreditBalanceControllerItSpec
     )
   )
 
-  private val exportCreditBalanceDisplayResponse = ExportCreditBalanceDisplayResponse(
-    processingDate = "2021-11-17T09:32:50.345Z",
-    totalPPTCharges = BigDecimal(1000),
-    totalExportCreditClaimed = BigDecimal(100),
-    totalExportCreditAvailable = BigDecimal(200)
+  private val exportCreditBalanceDisplayResponse = HipExportBalanceDisplayResponseWrapper(
+    ExportCreditBalanceDisplayResponse(
+      processingDate = "2021-11-17T09:32:50.345Z",
+      totalPPTCharges = BigDecimal(1000),
+      totalExportCreditClaimed = BigDecimal(100),
+      totalExportCreditAvailable = BigDecimal(200)
+    )
   )
 
   private def stubGetBalanceResponse(status: Int, body: String) =
     wireMock.stubFor(
-      get(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
+      get(urlPathMatching("/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/.*"))
         .willReturn(
           aResponse()
             .withStatus(status)
@@ -89,7 +93,7 @@ class ExportCreditBalanceControllerItSpec
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(wireMock.overrideConfig)
+      .configure(wireMock.overrideConfig ++ Map("features.hip.returns" -> "true"))
       .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(sessionRepository))
       .build()
   }
@@ -109,7 +113,9 @@ class ExportCreditBalanceControllerItSpec
 
       withClue("Check call to EIS to query credit balance") {
         wireMock.wireMockServer.verify(
-          getRequestedFor(urlEqualTo("/plastic-packaging-tax/export-credits/PPT/7777777?fromDate=2021-04-01&toDate=2023-03-31"))
+          getRequestedFor(urlEqualTo(
+            "/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/7777777?fromDate=2021-04-01&toDate=2023-03-31"
+          ))
         )
       }
 
@@ -120,7 +126,7 @@ class ExportCreditBalanceControllerItSpec
           "totalRequestedCreditInPounds"    -> 3,
           "totalRequestedCreditInKilograms" -> 15,
           "canBeClaimed"                    -> true,
-          "credit"                          -> obj("2022-04-01-2023-03-31" -> obj("weight" -> 15, "moneyInPounds" -> 3, "taxRate" -> 0.2))
+          "credit" -> obj("2022-04-01-2023-03-31" -> obj("weight" -> 15, "moneyInPounds" -> 3, "taxRate" -> 0.2))
         )
       }
     }
@@ -145,6 +151,7 @@ class ExportCreditBalanceControllerItSpec
         when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
         stubGetBalanceResponse(404, Json.toJson(exportCreditBalanceDisplayResponse).toString())
         val response = await(wsClient.url(url).get())
+
         response.status mustBe INTERNAL_SERVER_ERROR
         response.json mustBe obj("statusCode" -> 500, "message" -> "Error calling EIS export credit, status: 404")
       }
@@ -159,6 +166,31 @@ class ExportCreditBalanceControllerItSpec
       }
     }
 
+    "return a 409 when the stub returns a 422" in {
+      def duplicateSapNo422Response: JsValue =
+        Json.parse(
+          s"""
+             |{
+             |  "error": {
+             |    "processingDate": "2026-07-09T09:26:17Z",
+             |    "errorId": "004",
+             |    "text": "Duplicate submission acknowledgement reference"
+             |  }
+             |}""".stripMargin
+        )
+
+      withAuthorizedUser()
+      when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
+      stubGetBalanceResponse(422, Json.toJson(duplicateSapNo422Response).toString())
+
+      val response = await(wsClient.url(url).get())
+      response.status mustBe INTERNAL_SERVER_ERROR
+      response.json mustBe obj(
+        "statusCode" -> 500,
+        "message"    -> "Error calling EIS export credit, status: 409, DUPLICATE_SUBMISSION"
+      )
+    }
+
     "call the credit balance API only once when response is 409" in {
       withAuthorizedUser()
       when(sessionRepository.get(any)) thenReturn Future.successful(Some(userAnswerWithCredit))
@@ -167,8 +199,7 @@ class ExportCreditBalanceControllerItSpec
 
       wireMock.verify(
         1,
-        getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        getRequestedFor(urlPathMatching("/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/.*"))
       )
     }
 
@@ -180,8 +211,7 @@ class ExportCreditBalanceControllerItSpec
 
       wireMock.verify(
         1,
-        getRequestedFor(urlPathMatching("/plastic-packaging-tax/export-credits/PPT/.*"))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        getRequestedFor(urlPathMatching("/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/.*"))
       )
     }
 

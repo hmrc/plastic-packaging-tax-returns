@@ -46,8 +46,11 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   def subscriptionUpdateUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
-  def exportCreditBalanceDisplayUrl(pptReference: String): String =
+  def eisExportCreditBalanceDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/export-credits/PPT/$pptReference"
+
+  def hipExportCreditBalanceDisplayUrl(pptReference: String): URL =
+    url"${hipHost}/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/$pptReference"
 
   def returnsSubmissionUrl(pptReference: String): String = s"$eisHost/plastic-packaging-tax/returns/PPT/$pptReference"
 

@@ -17,10 +17,9 @@
 package returns
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset,when}
-import org.scalatestplus.mockito.MockitoSugar.*
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -31,11 +30,12 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.json.Json.obj
-import play.api.libs.ws.WSClient
 import play.api.libs.ws.DefaultBodyReadables.readableAsString
+import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.HipExportBalanceDisplayResponseWrapper
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
@@ -43,7 +43,8 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.support.{AmendTestHelper, ReturnTe
 
 import scala.concurrent.Future
 
-class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
+class HipCalculationsISpec
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with BeforeAndAfterEach with BeforeAndAfterAll {
 
   implicit lazy val server: WiremockItServer = WiremockItServer()
   lazy val wsClient: WSClient                = app.injector.instanceOf[WSClient]
@@ -55,7 +56,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
     server.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(server.overrideConfig)
+      .configure(server.overrideConfig ++ Map("features.hip.returns" -> "true"))
       .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].toInstance(sessionRepository))
       .build()
   }
@@ -95,7 +96,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
       "return unauthorised" in {
         withUnauthorizedUser(new Exception)
-        stubGetBalanceRequest
+        stubGetBalanceRequest()
 
         val result = await(wsClient.url(returnUrl).get())
 
@@ -220,7 +221,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
   private def noCreditAnswer =
     obj(
-      "obligation"                                      -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
+      "obligation" -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
       "manufacturedPlasticPackagingWeight"              -> 13,
       "importedPlasticPackagingWeight"                  -> 1,
       "exportedPlasticPackagingWeight"                  -> 2,
@@ -234,7 +235,7 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
 
   private def noClaimAnswer =
     obj(
-      "obligation"                                      -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
+      "obligation" -> obj("periodKey" -> "22C4", "fromDate" -> "2022-09-01", "toDate" -> "2022-12-31"),
       "manufacturedPlasticPackagingWeight"              -> 13,
       "importedPlasticPackagingWeight"                  -> 1,
       "exportedPlasticPackagingWeight"                  -> 2,
@@ -246,19 +247,24 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       "convertedCredits"                                -> obj("yesNo" -> true, "weight" -> 2000)
     )
 
-  private def setUpMock(ans: Option[UserAnswers]) = {
+  private def setUpMock(ans: Option[UserAnswers], isHip: Boolean = false) = {
     when(sessionRepository.get(any)).thenReturn(Future.successful(ans))
     withAuthorizedUser()
-    stubGetBalanceRequest
+    stubGetBalanceRequest(isHip)
   }
 
-  private def stubGetBalanceRequest =
+  private def stubGetBalanceRequest(isHip: Boolean = false) =
     server.stubFor(
-      get(urlPathEqualTo(s"/plastic-packaging-tax/export-credits/PPT/$pptReference"))
-        .willReturn(ok().withBody(Json.toJson(ReturnTestHelper.createCreditBalanceDisplayResponse).toString()))
+      get(urlPathEqualTo(s"/etmp/RESTAdapter/plastic-packaging-tax/export-credits/PPT/$pptReference"))
+        .willReturn(ok().withBody(
+          Json.toJson(
+            HipExportBalanceDisplayResponseWrapper(ReturnTestHelper.createCreditBalanceDisplayResponse)
+          ).toString()
+        ))
     )
 
-  private def expectedAmend = Json.parse("""{"original":{
+  private def expectedAmend =
+    Json.parse("""{"original":{
       | "taxDue":44,
       | "chargeableTotal":220,
       | "deductionsTotal":0,
@@ -275,4 +281,5 @@ class CalculationsISpec extends PlaySpec with GuiceOneServerPerSuite with AuthTe
       |   "taxRate":0.2
       | }
       |}""".stripMargin)
+
 }

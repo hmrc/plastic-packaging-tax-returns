@@ -153,7 +153,7 @@ class HipReturnsConnector @Inject() (
             )
 
           case (UNPROCESSABLE_ENTITY, body, _)
-              if (Json.toJson(body) \ "error" \ "errorId").asOpt[String].contains("044") =>
+              if (Json.parse(body) \ "error" \ "errorId").asOpt[String].contains("044") =>
             logger.warn(
               s"Return for pptReference=[$pptReference] period=[${requestBody.periodKey}] submission failed " +
                 s"with response code=[${UNPROCESSABLE_ENTITY}] internalId=[$internalId]"

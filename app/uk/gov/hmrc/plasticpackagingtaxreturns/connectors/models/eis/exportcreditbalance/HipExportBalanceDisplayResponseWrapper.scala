@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance
 
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
+import play.api.libs.json.{Json, OFormat}
 
-import java.time.LocalDate
-import scala.concurrent.Future
+case class HipExportBalanceDisplayResponseWrapper(success: ExportCreditBalanceDisplayResponse)
 
-trait ExportCreditBalanceConnector {
-
-  val SUCCESS: String = "Success"
-  val FAILURE: String = "Failure"
-
-  def getBalance(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String)(implicit
-    hc: HeaderCarrier
-  ): Future[Either[Int, ExportCreditBalanceDisplayResponse]]
-
+object HipExportBalanceDisplayResponseWrapper {
+  implicit val format: OFormat[HipExportBalanceDisplayResponseWrapper] = Json.format[HipExportBalanceDisplayResponseWrapper]
 }

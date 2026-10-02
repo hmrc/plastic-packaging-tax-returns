@@ -18,7 +18,8 @@ package returns
 
 import com.codahale.metrics.SharedMetricRegistries
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import org.mockito.Mockito.reset
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -27,7 +28,9 @@ import play.api.http.Status.{INTERNAL_SERVER_ERROR, OK, UNAUTHORIZED}
 import play.api.http.{HeaderNames, Status}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json.obj
 import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.DefaultBodyWritables.writeableOf_String
 import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.ReturnWireMockServerSpec
@@ -36,30 +39,28 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.ReturnsController.ReturnWithTaxRate
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
+import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
+import uk.gov.hmrc.plasticpackagingtaxreturns.support.ReturnTestHelper
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class HipReturnsISpec
-  extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData with BeforeAndAfterEach {
+    extends PlaySpec with GuiceOneServerPerSuite with ReturnWireMockServerSpec with AuthTestSupport with NrsTestData
+    with BeforeAndAfterEach {
   implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
 
   lazy val appConfig                   = app.injector.instanceOf[AppConfig]
   val httpClient: DefaultHttpClient    = app.injector.instanceOf[DefaultHttpClient]
   lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
   private val periodKey                = "22C2"
-  private val DesUrl                   = s"/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val HipUrl                   = s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"
   private val validGetReturnDisplayUrl = s"http://localhost:$port/returns-submission/$pptReference/$periodKey"
   private val submitReturnUrl          = s"http://localhost:$port/returns-submission/$pptReference"
   private val obligationDesRequest     = s"/enterprise/obligation-data/zppt/$pptReference/PPT?status=O"
-  private val balanceEISURL            = s"/plastic-packaging-tax/export-credits/PPT/$pptReference"
   private lazy val cacheRepository     = mock[SessionRepository]
-
-  lazy val returnsConnectorUrl =
-    if (appConfig.hipReturns) HipUrl
-    else DesUrl
 
   lazy val configForcingHipEndpoints: Map[String, Any] = wireMock.overrideConfig + ("features.hip.returns" -> true)
 
@@ -114,8 +115,132 @@ class HipReturnsISpec
     response.status mustBe UNAUTHORIZED
   }
 
+  "return 200 when submitting return" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    setUpStub()
+    setUpMocks()
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    response.status mustBe OK
+  }
+
+  "success return submit with nrs success" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    setUpStub()
+    setUpMocks()
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    response.status mustBe OK
+    response.json mustBe Json.toJson(aReturnWithNrs())
+  }
+
+  "success return submit with nrs failure" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    setUpStub()
+    setUpMocks()
+    stubNrsFailingRequest
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    response.status mustBe OK
+    response.json mustBe Json.toJson(aReturnWithNrsFailure().copy(nrsFailureReason = "exception"))
+  }
+
+  "return an error when submitting return" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    stubObligationDesRequest(pptReference, INTERNAL_SERVER_ERROR)
+    when(cacheRepository.get(any())).thenReturn(Future.successful(Option(UserAnswers("id").copy(data =
+      ReturnTestHelper.returnWithCreditsDataJson
+    ))))
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    response.status mustBe INTERNAL_SERVER_ERROR
+  }
+
+  "return unauthorised when submitting return" in {
+    withUnauthorizedUser(new RuntimeException)
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    response.status mustBe UNAUTHORIZED
+  }
+
+  "handle ETMP saying return was already received" in {
+    withAuthorizedUser()
+    mockAuthorization(NonRepudiationService.nonRepudiationIdentityRetrievals, testAuthRetrievals)
+    setUpStub()
+    setUpMocks()
+
+    // Taken from live - response when ETMP has already seen
+    wireMock.stubFor(
+      put("/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/7777777").willReturn(
+        status(422).withBody(
+          """
+            {
+              "error": {
+                "errorId": "044",
+                "processingDate": "2026-07-09T09:26:17Z",
+                "text": "Tax Obligation Already Fulfilled"
+              }
+            }
+          """
+        )
+      )
+    )
+
+    val response = await(wsClient.url(submitReturnUrl).withHttpHeaders("Authorization" -> "TOKEN").post(pptReference))
+
+    withClue("there should be no retries") {
+      wireMock.verify(count = 1, putRequestedFor(urlEqualTo("/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/7777777")))
+    }
+
+    response.status mustBe 208 // Internally used status for an already submitted return
+    Json.parse(response.body) mustBe obj("returnAlreadyReceived" -> "22C2")
+  }
+
+  "call the api once if hip api call successful" in {
+    withAuthorizedUser()
+    stubReturnDisplayResponse(true)
+    await(wsClient.url(validGetReturnDisplayUrl).get())
+    wireMock.verify(1, getRequestedFor(urlEqualTo(s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey")))
+  }
+
+  "use HIP Auth header" in {
+    withAuthorizedUser()
+    stubReturnDisplayResponse(true)
+    await(wsClient.url(validGetReturnDisplayUrl).get())
+
+    wireMock.verify(
+      getRequestedFor(urlEqualTo(s"/etmp/RESTAdapter/plastic-packaging-tax/returns/PPT/$pptReference/$periodKey"))
+        .withHeader(HeaderNames.AUTHORIZATION, equalTo("Basic YXBpLWNsaWVudC1pZDphcGktY2xpZW50LXNlY3JldA=="))
+    )
+  }
+
+  private def setUpStub() = {
+    stubObligationDesRequest(pptReference)
+    stubGetBalanceHipRequest(pptReference)
+    stubSubmitReturnHipRequest(pptReference)
+    stubNrsRequest
+  }
+
+  private def setUpMocks() = {
+    when(cacheRepository.get(any())).thenReturn(
+      Future.successful(Option(UserAnswers("id").copy(data = ReturnTestHelper.returnsWithNoCreditDataJson)))
+    )
+    when(cacheRepository.clear(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.lockForSubmission(any[String]())).thenReturn(Future.successful(true))
+    when(cacheRepository.unlockSubmission(any[String]())).thenReturn(Future.successful(()))
+  }
+
   private def stubReturnDisplayResponse(withSuccess: Boolean): Unit = {
-    val body = if(withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
+    val body = if (withSuccess) displayApiResponseWithSuccess(displayApiResponse) else displayApiResponse
     wireMock.stubFor(
       get(HipUrl)
         .willReturn(
@@ -127,19 +252,19 @@ class HipReturnsISpec
     )
   }
 
-    private def stubReturnDisplayErrorResponse(): Unit =
-      wireMock.stubFor(
-        get(HipUrl)
-          .willReturn(
-            aResponse()
-              .withStatus(Status.INTERNAL_SERVER_ERROR)
-          )
-      )
+  private def stubReturnDisplayErrorResponse(): Unit =
+    wireMock.stubFor(
+      get(HipUrl)
+        .willReturn(
+          aResponse()
+            .withStatus(Status.INTERNAL_SERVER_ERROR)
+        )
+    )
 
   def displayApiResponseWithSuccess(inner: String) = Json.obj("success" -> Json.parse(inner)).toString
 
   def displayApiResponse: String =
-  """
+    """
     |{
     |  "processingDate": "2022-07-03T09:30:47Z",
     |  "idDetails": {
