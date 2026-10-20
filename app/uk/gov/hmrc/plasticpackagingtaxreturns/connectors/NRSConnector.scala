@@ -22,7 +22,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.JsonBodyWritables.given
 import uk.gov.hmrc.http.client.{HttpClientV2, given}
 import uk.gov.hmrc.http.{BadGatewayException, GatewayTimeoutException, HeaderCarrier, HttpResponse, StringContextOps}
-import uk.gov.hmrc.nrsorchestrator.connectors.Result
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.Result
 import uk.gov.hmrc.plasticpackagingtaxreturns.config.AppConfig
 
 import javax.inject.{Inject, Singleton}
