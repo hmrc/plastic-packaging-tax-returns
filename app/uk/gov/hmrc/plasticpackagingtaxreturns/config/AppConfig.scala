@@ -81,6 +81,9 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
   lazy val nonRepudiationApiKey: String =
     servicesConfig.getString("microservice.services.nrs.api-key")
 
+  lazy val nonRepudiationApiKeyNew: String =
+    servicesConfig.getString("microservice.services.nrs.new.api-key")
+
   val nrsRetries: Seq[FiniteDuration] = config.get[Seq[FiniteDuration]]("nrs.retries")
 
   val desBearerToken: String = s"Bearer ${config.get[String]("microservice.services.des.bearerToken")}"
