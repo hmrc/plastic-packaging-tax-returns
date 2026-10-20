@@ -49,12 +49,12 @@ class HipExportCreditBalanceConnector @Inject() (
     extends ExportCreditBalanceConnector with HipConnector {
 
   private val logger                = Logger(this.getClass)
-  private val correlationId: String = UUID.randomUUID().toString
 
   override def getBalance(pptReference: String, fromDate: LocalDate, toDate: LocalDate, internalId: String)(implicit
     hc: HeaderCarrier
   ): Future[Either[Int, ExportCreditBalanceDisplayResponse]] = {
 
+    val correlationId: String = UUID.randomUUID().toString
     val timer = metrics.defaultRegistry.timer("ppt.exportcreditbalance.display.timer").time()
     val queryParams: Seq[(String, String)] =
       Seq("fromDate" -> DateFormat.isoFormat(fromDate), "toDate" -> DateFormat.isoFormat(toDate))
@@ -74,7 +74,7 @@ class HipExportCreditBalanceConnector @Inject() (
                 (js \ "error" \ "errorId").asOpt[String].contains("004")
               ) =>
             val msg =
-              s"Upstream error returned on viewing export credit balance with correlationId [$correlationId}] and " +
+              s"Upstream error returned on viewing export credit balance with correlationId [$correlationId] and " +
                 s"pptReference [$pptReference], params [$queryParams], status: ${response.status}" +
                 s"converting this to a 409 CONFLICT, as that is what was caught by the AvailableCreditService for IFS"
             logger.warn(msg)
@@ -85,7 +85,7 @@ class HipExportCreditBalanceConnector @Inject() (
             )
             Left(CONFLICT)
           case _ =>
-            handleFailure(pptReference, fromDate, toDate, internalId, queryParams, response)
+            handleFailure(pptReference, fromDate, toDate, internalId, queryParams, response, correlationId)
         }
       }
   }
@@ -96,7 +96,8 @@ class HipExportCreditBalanceConnector @Inject() (
     toDate: LocalDate,
     internalId: String,
     queryParams: Seq[(String, String)],
-    response: HttpResponse
+    response: HttpResponse,
+    correlationId: String
   )(implicit hc: HeaderCarrier): Left[Int, Nothing] = {
 
     val msg =
