@@ -60,7 +60,13 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockEisSubscriptionsConnector, mockNonRepudiationConnector, mockEisReturnsConnector, mockHipReturnsConnector)
+    reset(
+      mockEisSubscriptionsConnector,
+      mockNonRepudiationConnector,
+      mockEisReturnsConnector,
+      mockHipReturnsConnector,
+      mockSubscriptionsService
+    )
   }
 
   protected def mockGetSubscription(

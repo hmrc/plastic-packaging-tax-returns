@@ -58,7 +58,6 @@ class SubscriptionControllerSpec
   protected val mockNonRepudiationService: NonRepudiationService = mock[NonRepudiationService]
 
   override lazy val app: Application = GuiceApplicationBuilder()
-//    .configure(Map("features.hip.returns" -> "false"))
     .overrides(
       bind[AuthConnector].to(mockAuthConnector),
       bind[SubscriptionService].to(mockSubscriptionsService),
