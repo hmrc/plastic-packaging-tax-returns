@@ -40,12 +40,15 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
 
   def hipAuthorizationToken: String = Base64.getEncoder.encodeToString(s"$hipClientIdV1:$hipSecretV1".getBytes("UTF-8"))
 
-  def subscriptionDisplayUrl(pptReference: String): String =
+  def eisSubscriptionDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
 
-  def subscriptionUpdateUrl(pptReference: String): String =
+  def eisSubscriptionUpdateUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
 
+  def hipSubscriptionsUrl(pptRef: String): URL =
+    url"$hipHost/etmp/RESTAdapter/plastic-packaging-tax/subscriptions/PPT/$pptRef"
+  
   def eisExportCreditBalanceDisplayUrl(pptReference: String): String =
     s"$eisHost/plastic-packaging-tax/export-credits/PPT/$pptReference"
 

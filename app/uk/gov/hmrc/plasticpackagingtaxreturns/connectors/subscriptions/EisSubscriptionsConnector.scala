@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
+package uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions
 
 import play.api.Logger
 import play.api.http.Status
@@ -34,9 +34,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
-class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig)(implicit
+class EisSubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig: AppConfig)(implicit
   ec: ExecutionContext
-) {
+) extends SubscriptionsConnector {
 
   private val logger = Logger(this.getClass)
 
@@ -46,7 +46,7 @@ class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig:
     val timerName = "ppt.subscription.update.timer"
 
     eisHttpClient.put(
-      appConfig.subscriptionUpdateUrl(pptReference),
+      appConfig.eisSubscriptionUpdateUrl(pptReference),
       subscriptionUpdateDetails,
       timerName,
       buildEisHeader
@@ -70,7 +70,7 @@ class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig:
 
     val timerName = "ppt.subscription.display.timer"
 
-    val url = appConfig.subscriptionDisplayUrl(pptReference)
+    val url = appConfig.eisSubscriptionDisplayUrl(pptReference)
     eisHttpClient.get(url, Seq.empty, timerName, buildEisHeader)
       .map { response =>
         logger.info(
@@ -92,22 +92,10 @@ class SubscriptionsConnector @Inject() (eisHttpClient: EisHttpClient, appConfig:
         Future.failed(
           new RuntimeException(
             "Failed to fetch subscription details from api, " +
-              s"response code ${errorResponse.status}"
+              s"response code ${errorResponse.status}" +
+              s"and body ${errorResponse.body}"
           )
         )
     }
-
-  private def throwException(pptReference: String, correlationId: String, exception: Throwable) =
-    throw new Exception(
-      s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable due to [${exception.getMessage}]",
-      exception
-    )
-
-  private def throwException(pptReference: String, correlationId: String, status: Int) =
-    throw new Exception(
-      s"Subscription update with correlationId [$correlationId] and " +
-        s"pptReference [$pptReference] is currently unavailable. Status code is [$status]"
-    )
 
 }

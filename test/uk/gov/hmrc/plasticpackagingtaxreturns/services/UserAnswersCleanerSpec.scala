@@ -26,8 +26,8 @@ import play.api.libs.json.Json.obj
 import play.api.libs.json.{JsObject, JsPath, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.{
   ConvertedCreditWeightGettable,
@@ -46,10 +46,10 @@ import scala.concurrent.Future
 class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val headerCarrier: HeaderCarrier = mock[HeaderCarrier]
-  private val subscriptionConnector                 = mock[SubscriptionsConnector]
+  private val subscriptionService                   = mock[SubscriptionService]
   private val mockAvailService                      = mock[AvailableCreditDateRangesService]
 
-  private val sut = new UserAnswersCleaner(mockAvailService, subscriptionConnector)
+  private val sut = new UserAnswersCleaner(mockAvailService, subscriptionService)
 
   private val userAnswers = UserAnswers(
     "id",
@@ -75,7 +75,7 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
 
     val subscription = mock[SubscriptionDisplayResponse]
     when(subscription.taxStartDate()) thenReturn LocalDate.of(1, 2, 3)
-    when(subscriptionConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
+    when(subscriptionService.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
   }
 
   "clean" must {
@@ -89,14 +89,14 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
 
         withClue("don't call the subscriptions api if we don't have to") {
           verifyNoInteractions(mockAvailService)
-          verifyNoInteractions(subscriptionConnector)
+          verifyNoInteractions(subscriptionService)
         }
       }
 
       "a return, using the current journey, has started" in {
         await(sut.clean(userAnswers, "ppt-ref")) mustBe (userAnswers, false)
         verifyNoInteractions(mockAvailService)
-        verifyNoInteractions(subscriptionConnector)
+        verifyNoInteractions(subscriptionService)
       }
     }
 
@@ -108,7 +108,7 @@ class UserAnswersCleanerSpec extends PlaySpec with MockitoSugar with BeforeAndAf
       userAnswers mustBe expectedUserAnswers
       hasBeenCleaned mustBe true
 
-      verify(subscriptionConnector).getSubscriptionFuture("ppt-ref")(headerCarrier)
+      verify(subscriptionService).getSubscriptionFuture("ppt-ref")(headerCarrier)
       verify(mockAvailService).calculate(LocalDate.of(2023, 3, 31), LocalDate.of(1, 2, 3))
     }
 

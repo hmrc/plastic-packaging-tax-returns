@@ -28,11 +28,9 @@ class WiremockItServer {
   lazy val wireMockServer: WireMockServer = new WireMockServer(options().dynamicPort())
   lazy val wirePort: Int                  = wireMockServer.port()
 
-  def stubFor(mappingBuilder: MappingBuilder): StubMapping =
-    wireMockServer.stubFor(mappingBuilder)
+  def stubFor(mappingBuilder: MappingBuilder): StubMapping = wireMockServer.stubFor(mappingBuilder)
 
-  def verify(requestPatternBuilder: RequestPatternBuilder): Unit =
-    wireMockServer.verify(requestPatternBuilder)
+  def verify(requestPatternBuilder: RequestPatternBuilder): Unit = wireMockServer.verify(requestPatternBuilder)
 
   def verify(count: Int, requestPatternBuilder: RequestPatternBuilder): Unit =
     wireMockServer.verify(count, requestPatternBuilder)
@@ -47,7 +45,8 @@ class WiremockItServer {
       "microservice.services.des.port" -> wirePort,
       "microservice.services.hip.host" -> wireHost,
       "microservice.services.hip.port" -> wirePort,
-      "auditing.enabled"               -> false
+      "auditing.enabled"               -> false,
+      "features.hip.returns"           -> false
     )
 
   def start(): Unit = {
