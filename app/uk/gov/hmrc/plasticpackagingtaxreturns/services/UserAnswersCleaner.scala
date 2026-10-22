@@ -18,7 +18,6 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
 import play.api.libs.json.{JsObject, JsPath, JsValue, Writes}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
@@ -35,7 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class UserAnswersCleaner @Inject() (
   availableCreditDateRangesService: AvailableCreditDateRangesService,
-  subscriptionsConnector: SubscriptionsConnector
+  subscriptionsService: SubscriptionService
 )(implicit executionContext: ExecutionContext) {
 
   def hasOldAnswers(userAnswers: UserAnswers): Boolean =
@@ -56,7 +55,7 @@ class UserAnswersCleaner @Inject() (
     }
 
   def fetchSubscription(pptReference: String)(implicit hc: HeaderCarrier): Future[SubscriptionDisplayResponse] =
-    subscriptionsConnector.getSubscriptionFuture(pptReference)
+    subscriptionsService.getSubscriptionFuture(pptReference)
 
   def clean(userAnswers: UserAnswers, pptReference: String)(implicit
     hc: HeaderCarrier

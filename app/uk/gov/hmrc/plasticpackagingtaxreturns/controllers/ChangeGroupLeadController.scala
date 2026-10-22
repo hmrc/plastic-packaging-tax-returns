@@ -19,12 +19,12 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.Logging
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.ChangeGroupLeadService
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{ChangeGroupLeadService, SubscriptionService}
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
@@ -39,7 +39,7 @@ class ChangeGroupLeadController @Inject() (
   sessionRepository: SessionRepository,
   cc: ControllerComponents,
   changeGroupLeadService: ChangeGroupLeadService,
-  subscriptionsConnector: SubscriptionsConnector,
+  subscriptionsService: SubscriptionService,
   nonRepudiationService: NonRepudiationService
 )(implicit executionContext: ExecutionContext)
     extends BackendController(cc) with Logging {
@@ -49,7 +49,7 @@ class ChangeGroupLeadController @Inject() (
       implicit request: AuthorizedRequest[AnyContent] =>
         val pptReference = request.pptReference
         val getSubF: Future[Either[EisHttpResponse, SubscriptionDisplayResponse]] =
-          subscriptionsConnector.getSubscription(pptReference)
+          subscriptionsService.getSubscription(pptReference)
         val getUAF: Future[Option[UserAnswers]] = sessionRepository.get(request.cacheKey)
 
         {
@@ -76,7 +76,7 @@ class ChangeGroupLeadController @Inject() (
     val subscriptionUpdateRequest = changeGroupLeadService.createSubscriptionUpdateRequest(subscription, userAnswers)
     val nrsSubscriptionUpdateSubmission =
       changeGroupLeadService.createNrsSubscriptionUpdateSubmission(subscriptionUpdateRequest, userAnswers)
-    subscriptionsConnector
+    subscriptionsService
       .updateSubscription(pptReference, subscriptionUpdateRequest)
       .andThen { case Success(_) => sessionRepository.clearUserAnswers(request.pptReference, request.cacheKey) }
       .map {

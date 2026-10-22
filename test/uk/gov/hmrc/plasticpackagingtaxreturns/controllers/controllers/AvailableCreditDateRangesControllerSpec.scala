@@ -18,7 +18,7 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers.controllers
 
 import org.mockito.ArgumentMatchers.*
 import org.scalatestplus.mockito.MockitoSugar
-import org.mockito.ArgumentMatchers.{eq => eqTo}
+import org.mockito.ArgumentMatchers.eq as eqTo
 import org.mockito.Mockito.{reset, spy, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.PlaySpec
@@ -27,10 +27,10 @@ import play.api.libs.json.Json
 import play.api.libs.json.Json.{arr, obj}
 import play.api.mvc.Result
 import play.api.mvc.Results.UnprocessableEntity
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.AvailableCreditDateRangesController
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.FakeAuthenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
@@ -39,7 +39,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.Ret
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.UserAnswersService.notFoundMsg
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRangesService, UserAnswersService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{
+  AvailableCreditDateRangesService,
+  SubscriptionService,
+  UserAnswersService
+}
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +56,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
   private val controllerComponents   = Helpers.stubControllerComponents()
   private val service                = mock[AvailableCreditDateRangesService]
   private val authenticator          = spy(new FakeAuthenticator(controllerComponents))
-  private val subscriptionsConnector = mock[SubscriptionsConnector]
+  private val subscriptionService    = mock[SubscriptionService]
   private val subscription           = mock[SubscriptionDisplayResponse]
   private val userAnswers            = mock[UserAnswers]
 
@@ -66,15 +70,15 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     authenticator,
     userAnswersService,
     controllerComponents,
-    subscriptionsConnector
+    subscriptionService
   )
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    reset(service, sessionRepository, authenticator, subscriptionsConnector, subscription, userAnswers)
+    reset(service, sessionRepository, authenticator, subscription, userAnswers, subscriptionService)
 
     when(subscription.taxStartDate()) thenReturn LocalDate.of(2001, 2, 3)
-    when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
+    when(subscriptionService.getSubscriptionFuture(any)(any)) thenReturn Future.successful(subscription)
     when(userAnswers.getOrFail(any[Gettable[LocalDate]])(any, any)) thenReturn LocalDate.of(2004, 5, 6)
 
     when(service.calculate(any, any)) thenReturn Seq(
@@ -93,7 +97,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
     "fetch user answers and subscription" in {
       when(sessionRepository.get(any)).thenReturn(Future.successful(Some(userAnswers)))
       Try(await(sut.get("ppt-ref")(FakeRequest())))
-      verify(subscriptionsConnector).getSubscriptionFuture(eqTo("ppt-ref"))(any)
+      verify(subscriptionService).getSubscriptionFuture(eqTo("ppt-ref"))(any)
     }
 
     "calculate available dates using return's obligation and the subscription's tax start date" in {
@@ -150,7 +154,7 @@ class AvailableCreditDateRangesControllerSpec extends PlaySpec with MockitoSugar
 
       "subscription api call failed with exception" in {
         when(sessionRepository.get(FakeAuthenticator.cacheKey)).thenReturn(Future.successful(Some(userAnswers)))
-        when(subscriptionsConnector.getSubscriptionFuture(any)(any)) thenReturn Future.failed(
+        when(subscriptionService.getSubscriptionFuture(any)(any)) thenReturn Future.failed(
           new IllegalStateException("boom")
         )
         the[IllegalStateException] thrownBy await(sut.get("pptRef")(FakeRequest())) must

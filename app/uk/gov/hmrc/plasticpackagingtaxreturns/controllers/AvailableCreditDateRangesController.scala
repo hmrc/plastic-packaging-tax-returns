@@ -19,11 +19,11 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
-import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRangesService, UserAnswersService}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.{AvailableCreditDateRangesService, SubscriptionService, UserAnswersService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
@@ -34,7 +34,7 @@ class AvailableCreditDateRangesController @Inject() (
   authenticator: Authenticator,
   userAnswersService: UserAnswersService,
   override val controllerComponents: ControllerComponents,
-  subscriptionsConnector: SubscriptionsConnector
+  subscriptionsService: SubscriptionService
 )(implicit val ec: ExecutionContext)
     extends BackendController(controllerComponents) {
 
@@ -46,7 +46,7 @@ class AvailableCreditDateRangesController @Inject() (
     }
 
   private def getDataRange(userAnswers: UserAnswers, pptReference: String)(implicit hc: HeaderCarrier): Future[Result] =
-    subscriptionsConnector.getSubscriptionFuture(pptReference).map { subscription =>
+    subscriptionsService.getSubscriptionFuture(pptReference).map { subscription =>
       val taxStartDate  = subscription.taxStartDate()
       val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
       val dateRanges    = availableCreditDateRangesService.calculate(returnEndDate, taxStartDate)

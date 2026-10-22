@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-package test
-
 /*
  * Copyright 2026 HM Revenue & Customs
  *
@@ -33,7 +31,7 @@ package test
  */
 
 import com.codahale.metrics.SharedMetricRegistries
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.mockito.Mockito.reset
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -45,36 +43,47 @@ import play.api.http.{HeaderNames, Status}
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.libs.ws.WSClient
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import play.api.libs.ws.WSClient
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import support.WiremockItServer
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
+  SubscriptionUpdateRequest,
+  SubscriptionUpdateWithNrsSuccessfulResponse
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.NrsTestData
-import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{createSubscriptionDisplayResponse, createSubscriptionUpdateRequest, soleTraderSubscription, ukLimitedCompanySubscription}
+import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData.{
+  createSubscriptionDisplayResponse,
+  createSubscriptionUpdateRequest,
+  soleTraderSubscription,
+  ukLimitedCompanySubscription
+}
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 
 import java.time.{ZoneOffset, ZonedDateTime}
 
-class SubscriptionItSpec
-    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with NrsTestData with BeforeAndAfterAll with BeforeAndAfterEach {
+class HipSubscriptionItSpec
+    extends PlaySpec with GuiceOneServerPerSuite with AuthTestSupport with NrsTestData with BeforeAndAfterAll
+    with BeforeAndAfterEach {
 
   implicit lazy val wireMock: WiremockItServer = WiremockItServer()
   private lazy val wsClient: WSClient          = app.injector.instanceOf[WSClient]
 
+  private val successfulDisplayResponseWithHipSuccessWrapper =
+    Json.obj("success" -> createSubscriptionDisplayResponse(soleTraderSubscription))
+
   private val successfulDisplayResponse = Json.toJson(createSubscriptionDisplayResponse(soleTraderSubscription))
   private val subscriptionUrl           = s"http://localhost:$port/subscriptions/$pptReference"
-  private val eisSubscriptionDisplayUrl = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/display"
-  private val eisSubscriptionUpdateUrl  = s"/plastic-packaging-tax/subscriptions/PPT/$pptReference/update"
+  private val hipSubscriptionUrl        = s"/etmp/RESTAdapter/plastic-packaging-tax/subscriptions/PPT/$pptReference"
 
   override lazy val app: Application = {
     wireMock.start()
     SharedMetricRegistries.clear()
     GuiceApplicationBuilder()
-      .configure(wireMock.overrideConfig)
+      .configure(wireMock.overrideConfig ++ Map("features.hip.returns" -> "true"))
       .overrides(bind[AuthConnector].to(mockAuthConnector), bind[SessionRepository].to(mock[SessionRepository]))
       .build()
   }
@@ -98,7 +107,7 @@ class SubscriptionItSpec
   "Get" should {
     "return 200" in {
       withAuthorizedUser()
-      stubSubscriptionDisplay(successfulDisplayResponse.toString())
+      stubSubscriptionDisplay(successfulDisplayResponseWithHipSuccessWrapper.toString())
 
       val response = await(wsClient.url(subscriptionUrl).get())
 
@@ -107,7 +116,7 @@ class SubscriptionItSpec
 
     "return a json display response" in {
       withAuthorizedUser()
-      stubSubscriptionDisplay(successfulDisplayResponse.toString())
+      stubSubscriptionDisplay(successfulDisplayResponseWithHipSuccessWrapper.toString())
 
       val response = await(wsClient.url(subscriptionUrl).get())
 
@@ -140,7 +149,7 @@ class SubscriptionItSpec
 
       await(wsClient.url(subscriptionUrl).get())
 
-      wireMock.verify(1, getRequestedFor(urlEqualTo(eisSubscriptionDisplayUrl)))
+      wireMock.verify(1, getRequestedFor(urlEqualTo(hipSubscriptionUrl)))
     }
     "use a eis bearer token" in {
       withAuthorizedUser()
@@ -149,8 +158,8 @@ class SubscriptionItSpec
       await(wsClient.url(subscriptionUrl).get())
 
       wireMock.verify(
-        getRequestedFor(urlEqualTo(eisSubscriptionDisplayUrl))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        getRequestedFor(urlEqualTo(hipSubscriptionUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Basic YXBpLWNsaWVudC1pZDphcGktY2xpZW50LXNlY3JldA=="))
       )
     }
   }
@@ -172,7 +181,12 @@ class SubscriptionItSpec
 
       withClue("return a json") {
         response.json mustBe Json.toJson(
-          SubscriptionUpdateWithNrsSuccessfulResponse(pptReference, processingDate, "123", "testNonRepudiationSubmissionId")
+          SubscriptionUpdateWithNrsSuccessfulResponse(
+            pptReference,
+            processingDate,
+            "123",
+            "testNonRepudiationSubmissionId"
+          )
         )
       }
     }
@@ -185,7 +199,7 @@ class SubscriptionItSpec
 
       await(updateSubscription(updateDetails))
 
-      wireMock.verify(1, putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl)))
+      wireMock.verify(1, putRequestedFor(urlEqualTo(hipSubscriptionUrl)))
     }
 
     "use a eis bearer token" in {
@@ -196,8 +210,8 @@ class SubscriptionItSpec
       await(updateSubscription(updateDetails))
 
       wireMock.verify(
-        putRequestedFor(urlEqualTo(eisSubscriptionUpdateUrl))
-          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Bearer eis-test123456"))
+        putRequestedFor(urlEqualTo(hipSubscriptionUrl))
+          .withHeader(HeaderNames.AUTHORIZATION, equalTo("Basic YXBpLWNsaWVudC1pZDphcGktY2xpZW50LXNlY3JldA=="))
       )
     }
 
@@ -216,30 +230,32 @@ class SubscriptionItSpec
     wsClient.url(subscriptionUrl).addHttpHeaders("Authorization" -> "TOKEN")
       .put(Json.toJson(updateDetails))
 
-  def stubSubscriptionDisplay(body: String) =
-    wireMock.stubFor(get(eisSubscriptionDisplayUrl).willReturn(ok().withBody(body)))
+  def stubSubscriptionDisplay(body: String) = wireMock.stubFor(get(hipSubscriptionUrl).willReturn(ok().withBody(body)))
 
   def stubSubscriptionErrorDisplay =
-    wireMock.stubFor(get(eisSubscriptionDisplayUrl).willReturn(notFound().withBody("""{"a": "test-a", "b": "test-b"}""")))
+    wireMock.stubFor(get(hipSubscriptionUrl).willReturn(notFound().withBody("""{"a": "test-a", "b": "test-b"}""")))
 
   private def stubSubscriptionUpdate(processingDate: ZonedDateTime, formBuildNUmber: String): Unit =
     wireMock.stubFor(
-      put(eisSubscriptionUpdateUrl)
+      put(hipSubscriptionUrl)
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
             .withBody(
               Json.obj(
-                "pptReferenceNumber" -> pptReference,
-                "processingDate"     -> processingDate.toString,
-                "formBundleNumber"   -> formBuildNUmber
+                "success" ->
+                  Json.obj(
+                    "pptReferenceNumber" -> pptReference,
+                    "processingDate"     -> processingDate.toString,
+                    "formBundleNumber"   -> formBuildNUmber
+                  )
               ).toString
             )
         )
     )
 
   private def stubSubscriptionUpdateError(): Unit =
-    wireMock.stubFor(put(eisSubscriptionUpdateUrl).willReturn(serverError().withBody("error")))
+    wireMock.stubFor(put(hipSubscriptionUrl).willReturn(serverError().withBody("error")))
 
   private def stubNonRepudiationSubmission: StubMapping =
     wireMock.stubFor(

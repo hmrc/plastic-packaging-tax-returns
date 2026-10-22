@@ -26,8 +26,8 @@ import org.scalatest.{BeforeAndAfterEach, Suite}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors._
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise._
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.*
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.des.enterprise.*
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.exportcreditbalance.ExportCreditBalanceDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.returns.Return
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
@@ -35,7 +35,9 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateRequest,
   SubscriptionUpdateSuccessfulResponse
 }
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.SubscriptionService
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
 
 import java.time.LocalDate
@@ -44,30 +46,40 @@ import scala.concurrent.Future
 trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
   self: Suite =>
 
-  protected val mockSubscriptionsConnector: SubscriptionsConnector             = mock[SubscriptionsConnector]
-  protected val mockEisExportCreditBalanceConnector: EisExportCreditBalanceConnector = mock[EisExportCreditBalanceConnector]
-  protected val mockNonRepudiationConnector: NonRepudiationConnector           = mock[NonRepudiationConnector]
-  protected val mockEisReturnsConnector: EisReturnsConnector                   = mock[EisReturnsConnector]
-  protected val mockHipReturnsConnector: HipReturnsConnector                   = mock[HipReturnsConnector]
-  protected val mockObligationDataConnector: ObligationsDataConnector          = mock[ObligationsDataConnector]
-  protected val mockFinancialDataConnector: FinancialDataConnector             = mock[FinancialDataConnector]
+  protected val mockEisSubscriptionsConnector: EisSubscriptionsConnector = mock[EisSubscriptionsConnector]
+  protected val mockSubscriptionsService: SubscriptionService            = mock[SubscriptionService]
+
+  protected val mockEisExportCreditBalanceConnector: EisExportCreditBalanceConnector =
+    mock[EisExportCreditBalanceConnector]
+
+  protected val mockNonRepudiationConnector: NonRepudiationConnector  = mock[NonRepudiationConnector]
+  protected val mockEisReturnsConnector: EisReturnsConnector          = mock[EisReturnsConnector]
+  protected val mockHipReturnsConnector: HipReturnsConnector          = mock[HipReturnsConnector]
+  protected val mockObligationDataConnector: ObligationsDataConnector = mock[ObligationsDataConnector]
+  protected val mockFinancialDataConnector: FinancialDataConnector    = mock[FinancialDataConnector]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    reset(mockSubscriptionsConnector, mockNonRepudiationConnector, mockEisReturnsConnector, mockHipReturnsConnector)
+    reset(
+      mockEisSubscriptionsConnector,
+      mockNonRepudiationConnector,
+      mockEisReturnsConnector,
+      mockHipReturnsConnector,
+      mockSubscriptionsService
+    )
   }
 
   protected def mockGetSubscription(
     pptReference: String,
     displayResponse: SubscriptionDisplayResponse
   ): OngoingStubbing[Future[Either[EisHttpResponse, SubscriptionDisplayResponse]]] =
-    when(mockSubscriptionsConnector.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
+    when(mockSubscriptionsService.getSubscription(ArgumentMatchers.eq(pptReference))(any[HeaderCarrier])).thenReturn(
       Future.successful(Right(displayResponse))
     )
 
   protected def mockSubscriptionSubmitFailure(ex: Exception)
     : OngoingStubbing[Future[SubscriptionUpdateSuccessfulResponse]] =
-    when(mockSubscriptionsConnector.updateSubscription(any(), any())(any()))
+    when(mockSubscriptionsService.updateSubscription(any(), any())(any()))
       .thenThrow(ex)
 
   protected def mockSubscriptionUpdate(
@@ -76,7 +88,7 @@ trait MockConnectors extends MockitoSugar with BeforeAndAfterEach {
     subscription: SubscriptionUpdateSuccessfulResponse
   ): OngoingStubbing[Future[SubscriptionUpdateSuccessfulResponse]] =
     when(
-      mockSubscriptionsConnector.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
+      mockSubscriptionsService.updateSubscription(ArgumentMatchers.eq(pptReference), ArgumentMatchers.eq(request))(
         any[HeaderCarrier]
       )
     ).thenReturn(Future.successful(subscription))

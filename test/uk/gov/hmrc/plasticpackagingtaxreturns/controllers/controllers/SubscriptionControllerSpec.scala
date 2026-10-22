@@ -31,22 +31,18 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc.Result
-import play.api.test.Helpers.{route, status, _}
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
-  SubscriptionUpdateRequest,
-  SubscriptionUpdateSuccessfulResponse,
-  SubscriptionUpdateWithNrsFailureResponse,
-  SubscriptionUpdateWithNrsSuccessfulResponse
-}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{SubscriptionUpdateRequest, SubscriptionUpdateSuccessfulResponse, SubscriptionUpdateWithNrsFailureResponse, SubscriptionUpdateWithNrsSuccessfulResponse}
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.AuthTestSupport
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.unit.MockConnectors
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.NonRepudiationSubmissionAccepted
 import uk.gov.hmrc.plasticpackagingtaxreturns.repositories.SessionRepository
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.SubscriptionService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EisHttpResponse
@@ -64,7 +60,7 @@ class SubscriptionControllerSpec
   override lazy val app: Application = GuiceApplicationBuilder()
     .overrides(
       bind[AuthConnector].to(mockAuthConnector),
-      bind[SubscriptionsConnector].to(mockSubscriptionsConnector),
+      bind[SubscriptionService].to(mockSubscriptionsService),
       bind[NonRepudiationService].to(mockNonRepudiationService),
       bind[SessionRepository].to(mock[SessionRepository])
     )
@@ -73,7 +69,7 @@ class SubscriptionControllerSpec
   override def beforeEach(): Unit = {
     super.beforeEach()
     reset(mockAuthConnector)
-    reset(mockSubscriptionsConnector)
+    reset(mockSubscriptionsService)
     reset(mockNonRepudiationService)
   }
 
@@ -122,7 +118,7 @@ class SubscriptionControllerSpec
         when(mockHttpResponse.status).thenReturn(417)
         when(mockHttpResponse.body).thenReturn("""{"x": "y"}""")
 
-        when(mockSubscriptionsConnector.getSubscription(any())(any())).thenReturn(
+        when(mockSubscriptionsService.getSubscription(any())(any())).thenReturn(
           Future.successful(Left(mockHttpResponse))
         )
 
@@ -139,7 +135,7 @@ class SubscriptionControllerSpec
         val result: Future[Result] = route(app, getRequest(pptReference)).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockSubscriptionsConnector)
+        verifyNoInteractions(mockSubscriptionsService)
       }
     }
   }
@@ -304,7 +300,7 @@ class SubscriptionControllerSpec
         val result: Future[Result] = route(app, put.withJsonBody(toJson(request))).get
 
         status(result) must be(UNAUTHORIZED)
-        verifyNoInteractions(mockSubscriptionsConnector)
+        verifyNoInteractions(mockSubscriptionsService)
       }
     }
 

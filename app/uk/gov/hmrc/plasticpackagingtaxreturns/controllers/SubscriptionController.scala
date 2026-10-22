@@ -18,10 +18,9 @@ package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
-import play.api.mvc._
+import play.api.mvc.*
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.plasticpackagingtaxreturns.audit.ChangeSubscriptionEvent
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.SubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription.Subscription
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.{
   SubscriptionUpdateRequest,
@@ -29,9 +28,11 @@ import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscription
   SubscriptionUpdateWithNrsFailureResponse,
   SubscriptionUpdateWithNrsSuccessfulResponse
 }
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.{Authenticator, AuthorizedRequest}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.response.JSONResponses
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.nonRepudiation.{NonRepudiationSubmissionAccepted, NrsDetails}
+import uk.gov.hmrc.plasticpackagingtaxreturns.services.SubscriptionService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.nonRepudiation.NonRepudiationService.NotableEvent
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -42,7 +43,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SubscriptionController @Inject() (
-  subscriptionsConnector: SubscriptionsConnector,
+  subscriptionsService: SubscriptionService,
   authenticator: Authenticator,
   auditConnector: AuditConnector,
   nonRepudiationService: NonRepudiationService,
@@ -52,7 +53,7 @@ class SubscriptionController @Inject() (
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
-      subscriptionsConnector.getSubscription(pptReference).map {
+      subscriptionsService.getSubscription(pptReference).map {
         case Right(response) => Ok(response)
         case Left(errorResponse) =>
           val bodyAsJson = Json.parse(errorResponse.body)
@@ -64,7 +65,7 @@ class SubscriptionController @Inject() (
     authenticator.authorisedAction(authenticator.parsingJson[SubscriptionUpdateRequest], pptReference) {
       implicit request =>
         val updatedSubscription = request.body.toSubscription
-        subscriptionsConnector.updateSubscription(pptReference, request.body).flatMap {
+        subscriptionsService.updateSubscription(pptReference, request.body).flatMap {
           case response @ SubscriptionUpdateSuccessfulResponse(_, _, _) =>
             handleNrsRequest(request, updatedSubscription, response)
         }

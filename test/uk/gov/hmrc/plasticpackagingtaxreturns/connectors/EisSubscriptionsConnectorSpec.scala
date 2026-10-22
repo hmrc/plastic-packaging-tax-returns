@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatest.EitherValues
 import org.scalatest.Inspectors.forAll
 import org.scalatest.concurrent.ScalaFutures
@@ -25,16 +25,17 @@ import play.api.libs.json.{JsResultException, Json}
 import play.api.test.Helpers.await
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionDisplay.SubscriptionDisplayResponse
 import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.models.eis.subscriptionUpdate.SubscriptionUpdateSuccessfulResponse
+import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.base.it.{ConnectorISpec, Injector}
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.models.SubscriptionTestData
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.UUID
 
-class SubscriptionsConnectorSpec
+class EisSubscriptionsConnectorSpec
     extends ConnectorISpec with Injector with SubscriptionTestData with ScalaFutures with EitherValues {
 
-  private lazy val connector: SubscriptionsConnector = app.injector.instanceOf[SubscriptionsConnector]
+  private lazy val connector: EisSubscriptionsConnector = app.injector.instanceOf[EisSubscriptionsConnector]
 
   private val displaySubscriptionTimer = "ppt.subscription.display.timer"
   private val updateSubscriptionTimer  = "ppt.subscription.update.timer"
