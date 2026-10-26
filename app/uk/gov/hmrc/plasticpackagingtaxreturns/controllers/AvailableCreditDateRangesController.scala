@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.controllers
 
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.plasticpackagingtaxreturns.connectors.subscriptions.EisSubscriptionsConnector
 import uk.gov.hmrc.plasticpackagingtaxreturns.controllers.actions.Authenticator
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.UserAnswers
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.cache.gettables.returns.ReturnObligationToDateGettable
@@ -36,7 +36,7 @@ class AvailableCreditDateRangesController @Inject() (
   override val controllerComponents: ControllerComponents,
   subscriptionsService: SubscriptionService
 )(implicit val ec: ExecutionContext)
-    extends BackendController(controllerComponents) {
+    extends BackendController(controllerComponents) with Logging {
 
   def get(pptReference: String): Action[AnyContent] =
     authenticator.authorisedAction(parse.default, pptReference) { implicit request =>
@@ -50,6 +50,14 @@ class AvailableCreditDateRangesController @Inject() (
       val taxStartDate  = subscription.taxStartDate()
       val returnEndDate = userAnswers.getOrFail(ReturnObligationToDateGettable)
       val dateRanges    = availableCreditDateRangesService.calculate(returnEndDate, taxStartDate)
+      logger.warn(
+        s"Logging data for DCA-271 Date Range minBy issue for pptReference: $pptReference\n" +
+          s"subscription from subscriptionsService.getSubscriptionFuture(pptReference): $subscription \n" +
+          s"subscription.taxStartDate(): $taxStartDate \n" +
+          s"userAnswers.getOrFail(ReturnObligationToDateGettable): $returnEndDate \n" +
+          s"uavailableCreditDateRangesService.calculate(returnEndDate, taxStartDate): $dateRanges \n" +
+          s"json conversion of dateRanges: ${Json.toJson(dateRanges)}"
+      )
       Ok(Json.toJson(dateRanges))
     }
 
