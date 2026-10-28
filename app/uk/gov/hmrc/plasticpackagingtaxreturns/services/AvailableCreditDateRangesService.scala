@@ -16,41 +16,29 @@
 
 package uk.gov.hmrc.plasticpackagingtaxreturns.services
 
-import play.api.Logging
 import uk.gov.hmrc.plasticpackagingtaxreturns.models.returns.CreditRangeOption
 import uk.gov.hmrc.plasticpackagingtaxreturns.services.AvailableCreditDateRangesService.TaxQuarter
 import uk.gov.hmrc.plasticpackagingtaxreturns.util.EdgeOfSystem
 
-import java.time.Month.*
+import java.time.Month._
 import java.time.{LocalDate, Month}
 import javax.inject.Inject
 
-class AvailableCreditDateRangesService @Inject() (edgeOfSystem: EdgeOfSystem) extends Logging {
+class AvailableCreditDateRangesService @Inject() (edgeOfSystem: EdgeOfSystem) {
 
-  def taxYears(date: LocalDate): Seq[(LocalDate, LocalDate)] = {
-    val ty: Seq[(LocalDate, LocalDate)] = TaxQuarter(date)
+  def taxYears(date: LocalDate): Seq[(LocalDate, LocalDate)] =
+    TaxQuarter(date)
       .previousEightQuarters
       .groupBy(_.taxYear)
       .values.toSeq
       .map(range => range.minBy(_.fromDate).fromDate -> range.maxBy(_.toDate).toDate)
-    logger.warn(s"AvailableCreditDateRangesService.taxYears $ty")
-    ty
-  }
 
   def calculate(returnEndDate: LocalDate, taxStartDate: LocalDate = LocalDate.of(2022, 4, 1)): Seq[CreditRangeOption] =
     taxYears(returnEndDate).collect {
-      case (from, to) if from.isAfter(taxStartDate) =>
-        logger.warn(s"AvailableCreditDateRangesService.calculate case 1: $from -> $to")
-        from -> to
-      case (from, to) if from.isEqual(taxStartDate) =>
-        logger.warn(s"AvailableCreditDateRangesService.calculate case 2: $from -> $to")
-        from -> to
-      case (from, to) if to.isEqual(taxStartDate) =>
-        logger.warn(s"AvailableCreditDateRangesService.calculate case 3: $from -> $to")
-        from -> to
-      case (from, to) if from.isBefore(taxStartDate) && to.isAfter(taxStartDate) =>
-        logger.warn(s"AvailableCreditDateRangesService.calculate case 4: $taxStartDate -> $to")
-        taxStartDate -> to
+      case (from, to) if from.isAfter(taxStartDate)                              => from         -> to
+      case (from, to) if from.isEqual(taxStartDate)                              => from         -> to
+      case (from, to) if to.isEqual(taxStartDate)                                => from         -> to
+      case (from, to) if from.isBefore(taxStartDate) && to.isAfter(taxStartDate) => taxStartDate -> to
     }.map(CreditRangeOption.apply)
 
 }
