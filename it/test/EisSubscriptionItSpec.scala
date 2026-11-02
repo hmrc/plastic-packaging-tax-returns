@@ -245,7 +245,7 @@ class EisSubscriptionItSpec
     wireMock.stubFor(
       post(s"/submission")
         .withRequestBody(matchingJsonPath("payload"))
-        .withHeader("X-API-Key", equalTo("test-key"))
+        .withHeader("X-API-Key", equalTo("test-key-new"))
         .willReturn(
           aResponse()
             .withStatus(202)
