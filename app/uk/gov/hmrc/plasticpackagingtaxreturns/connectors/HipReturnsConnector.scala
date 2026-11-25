@@ -69,7 +69,7 @@ class HipReturnsConnector @Inject() (
                 throw new RuntimeException(s"Response body could not be read as type Return", exception)
             }.toEither match {
               case Right(res) =>
-                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, None)
                 auditConnector.sendExplicitAudit(
                   GetReturn.eventType,
                   GetReturn(internalId, periodKey, SUCCESS, Some(response.json), None)
@@ -77,7 +77,7 @@ class HipReturnsConnector @Inject() (
                 Right(res)
 
               case Left(ex) =>
-                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+                logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, Some(response.body))
                 auditConnector.sendExplicitAudit(
                   GetReturn.eventType,
                   GetReturn(internalId, periodKey, FAILURE, None, Some(ex.getMessage))
@@ -85,7 +85,7 @@ class HipReturnsConnector @Inject() (
                 Left(Status.INTERNAL_SERVER_ERROR)
             }
           case _ =>
-            logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, response.body)
+            logReturnDisplayResponse(pptReference, periodKey, correlationId, response.status, Some(response.body))
             auditConnector.sendExplicitAudit(
               GetReturn.eventType,
               GetReturn(internalId, periodKey, FAILURE, None, Some(response.body))
@@ -176,7 +176,7 @@ class HipReturnsConnector @Inject() (
     periodKey: String,
     correlationId: String,
     status: Int,
-    body: String
+    body: Option[String]
   ): Unit = logger.warn(cookLogMessage(pptReference, periodKey, correlationId, status, body))
 
   private def cookLogMessage(
@@ -184,10 +184,11 @@ class HipReturnsConnector @Inject() (
     periodKey: String,
     correlationId: String,
     status: Int,
-    body: String
+    body: Option[String]
   ) =
     s"Return Display API call for correlationId [${correlationId}], " +
       s"pptReference [$pptReference], periodKey [$periodKey]" +
-      s"Hip returned a status of: $status and a body of: $body"
+      s"Hip returned a status of: $status" +
+      s"${body.fold("")(x => s"and a body of: $x")}"
 
 }
